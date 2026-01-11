@@ -64,3 +64,5 @@ data/
 
 # Misc
 .env.backup
+.server-requests/
+scripts/

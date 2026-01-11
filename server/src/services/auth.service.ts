@@ -4,6 +4,7 @@ import { AuthResponse, UserResponse } from '../types/user.types';
 import { generatePasswordResetToken, verifyPasswordResetToken } from '../config/jwt.config';
 import { emailService } from './email.service';
 import { HydratedDocument } from 'mongoose';
+import { AppError } from '../middleware/error.middleware';
 
 /**
  * Authentication Service
@@ -38,7 +39,7 @@ export class AuthService {
     // Check if email already exists
     const existingUser = await UserModel.findOne({ 'local.email': data.email });
     if (existingUser) {
-      throw new Error('Email already registered');
+      throw new AppError(409, 'Email already registered');
     }
 
     // Create new user (password will be hashed by pre-save hook)
@@ -71,13 +72,13 @@ export class AuthService {
     const user = await UserModel.findOne({ 'local.email': data.email });
     
     if (!user || user.method !== 'local') {
-      throw new Error('Invalid email or password');
+      throw new AppError(401, 'Invalid email or password');
     }
 
     // Verify password
     const isValidPassword = await user.verifyPassword(data.password);
     if (!isValidPassword) {
-      throw new Error('Invalid email or password');
+      throw new AppError(401, 'Invalid email or password');
     }
 
     // Generate JWT token
