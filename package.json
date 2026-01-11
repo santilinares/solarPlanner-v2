@@ -1,0 +1,29 @@
+{
+  "name": "solar-planner-v2",
+  "version": "2.0.0",
+  "description": "Solar Planner v2.0 - Full Stack Application",
+  "private": true,
+  "scripts": {
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "install:all": "npm run install:client && npm run install:server",
+    "start:client": "cd client && npm start",
+    "start:server": "cd server && npm run dev",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "build": "npm run build:server && npm run build:client",
+    "test:client": "cd client && npm test",
+    "test:server": "cd server && npm test",
+    "test": "npm run test:server && npm run test:client",
+    "lint:client": "cd client && npm run lint",
+    "lint:server": "cd server && npm run lint",
+    "lint": "npm run lint:server && npm run lint:client"
+  },
+  "keywords": ["solar", "planner", "angular", "nodejs", "typescript"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
