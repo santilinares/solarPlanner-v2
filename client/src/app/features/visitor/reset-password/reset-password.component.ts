@@ -1,8 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '@core/services';
+import { getErrorMessage } from '@core/models';
 
 @Component({
   selector: 'app-reset-password',
@@ -175,7 +176,7 @@ import { AuthService } from '@core/services';
     }
   `]
 })
-export class ResetPasswordComponent implements OnInit {
+export class ResetPasswordComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
@@ -184,8 +185,8 @@ export class ResetPasswordComponent implements OnInit {
   loading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
+  private redirectTimeout?: ReturnType<typeof setTimeout>;
 
-  userId: string = '';
   token: string = '';
 
   resetPasswordForm: FormGroup = this.fb.group({
@@ -194,8 +195,11 @@ export class ResetPasswordComponent implements OnInit {
   }, { validators: this.passwordMatchValidator });
 
   ngOnInit(): void {
-    this.userId = this.route.snapshot.paramMap.get('id') || '';
-    this.token = this.route.snapshot.paramMap.get('token') || '';
+    // Support both new (?token=...) and old (/reset-password/:id/:token) formats
+    this.token =
+      this.route.snapshot.queryParamMap.get('token') ||
+      this.route.snapshot.paramMap.get('token') ||
+      '';
   }
 
   passwordMatchValidator(form: FormGroup) {
@@ -214,21 +218,31 @@ export class ResetPasswordComponent implements OnInit {
       this.errorMessage.set('');
       this.successMessage.set('');
 
-      const password = this.resetPasswordForm.value.password;
+      const password = this.resetPasswordForm.get('password')?.value as string;
 
-      this.authService.resetPassword(this.userId, this.token, password).subscribe({
-        next: (response) => {
+      this.authService.resetPassword(this.token, password).subscribe({
+        next: () => {
           this.loading.set(false);
           this.successMessage.set('Password reset successful! Redirecting to login...');
-          setTimeout(() => {
-            this.router.navigate(['/login']);
+          this.redirectTimeout = setTimeout(() => {
+            this.router.navigate(['/login']).catch(() => {
+              // Fallback to hard navigation if Angular routing fails
+              window.location.href = '/login';
+            });
           }, 2000);
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(err.error?.message || 'Failed to reset password. Link may be expired.');
+          const message: string = getErrorMessage(err, 'Failed to reset password. Link may be expired.');
+          this.errorMessage.set(message);
         }
       });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.redirectTimeout) {
+      clearTimeout(this.redirectTimeout);
     }
   }
 }

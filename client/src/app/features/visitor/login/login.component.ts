@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '@core/services';
+import { LoginRequest, getErrorMessage } from '@core/models';
 
 @Component({
   selector: 'app-login',
@@ -185,13 +186,19 @@ export class LoginComponent {
       this.loading.set(true);
       this.errorMessage.set('');
 
-      this.authService.login(this.loginForm.value).subscribe({
+      const credentials = this.loginForm.value as LoginRequest;
+
+      this.authService.login(credentials).subscribe({
         next: () => {
-          this.router.navigate(['/projects']);
+          this.router.navigate(['/projects']).catch(() => {
+            // Fallback to hard navigation if Angular routing fails
+            window.location.href = '/projects';
+          });
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(err.error?.message || 'Login failed. Please try again.');
+          const message: string = getErrorMessage(err, 'Login failed. Please try again.');
+          this.errorMessage.set(message);
         },
         complete: () => {
           this.loading.set(false);

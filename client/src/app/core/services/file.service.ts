@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { PlanData } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -31,7 +32,7 @@ export class FileService {
    * Generate PDF from project data
    * Uses jsPDF library for client-side generation
    */
-  generateProjectPDF(projectData: any): void {
+  generateProjectPDF(projectData: PlanData): void {
     // TODO: Implement jsPDF generation
     console.log('PDF generation not yet implemented', projectData);
   }

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
-import { Project, ProjectCreateRequest, ProjectUpdateRequest, PaginatedResponse } from '../models';
+import { Project, ProjectCreateRequest, ProjectUpdateRequest, PaginatedResponse, SunPathData, PlanData } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -36,8 +36,10 @@ export class ProjectService {
 
   /**
    * Update project
+   * TODO: Server doesn't have update endpoint yet
    */
   updateProject(id: string, data: ProjectUpdateRequest): Observable<Project> {
+    console.warn('Project update not implemented on server');
     return this.http.put<Project>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -58,19 +60,16 @@ export class ProjectService {
   }
 
   /**
-   * Get production data for project
+   * Get project plan data
    */
-  getProductionData(id: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/${id}/production`);
+  getPlanData(id: string): Observable<PlanData> {
+    return this.http.get<PlanData>(`${this.apiUrl}/${id}/plan`);
   }
 
   /**
-   * Generate PDF plan for project
-   * TODO: Implement jsPDF generation logic
+   * Get sun path data for project
    */
-  generatePDF(id: string): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/${id}/pdf`, {
-      responseType: 'blob'
-    });
+  getSunPath(id: string): Observable<SunPathData> {
+    return this.http.get<SunPathData>(`${this.apiUrl}/${id}/sun-path`);
   }
 }

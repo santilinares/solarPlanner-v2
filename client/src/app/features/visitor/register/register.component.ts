@@ -1,8 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '@core/services';
+import { RegisterRequest, getErrorMessage } from '@core/models';
 
 @Component({
   selector: 'app-register',
@@ -193,7 +194,7 @@ import { AuthService } from '@core/services';
     }
   `]
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -201,6 +202,7 @@ export class RegisterComponent {
   loading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
+  private redirectTimeout?: ReturnType<typeof setTimeout>;
 
   registerForm: FormGroup = this.fb.group({
     firstName: ['', Validators.required],
@@ -215,18 +217,30 @@ export class RegisterComponent {
       this.errorMessage.set('');
       this.successMessage.set('');
 
-      this.authService.register(this.registerForm.value).subscribe({
+      const registerData = this.registerForm.value as RegisterRequest;
+
+      this.authService.register(registerData).subscribe({
         next: () => {
           this.successMessage.set('Account created successfully! Redirecting...');
-          setTimeout(() => {
-            this.router.navigate(['/projects']);
+          this.redirectTimeout = setTimeout(() => {
+            this.router.navigate(['/projects']).catch(() => {
+              // Fallback to hard navigation if Angular routing fails
+              window.location.href = '/projects';
+            });
           }, 1500);
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(err.error?.message || 'Registration failed. Please try again.');
+          const message: string = getErrorMessage(err, 'Registration failed. Please try again.');
+          this.errorMessage.set(message);
         }
       });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.redirectTimeout) {
+      clearTimeout(this.redirectTimeout);
     }
   }
 }

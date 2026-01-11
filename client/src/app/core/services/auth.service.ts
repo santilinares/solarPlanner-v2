@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '@environments/environment';
 import {
   User,
@@ -11,13 +11,24 @@ import {
   ForgotPasswordRequest
 } from '../models';
 
+/**
+ * JWT Token Payload structure
+ */
+interface JwtPayload {
+  _id: string;
+  role: 'user' | 'admin';
+  exp: number;
+  iat?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
-  private readonly apiUrl = `${environment.apiUrl}/users`;
+  private readonly authUrl = `${environment.apiUrl}/auth`;
+  private readonly usersUrl = `${environment.apiUrl}/users`;
 
   // Signals for reactive state
   currentUser = signal<User | null>(null);
@@ -31,7 +42,12 @@ export class AuthService {
    * Register a new user
    */
   register(data: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/registration`, data).pipe(
+    const payload = {
+      fullName: `${data.firstName} ${data.lastName}`.trim(),
+      email: data.email,
+      password: data.password,
+    };
+    return this.http.post<AuthResponse>(`${this.authUrl}/register`, payload).pipe(
       tap((response) => this.handleAuthSuccess(response))
     );
   }
@@ -40,7 +56,7 @@ export class AuthService {
    * Login user
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+    return this.http.post<AuthResponse>(`${this.authUrl}/login`, credentials).pipe(
       tap((response) => this.handleAuthSuccess(response))
     );
   }
@@ -52,24 +68,37 @@ export class AuthService {
     localStorage.removeItem('token');
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login']).catch(() => {
+      // Fallback to hard navigation if Angular routing fails
+      window.location.href = '/login';
+    });
   }
 
   /**
    * Request password reset
    */
-  forgotPassword(data: ForgotPasswordRequest): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/forgot_password`, data);
+  forgotPassword(data: ForgotPasswordRequest): Observable<{ message?: string }> {
+    return this.http.post<{ message?: string }>(
+      `${this.authUrl}/password/reset-request`,
+      { email: data.email }
+    );
   }
 
   /**
    * Reset password with token
    */
-  resetPassword(id: string, token: string, password: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      `${this.apiUrl}/reset_password/${id}/${token}`,
-      { password }
+  resetPassword(token: string, newPassword: string): Observable<{ message?: string }> {
+    return this.http.post<{ message?: string }>(
+      `${this.authUrl}/password/reset`,
+      { token, newPassword }
     );
+  }
+
+  /**
+   * Get current user profile (requires JWT)
+   */
+  getMe(): Observable<User> {
+    return this.http.get<User>(`${this.usersUrl}/me`);
   }
 
   /**
@@ -82,13 +111,13 @@ export class AuthService {
   /**
    * Get decoded user from token (basic JWT decode)
    */
-  getDecodedToken(): any {
+  getDecodedToken(): JwtPayload | null {
     const token = this.getToken();
     if (!token) return null;
 
     try {
       const payload = token.split('.')[1];
-      return JSON.parse(atob(payload));
+      return JSON.parse(atob(payload)) as JwtPayload;
     } catch {
       return null;
     }
@@ -99,7 +128,7 @@ export class AuthService {
    */
   isAdmin(): boolean {
     const decoded = this.getDecodedToken();
-    return decoded?.role === 'admin';
+    return decoded !== null && decoded.role === 'admin';
   }
 
   /**
@@ -118,9 +147,21 @@ export class AuthService {
     const token = this.getToken();
     if (token) {
       const decoded = this.getDecodedToken();
-      if (decoded && decoded.exp * 1000 > Date.now()) {
+      if (decoded !== null && decoded.exp * 1000 > Date.now()) {
         this.isAuthenticated.set(true);
-        // TODO: Fetch full user profile if needed
+        // Hydrate current user from server
+        this.getMe()
+          .pipe(
+            catchError(() => {
+              this.logout();
+              return of(null);
+            })
+          )
+          .subscribe((user) => {
+            if (user) {
+              this.currentUser.set(user);
+            }
+          });
       } else {
         this.logout();
       }

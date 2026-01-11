@@ -36,8 +36,10 @@ export class PanelService {
 
   /**
    * Update panel (admin only)
+   * TODO: Server doesn't have update endpoint yet
    */
   updatePanel(id: string, data: PanelUpdateRequest): Observable<Panel> {
+    console.warn('Panel update not implemented on server');
     return this.http.put<Panel>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -50,8 +52,10 @@ export class PanelService {
 
   /**
    * Search panels by criteria
+   * TODO: Server doesn't have search endpoint, use query params on GET /panels
    */
   searchPanels(criteria: Partial<Panel>): Observable<Panel[]> {
+    console.warn('Panel search not implemented on server, use getAllPanels with filters');
     return this.http.post<Panel[]>(`${this.apiUrl}/search`, criteria);
   }
 }

@@ -14,6 +14,7 @@ export const authGuard: CanActivateFn = () => {
   }
 
   // Redirect to login if not authenticated
-  router.navigate(['/login']);
+  //For guards, the cleanest approach is to use UrlTree return type and let Angular handle the navigation, or use void since we're already returning false.
+  void router.navigate(['/login']);
   return false;
 };

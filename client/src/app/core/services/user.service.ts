@@ -14,15 +14,25 @@ export class UserService {
   /**
    * Get current user profile
    */
-  getProfile(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/profile`);
+  getMe(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/me`);
   }
 
   /**
    * Update current user profile
    */
-  updateProfile(data: Partial<User>): Observable<User> {
-    return this.http.put<User>(`${this.apiUrl}/profile`, data);
+  updateProfile(userId: string, data: { fullName: string }): Observable<User> {
+    return this.http.patch<User>(`${this.apiUrl}/${userId}/profile`, data);
+  }
+
+  /**
+   * Change password
+   */
+  changePassword(userId: string, currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${userId}/password`, {
+      currentPassword,
+      newPassword
+    });
   }
 
   /**
@@ -42,23 +52,9 @@ export class UserService {
   }
 
   /**
-   * Update user (admin only)
-   */
-  updateUser(id: string, data: Partial<User>): Observable<User> {
-    return this.http.put<User>(`${this.apiUrl}/${id}`, data);
-  }
-
-  /**
    * Delete user (admin only)
    */
   deleteUser(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Toggle user active status (admin only)
-   */
-  toggleUserStatus(id: string): Observable<User> {
-    return this.http.patch<User>(`${this.apiUrl}/${id}/toggle-status`, {});
   }
 }

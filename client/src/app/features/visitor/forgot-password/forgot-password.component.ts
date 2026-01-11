@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '@core/services';
+import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
 @Component({
   selector: 'app-forgot-password',
@@ -177,15 +178,18 @@ export class ForgotPasswordComponent {
       this.errorMessage.set('');
       this.successMessage.set('');
 
-      this.authService.forgotPassword(this.forgotPasswordForm.value).subscribe({
+      const data = this.forgotPasswordForm.value as ForgotPasswordRequest;
+
+      this.authService.forgotPassword(data).subscribe({
         next: (response) => {
           this.loading.set(false);
-          this.successMessage.set(response.message || 'Password reset link sent to your email!');
+          this.successMessage.set(response.message ?? 'Password reset link sent to your email!');
           this.forgotPasswordForm.reset();
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(err.error?.message || 'Failed to send reset link. Please try again.');
+          const message: string = getErrorMessage(err, 'Failed to send reset link. Please try again.');
+          this.errorMessage.set(message);
         }
       });
     }
