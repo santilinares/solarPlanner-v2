@@ -18,6 +18,8 @@ export {
 	SunPathData,
 	PanelDetails,
 	PlanData,
+	DashboardStats,
+	ProjectResponse,
 } from './project.model';
 
 export * from './panel.model';

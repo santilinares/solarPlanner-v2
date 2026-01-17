@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
-import { Project, ProjectCreateRequest, ProjectUpdateRequest, PaginatedResponse, SunPathData, PlanData } from '../models';
+import { Project, ProjectCreateRequest, ProjectUpdateRequest, PaginatedResponse, SunPathData, PlanData, DashboardStats } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -71,5 +71,12 @@ export class ProjectService {
    */
   getSunPath(id: string): Observable<SunPathData> {
     return this.http.get<SunPathData>(`${this.apiUrl}/${id}/sun-path`);
+  }
+
+  /**
+   * Get dashboard statistics for current user
+   */
+  getDashboardStats(): Observable<DashboardStats> {
+    return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard`);
   }
 }

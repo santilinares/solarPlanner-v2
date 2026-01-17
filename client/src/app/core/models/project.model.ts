@@ -126,3 +126,43 @@ export interface PlanData {
   estimatedAnnualProduction: number;
   generatedAt: string;
 }
+
+/**
+ * Dashboard statistics
+ */
+export interface DashboardStats {
+  totalProjects: number;
+  totalPanels: number;
+  totalCapacity: number; // kW
+  totalProduction: number; // kWh
+  recentProjects: ProjectResponse[];
+}
+
+/**
+ * Project response from server
+ */
+export interface ProjectResponse {
+  _id: string;
+  name: string;
+  area: Array<{ lat: number; lon: number }>;
+  lat?: number;
+  lon?: number;
+  surface?: number;
+  country?: string;
+  timezone?: string;
+  currency?: string;
+  price?: number;
+  tilt: number;
+  direction: string;
+  azimuth?: number;
+  rawSpacing?: number;
+  panelNumber: number;
+  panel?: string;
+  owner?: string;
+  prodToday?: unknown[];
+  nextProd?: unknown[];
+  previousProd?: unknown[];
+  installDate: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,18 +1,18 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { LandingPageComponent } from './features/visitor/landing-page/landing-page.component';
+import { VisitorLayoutComponent } from './layouts/visitor-layout/visitor-layout.component';
 
 export const routes: Routes = [
   // Visitor routes (public)
   {
     path: '',
-    loadComponent: () => import('./layouts/visitor-layout/visitor-layout.component')
-      .then(m => m.VisitorLayoutComponent),
+    component: VisitorLayoutComponent,
     children: [
       {
         path: '',
-        loadComponent: () => import('./features/visitor/landing-page/landing-page.component')
-          .then(m => m.LandingPageComponent)
+        component: LandingPageComponent
       },
       {
         path: 'login',
