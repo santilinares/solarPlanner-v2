@@ -166,3 +166,19 @@ export interface ProjectResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Optimal configuration response
+ */
+export interface OptimalConfigResponse {
+  recommendedPanels: number;
+  estimatedCapacity: number; // kW
+  estimatedProduction: number; // kWh/year
+  coverage: number; // Percentage
+}
+
+export interface OptimalConfigFromPolygonRequest {
+  area: { lat: number; lon: number }[];
+  panelId: string;
+  tilt: number;
+}

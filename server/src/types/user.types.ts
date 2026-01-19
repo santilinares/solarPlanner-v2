@@ -13,6 +13,7 @@ export interface UserResponse {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   user: UserResponse;
 }
 

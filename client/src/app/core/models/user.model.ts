@@ -11,7 +11,7 @@ export interface User {
 
 export enum UserRole {
   USER = 'user',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
 }
 
 export interface LoginRequest {
@@ -28,7 +28,13 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   user: User;
+}
+
+export interface RefreshTokenRequest {
+  token: string;
+  refreshToken: string;
 }
 
 export interface ForgotPasswordRequest {

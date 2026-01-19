@@ -1,7 +1,11 @@
 import { UserModel, IUser } from '../models/user.model';
 import { UserCreateInput, UserLoginInput } from '../schemas/user.schema';
 import { AuthResponse, UserResponse } from '../types/user.types';
-import { generatePasswordResetToken, verifyPasswordResetToken } from '../config/jwt.config';
+import {
+  generatePasswordResetToken,
+  verifyPasswordResetToken,
+  verifyRefreshToken,
+} from '../config/jwt.config';
 import { emailService } from './email.service';
 import { HydratedDocument } from 'mongoose';
 import { AppError } from '../middleware/error.middleware';
@@ -19,7 +23,7 @@ export class AuthService {
    */
   private transformUserToResponse(user: HydratedDocument<IUser>): UserResponse {
     const email = user.method === 'local' ? user.local?.email : user.google?.email;
-    
+
     return {
       _id: user._id.toString(),
       fullName: user.fullName,
@@ -55,9 +59,11 @@ export class AuthService {
 
     // Generate JWT token
     const token = user.generateJwt();
+    const refreshToken = user.generateRefreshToken();
 
     return {
       token,
+      refreshToken,
       user: this.transformUserToResponse(user),
     };
   }
@@ -70,7 +76,7 @@ export class AuthService {
   async login(data: UserLoginInput): Promise<AuthResponse> {
     // Find user by email
     const user = await UserModel.findOne({ 'local.email': data.email });
-    
+
     if (!user || user.method !== 'local') {
       throw new AppError(401, 'Invalid email or password');
     }
@@ -83,9 +89,11 @@ export class AuthService {
 
     // Generate JWT token
     const token = user.generateJwt();
+    const refreshToken = user.generateRefreshToken();
 
     return {
       token,
+      refreshToken,
       user: this.transformUserToResponse(user),
     };
   }
@@ -97,7 +105,7 @@ export class AuthService {
   async requestPasswordReset(email: string): Promise<void> {
     // Find user by email
     const user = await UserModel.findOne({ 'local.email': email });
-    
+
     if (!user || user.method !== 'local') {
       // Don't reveal if email exists or not for security
       return;
@@ -155,12 +163,48 @@ export class AuthService {
    */
   async verifyUser(userId: string): Promise<HydratedDocument<IUser>> {
     const user = await UserModel.findById(userId);
-    
+
     if (!user) {
       throw new Error('User not found');
     }
 
     return user;
+  }
+
+  /**
+   * Refresh access and refresh tokens
+   * @param refreshToken Refresh token from client
+   * @returns New tokens and user
+   */
+  async refreshTokens(refreshToken: string): Promise<AuthResponse> {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET not configured');
+    }
+
+    // Verify refresh token
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(refreshToken, secret);
+    } catch (error) {
+      throw new AppError(401, 'Invalid or expired refresh token');
+    }
+
+    // Find user by ID
+    const user = await UserModel.findById(decoded._id);
+    if (!user) {
+      throw new AppError(401, 'User not found');
+    }
+
+    // Generate new tokens
+    const newToken = user.generateJwt();
+    const newRefreshToken = user.generateRefreshToken();
+
+    return {
+      token: newToken,
+      refreshToken: newRefreshToken,
+      user: this.transformUserToResponse(user),
+    };
   }
 }
 

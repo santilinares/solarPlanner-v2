@@ -2,10 +2,20 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
-import { Project, ProjectCreateRequest, ProjectUpdateRequest, PaginatedResponse, SunPathData, PlanData, DashboardStats } from '../models';
+import {
+  Project,
+  ProjectCreateRequest,
+  ProjectUpdateRequest,
+  PaginatedResponse,
+  SunPathData,
+  PlanData,
+  DashboardStats,
+  OptimalConfigResponse,
+  OptimalConfigFromPolygonRequest,
+} from '../models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProjectService {
   private readonly http = inject(HttpClient);
@@ -23,7 +33,7 @@ export class ProjectService {
    */
   getMyProjects(page = 1, limit = 10): Observable<PaginatedResponse<Project>> {
     return this.http.get<PaginatedResponse<Project>>(`${this.apiUrl}/my`, {
-      params: { page: page.toString(), limit: limit.toString() }
+      params: { page: page.toString(), limit: limit.toString() },
     });
   }
 
@@ -55,7 +65,7 @@ export class ProjectService {
    */
   getAllProjects(page = 1, limit = 10): Observable<PaginatedResponse<Project>> {
     return this.http.get<PaginatedResponse<Project>>(this.apiUrl, {
-      params: { page: page.toString(), limit: limit.toString() }
+      params: { page: page.toString(), limit: limit.toString() },
     });
   }
 
@@ -78,5 +88,12 @@ export class ProjectService {
    */
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard`);
+  }
+
+  /**
+   * Calculate optimal configuration from polygon
+   */
+  calculateOptimalConfig(data: OptimalConfigFromPolygonRequest): Observable<OptimalConfigResponse> {
+    return this.http.post<OptimalConfigResponse>(`${this.apiUrl}/calculate`, data);
   }
 }

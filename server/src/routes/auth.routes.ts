@@ -4,6 +4,7 @@ import {
   loginUser,
   requestPasswordReset,
   resetPassword,
+  refreshAccessToken,
 } from '../controllers/user.controller';
 import { validateBody } from '../middleware/validation.middleware';
 import {
@@ -12,7 +13,11 @@ import {
   PasswordResetRequestSchema,
   PasswordResetApplySchema,
 } from '../schemas/user.schema';
-import { authLimiter, authSpeedLimiter, passwordResetLimiter } from '../middleware/rateLimit.middleware';
+import {
+  authLimiter,
+  authSpeedLimiter,
+  passwordResetLimiter,
+} from '../middleware/rateLimit.middleware';
 
 const router = Router();
 
@@ -38,13 +43,7 @@ router.post(
  * @desc    Login user
  * @access  Public
  */
-router.post(
-  '/login',
-  authLimiter,
-  authSpeedLimiter,
-  validateBody(UserLoginSchema),
-  loginUser
-);
+router.post('/login', authLimiter, authSpeedLimiter, validateBody(UserLoginSchema), loginUser);
 
 /**
  * @route   POST /api/auth/password/reset-request
@@ -63,10 +62,13 @@ router.post(
  * @desc    Reset password using token
  * @access  Public
  */
-router.post(
-  '/password/reset',
-  validateBody(PasswordResetApplySchema),
-  resetPassword
-);
+router.post('/password/reset', validateBody(PasswordResetApplySchema), resetPassword);
+
+/**
+ * @route   POST /api/auth/refresh
+ * @desc    Refresh access token
+ * @access  Public
+ */
+router.post('/refresh', refreshAccessToken);
 
 export default router;

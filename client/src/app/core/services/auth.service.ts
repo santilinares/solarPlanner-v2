@@ -8,7 +8,7 @@ import {
   LoginRequest,
   RegisterRequest,
   AuthResponse,
-  ForgotPasswordRequest
+  ForgotPasswordRequest,
 } from '../models';
 
 /**
@@ -22,7 +22,7 @@ interface JwtPayload {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -47,18 +47,18 @@ export class AuthService {
       email: data.email,
       password: data.password,
     };
-    return this.http.post<AuthResponse>(`${this.authUrl}/register`, payload).pipe(
-      tap((response) => this.handleAuthSuccess(response))
-    );
+    return this.http
+      .post<AuthResponse>(`${this.authUrl}/register`, payload)
+      .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
   /**
    * Login user
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.authUrl}/login`, credentials).pipe(
-      tap((response) => this.handleAuthSuccess(response))
-    );
+    return this.http
+      .post<AuthResponse>(`${this.authUrl}/login`, credentials)
+      .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
   /**
@@ -66,6 +66,7 @@ export class AuthService {
    */
   logout(): void {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
     this.router.navigate(['/login']).catch(() => {
@@ -78,20 +79,19 @@ export class AuthService {
    * Request password reset
    */
   forgotPassword(data: ForgotPasswordRequest): Observable<{ message?: string }> {
-    return this.http.post<{ message?: string }>(
-      `${this.authUrl}/password/reset-request`,
-      { email: data.email }
-    );
+    return this.http.post<{ message?: string }>(`${this.authUrl}/password/reset-request`, {
+      email: data.email,
+    });
   }
 
   /**
    * Reset password with token
    */
   resetPassword(token: string, newPassword: string): Observable<{ message?: string }> {
-    return this.http.post<{ message?: string }>(
-      `${this.authUrl}/password/reset`,
-      { token, newPassword }
-    );
+    return this.http.post<{ message?: string }>(`${this.authUrl}/password/reset`, {
+      token,
+      newPassword,
+    });
   }
 
   /**
@@ -102,10 +102,27 @@ export class AuthService {
   }
 
   /**
+   * Refresh the access token using the refresh token
+   */
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    return this.http
+      .post<AuthResponse>(`${this.authUrl}/refresh`, { refreshToken })
+      .pipe(tap((response) => this.handleAuthSuccess(response)));
+  }
+
+  /**
    * Get current token
    */
   getToken(): string | null {
     return localStorage.getItem('token');
+  }
+
+  /**
+   * Get current refresh token
+   */
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
   }
 
   /**
@@ -136,6 +153,7 @@ export class AuthService {
    */
   private handleAuthSuccess(response: AuthResponse): void {
     localStorage.setItem('token', response.token);
+    localStorage.setItem('refreshToken', response.refreshToken);
     this.currentUser.set(response.user);
     this.isAuthenticated.set(true);
   }
@@ -145,15 +163,21 @@ export class AuthService {
    */
   private checkAuthStatus(): void {
     const token = this.getToken();
+
     if (token) {
       const decoded = this.getDecodedToken();
+
+      // Token exists and is not expired
       if (decoded !== null && decoded.exp * 1000 > Date.now()) {
         this.isAuthenticated.set(true);
-        // Hydrate current user from server
+
+        // Hydrate current user from server (non-blocking background refresh)
         this.getMe()
           .pipe(
             catchError(() => {
-              this.logout();
+              // Server profile fetch failed, token might be revoked or just network error
+              // We stay authenticated on client based on JWT validity for now
+              // and let the interceptor handle 401s if the token is actually invalid
               return of(null);
             })
           )
@@ -163,7 +187,9 @@ export class AuthService {
             }
           });
       } else {
-        this.logout();
+        // Access token expired, we'll let the interceptor or guard handle refresh
+        // For now, clear state if expired so UX is clean
+        this.isAuthenticated.set(false);
       }
     }
   }

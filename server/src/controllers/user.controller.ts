@@ -121,3 +121,22 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   await authService.resetPassword(token, newPassword);
   return success(res, null, 'Password reset successfully');
 });
+
+/**
+ * @route   POST /auth/refresh
+ * @desc    Refresh access token using refresh token
+ * @access  Public
+ */
+export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(400).json({
+      success: false,
+      message: 'Refresh token is required',
+    });
+  }
+
+  const result = await authService.refreshTokens(refreshToken);
+  return success(res, result, 'Token refreshed successfully');
+});

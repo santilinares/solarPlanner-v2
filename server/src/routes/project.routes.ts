@@ -11,16 +11,15 @@ import {
   deleteProject,
   adminDeleteProject,
   getAdminSummary,
+  calculateFromPolygon,
 } from '../controllers/project.controller';
-import {
-  verifyUserJwtToken,
-  verifyAdminJwtToken,
-} from '../middleware/auth.middleware';
+import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
 import {
   ProjectCreateSchema,
   ProjectQuerySchema,
   OptimalConfigSchema,
+  OptimalConfigFromPolygonSchema,
 } from '../schemas/project.schema';
 
 const router = Router();
@@ -28,18 +27,18 @@ const router = Router();
 /**
  * Project CRUD routes (mounted at /api/projects)
  */
-router.post(
-  '/',
-  verifyUserJwtToken,
-  validateBody(ProjectCreateSchema),
-  createProject
-);
+router.post('/', verifyUserJwtToken, validateBody(ProjectCreateSchema), createProject);
 
-router.get(
-  '/',
+router.get('/', verifyUserJwtToken, validateQuery(ProjectQuerySchema), listProjects);
+
+/**
+ * Calculations (no ID needed)
+ */
+router.post(
+  '/calculate',
   verifyUserJwtToken,
-  validateQuery(ProjectQuerySchema),
-  listProjects
+  validateBody(OptimalConfigFromPolygonSchema),
+  calculateFromPolygon
 );
 
 /**

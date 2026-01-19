@@ -1,6 +1,6 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { generateToken } from '../config/jwt.config';
+import { generateToken, generateRefreshToken } from '../config/jwt.config';
 
 /**
  * User model with authentication methods
@@ -27,10 +27,11 @@ export interface IUser {
 export interface IUserMethods {
   verifyPassword(password: string): Promise<boolean>;
   generateJwt(): string;
+  generateRefreshToken(): string;
 }
 
 // User model type (combines data and methods).
-// Record<string, never> is used to indicate no query helpers are defined. 
+// Record<string, never> is used to indicate no query helpers are defined.
 export type UserModel = Model<IUser, Record<string, never>, IUserMethods>;
 
 const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
@@ -114,6 +115,27 @@ UserSchema.method('generateJwt', function (): string {
   }
 
   return generateToken(
+    {
+      _id: this._id.toString(),
+      role: this.role,
+    },
+    secret,
+    expiresIn
+  );
+});
+
+/**
+ * Generate refresh token for user
+ */
+UserSchema.method('generateRefreshToken', function (): string {
+  const secret = process.env.JWT_SECRET;
+  const expiresIn = process.env.JWT_REFRESH_EXP || '7d';
+
+  if (!secret) {
+    throw new Error('JWT_SECRET not configured');
+  }
+
+  return generateRefreshToken(
     {
       _id: this._id.toString(),
       role: this.role,

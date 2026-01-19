@@ -2,8 +2,18 @@ import { HydratedDocument, FilterQuery } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { ProjectModel, IProject } from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
-import { ProjectCreateInput, ProjectQueryInput, OptimalConfigInput } from '../schemas/project.schema';
-import { ProjectResponse, ProjectListResponse, DashboardStats, OptimalConfigResponse } from '../types/project.types';
+import {
+  ProjectCreateInput,
+  ProjectQueryInput,
+  OptimalConfigInput,
+  OptimalConfigFromPolygonInput,
+} from '../schemas/project.schema';
+import {
+  ProjectResponse,
+  ProjectListResponse,
+  DashboardStats,
+  OptimalConfigResponse,
+} from '../types/project.types';
 
 /**
  * Project Service
@@ -238,7 +248,7 @@ export class ProjectService {
     // Calculate statistics
     const totalProjects = projects.length;
     const totalPanels = projects.reduce((sum, p) => sum + p.panelNumber, 0);
-    
+
     // Calculate total capacity (requires populated panel data)
     const totalCapacity = projects.reduce((sum, p) => {
       if (p.panel && typeof p.panel !== 'string' && 'capacity' in p.panel) {
@@ -274,14 +284,12 @@ export class ProjectService {
    */
   async getAdminDashboard(): Promise<DashboardStats> {
     // Get all projects
-    const projects = await ProjectModel.find()
-      .populate('panel')
-      .sort({ createdAt: -1 });
+    const projects = await ProjectModel.find().populate('panel').sort({ createdAt: -1 });
 
     // Calculate statistics (same logic as user dashboard but for all projects)
     const totalProjects = projects.length;
     const totalPanels = projects.reduce((sum, p) => sum + p.panelNumber, 0);
-    
+
     const totalCapacity = projects.reduce((sum, p) => {
       if (p.panel && typeof p.panel !== 'string' && 'capacity' in p.panel) {
         const panel = p.panel as unknown as IPanel;
@@ -338,18 +346,53 @@ export class ProjectService {
     // Peak sun hours vary by latitude: equator ~5.5h, higher latitudes ~3-4h
     const peakSunHours = 5.5 - Math.abs(latitude) * 0.02; // Rough approximation
     const systemEfficiency = 0.85; // Account for losses
-    const estimatedProduction = 
-      estimatedCapacity * peakSunHours * 365 * systemEfficiency; // kWh/year
+    const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency; // kWh/year
 
     // Coverage percentage
-    const coverage = (recommendedPanels * panelArea) / surfaceArea * 100;
+    const coverage = ((recommendedPanels * panelArea) / surfaceArea) * 100;
 
     return Promise.resolve({
       recommendedPanels,
       estimatedCapacity,
       estimatedProduction,
       coverage: Math.min(coverage, 100),
-    }); 
+    });
+  }
+
+  /**
+   * Calculate optimal panel configuration from polygon
+   * @param data Polygon configuration parameters
+   * @returns Optimal configuration recommendations
+   */
+  async calculateFromPolygon(data: OptimalConfigFromPolygonInput): Promise<OptimalConfigResponse> {
+    const { area, panelId, tilt } = data;
+
+    // Get panel details
+    const panel = await PanelModel.findById(panelId);
+    if (!panel) {
+      throw new Error('Panel not found');
+    }
+
+    // Calculate center coordinates for latitude
+    const center = getCenter(area.map((point) => ({ latitude: point.lat, longitude: point.lon })));
+
+    if (!center) {
+      throw new Error('Could not calculate center of area');
+    }
+
+    // Calculate surface area
+    const surfaceArea = getAreaOfPolygon(
+      area.map((point) => ({ latitude: point.lat, longitude: point.lon }))
+    );
+
+    // Call the core calculation method
+    return this.calculateOptimalConfig({
+      surfaceArea,
+      panelWidth: panel.width,
+      panelHeight: panel.height,
+      tilt,
+      latitude: center.latitude,
+    });
   }
 
   /**
@@ -367,7 +410,7 @@ export class ProjectService {
     // Simplified sun path calculation
     // In production, use a library like suncalc or call an external API
     const latitude = project.lat;
-    
+
     // Calculate solar declination and hour angle for key times of year
     const sunPathData = {
       latitude,

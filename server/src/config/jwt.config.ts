@@ -16,11 +16,7 @@ export interface JwtPayload {
  * @param expiresIn Token expiration time
  * @returns Signed JWT token
  */
-export function generateToken(
-  payload: JwtPayload,
-  secret: string,
-  expiresIn: string
-): string {
+export function generateToken(payload: JwtPayload, secret: string, expiresIn: string): string {
   return jwt.sign(payload, secret, { expiresIn } as jwt.SignOptions);
 }
 
@@ -56,4 +52,33 @@ export function verifyPasswordResetToken(token: string, secret: string): string 
     throw new Error('Invalid token type');
   }
   return decoded._id;
+}
+
+/**
+ * Generate refresh token
+ * @param payload Token payload
+ * @param secret JWT secret key
+ * @param expiresIn Expiration time (default 7 days)
+ * @returns Refresh token
+ */
+export function generateRefreshToken(
+  payload: JwtPayload,
+  secret: string,
+  expiresIn: string = '7d'
+): string {
+  return jwt.sign({ ...payload, type: 'refresh' }, secret, { expiresIn } as jwt.SignOptions);
+}
+
+/**
+ * Verify refresh token
+ * @param token Token to verify
+ * @param secret JWT secret key
+ * @returns Decoded payload
+ */
+export function verifyRefreshToken(token: string, secret: string): JwtPayload {
+  const decoded = jwt.verify(token, secret) as JwtPayload & { type: string };
+  if (decoded.type !== 'refresh') {
+    throw new Error('Invalid token type');
+  }
+  return decoded;
 }

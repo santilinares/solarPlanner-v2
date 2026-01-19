@@ -6,6 +6,7 @@ import {
   ProjectCreateInput,
   ProjectQueryInput,
   OptimalConfigInput,
+  OptimalConfigFromPolygonInput,
 } from '../schemas/project.schema';
 
 /**
@@ -32,11 +33,14 @@ export const createProject = asyncHandler(async (req: Request, res: Response) =>
 export const listProjects = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.userId!;
   const userRole = req.userRole!;
-  
+
   // Admin can see all projects, users see only their own
   const effectiveUserId = userRole === 'admin' ? undefined : userId;
-  
-  const projects = await projectService.listProjects(req.query as ProjectQueryInput, effectiveUserId);
+
+  const projects = await projectService.listProjects(
+    req.query as ProjectQueryInput,
+    effectiveUserId
+  );
   return success(res, projects);
 });
 
@@ -69,10 +73,10 @@ export const getAdminDashboard = asyncHandler(async (_req: Request, res: Respons
 export const getProjectById = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.userId!;
   const userRole = req.userRole!;
-  
+
   // Admin can see any project, users only their own
   const effectiveUserId = userRole === 'admin' ? undefined : userId;
-  
+
   const project = await projectService.getProjectById(req.params.id, effectiveUserId);
   return success(res, project);
 });
@@ -104,6 +108,18 @@ export const generatePlan = asyncHandler(async (req: Request, res: Response) => 
  */
 export const calculateOptimalConfig = asyncHandler(async (req: Request, res: Response) => {
   const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput);
+  return success(res, config);
+});
+
+/**
+ * @route   POST /projects/calculate
+ * @desc    Calculate optimal panel configuration from polygon (no project needed)
+ * @access  Private
+ */
+export const calculateFromPolygon = asyncHandler(async (req: Request, res: Response) => {
+  const config = await projectService.calculateFromPolygon(
+    req.body as OptimalConfigFromPolygonInput
+  );
   return success(res, config);
 });
 

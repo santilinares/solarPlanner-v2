@@ -7,19 +7,21 @@ export * from './api.model';
 export * from './http-error.model';
 
 export {
-	Project,
-	Coordinates,
-	Polygon,
-	MonthlyProduction,
-	ProjectCreateRequest,
-	ProjectUpdateRequest,
-	Panel as ProjectPanel,
-	SunPosition,
-	SunPathData,
-	PanelDetails,
-	PlanData,
-	DashboardStats,
-	ProjectResponse,
+  Project,
+  Coordinates,
+  Polygon,
+  MonthlyProduction,
+  ProjectCreateRequest,
+  ProjectUpdateRequest,
+  Panel as ProjectPanel,
+  SunPosition,
+  SunPathData,
+  PanelDetails,
+  PlanData,
+  DashboardStats,
+  ProjectResponse,
+  OptimalConfigResponse,
+  OptimalConfigFromPolygonRequest,
 } from './project.model';
 
 export * from './panel.model';

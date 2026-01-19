@@ -7,11 +7,11 @@ import { ProductionPointSchema } from './production.schema';
 
 /**
  * Geographic coordinate point schema
- * 
+ *
  * Represents a latitude/longitude coordinate:
  * - lat: Latitude (-90 to 90)
  * - lon: Longitude (-180 to 180)
- * 
+ *
  * @example
  * ```json
  * { "lat": 40.7128, "lon": -74.0060 }
@@ -27,7 +27,7 @@ export type GeoPointInput = z.infer<typeof GeoPointSchema>;
 
 /**
  * Project creation schema
- * 
+ *
  * Validates solar project data:
  * - name: Minimum 2 characters
  * - area: Polygon with 3-1000 coordinate points
@@ -36,7 +36,7 @@ export type GeoPointInput = z.infer<typeof GeoPointSchema>;
  * - rawSpacing: Optional spacing between panels (positive number)
  * - panelNumber: Number of panels (positive integer)
  * - panelId: Optional reference to Panel document
- * 
+ *
  * @example
  * ```json
  * {
@@ -70,7 +70,7 @@ export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;
 
 /**
  * Project update schema
- * 
+ *
  * Allows partial updates to project data (all fields optional):
  * - name, area, tilt, direction, azimuth
  * - rawSpacing, panelNumber, panelId
@@ -96,7 +96,7 @@ export type ProjectUpdateInput = z.infer<typeof ProjectUpdateSchema>;
 
 /**
  * Project query filters schema
- * 
+ *
  * Optional filters for listing/searching projects:
  * - id: Single project ID for direct lookup
  * - owner: Filter by user ID
@@ -118,7 +118,7 @@ export type ProjectQueryInput = z.infer<typeof ProjectQuerySchema>;
 
 /**
  * Optimal configuration calculation schema
- * 
+ *
  * Input parameters for calculating optimal panel configuration:
  * - surfaceArea: Available surface area (positive number)
  * - panelWidth: Panel width in meters
@@ -139,7 +139,7 @@ export type OptimalConfigInput = z.infer<typeof OptimalConfigSchema>;
 
 /**
  * Production data update schema
- * 
+ *
  * Updates production time series data (all fields optional):
  * - prodToday: Today's production data points
  * - nextProd: Forecasted production data
@@ -153,3 +153,20 @@ export const UpdateProductionSchema = z.object({
 
 /** Type inferred from UpdateProductionSchema - used for updating production data */
 export type UpdateProductionInput = z.infer<typeof UpdateProductionSchema>;
+
+/**
+ * Optimal configuration from polygon schema
+ *
+ * Input parameters for calculating optimal panel configuration from a drawn polygon:
+ * - area: Polygon coordinates
+ * - panelId: ID of the selected panel
+ * - tilt: Panel tilt angle 0-90 degrees
+ */
+export const OptimalConfigFromPolygonSchema = z.object({
+  area: z.array(GeoPointSchema).min(3),
+  panelId: z.string(),
+  tilt: z.number().min(0).max(90),
+});
+
+/** Type inferred from OptimalConfigFromPolygonSchema */
+export type OptimalConfigFromPolygonInput = z.infer<typeof OptimalConfigFromPolygonSchema>;
