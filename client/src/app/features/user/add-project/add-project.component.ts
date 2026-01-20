@@ -1,25 +1,22 @@
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  OnInit,
-  signal,
-  ViewEncapsulation,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
-import { Panel, OptimalConfigResponse, OptimalConfigFromPolygonRequest } from '@core/models';
-import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  Panel,
+  OptimalConfigResponse,
+  OptimalConfigFromPolygonRequest,
+  ProjectCreateRequest,
+  Coordinates,
+} from '@core/models';
+import { DecimalPipe } from '@angular/common';
 
 @Component({
   selector: 'app-add-project',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule, DecimalPipe],
   template: `
     <div class="add-project-container">
       <header class="page-header">
@@ -31,9 +28,11 @@ import { toSignal } from '@angular/core/rxjs-interop';
         <!-- MAP SECTION -->
         <section class="map-section">
           <div id="map" class="map-container"></div>
-          <div class="map-instructions" *ngIf="!hasDrawnArea()">
-            <p>ℹ️ Use the polygon tool on the left of the map to draw the roof area.</p>
-          </div>
+          @if (!hasDrawnArea()) {
+            <div class="map-instructions">
+              <p>ℹ️ Use the polygon tool on the left of the map to draw the roof area.</p>
+            </div>
+          }
         </section>
 
         <!-- CONFIGURATION & RESULTS SECTION -->
@@ -63,8 +62,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
             </div>
 
             <div class="form-group">
-              <label for="direction">Direction</label>
-              <select id="direction" formControlName="direction">
+              <label for="orientation">Orientation</label>
+              <select id="orientation" formControlName="orientation">
                 <option value="south">South</option>
                 <option value="southeast">South-East</option>
                 <option value="southwest">South-West</option>
@@ -318,14 +317,14 @@ export class AddProjectComponent implements OnInit {
   // Map State
   map!: L.Map;
   drawnItems = new L.FeatureGroup();
-  drawnPolygonPoints = signal<{ lat: number; lon: number }[]>([]);
+  drawnPolygonPoints = signal<Coordinates[]>([]);
   hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
 
   projectForm: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     panelId: ['', Validators.required],
     tilt: [30, [Validators.required, Validators.min(0), Validators.max(90)]],
-    direction: ['south', Validators.required],
+    orientation: ['south', Validators.required],
   });
 
   canCalculate = computed(() => {
@@ -354,14 +353,14 @@ export class AddProjectComponent implements OnInit {
   }
 
   initMap() {
-    // Default center (e.g., London or User's location if available)
-    // Here defaulting to a neutral location
-    this.map = L.map('map').setView([51.505, -0.09], 18);
+    // Initialize map with default center (Madrid)
+    this.map = L.map('map').setView([40.4168, -3.7038], 18);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(this.map);
+    // Setup map layers and controls
+    this.setupMapLayers();
+
+    // Setup user geolocation
+    this.setupUserLocation();
 
     this.map.addLayer(this.drawnItems);
 
@@ -417,18 +416,70 @@ export class AddProjectComponent implements OnInit {
     if (layer instanceof L.Polygon) {
       // transform LatLng objects to plain objects
       const latLngs = layer.getLatLngs()[0] as L.LatLng[];
-      const points = latLngs.map((ll) => ({ lat: ll.lat, lon: ll.lng }));
+      const points = latLngs.map((ll) => ({ lat: ll.lat, lng: ll.lng }));
       this.drawnPolygonPoints.set(points);
       // Reset estimation when area changes
       this.estimation.set(null);
     }
   }
 
+  setupMapLayers() {
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors',
+    });
+
+    const satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 19,
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+      }
+    );
+
+    const topoLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 19,
+        attribution: '© Esri, HERE, Garmin, USGS, NGA',
+      }
+    );
+
+    // Add default layer (street)
+    satelliteLayer.addTo(this.map);
+
+    // Create layer control
+    const baseMaps = {
+      Street: streetLayer,
+      Satellite: satelliteLayer,
+      Topographic: topoLayer,
+    };
+
+    L.control.layers(baseMaps).addTo(this.map);
+  }
+
+  setupUserLocation() {
+    // Request user's location and center map on it
+    this.map.locate({ setView: true, maxZoom: 18 });
+
+    // Handle successful location
+    this.map.on('locationfound', (locationEvent: L.LocationEvent) => {
+      // Add a marker at user's location
+      L.marker(locationEvent.latlng).addTo(this.map).bindPopup('You are here').openPopup();
+    });
+
+    // Handle location error (permission denied or unavailable)
+    this.map.on('locationerror', (locationErrorEvent: L.ErrorEvent) => {
+      console.warn('Location access denied or unavailable:', locationErrorEvent.message);
+      // Map stays at default location (Madrid)
+    });
+  }
+
   onCalculate() {
     if (!this.canCalculate()) return;
 
     const request: OptimalConfigFromPolygonRequest = {
-      area: this.drawnPolygonPoints(),
+      coordinates: this.drawnPolygonPoints(),
       panelId: this.projectForm.get('panelId')?.value,
       tilt: this.projectForm.get('tilt')?.value,
     };
@@ -446,15 +497,13 @@ export class AddProjectComponent implements OnInit {
     if (this.projectForm.invalid || !this.hasDrawnArea()) return;
 
     const formValue = this.projectForm.value;
-    const projectData = {
+    const projectData: ProjectCreateRequest = {
       name: formValue.name,
-      area: this.drawnPolygonPoints(),
+      address: this.drawnPolygonPoints()[0],
       tilt: formValue.tilt,
-      direction: formValue.direction,
+      polygon: this.drawnPolygonPoints(),
+      orientation: formValue.orientation,
       panelId: formValue.panelId,
-      panelNumber: this.estimation()?.recommendedPanels || 0,
-      // Default others
-      coordinates: this.drawnPolygonPoints()[0], // Using first point as anchor
     };
 
     // Note: createProject expects specific schema.
@@ -462,7 +511,7 @@ export class AddProjectComponent implements OnInit {
     // The service expects ProjectCreateRequest which roughly matches our data but check keys.
     // Server expects: name, area, tilt, direction, panelNumber, panelId.
 
-    this.projectService.createProject(projectData as any).subscribe({
+    this.projectService.createProject(projectData).subscribe({
       next: (res) => {
         alert('Project created successfully!');
         // Navigate away or reset

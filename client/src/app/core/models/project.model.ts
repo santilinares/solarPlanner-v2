@@ -34,11 +34,10 @@ export interface MonthlyProduction {
 
 export interface ProjectCreateRequest {
   name: string;
-  address: string;
-  coordinates: Coordinates;
-  polygon: Polygon;
+  address?: Coordinates;
+  tilt: number;
+  polygon: Coordinates[];
   orientation: string;
-  averageConsumption: number;
   panelId: string;
 }
 
@@ -178,7 +177,7 @@ export interface OptimalConfigResponse {
 }
 
 export interface OptimalConfigFromPolygonRequest {
-  area: { lat: number; lon: number }[];
+  coordinates: Coordinates[];
   panelId: string;
   tilt: number;
 }

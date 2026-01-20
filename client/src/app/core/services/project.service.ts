@@ -12,6 +12,7 @@ import {
   DashboardStats,
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
+  Coordinates,
 } from '../models';
 
 @Injectable({
