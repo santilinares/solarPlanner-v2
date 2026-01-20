@@ -1,5 +1,6 @@
 // Panel domain model
 export interface Panel {
+  _id?: string;
   id: string;
   brand: string;
   model: string;

@@ -1,6 +1,6 @@
 import { HydratedDocument, FilterQuery } from 'mongoose';
 import { PanelModel, IPanel } from '../models/panel.model';
-import { PanelCreateInput, PanelQueryInput } from '../schemas/panel.schema';
+import { PanelCreateInput, PanelQueryInput, PanelUpdateInput } from '../schemas/panel.schema';
 import { PanelResponse, PanelListResponse } from '../types/panel.types';
 
 /**
@@ -93,10 +93,7 @@ export class PanelService {
 
     // If not filtering by specific owner, show global + user's personal panels
     if (!filters.owner && userId) {
-      query.$or = [
-        { type: 'global' },
-        { type: 'personal', owner: userId },
-      ];
+      query.$or = [{ type: 'global' }, { type: 'personal', owner: userId }];
     }
 
     // Execute query
@@ -109,6 +106,48 @@ export class PanelService {
       panels: panels.map(transformPanelToResponse),
       total,
     };
+  }
+
+  /**
+   * Update panel
+   * @param panelId Panel ID
+   * @param data Update data
+   * @param userId User ID asking for update
+   * @param isAdmin Whether user is admin
+   */
+  async updatePanel(
+    panelId: string,
+    data: PanelUpdateInput,
+    userId: string,
+    isAdmin: boolean
+  ): Promise<PanelResponse> {
+    const panel = await PanelModel.findById(panelId);
+
+    if (!panel) {
+      throw new Error('Panel not found');
+    }
+
+    // Global panels can only be updated by admins
+    if (panel.type === 'global' && !isAdmin) {
+      throw new Error('Only admins can update global panels');
+    }
+
+    // Personal panels: verify ownership or admin
+    if (panel.type === 'personal' && !isAdmin && panel.owner?.toString() !== userId) {
+      throw new Error('Not authorized to update this panel');
+    }
+
+    const updatedPanel = await PanelModel.findByIdAndUpdate(
+      panelId,
+      { $set: data },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPanel) {
+      throw new Error('Panel not found');
+    }
+
+    return transformPanelToResponse(updatedPanel);
   }
 
   /**

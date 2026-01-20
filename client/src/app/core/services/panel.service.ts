@@ -1,11 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '@environments/environment';
 import { Panel, PanelCreateRequest, PanelUpdateRequest, PaginatedResponse } from '../models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PanelService {
   private readonly http = inject(HttpClient);
@@ -16,8 +17,15 @@ export class PanelService {
    */
   getAllPanels(page = 1, limit = 20): Observable<PaginatedResponse<Panel>> {
     return this.http.get<PaginatedResponse<Panel>>(this.apiUrl, {
-      params: { page: page.toString(), limit: limit.toString() }
+      params: { page: page.toString(), limit: limit.toString() },
     });
+  }
+
+  /**
+   * Get all panels available to user
+   */
+  getPanels(): Observable<Panel[]> {
+    return this.http.get<{ panels: Panel[] }>(this.apiUrl).pipe(map((response) => response.panels));
   }
 
   /**
@@ -39,7 +47,6 @@ export class PanelService {
    * TODO: Server doesn't have update endpoint yet
    */
   updatePanel(id: string, data: PanelUpdateRequest): Observable<Panel> {
-    console.warn('Panel update not implemented on server');
     return this.http.put<Panel>(`${this.apiUrl}/${id}`, data);
   }
 
