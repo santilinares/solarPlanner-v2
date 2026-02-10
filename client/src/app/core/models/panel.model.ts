@@ -6,10 +6,12 @@ export interface Panel {
   model: string;
   wattPeak: number;
   dimensions: PanelDimensions;
+  cells?: number;
   temperatureCoefficient: number;
   efficiency: number;
   warranty: number;
   price: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,10 +26,12 @@ export interface PanelCreateRequest {
   model: string;
   wattPeak: number;
   dimensions: PanelDimensions;
+  cells?: number;
   temperatureCoefficient: number;
   efficiency: number;
   warranty: number;
   price: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
 }
 
 export interface PanelUpdateRequest {
@@ -35,8 +39,10 @@ export interface PanelUpdateRequest {
   model?: string;
   wattPeak?: number;
   dimensions?: PanelDimensions;
+  cells?: number;
   temperatureCoefficient?: number;
   efficiency?: number;
   warranty?: number;
   price?: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
 }

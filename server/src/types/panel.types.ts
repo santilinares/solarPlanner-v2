@@ -4,11 +4,19 @@
 
 export interface PanelResponse {
   _id: string;
-  name: string;
-  capacity: number;
-  height: number;
-  width: number;
-  technology: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
+  brand: string;
+  model: string;
+  wattPeak: number;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+  cells?: number;
+  temperatureCoefficient: number;
+  efficiency: number;
+  warranty: number;
+  price: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
   type: 'global' | 'personal';
   owner?: string | object; // User ID or populated user object
   createdAt: string;

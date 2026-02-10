@@ -6,11 +6,19 @@ import mongoose, { Schema, Model } from 'mongoose';
 
 // Panel data interface
 export interface IPanel {
-  name: string;
-  capacity: number; // Watts
-  height: number; // meters
-  width: number; // meters
-  technology: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
+  brand: string;
+  model: string;
+  wattPeak: number; // Watts
+  dimensions: {
+    width: number; // mm
+    height: number; // mm
+  };
+  cells?: number;
+  temperatureCoefficient: number;
+  efficiency: number;
+  warranty: number;
+  price: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
   type: 'global' | 'personal';
   owner?: mongoose.Types.ObjectId; // Reference to User (for personal panels)
   createdAt: Date;
@@ -22,30 +30,34 @@ export type PanelModel = Model<IPanel, Record<string, never>, Record<string, nev
 
 const PanelSchema = new Schema<IPanel, PanelModel, Record<string, never>>(
   {
-    name: {
+    brand: {
       type: String,
       required: true,
       trim: true,
     },
-    capacity: {
+    model: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    wattPeak: {
       type: Number,
       required: true,
       min: 0,
     },
-    height: {
-      type: Number,
-      required: true,
-      min: 0,
+    dimensions: {
+      width: { type: Number, required: true, min: 0 },
+      height: { type: Number, required: true, min: 0 },
     },
-    width: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+    cells: { type: Number, min: 0 },
+    temperatureCoefficient: { type: Number, default: 0 },
+    efficiency: { type: Number, required: true, min: 0, max: 100 },
+    warranty: { type: Number, required: true, min: 0 },
+    price: { type: Number, required: true, min: 0 },
     technology: {
       type: String,
       enum: ['Monocrystalline', 'Polycrystalline', 'Thin film'],
-      required: true,
+      required: false,
     },
     type: {
       type: String,
@@ -68,7 +80,6 @@ const PanelSchema = new Schema<IPanel, PanelModel, Record<string, never>>(
 // Indexes
 PanelSchema.index({ type: 1 });
 PanelSchema.index({ owner: 1 });
-PanelSchema.index({ technology: 1 });
-PanelSchema.index({ name: 'text' }); // Text search on name
+PanelSchema.index({ brand: 'text', model: 'text' }); // Text search on brand/model
 
 export const PanelModel = mongoose.model<IPanel, PanelModel>('Panels', PanelSchema);

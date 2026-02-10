@@ -11,11 +11,7 @@ import { z } from 'zod';
  * @property Polycrystalline - Lower cost, multiple crystal silicon
  * @property Thin film - Lightweight, flexible panels
  */
-export const PanelTechnologyEnum = z.enum([
-  'Monocrystalline',
-  'Polycrystalline',
-  'Thin film',
-]);
+export const PanelTechnologyEnum = z.enum(['Monocrystalline', 'Polycrystalline', 'Thin film']);
 
 /**
  * Panel ownership type
@@ -27,7 +23,7 @@ export const PanelTypeEnum = z.enum(['global', 'personal']);
 
 /**
  * Panel creation schema
- * 
+ *
  * Validates solar panel specifications:
  * - name: Minimum 2 characters
  * - capacity: Positive number in Watts
@@ -35,7 +31,7 @@ export const PanelTypeEnum = z.enum(['global', 'personal']);
  * - width: Positive number in meters
  * - technology: Panel technology type
  * - type: Global or personal panel
- * 
+ *
  * @example
  * ```json
  * {
@@ -49,11 +45,19 @@ export const PanelTypeEnum = z.enum(['global', 'personal']);
  * ```
  */
 export const PanelCreateSchema = z.object({
-  name: z.string().min(2, 'Panel name must be at least 2 characters'),
-  capacity: z.number().positive('Capacity must be positive (in Watts)'),
-  height: z.number().positive('Height must be positive (in meters)'),
-  width: z.number().positive('Width must be positive (in meters)'),
-  technology: PanelTechnologyEnum,
+  brand: z.string().min(2, 'Brand must be at least 2 characters'),
+  model: z.string().min(2, 'Model must be at least 2 characters'),
+  wattPeak: z.number().positive('Power (Watt Peak) must be positive'),
+  dimensions: z.object({
+    width: z.number().positive('Width must be positive'),
+    height: z.number().positive('Height must be positive'),
+  }),
+  cells: z.number().int().positive().optional(),
+  temperatureCoefficient: z.number().optional().default(0),
+  efficiency: z.number().min(0).max(100),
+  warranty: z.number().min(0),
+  price: z.number().min(0),
+  technology: PanelTechnologyEnum.optional(),
   type: PanelTypeEnum,
 });
 
@@ -62,7 +66,7 @@ export type PanelCreateInput = z.infer<typeof PanelCreateSchema>;
 
 /**
  * Panel update schema (all fields optional)
- * 
+ *
  * Allows partial updates to panel specifications
  */
 export const PanelUpdateSchema = PanelCreateSchema.partial();
@@ -72,7 +76,7 @@ export type PanelUpdateInput = z.infer<typeof PanelUpdateSchema>;
 
 /**
  * Panel query filters schema
- * 
+ *
  * Optional filters for listing/searching panels:
  * - id: Single panel ID for direct lookup
  * - type: Filter by global/personal type
@@ -85,7 +89,7 @@ export const PanelQuerySchema = z.object({
   type: PanelTypeEnum.optional(),
   owner: z.string().optional(), // User ID
   technology: PanelTechnologyEnum.optional(),
-  search: z.string().optional(), // Search by name
+  search: z.string().optional(), // Search by brand/model
 });
 
 /** Type inferred from PanelQuerySchema - used for querying/filtering panels */

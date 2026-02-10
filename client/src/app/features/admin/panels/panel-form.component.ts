@@ -32,6 +32,16 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
             }
           </div>
 
+          <div class="form-group">
+            <label for="technology">Technology</label>
+            <select id="technology" formControlName="technology">
+              <option value="">Select Technology</option>
+              <option value="Monocrystalline">Monocrystalline</option>
+              <option value="Polycrystalline">Polycrystalline</option>
+              <option value="Thin film">Thin film</option>
+            </select>
+          </div>
+
           <div class="row">
             <div class="form-group">
               <label for="wattPeak">Power (W)</label>
@@ -156,7 +166,8 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
           font-size: 0.9rem;
         }
 
-        input {
+        input,
+        select {
           width: 100%;
           padding: 0.5rem;
           border: 1px solid #ddd;
@@ -182,7 +193,8 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         gap: 1rem;
 
         .form-group,
-        input {
+        input,
+        select {
           flex: 1;
         }
       }
@@ -249,6 +261,7 @@ export class PanelFormComponent {
       height: [0, [Validators.min(0)]],
     }),
     temperatureCoefficient: [0],
+    technology: [''],
   });
 
   constructor() {
@@ -297,6 +310,7 @@ export class PanelFormComponent {
           height: p.dimensions?.height,
         },
         temperatureCoefficient: p.temperatureCoefficient,
+        technology: p.technology,
       });
     }
   }

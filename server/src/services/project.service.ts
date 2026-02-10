@@ -251,9 +251,9 @@ export class ProjectService {
 
     // Calculate total capacity (requires populated panel data)
     const totalCapacity = projects.reduce((sum, p) => {
-      if (p.panel && typeof p.panel !== 'string' && 'capacity' in p.panel) {
+      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
         const panel = p.panel as unknown as IPanel;
-        return sum + (panel.capacity * p.panelNumber) / 1000; // Convert W to kW
+        return sum + (panel.wattPeak * p.panelNumber) / 1000; // Convert W to kW
       }
       return sum;
     }, 0);
@@ -291,9 +291,9 @@ export class ProjectService {
     const totalPanels = projects.reduce((sum, p) => sum + p.panelNumber, 0);
 
     const totalCapacity = projects.reduce((sum, p) => {
-      if (p.panel && typeof p.panel !== 'string' && 'capacity' in p.panel) {
+      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
         const panel = p.panel as unknown as IPanel;
-        return sum + (panel.capacity * p.panelNumber) / 1000; // Convert W to kW
+        return sum + (panel.wattPeak * p.panelNumber) / 1000; // Convert W to kW
       }
       return sum;
     }, 0);
@@ -388,8 +388,8 @@ export class ProjectService {
     // Call the core calculation method
     return this.calculateOptimalConfig({
       surfaceArea,
-      panelWidth: panel.width,
-      panelHeight: panel.height,
+      panelWidth: panel.dimensions.width,
+      panelHeight: panel.dimensions.height,
       tilt,
       latitude: center.latitude,
     });
@@ -463,15 +463,15 @@ export class ProjectService {
     let totalCapacityKw = 0;
     let panelDetails: PlanData['panelDetails'] = null;
 
-    if (project.panel && typeof project.panel !== 'string' && 'capacity' in project.panel) {
+    if (project.panel && typeof project.panel !== 'string' && 'wattPeak' in project.panel) {
       const panel = project.panel as unknown as IPanel;
-      totalCapacityKw = (panel.capacity * project.panelNumber) / 1000;
+      totalCapacityKw = (panel.wattPeak * project.panelNumber) / 1000;
       panelDetails = {
-        name: panel.name,
-        capacity: panel.capacity,
-        width: panel.width,
-        height: panel.height,
-        technology: panel.technology,
+        name: `${panel.brand} ${panel.model}`,
+        capacity: panel.wattPeak,
+        width: panel.dimensions.width,
+        height: panel.dimensions.height,
+        technology: panel.technology || 'N/A',
       };
     }
 
