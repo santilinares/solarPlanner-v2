@@ -1,23 +1,27 @@
-/* Global styles */
-@use '@angular/material' as mat;
+/* =====================================================
+   SOLAR PLANNER V2 - GLOBAL STYLES
+   Modern, sustainable design with PrimeNG
+   ===================================================== */
+
+// =====================================================
+// CUSTOM SOLAR THEME (must come first with @use)
+// =====================================================
+@use './styles/variables.scss' as vars;
+@use './styles/theme-light.scss';
+@use './styles/theme-dark.scss';
+@use './styles/animations.scss';
+
+// =====================================================
+// THIRD-PARTY CSS
+// =====================================================
+@import 'primeicons/primeicons.css';
+@import 'primeflex/primeflex.css';
 @import 'leaflet/dist/leaflet.css';
 @import 'leaflet-draw/dist/leaflet.draw.css';
 
-@include mat.core();
-
-// Define the theme using Material 3 syntax
-$solar-planner-theme: mat.define-theme((
-  color: (
-    theme-type: light,
-    primary: mat.$azure-palette,
-    tertiary: mat.$rose-palette,
-  )
-));
-
-// Apply the theme to all Material components
-@include mat.all-component-themes($solar-planner-theme);
-
-/* Reset & Base */
+// =====================================================
+// RESET & BASE
+// =====================================================
 * {
   margin: 0;
   padding: 0;
@@ -26,18 +30,57 @@ $solar-planner-theme: mat.define-theme((
 
 html, body {
   height: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
-  font-family: Roboto, "Helvetica Neue", sans-serif;
-  background-color: #fafafa;
+  font-family: var(--font-family);
+  background-color: var(--surface-ground);
+  color: var(--text-color);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Utility classes */
+// =====================================================
+// SCROLLBAR STYLING
+// =====================================================
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-ground);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-400);
+  border-radius: 5px;
+  
+  &:hover {
+    background: var(--primary-500);
+  }
+}
+
+// =====================================================
+// LAYOUT UTILITIES
+// =====================================================
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 vars.$spacing-lg;
+  
+  @media (max-width: vars.$breakpoint-md) {
+    padding: 0 vars.$spacing-md;
+  }
+}
+
+.container-fluid {
+  width: 100%;
+  padding: 0 vars.$spacing-lg;
 }
 
 .full-width {
@@ -48,24 +91,234 @@ body {
   text-align: center;
 }
 
-.mt-1 { margin-top: 8px; }
-.mt-2 { margin-top: 16px; }
-.mt-3 { margin-top: 24px; }
-.mt-4 { margin-top: 32px; }
+// =====================================================
+// SPACING UTILITIES
+// =====================================================
+.mt-1 { margin-top: vars.$spacing-sm; }
+.mt-2 { margin-top: vars.$spacing-md; }
+.mt-3 { margin-top: vars.$spacing-lg; }
+.mt-4 { margin-top: vars.$spacing-xl; }
 
-.mb-1 { margin-bottom: 8px; }
-.mb-2 { margin-bottom: 16px; }
-.mb-3 { margin-bottom: 24px; }
-.mb-4 { margin-bottom: 32px; }
+.mb-1 { margin-bottom: vars.$spacing-sm; }
+.mb-2 { margin-bottom: vars.$spacing-md; }
+.mb-3 { margin-bottom: vars.$spacing-lg; }
+.mb-4 { margin-bottom: vars.$spacing-xl; }
 
-.p-1 { padding: 8px; }
-.p-2 { padding: 16px; }
-.p-3 { padding: 24px; }
-.p-4 { padding: 32px; }
+.ml-1 { margin-left: vars.$spacing-sm; }
+.ml-2 { margin-left: vars.$spacing-md; }
+.ml-3 { margin-left: vars.$spacing-lg; }
 
-/* Leaflet map overrides */
+.mr-1 { margin-right: vars.$spacing-sm; }
+.mr-2 { margin-right: vars.$spacing-md; }
+.mr-3 { margin-right: vars.$spacing-lg; }
+
+.p-1 { padding: vars.$spacing-sm; }
+.p-2 { padding: vars.$spacing-md; }
+.p-3 { padding: vars.$spacing-lg; }
+.p-4 { padding: vars.$spacing-xl; }
+
+// =====================================================
+// TYPOGRAPHY
+// =====================================================
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-color);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: vars.$spacing-md;
+}
+
+h1 {
+  font-size: 2.5rem;
+  
+  @media (max-width: vars.$breakpoint-md) {
+    font-size: 2rem;
+  }
+}
+
+h2 {
+  font-size: 2rem;
+  
+  @media (max-width: vars.$breakpoint-md) {
+    font-size: 1.75rem;
+  }
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+p {
+  margin-bottom: vars.$spacing-md;
+  color: var(--text-color-secondary);
+}
+
+a {
+  color: var(--primary-500);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: var(--primary-600);
+    text-decoration: underline;
+  }
+}
+
+// =====================================================
+// PRIMENG OVERRIDES
+// =====================================================
+
+// Make all buttons organic/rounded
+.p-button {
+  border-radius: vars.$radius-lg !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: vars.$shadow-md;
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Cards with organic design
+.p-card {
+  border-radius: vars.$radius-xl !important;
+  box-shadow: vars.$shadow-md;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: vars.$shadow-lg;
+  }
+  
+  .p-card-title {
+    color: var(--text-color);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .p-card-content {
+    color: var(--text-color-secondary);
+  }
+}
+
+// Input fields
+.p-inputtext,
+.p-dropdown,
+.p-calendar,
+.p-inputnumber-input {
+  border-radius: vars.$radius-md !important;
+  border: 2px solid var(--surface-border);
+  transition: all 0.2s ease;
+  
+  &:focus {
+    border-color: var(--primary-500);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+// Tables
+.p-datatable {
+  .p-datatable-thead > tr > th {
+    background: var(--primary-500);
+    color: white;
+    font-weight: 600;
+    border: none;
+  }
+  
+  .p-datatable-tbody > tr {
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background: var(--surface-hover);
+    }
+  }
+}
+
+// =====================================================
+// LEAFLET MAP OVERRIDES
+// =====================================================
 .leaflet-container {
   height: 500px;
   width: 100%;
   z-index: 1;
+  border-radius: vars.$radius-xl;
+  overflow: hidden;
+}
+
+.map-wrapper {
+  border-radius: vars.$radius-xl;
+  overflow: hidden;
+  box-shadow: vars.$shadow-lg;
+}
+
+// =====================================================
+// PAGE TRANSITIONS
+// =====================================================
+router-outlet + * {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+// =====================================================
+// SOLAR ACCENT ELEMENTS
+// =====================================================
+.solar-highlight {
+  color: var(--yellow-500) !important;
+  font-weight: 600;
+}
+
+.solar-badge {
+  background: var(--yellow-500);
+  color: #000;
+  padding: vars.$spacing-xs vars.$spacing-sm;
+  border-radius: vars.$radius-full;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+// =====================================================
+// UTILITY CLASSES
+// =====================================================
+.shadow-sm { box-shadow: vars.$shadow-sm; }
+.shadow-md { box-shadow: vars.$shadow-md; }
+.shadow-lg { box-shadow: vars.$shadow-lg; }
+.shadow-xl { box-shadow: vars.$shadow-xl; }
+
+.rounded { border-radius: vars.$radius-md; }
+.rounded-lg { border-radius: vars.$radius-lg; }
+.rounded-xl { border-radius: vars.$radius-xl; }
+.rounded-2xl { border-radius: vars.$radius-2xl; }
+.rounded-full { border-radius: vars.$radius-full; }
+
+// =====================================================
+// LOADING & ERROR STATES
+// =====================================================
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.error-message {
+  padding: vars.$spacing-md;
+  background: rgba(vars.$light-error, 0.1);
+  border: 1px solid vars.$light-error;
+  border-radius: vars.$radius-lg;
+  color: vars.$light-error;
+  margin: vars.$spacing-md 0;
+}
+
+.success-message {
+  padding: vars.$spacing-md;
+  background: rgba(vars.$light-success, 0.1);
+  border: 1px solid vars.$light-success;
+  border-radius: vars.$radius-lg;
+  color: vars.$light-success;
+  margin: vars.$spacing-md 0;
 }

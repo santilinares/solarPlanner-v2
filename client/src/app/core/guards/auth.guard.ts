@@ -6,6 +6,7 @@ import {
   ActivatedRouteSnapshot,
 } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { environment } from '@environments/environment';
 
 /**
  * Auth guard - protects routes requiring authentication
@@ -14,6 +15,10 @@ export const authGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot
 ) => {
+  if (!environment.production && environment.devBypassAuth) {
+    return true;
+  }
+
   const authService = inject(AuthService);
   const router = inject(Router);
 

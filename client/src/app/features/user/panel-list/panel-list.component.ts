@@ -1,32 +1,74 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DataViewModule } from 'primeng/dataview';
+import { CardModule } from 'primeng/card';
+import { TagModule } from 'primeng/tag';
+import { SkeletonModule } from 'primeng/skeleton';
+import { ButtonModule } from 'primeng/button';
 import { PanelService } from '@core/services/panel.service';
 import { Panel } from '@core/models/panel.model';
 
 @Component({
   selector: 'app-panel-list',
-  imports: [CommonModule],
+  imports: [CommonModule, DataViewModule, CardModule, TagModule, SkeletonModule, ButtonModule],
   template: `
-    <div class="panel-list">
-      <h1>Solar Panels</h1>
+    <div class="panel-list animate-fade-in-up">
+      <div class="page-header">
+        <div>
+          <h1>
+            <i class="pi pi-th-large" style="color: var(--primary-500);"></i>
+            Solar Panels
+          </h1>
+          <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
+        </div>
+      </div>
 
       @if (isLoading()) {
-        <div class="loading">Loading panels...</div>
-      } @else if (panels().length === 0) {
-        <div class="empty-state">
-          <p>No panels found.</p>
+        <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+          @for (item of [1,2,3,4,5,6]; track item) {
+            <p-card styleClass="panel-card">
+              <p-skeleton height="2rem" styleClass="mb-3"></p-skeleton>
+              <p-skeleton height="1rem" styleClass="mb-2"></p-skeleton>
+              <p-skeleton height="1rem" styleClass="mb-2"></p-skeleton>
+              <p-skeleton height="1rem" width="70%"></p-skeleton>
+            </p-card>
+          }
         </div>
+      } @else if (panels().length === 0) {
+        <p-card styleClass="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+          <div class="empty-content">
+            <i class="pi pi-inbox" style="font-size: 4rem; color: var(--text-color-muted);"></i>
+            <h3>No Panels Available</h3>
+            <p>No solar panels found in the database.</p>
+          </div>
+        </p-card>
       } @else {
-        <div class="grid-container">
+        <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           @for (panel of panels(); track panel.id || panel._id) {
-            <div class="panel-card">
-              <h3>{{ panel.brand }} {{ panel.model }}</h3>
-              <div class="specs">
-                <p><strong>Power:</strong> {{ panel.wattPeak }}W</p>
-                <p><strong>Efficiency:</strong> {{ panel.efficiency }}%</p>
-                <p><strong>Price:</strong> \${{ panel.price }}</p>
+            <p-card styleClass="panel-card hover-lift">
+              <div class="panel-header">
+                <div class="panel-icon">
+                  <i class="pi pi-bolt" style="color: var(--yellow-500); font-size: 1.5rem;"></i>
+                </div>
+                <p-tag [value]="panel.efficiency + '%'" severity="success" styleClass="efficiency-badge"></p-tag>
               </div>
-            </div>
+              <h3 class="panel-name">{{ panel.brand }}</h3>
+              <p class="panel-model">{{ panel.model }}</p>
+              <div class="panel-specs">
+                <div class="spec-item">
+                  <span class="spec-label">Power Output</span>
+                  <span class="spec-value solar-highlight">{{ panel.wattPeak }}W</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">Efficiency</span>
+                  <span class="spec-value">{{ panel.efficiency }}%</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">Price</span>
+                  <span class="spec-value">{{ panel.price }}</span>
+                </div>
+              </div>
+            </p-card>
           }
         </div>
       }
@@ -35,53 +77,141 @@ import { Panel } from '@core/models/panel.model';
   styles: [
     `
       .panel-list {
-        padding: 2rem;
+        padding: 1rem;
 
-        h1 {
+        .page-header {
           margin-bottom: 2rem;
+
+          h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0 0 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .subtitle {
+            color: var(--text-color-secondary);
+            margin: 0;
+            font-size: 1.1rem;
+          }
         }
 
-        .grid-container {
+        .panels-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: 1.5rem;
-        }
 
-        .panel-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          transition: transform 0.2s;
+          ::ng-deep {
+            .panel-card {
+              .p-card-body {
+                padding: 1.5rem;
+              }
 
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-          }
+              .panel-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 1rem;
 
-          h3 {
-            margin: 0 0 1rem 0;
-            color: #2c3e50;
-          }
+                .panel-icon {
+                  width: 56px;
+                  height: 56px;
+                  border-radius: 12px;
+                  background: rgba(255, 214, 0, 0.15);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  animation: solarPulse 3s ease-in-out infinite;
+                }
 
-          .specs {
-            p {
-              margin: 0.5rem 0;
-              color: #666;
+                .efficiency-badge {
+                  font-weight: 700;
+                  font-size: 0.875rem;
+                }
+              }
 
-              strong {
-                color: #333;
+              .panel-name {
+                font-size: 1.4rem;
+                font-weight: 700;
+                color: var(--text-color);
+                margin: 0 0 0.25rem;
+              }
+
+              .panel-model {
+                font-size: 1rem;
+                color: var(--text-color-secondary);
+                margin: 0 0 1.5rem;
+              }
+
+              .panel-specs {
+                display: flex;
+                flex-direction: column;
+                gap: 0.875rem;
+
+                .spec-item {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  padding: 0.75rem;
+                  background: var(--surface-hover);
+                  border-radius: 8px;
+
+                  .spec-label {
+                    font-size: 0.875rem;
+                    color: var(--text-color-secondary);
+                    font-weight: 500;
+                  }
+
+                  .spec-value {
+                    font-size: 1.125rem;
+                    font-weight: 700;
+                    color: var(--primary-500);
+                  }
+                }
+              }
+            }
+
+            .empty-state {
+              .p-card-body {
+                padding: 4rem 2rem;
+              }
+
+              .empty-content {
+                text-align: center;
+
+                i {
+                  display: block;
+                  margin-bottom: 1.5rem;
+                }
+
+                h3 {
+                  font-size: 1.5rem;
+                  color: var(--text-color);
+                  margin-bottom: 0.5rem;
+                }
+
+                p {
+                  color: var(--text-color-secondary);
+                  font-size: 1.1rem;
+                }
               }
             }
           }
         }
 
-        .loading,
-        .empty-state {
-          text-align: center;
-          padding: 3rem;
-          color: #666;
-          font-size: 1.2rem;
+        @media (max-width: 768px) {
+          padding: 0.5rem;
+
+          .page-header h1 {
+            font-size: 2rem;
+          }
+
+          .panels-grid {
+            grid-template-columns: 1fr;
+          }
         }
       }
     `,

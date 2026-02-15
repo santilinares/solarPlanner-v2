@@ -20,10 +20,19 @@
     "lint:server": "cd server && npm run lint",
     "lint": "npm run lint:server && npm run lint:client"
   },
-  "keywords": ["solar", "planner", "angular", "nodejs", "typescript"],
+  "keywords": [
+    "solar",
+    "planner",
+    "angular",
+    "nodejs",
+    "typescript"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^9.1.0"
+  },
+  "dependencies": {
+    "@primeuix/themes": "^2.0.3"
   }
 }

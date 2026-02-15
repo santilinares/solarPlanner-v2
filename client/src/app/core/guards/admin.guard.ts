@@ -1,11 +1,16 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { environment } from '@environments/environment';
 
 /**
  * Admin guard - protects admin-only routes
  */
 export const adminGuard: CanActivateFn = () => {
+  if (!environment.production && environment.devBypassAuth) {
+    return true;
+  }
+
   const authService = inject(AuthService);
   const router = inject(Router);
 

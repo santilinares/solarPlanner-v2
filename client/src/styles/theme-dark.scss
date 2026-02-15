@@ -1,0 +1,208 @@
+// Solar Planner Dark Theme
+// Premium technical look with battery savings optimization
+@use './variables.scss' as *;
+
+:root[data-theme="dark"] {
+  // =====================================================
+  // PRIMARY COLORS (Dark Mode)
+  // =====================================================
+  --primary-50: #041910;
+  --primary-100: #081C15;
+  --primary-200: #1B4332;
+  --primary-300: #2D6A4F;
+  --primary-400: #40916C;
+  --primary-500: #{$dark-active};        // #40916C - Main primary
+  --primary-600: #52B788;
+  --primary-700: #74C69D;
+  --primary-800: #95D5B2;
+  --primary-900: #B7E4C7;
+
+  // =====================================================
+  // SURFACE COLORS
+  // =====================================================
+  --surface-ground: #{$dark-bg-main};    // #081C15 - Page background
+  --surface-section: #{$dark-surface};   // #1B4332 - Card background
+  --surface-card: #{$dark-surface};      // #1B4332
+  --surface-overlay: #{$dark-surface-elevated}; // #2D6A4F
+  --surface-border: #{$dark-border};     // #2D6A4F
+  --surface-hover: #{$dark-surface-hover}; // #40916C
+
+  // =====================================================
+  // TEXT COLORS
+  // =====================================================
+  --text-color: #{$dark-text-primary};           // #B7E4C7
+  --text-color-secondary: #{$dark-text-secondary}; // #95D5B2
+  --text-color-muted: #{$dark-text-muted};       // #74C69D
+
+  // =====================================================
+  // ACCENT COLORS (Solar Yellow with Glow)
+  // =====================================================
+  --yellow-50: #5C4E00;
+  --yellow-100: #847000;
+  --yellow-200: #AD9200;
+  --yellow-300: #D6B400;
+  --yellow-400: #FFE84D;
+  --yellow-500: #{$dark-solar-accent};   // #FFD600 - Main accent
+  --yellow-600: #FFF684;
+  --yellow-700: #FFF9AD;
+  --yellow-800: #FFFBD6;
+  --yellow-900: #FFFEF0;
+
+  // =====================================================
+  // STATE COLORS
+  // =====================================================
+  --green-500: #{$dark-success};    // #52B788
+  --blue-500: #{$dark-info};        // #48CAE4
+  --yellow-warning: #{$dark-warning}; // #FFD600
+  --red-500: #{$dark-error};        // #FF5757
+
+  // =====================================================
+  // COMPONENT VARIABLES
+  // =====================================================
+  
+  // Border Radius (Organic shapes)
+  --border-radius: #{$radius-lg};
+  --border-radius-sm: #{$radius-sm};
+  --border-radius-lg: #{$radius-xl};
+  
+  // Focus (with solar glow)
+  --focus-ring: 0 0 0 0.2rem rgba(64, 145, 108, 0.4), #{$shadow-solar};
+  
+  // Transitions
+  --transition-duration: 0.25s;
+  
+  // Fonts
+  --font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-base: 1rem;
+  
+  // Shadows (darker in dark mode)
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  
+  // Content padding
+  --content-padding: #{$spacing-lg};
+  --inline-spacing: #{$spacing-md};
+  
+  // =====================================================
+  // BUTTON COLORS
+  // =====================================================
+  --button-primary-bg: var(--primary-500);
+  --button-primary-border: var(--primary-500);
+  --button-primary-color: #{$dark-bg-main};
+  --button-primary-hover-bg: var(--primary-600);
+  --button-primary-hover-border: var(--primary-600);
+  
+  --button-secondary-bg: transparent;
+  --button-secondary-border: var(--primary-500);
+  --button-secondary-color: var(--primary-500);
+  --button-secondary-hover-bg: var(--surface-hover);
+  
+  // Solar accent button (with glow)
+  --button-warning-bg: var(--yellow-500);
+  --button-warning-border: var(--yellow-500);
+  --button-warning-color: #000000;
+  --button-warning-hover-bg: var(--yellow-600);
+  
+  // =====================================================
+  // INPUT COLORS
+  // =====================================================
+  --input-bg: #{$dark-surface};
+  --input-border: #{$dark-border};
+  --input-border-focus: var(--primary-500);
+  --input-color: var(--text-color);
+  --input-placeholder-color: #{$dark-text-muted};
+  
+  // =====================================================
+  // MENU & NAVIGATION
+  // =====================================================
+  --menubar-bg: #{$dark-bg-main};        // Pure dark
+  --menubar-color: #{$dark-text-primary};
+  --menubar-hover-bg: #{$dark-surface};
+  --menubar-hover-color: var(--yellow-500);
+}
+
+// =====================================================
+// DARK MODE SPECIFIC STYLES
+// =====================================================
+
+[data-theme="dark"] {
+  
+  // Solar accent glow effect (stronger in dark mode)
+  .p-button-warning,
+  .solar-accent {
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      background: linear-gradient(45deg, transparent, rgba(255, 214, 0, 0.1));
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    &:hover::before {
+      opacity: 1;
+    }
+    
+    &:hover {
+      box-shadow: #{$shadow-solar-strong} !important;
+    }
+    
+    &:focus {
+      box-shadow: 0 0 40px rgba(255, 214, 0, 0.8) !important;
+    }
+  }
+  
+  // Card styling with depth
+  .p-card {
+    border-radius: #{$radius-xl} !important;
+    background: #{$dark-surface};
+    box-shadow: #{$shadow-lg};
+    border: 1px solid rgba(64, 145, 108, 0.2);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      transform: translateY(-2px);
+      border-color: rgba(64, 145, 108, 0.4);
+    }
+  }
+  
+  // Data visualization bars
+  .solar-bar {
+    background: #{$dark-solar-accent} !important;
+    box-shadow: #{$shadow-solar};
+  }
+  
+  .grid-bar {
+    background: #{$dark-active} !important;
+  }
+  
+  // Subtle glow on interactive elements
+  .p-inputtext:focus,
+  .p-dropdown:focus,
+  .p-calendar:focus {
+    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.4), #{$shadow-solar} !important;
+  }
+  
+  // Table rows
+  .p-datatable .p-datatable-tbody > tr:hover {
+    background: rgba(64, 145, 108, 0.1) !important;
+  }
+}
+
+// =====================================================
+// PERFORMANCE: Disable animations for reduced motion
+// =====================================================
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="dark"] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

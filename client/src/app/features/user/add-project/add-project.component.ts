@@ -15,30 +15,32 @@ import { DecimalPipe } from '@angular/common';
 
 @Component({
   selector: 'app-add-project',
-  standalone: true,
   imports: [ReactiveFormsModule, DecimalPipe],
   template: `
-    <div class="add-project-container">
+    <section class="create-project-page animate-fade-in-up">
       <header class="page-header">
-        <h1>Create New Solar Project</h1>
-        <p>Define the area and panel configuration to estimate production.</p>
+        <div>
+          <h1>Create New Project</h1>
+          <p>Define installation area and panel setup to estimate production.</p>
+        </div>
       </header>
 
-      <div class="main-content">
-        <!-- MAP SECTION -->
-        <section class="map-section">
+      <div class="content-layout">
+        <section class="map-card">
+          <h2>Installation Area</h2>
           <div id="map" class="map-container"></div>
           @if (!hasDrawnArea()) {
-            <div class="map-instructions">
-              <p>ℹ️ Use the polygon tool on the left of the map to draw the roof area.</p>
+            <div class="map-instructions" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+              <i class="pi pi-info-circle"></i>
+              <span>Use polygon draw tool to define your roof or field area.</span>
             </div>
           }
         </section>
 
-        <!-- CONFIGURATION & RESULTS SECTION -->
         <aside class="sidebar">
-          <form [formGroup]="projectForm" (ngSubmit)="onSubmit()" class="project-form">
-            <!-- Project Details -->
+          <form [formGroup]="projectForm" (ngSubmit)="onSubmit()" class="form-card">
+            <h2>Project Configuration</h2>
+
             <div class="form-group">
               <label for="name">Project Name</label>
               <input id="name" type="text" formControlName="name" placeholder="My Home Solar" />
@@ -48,8 +50,8 @@ import { DecimalPipe } from '@angular/common';
               <label for="panel">Solar Panel</label>
               <select id="panel" formControlName="panelId">
                 <option value="" disabled>Select a panel</option>
-                @for (panel of panels(); track panel.id) {
-                  <option [value]="panel.id">
+                @for (panel of panels(); track panel.id || panel._id) {
+                  <option [value]="panel.id || panel._id">
                     {{ panel.brand }} {{ panel.model }} ({{ panel.wattPeak }}W)
                   </option>
                 }
@@ -57,7 +59,7 @@ import { DecimalPipe } from '@angular/common';
             </div>
 
             <div class="form-group">
-              <label for="tilt">Tilt Angle (degrees)</label>
+              <label for="tilt">Inclination</label>
               <input id="tilt" type="number" formControlName="tilt" min="0" max="90" />
             </div>
 
@@ -69,93 +71,109 @@ import { DecimalPipe } from '@angular/common';
                 <option value="southwest">South-West</option>
                 <option value="east">East</option>
                 <option value="west">West</option>
-                <option value="north">North (Not Recommended)</option>
+                <option value="north">North</option>
               </select>
             </div>
 
             <button
               type="button"
-              class="btn-calculate"
+              class="btn-secondary"
               (click)="onCalculate()"
               [disabled]="!canCalculate()"
             >
+              <i class="pi pi-bolt"></i>
               Estimate Production
             </button>
 
-            <!-- ESTIMATION RESULTS -->
             @if (estimation(); as est) {
-              <div class="results-card">
+              <div class="results-card" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
                 <h3>Estimation Results</h3>
                 <div class="result-item">
-                  <span class="label">Recommended Panels:</span>
-                  <span class="value">{{ est.recommendedPanels }}</span>
+                  <span>Recommended Panels</span>
+                  <strong>{{ est.recommendedPanels }}</strong>
                 </div>
                 <div class="result-item">
-                  <span class="label">Total Capacity:</span>
-                  <span class="value">{{ est.estimatedCapacity | number: '1.1-2' }} kW</span>
+                  <span>Total Capacity</span>
+                  <strong>{{ est.estimatedCapacity | number: '1.1-2' }} kW</strong>
                 </div>
                 <div class="result-item highlight">
-                  <span class="label">Annual Production:</span>
-                  <span class="value">{{ est.estimatedProduction | number: '1.0-0' }} kWh</span>
+                  <span>Annual Production</span>
+                  <strong>{{ est.estimatedProduction | number: '1.0-0' }} kWh</strong>
                 </div>
                 <div class="result-item">
-                  <span class="label">Roof Coverage:</span>
-                  <span class="value">{{ est.coverage | number: '1.0-1' }}%</span>
+                  <span>Roof Coverage</span>
+                  <strong>{{ est.coverage | number: '1.0-1' }}%</strong>
                 </div>
               </div>
             }
 
-            <div class="form-actions">
-              <button
-                type="submit"
-                class="btn-primary"
-                [disabled]="projectForm.invalid || !hasDrawnArea()"
-              >
-                Create Project
-              </button>
-            </div>
+            <button
+              type="submit"
+              class="btn-primary"
+              [disabled]="projectForm.invalid || !hasDrawnArea()"
+            >
+              <i class="pi pi-plus"></i>
+              Create Project
+            </button>
           </form>
         </aside>
       </div>
-    </div>
+    </section>
   `,
   styles: [
     `
-      .add-project-container {
-        max-width: 1400px;
+      .create-project-page {
+        max-width: 1280px;
         margin: 0 auto;
-        padding: 2rem;
+        padding: 1.5rem;
       }
 
       .page-header {
         margin-bottom: 2rem;
+
         h1 {
           margin: 0;
-          font-size: 2rem;
-          color: #2c3e50;
+          font-size: clamp(2rem, 3vw, 2.5rem);
+          color: #081c15;
+          font-weight: 800;
         }
+
         p {
-          color: #7f8c8d;
+          color: #1b4332;
           margin-top: 0.5rem;
         }
       }
 
-      .main-content {
+      .content-layout {
         display: grid;
-        grid-template-columns: 1fr 350px;
-        gap: 2rem;
-        height: 700px;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        align-items: start;
       }
 
-      .map-section {
+      .map-card,
+      .form-card {
+        background: #ffffff;
+        border: 2px solid #b7e4c7;
+        border-radius: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+      }
+
+      .map-card {
         position: relative;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        h2 {
+          margin: 0 0 1rem;
+          font-size: 1.25rem;
+          color: #081c15;
+        }
 
         .map-container {
-          height: 100%;
+          height: 650px;
           width: 100%;
+          border-radius: 12px;
+          overflow: hidden;
           z-index: 1;
         }
 
@@ -165,28 +183,28 @@ import { DecimalPipe } from '@angular/common';
           left: 50%;
           transform: translateX(-50%);
           background: rgba(255, 255, 255, 0.9);
-          padding: 0.75rem 1.5rem;
+          padding: 0.75rem 1rem;
           border-radius: 50px;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
           z-index: 1000;
           font-weight: 500;
+          color: #1b4332;
+          display: inline-flex;
+          gap: 0.5rem;
+          align-items: center;
         }
       }
 
-      .sidebar {
+      .form-card {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
-      }
+        gap: 1rem;
 
-      .project-form {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
+        h2 {
+          margin: 0 0 0.5rem;
+          font-size: 1.25rem;
+          color: #081c15;
+        }
       }
 
       .form-group {
@@ -196,108 +214,124 @@ import { DecimalPipe } from '@angular/common';
 
         label {
           font-weight: 600;
-          color: #34495e;
+          color: #1b4332;
           font-size: 0.9rem;
         }
 
         input,
         select {
           padding: 0.75rem;
-          border: 1px solid #dfe6e9;
-          border-radius: 8px;
+          border: 1px solid #b7e4c7;
+          border-radius: 12px;
           font-size: 1rem;
-          transition: border-color 0.2s;
+          color: #081c15;
+          transition: border-color 0.2s, box-shadow 0.2s;
 
           &:focus {
-            border-color: #3498db;
+            border-color: #2d6a4f;
+            box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
             outline: none;
           }
         }
       }
 
-      .btn-calculate {
-        background-color: #f1c40f;
-        color: #2c3e50;
+      .btn-secondary,
+      .btn-primary {
         border: none;
         padding: 0.75rem;
-        border-radius: 8px;
+        border-radius: 24px;
         font-weight: 600;
         cursor: pointer;
-        margin-top: 0.5rem;
-        transition: all 0.2s;
+        margin-top: 0.25rem;
+        transition: all 0.25s ease;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .btn-secondary {
+        background-color: #ffd600;
+        color: #000000;
 
         &:hover:not(:disabled) {
-          background-color: #f39c12;
+          box-shadow: 0 0 20px rgba(255, 214, 0, 0.35);
+          transform: translateY(-2px);
         }
+      }
 
+      .btn-primary {
+        background-color: #2d6a4f;
+        color: #ffffff;
+
+        &:hover:not(:disabled) {
+          background-color: #1b4332;
+          transform: translateY(-2px);
+        }
+      }
+
+      .btn-secondary,
+      .btn-primary {
         &:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
       }
 
       .results-card {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
+        background: #f0f7f4;
+        border: 1px solid #b7e4c7;
+        border-radius: 16px;
         padding: 1rem;
-        margin-top: 0.5rem;
 
         h3 {
-          margin: 0 0 1rem 0;
+          margin: 0 0 0.75rem;
           font-size: 1.1rem;
-          color: #2c3e50;
-          border-bottom: 2px solid #f1c40f;
-          padding-bottom: 0.5rem;
-          display: inline-block;
+          color: #081c15;
         }
 
         .result-item {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 0.75rem;
+          gap: 1rem;
+          margin-bottom: 0.6rem;
           font-size: 0.95rem;
+          color: #1b4332;
 
           &.highlight {
             font-weight: 700;
-            color: #27ae60;
-            font-size: 1.1rem;
+            color: #2d6a4f;
             margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-            border-top: 1px dashed #ced4da;
+            border-top: 1px dashed #b7e4c7;
             padding-top: 0.5rem;
           }
 
-          .label {
-            color: #636e72;
-          }
-          .value {
-            color: #2d3436;
-            font-weight: 500;
+          strong {
+            color: #081c15;
+            text-align: right;
           }
         }
       }
 
-      .btn-primary {
-        background-color: #2ecc71;
-        color: white;
-        border: none;
-        padding: 1rem;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 1.1rem;
-        cursor: pointer;
-        width: 100%;
-        margin-top: 1rem;
-        transition: background 0.2s;
-
-        &:hover:not(:disabled) {
-          background-color: #27ae60;
+      @media (max-width: 1024px) {
+        .content-layout {
+          grid-template-columns: 1fr;
         }
 
-        &:disabled {
-          background-color: #95a5a6;
-          cursor: not-allowed;
+        .map-card .map-container {
+          height: 460px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .create-project-page {
+          padding: 1rem;
+        }
+
+        .map-card .map-container {
+          height: 360px;
         }
       }
     `,

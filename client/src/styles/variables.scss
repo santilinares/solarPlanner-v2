@@ -1,0 +1,120 @@
+// Solar Planner Design System - Color Variables
+// Based on sustainability, energy, and technology themes
+
+// =====================================================
+// LIGHT MODE PALETTE (Daylight optimized)
+// =====================================================
+
+// Base Colors
+$light-bg-main: #F0F7F4;           // Extremely soft mint green
+$light-text-primary: #081C15;      // Near-black green
+$light-brand: #1B4332;             // Deep forest green
+$light-primary: #2D6A4F;           // Vibrant emerald green
+$light-solar-accent: #FFD600;      // Electric yellow
+$light-technical: #219EBC;         // Sky blue
+
+// Surface & UI Elements
+$light-surface: #FFFFFF;           // Pure white for cards
+$light-surface-hover: #E8F5F0;     // Hover state
+$light-border: #B7E4C7;            // Soft green border
+$light-text-secondary: #40916C;    // Medium green
+$light-text-muted: #52B788;        // Lighter green
+
+// States
+$light-success: #2D6A4F;
+$light-warning: #FFB700;
+$light-error: #D62828;
+$light-info: #219EBC;
+
+// =====================================================
+// DARK MODE PALETTE (Premium technical look)
+// =====================================================
+
+// Base Colors
+$dark-bg-main: #081C15;            // Obsidian green
+$dark-surface: #1B4332;            // Dark forest green
+$dark-text-primary: #B7E4C7;       // Pale pastel green
+$dark-solar-accent: #FFD600;       // Pure yellow with glow
+$dark-active: #40916C;             // Medium green
+$dark-technical: #48CAE4;          // Bright cyan
+
+// Surface & UI Elements
+$dark-surface-elevated: #2D6A4F;   // Elevated surfaces
+$dark-surface-hover: #40916C;      // Hover state
+$dark-border: #2D6A4F;             // Border color
+$dark-text-secondary: #95D5B2;     // Secondary text
+$dark-text-muted: #74C69D;         // Muted text
+
+// States
+$dark-success: #52B788;
+$dark-warning: #FFD600;
+$dark-error: #FF5757;
+$dark-info: #48CAE4;
+
+// =====================================================
+// SPACING & SIZING
+// =====================================================
+
+$spacing-xs: 0.25rem;   // 4px
+$spacing-sm: 0.5rem;    // 8px
+$spacing-md: 1rem;      // 16px
+$spacing-lg: 1.5rem;    // 24px
+$spacing-xl: 2rem;      // 32px
+$spacing-2xl: 3rem;     // 48px
+$spacing-3xl: 4rem;     // 64px
+
+// =====================================================
+// BORDER RADIUS (Organic shapes)
+// =====================================================
+
+$radius-sm: 0.5rem;     // 8px
+$radius-md: 1rem;       // 16px
+$radius-lg: 1.5rem;     // 24px
+$radius-xl: 2rem;       // 32px
+$radius-2xl: 2.5rem;    // 40px
+$radius-3xl: 3rem;      // 48px
+$radius-full: 9999px;   // Fully rounded
+
+// =====================================================
+// SHADOWS
+// =====================================================
+
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// Solar accent glow
+$shadow-solar: 0 0 15px rgba(255, 214, 0, 0.4);
+$shadow-solar-strong: 0 0 30px rgba(255, 214, 0, 0.6);
+
+// =====================================================
+// TRANSITIONS
+// =====================================================
+
+$transition-fast: 150ms ease-in-out;
+$transition-base: 250ms ease-in-out;
+$transition-slow: 350ms ease-in-out;
+
+// =====================================================
+// BREAKPOINTS
+// =====================================================
+
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;
+
+// =====================================================
+// Z-INDEX LAYERS
+// =====================================================
+
+$z-base: 0;
+$z-dropdown: 1000;
+$z-sticky: 1020;
+$z-fixed: 1030;
+$z-modal-backdrop: 1040;
+$z-modal: 1050;
+$z-popover: 1060;
+$z-tooltip: 1070;
