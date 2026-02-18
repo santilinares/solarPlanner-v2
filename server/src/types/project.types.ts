@@ -31,10 +31,11 @@ export interface ProjectResponse {
 }
 
 export interface ProjectListResponse {
-  projects: ProjectResponse[];
+  data: ProjectResponse[];
   total: number;
-  page?: number;
-  limit?: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface DashboardStats {

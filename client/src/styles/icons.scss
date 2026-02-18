@@ -1,0 +1,32 @@
+@use './variables.scss' as *;
+
+/* =====================================================
+   ICON SIZING UTILITIES
+   Sizing only — colors are handled by PrimeNG design tokens
+   ===================================================== */
+
+.icon-xs   { font-size: $icon-xs; }
+.icon-sm   { font-size: $icon-sm; }
+.icon-base { font-size: $icon-base; }
+.icon-md   { font-size: $icon-md; }
+.icon-lg   { font-size: $icon-lg; }
+.icon-xl   { font-size: $icon-xl; }
+.icon-2xl  { font-size: $icon-2xl; }
+
+// Ensure icons sit correctly inside inline text
+button i, a i { vertical-align: middle; }
+
+// Scale down on mobile to align with responsive text
+@media (max-width: 768px) {
+  .icon-lg  {
+    font-size: $icon-md;
+  }
+
+  .icon-xl {
+    font-size: $icon-lg;
+  }
+
+  .icon-2xl {
+    font-size: $icon-xl;
+  }
+}

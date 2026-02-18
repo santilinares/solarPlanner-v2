@@ -67,8 +67,8 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
   azimuth: project.azimuth,
   rawSpacing: project.rawSpacing,
   panelNumber: project.panelNumber,
-  panel: project.panel?.toString(),
-  owner: project.owner?.toString(),
+  panel: project.panel?._id.toString(),
+  owner: project.owner?._id.toString(),
   prodToday: project.prodToday,
   nextProd: project.nextProd,
   previousProd: project.previousProd,
@@ -146,10 +146,21 @@ export class ProjectService {
    * @returns List of projects
    */
   async listProjects(filters: ProjectQueryInput, userId?: string): Promise<ProjectListResponse> {
+    // Extract pagination params with defaults
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
     // If single ID requested, return that project
     if (filters.id) {
       const project = await this.getProjectById(filters.id, userId);
-      return { projects: [project], total: 1 };
+      return { 
+        data: [project], 
+        total: 1,
+        page: 1,
+        limit: 1,
+        totalPages: 1,
+      };
     }
 
     // Build query
@@ -185,18 +196,25 @@ export class ProjectService {
       query.$text = { $search: filters.search };
     }
 
-    // Execute query
+    // Execute query with pagination
     const [projects, total] = await Promise.all([
       ProjectModel.find(query)
         .populate('panel')
         .populate('owner', 'fullName email')
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
       ProjectModel.countDocuments(query),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
-      projects: projects.map(transformProjectToResponse),
+      data: projects.map(transformProjectToResponse),
       total,
+      page,
+      limit,
+      totalPages,
     };
   }
 

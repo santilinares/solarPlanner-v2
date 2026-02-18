@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MenubarModule } from 'primeng/menubar';
 import { ButtonModule } from 'primeng/button';
-import { MenuItem } from 'primeng/api';
+//import { MenuItem } from 'primeng/api';
 import { AuthService } from '@core/services';
 
 @Component({
@@ -222,6 +222,6 @@ export class UserLayoutComponent {
 
   logout(): void {
     this.authService.logout();
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 }

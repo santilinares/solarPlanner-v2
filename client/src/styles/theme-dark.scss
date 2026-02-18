@@ -129,7 +129,6 @@
 [data-theme="dark"] {
   
   // Solar accent glow effect (stronger in dark mode)
-  .p-button-warning,
   .solar-accent {
     position: relative;
     
@@ -157,21 +156,6 @@
     }
   }
   
-  // Card styling with depth
-  .p-card {
-    border-radius: #{$radius-xl} !important;
-    background: #{$dark-surface};
-    box-shadow: #{$shadow-lg};
-    border: 1px solid rgba(64, 145, 108, 0.2);
-    transition: all 0.3s ease;
-    
-    &:hover {
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-      transform: translateY(-2px);
-      border-color: rgba(64, 145, 108, 0.4);
-    }
-  }
-  
   // Data visualization bars
   .solar-bar {
     background: #{$dark-solar-accent} !important;
@@ -180,13 +164,6 @@
   
   .grid-bar {
     background: #{$dark-active} !important;
-  }
-  
-  // Subtle glow on interactive elements
-  .p-inputtext:focus,
-  .p-dropdown:focus,
-  .p-calendar:focus {
-    box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.4), #{$shadow-solar} !important;
   }
   
   // Table rows

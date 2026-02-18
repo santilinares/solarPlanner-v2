@@ -5,38 +5,6 @@ import { LandingPageComponent } from './features/visitor/landing-page/landing-pa
 import { VisitorLayoutComponent } from './layouts/visitor-layout/visitor-layout.component';
 
 export const routes: Routes = [
-  // Visitor routes (public)
-  {
-    path: '',
-    component: VisitorLayoutComponent,
-    children: [
-      {
-        path: '',
-        component: LandingPageComponent
-      },
-      {
-        path: 'login',
-        loadComponent: () => import('./features/visitor/login/login.component')
-          .then(m => m.LoginComponent)
-      },
-      {
-        path: 'registration',
-        loadComponent: () => import('./features/visitor/register/register.component')
-          .then(m => m.RegisterComponent)
-      },
-      {
-        path: 'forgot_password',
-        loadComponent: () => import('./features/visitor/forgot-password/forgot-password.component')
-          .then(m => m.ForgotPasswordComponent)
-      },
-      {
-        path: 'reset_password/:id/:token',
-        loadComponent: () => import('./features/visitor/reset-password/reset-password.component')
-          .then(m => m.ResetPasswordComponent)
-      }
-    ]
-  },
-
   // User routes (protected)
   {
     path: 'projects',
@@ -46,6 +14,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        pathMatch: 'full',
         loadComponent: () => import('./features/user/dashboard/dashboard.component')
           .then(m => m.DashboardComponent)
       },
@@ -91,6 +60,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        pathMatch: 'full',
         loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component')
           .then(m => m.AdminDashboardComponent)
       },
@@ -108,6 +78,39 @@ export const routes: Routes = [
         path: 'panels',
         loadComponent: () => import('./features/admin/panels/panels.component')
           .then(m => m.PanelsComponent)
+      }
+    ]
+  },
+
+  // Visitor routes (public)
+  {
+    path: '',
+    component: VisitorLayoutComponent,
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        component: LandingPageComponent
+      },
+      {
+        path: 'login',
+        loadComponent: () => import('./features/visitor/login/login.component')
+          .then(m => m.LoginComponent)
+      },
+      {
+        path: 'registration',
+        loadComponent: () => import('./features/visitor/register/register.component')
+          .then(m => m.RegisterComponent)
+      },
+      {
+        path: 'forgot_password',
+        loadComponent: () => import('./features/visitor/forgot-password/forgot-password.component')
+          .then(m => m.ForgotPasswordComponent)
+      },
+      {
+        path: 'reset_password/:id/:token',
+        loadComponent: () => import('./features/visitor/reset-password/reset-password.component')
+          .then(m => m.ResetPasswordComponent)
       }
     ]
   },

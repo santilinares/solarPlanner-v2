@@ -11,8 +11,7 @@ import {
   PlanData,
   DashboardStats,
   OptimalConfigResponse,
-  OptimalConfigFromPolygonRequest,
-  Coordinates,
+  OptimalConfigFromPolygonRequest
 } from '../models';
 
 @Injectable({
@@ -33,7 +32,7 @@ export class ProjectService {
    * Get all projects for current user
    */
   getMyProjects(page = 1, limit = 10): Observable<PaginatedResponse<Project>> {
-    return this.http.get<PaginatedResponse<Project>>(`${this.apiUrl}/my`, {
+    return this.http.get<PaginatedResponse<Project>>(this.apiUrl, {
       params: { page: page.toString(), limit: limit.toString() },
     });
   }

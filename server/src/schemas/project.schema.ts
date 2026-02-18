@@ -103,6 +103,8 @@ export type ProjectUpdateInput = z.infer<typeof ProjectUpdateSchema>;
  * - country: Filter by country
  * - from/to: Filter by installation date range
  * - search: Search by project name
+ * - page: Pagination page number (default: 1)
+ * - limit: Items per page (default: 10, max: 100)
  */
 export const ProjectQuerySchema = z.object({
   id: z.string().optional(), // Single project ID shortcut
@@ -111,6 +113,8 @@ export const ProjectQuerySchema = z.object({
   from: z.coerce.date().optional(), // Filter by install date range
   to: z.coerce.date().optional(),
   search: z.string().optional(), // Search by name
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
 });
 
 /** Type inferred from ProjectQuerySchema - used for querying/filtering projects */

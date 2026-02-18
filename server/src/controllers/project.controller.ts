@@ -38,7 +38,7 @@ export const listProjects = asyncHandler(async (req: Request, res: Response) => 
   const effectiveUserId = userRole === 'admin' ? undefined : userId;
 
   const projects = await projectService.listProjects(
-    req.query as ProjectQueryInput,
+    req.query as unknown as ProjectQueryInput,
     effectiveUserId
   );
   return success(res, projects);

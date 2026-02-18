@@ -426,16 +426,18 @@ export class AddProjectComponent implements OnInit {
     this.map.addControl(drawControl);
 
     // Event handlers
-    this.map.on(L.Draw.Event.CREATED, (e: any) => {
-      const layer = e.layer;
+    this.map.on(L.Draw.Event.CREATED, (e: L.LeafletEvent) => {
+      const drawEvent = e as L.DrawEvents.Created;
+      const layer = drawEvent.layer;
       this.drawnItems.clearLayers(); // Only allow one polygon
       this.drawnItems.addLayer(layer);
       this.updatePolygonPoints(layer);
     });
 
-    this.map.on(L.Draw.Event.EDITED, (e: any) => {
-      const layers = e.layers;
-      layers.eachLayer((layer: any) => {
+    this.map.on(L.Draw.Event.EDITED, (e: L.LeafletEvent) => {
+      const drawEvent = e as L.DrawEvents.Edited;
+      const layers = drawEvent.layers;
+      layers.eachLayer((layer: L.Layer) => {
         this.updatePolygonPoints(layer);
       });
     });
@@ -446,7 +448,7 @@ export class AddProjectComponent implements OnInit {
     });
   }
 
-  updatePolygonPoints(layer: any) {
+  updatePolygonPoints(layer: L.Layer): void {
     if (layer instanceof L.Polygon) {
       // transform LatLng objects to plain objects
       const latLngs = layer.getLatLngs()[0] as L.LatLng[];
@@ -546,7 +548,7 @@ export class AddProjectComponent implements OnInit {
     // Server expects: name, area, tilt, direction, panelNumber, panelId.
 
     this.projectService.createProject(projectData).subscribe({
-      next: (res) => {
+      next: () => {
         alert('Project created successfully!');
         // Navigate away or reset
       },

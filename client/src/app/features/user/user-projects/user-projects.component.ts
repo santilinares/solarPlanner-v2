@@ -325,10 +325,17 @@ export class UserProjectsComponent implements OnInit {
 
     this.projectService.getMyProjects(1, 100).subscribe({
       next: (response) => {
-        this.projects.set(response.data.map((project) => this.mapProject(project)));
+        console.log('Projects response:', response);
+        if (response && response.data) {
+          this.projects.set(response.data.map((project) => this.mapProject(project)));
+        } else {
+          console.warn('Unexpected response structure:', response);
+          this.errorMessage.set('Invalid server response format.');
+        }
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error loading projects:', err);
         this.errorMessage.set('Could not load projects. Please try again in a moment.');
         this.isLoading.set(false);
       },

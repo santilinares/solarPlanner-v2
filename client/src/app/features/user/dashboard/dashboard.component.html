@@ -1,0 +1,117 @@
+<div class="dashboard animate-fade-in-up">
+  <div class="dashboard-header">
+    <div>
+      <h1>
+        <i class="pi pi-home icon-lg" style="color: var(--primary-500);"></i>
+        Dashboard
+      </h1>
+      <p class="welcome-text">Welcome back! Here's your solar planning overview</p>
+    </div>
+    <p-button
+      label="New Project"
+      icon="pi pi-plus"
+      routerLink="/projects/new"
+      class="btn-solar"
+    ></p-button>
+  </div>
+
+  @if (loading()) {
+    <div class="dashboard-grid">
+      @for (item of [1,2,3,4]; track item) {
+        <p-card class="stat-card">
+          <p-skeleton height="1.5rem" class="mb-2"></p-skeleton>
+          <p-skeleton height="3rem" width="60%"></p-skeleton>
+        </p-card>
+      }
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" [text]="error()" class="w-full"></p-message>
+  } @else if (stats()) {
+    <div class="dashboard-grid stagger-children">
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon" style="background: rgba(45, 106, 79, 0.1);">
+          <i class="pi pi-folder icon-lg" style="color: var(--primary-500);"></i>
+        </div>
+        <h3>My Projects</h3>
+        <p class="stat-value">{{ stats()!.totalProjects }}</p>
+        <a routerLink="/projects/all" class="stat-link">
+          <i class="pi pi-arrow-right icon-sm"></i> View all
+        </a>
+      </p-card>
+
+      <p-card class="stat-card hover-lift solar-accent-card">
+        <div class="stat-icon" style="background: rgba(255, 214, 0, 0.15);">
+          <i class="pi pi-bolt icon-lg" style="color: var(--yellow-500);"></i>
+        </div>
+        <h3>Total Production</h3>
+        <p class="stat-value solar-highlight">{{ stats()!.totalProduction.toFixed(2) }}</p>
+        <span class="stat-unit">kWh</span>
+      </p-card>
+
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon" style="background: rgba(33, 158, 188, 0.1);">
+          <i class="pi pi-th-large icon-lg" style="color: var(--blue-500);"></i>
+        </div>
+        <h3>Active Panels</h3>
+        <p class="stat-value">{{ stats()!.totalPanels }}</p>
+        <span class="stat-unit">panels</span>
+      </p-card>
+
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon" style="background: rgba(45, 106, 79, 0.1);">
+          <i class="pi pi-chart-line icon-lg" style="color: var(--primary-500);"></i>
+        </div>
+        <h3>Total Capacity</h3>
+        <p class="stat-value">{{ stats()!.totalCapacity.toFixed(2) }}</p>
+        <span class="stat-unit">kW</span>
+      </p-card>
+    </div>
+
+    @if (stats()!.recentProjects.length > 0) {
+      <div class="recent-projects animate-fade-in-up">
+        <div class="section-header">
+          <h2>
+            <i class="pi pi-clock icon-lg" style="color: var(--primary-500);"></i>
+            Recent Projects
+          </h2>
+          <p-button
+            label="View All"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            [outlined]="true"
+            routerLink="/projects/all"
+            size="small"
+          ></p-button>
+        </div>
+        <div class="projects-grid stagger-children">
+          @for (project of stats()!.recentProjects; track project._id) {
+            <p-card class="project-card hover-lift" [routerLink]="['/projects', project._id]">
+              <div class="project-header">
+                <div class="project-icon">
+                  <i class="pi pi-map-marker icon-md" style="color: var(--primary-500);"></i>
+                </div>
+                <h3>{{ project.name }}</h3>
+              </div>
+              <div class="project-details">
+                <span class="detail-item">
+                  <i class="pi pi-globe icon-sm" style="color: var(--primary-500);"></i>
+                  {{ project.country || 'N/A' }}
+                </span>
+                <span class="detail-item">
+                  <i class="pi pi-chart-bar icon-sm" style="color: var(--primary-500);"></i>
+                  {{ project.surface || 0 }} m²
+                </span>
+              </div>
+              <div class="project-action">
+                <span class="action-link">
+                  View details
+                  <i class="pi pi-arrow-right icon-sm"></i>
+                </span>
+              </div>
+            </p-card>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -4,6 +4,285 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 February 18, 2026 - Projects List Loading - Pagination & Validation Fix
+
+### Topic
+Fix user projects list not loading due to missing endpoint implementation and pagination support.
+
+### Summary of Request
+User reported that the projects list view was not loading projects for authenticated users. The frontend kept showing a loading state indefinitely.
+
+### What Was Achieved
+- **Fixed Frontend Service**: Changed `getMyProjects()` endpoint from `/api/projects/my` (non-existent) to `/api/projects` (correct endpoint that auto-filters by user).
+- **Added Pagination to Backend Query Schema**: Expanded `ProjectQuerySchema` to include `page` (default: 1) and `limit` (default: 10, max: 100) parameters with proper coercion.
+- **Updated ProjectListResponse Type**: Changed from `{ projects: [...], total }` to `{ data: [...], total, page, limit, totalPages }` to match frontend expectations.
+- **Implemented Backend Pagination Logic**: 
+  - Extract and validate `page` and `limit` from query parameters.
+  - Calculate proper skip: `(page - 1) * limit`.
+  - Apply MongoDB `.skip()` and `.limit()` to optimize queries.
+  - Calculate `totalPages` for response.
+- **Fixed TypeScript Casting Issue**: Added `unknown` intermediate cast in controller to avoid type mismatch when validation middleware transforms `req.query`.
+- **Added Client Debugging**: Improved error logging in component's `loadProjects()` method to surface API response structure and errors to browser console.
+
+### Full Original Prompt
+```
+User 1: "The projects all view is not correctly loading the projects that correspond to a user"
+User 2: "Now it keeps loading but does not show anything"
+User 3: "Maybe the issue is with what happens after the isloading is set to true"
+User 4: "[TypeScript compilation error in project.controller.ts:41 - Conversion of ParsedQs type]"
+```
+
+### Affected Files
+- `client/src/app/core/services/project.service.ts` (endpoint fix)
+- `client/src/app/features/user/user-projects/user-projects.component.ts` (improved error handling & logging)
+- `server/src/schemas/project.schema.ts` (pagination parameters added)
+- `server/src/types/project.types.ts` (ProjectListResponse structure updated)
+- `server/src/services/project.service.ts` (pagination logic implemented)
+- `server/src/controllers/project.controller.ts` (TypeScript type casting fix)
+
+### Reasoning Snapshot
+- **Endpoint Mismatch**: The backend's `listProjects` controller auto-filters by user, so the frontend's `/my` suffix was unnecessary and incorrect.
+- **Missing Pagination**: The backend accepted `page` and `limit` query params but didn't validate/process them; the schema and query logic were incomplete.
+- **Response Structure Mismatch**: Frontend expected `{ data, total, page, limit, totalPages }` but service was returning `{ projects, total }`.
+- **Type Safety**: Using `unknown` intermediate cast tells TypeScript to trust the runtime transformation by validation middleware.
+- **Observability**: Added console logging to help diagnose API response structure and errors in development without needing server logs.
+
+### Testing Notes
+- Component now properly handles paginated responses after backend fixes.
+- Error messages now surface in browser console for easier debugging.
+- Server should start without TypeScript errors when restarted with `npm run dev:watch`.
+
+### Next Steps
+- Start server: `cd server && npm run dev:watch`
+- Check browser DevTools console for `Projects response:` logs to verify data flow.
+- If projects still don't appear, console logs will show the actual API response structure for further debugging.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Completion (All 14 Components)
+
+### Topic
+Complete PrimeNG preset token coverage by adding the final 6 missing components: Skeleton, Message, Menubar, Password, DataView, and Tag.
+
+### Summary of Request
+User approved adding all remaining component tokens in a single iteration to complete preset coverage.
+
+### What Was Achieved
+- Added Skeleton component tokens for loading placeholders with light/dark background and animation colors.
+- Added Message component tokens with colorScheme variants (info, success, warn, error, secondary) for all states.
+- Added Menubar component tokens for navigation styling, including item hover/active states and mobile button.
+- Added Password component tokens for meter strength indicator (weak/medium/strong) and overlay positioning.
+- Added DataView component tokens for list/grid header, content, footer, and paginator styling.
+- Added Tag component tokens with semantic color variants (primary, secondary, success, info, warn, danger, contrast).
+- All components include light/dark colorScheme support for full theme consistency.
+
+### Full Original Prompt
+"Yes, add all of those in this next iteration"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+
+### Reasoning Snapshot
+- Closes the gap between Aura base and project's PrimeNG component usage (8/14 → 14/14 components covered).
+- All tokens follow the Aura structure: primitive → semantic → colorScheme.light/dark for consistency.
+- Reduces reliance on CSS overrides; enables proper token-first styling for all used components.
+- Aligns with PrimeNG best practice: "Configure in preset, avoid CSS hacks."
+
+---
+
+## 📅 February 15, 2026 - Dashboard HTML/SCSS Migration
+
+### Topic
+Move dashboard template and styles into dedicated files for SCSS token usage.
+
+### Summary of Request
+User asked to proceed straight to the dashboard migration after preset expansion.
+
+### What Was Achieved
+- Extracted the dashboard template to a dedicated HTML file.
+- Extracted the dashboard styles to a dedicated SCSS file.
+- Wired the component to `templateUrl` and `styleUrls`.
+
+### Full Original Prompt
+"Expand into those 3 and then lets go straight to the migration"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+
+### Reasoning Snapshot
+- Keeps the component ready for SCSS tokens without changing UI behavior.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Expansion (Select + DataTable)
+
+### Topic
+Extend the PrimeNG preset with select, datatable, and focus-ring tokens.
+
+### Summary of Request
+User asked to expand preset into select, datatable, and focus ring, then proceed to migration.
+
+### What Was Achieved
+- Added form field focus ring tokens and select overlay tokens.
+- Added datatable tokens for headers, row hover, and scheme-specific borders.
+- Removed overlapping datatable CSS overrides from global styles.
+
+### Full Original Prompt
+"Proceed and also generate a table of the component tokens that are missing in the primeng preset file"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles.scss`
+
+### Reasoning Snapshot
+- Keeps table and select styling inside the preset while avoiding duplicate overrides.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Expansion (Buttons, Inputs, Cards)
+
+### Topic
+Expand the preset with component tokens for buttons, inputs, and cards.
+
+### Summary of Request
+User approved continuing the preset expansion.
+
+### What Was Achieved
+- Added form field sizing, button root tokens, input border radius, and card spacing/shadows to the preset.
+- Reduced overlapping PrimeNG overrides in global styles while keeping hover lift effects.
+
+### Full Original Prompt
+"Ok. continue expanding the preset. I approve"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles.scss`
+
+### Reasoning Snapshot
+- Moves core component styling into PrimeNG tokens and keeps only the behavior-specific overrides in CSS.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Button/Form Tokens + Theme Cleanup
+
+### Topic
+Align button and form field styling with PrimeNG component tokens and reduce overlapping overrides.
+
+### Summary of Request
+User approved adding component tokens and trimming SCSS overrides to better follow PrimeNG presets.
+
+### What Was Achieved
+- Added form field semantic tokens and warning button component tokens derived from theme values.
+- Removed overlapping PrimeNG component overrides from light/dark theme files.
+
+### Full Original Prompt
+"Yeah lets do that"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+
+### Reasoning Snapshot
+- Token-first styling reduces duplication and aligns with PrimeNG styled-mode recommendations.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Token Expansion
+
+### Topic
+Expand the PrimeNG preset with primitive, semantic, and component tokens derived from theme SCSS.
+
+### Summary of Request
+User asked to avoid oversimplifying and to extract config values from theme-light/theme-dark files.
+
+### What Was Achieved
+- Added primitive palettes (green, yellow, blue) based on existing theme values.
+- Mapped semantic tokens for primary, surfaces, form field hover border, and focus ring.
+- Added card component tokens for light/dark schemes.
+
+### Full Original Prompt
+"Dont oversimply it, extract the configs from the theme scss files"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+
+### Reasoning Snapshot
+- Keeps PrimeNG styling aligned with current design tokens while avoiding heavy CSS overrides.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Extraction
+
+### Topic
+Adopt PrimeNG styled-mode preset structure using existing theme tokens.
+
+### Summary of Request
+User asked to follow PrimeNG recommendations by using a preset while keeping the current theme-light/theme-dark approach.
+
+### What Was Achieved
+- Extracted the PrimeNG preset definition to a dedicated file for easier maintenance.
+- Wired the preset back into the PrimeNG provider configuration.
+
+### Full Original Prompt
+"Ok, lets do that, but not overkilled. Use the preset like files we already have (theme-light and theme-dark), and remember to follow the rules inside the FRONTEND-MODERNIZATION file"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/app/app.config.ts`
+
+### Reasoning Snapshot
+- Keeps the styled-mode preset aligned with the existing token system without refactoring the themes.
+
+---
+
+## 📅 February 15, 2026 - Dashboard Button Color Fix
+
+### Topic
+Remove unintended yellow background from the Dashboard "New Project" button.
+
+### Summary of Request
+User reported the button background was yellow and wanted it removed.
+
+### What Was Achieved
+- Removed the explicit yellow background/border override on the button.
+- Switched hover glow to a neutral shadow.
+
+### Full Original Prompt
+"Also, for some reason the button has a yellow background color. Can we remove that? I think its because of the hover effect that may not be configured properly"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+
+### Reasoning Snapshot
+- The yellow styling came from explicit overrides; removing them restores the theme defaults.
+
+---
+
+## 📅 February 15, 2026 - Dashboard Button Padding Tweak
+
+### Topic
+Adjust spacing inside the Dashboard "New Project" button.
+
+### Summary of Request
+User asked to add padding inside the button without expanding into new files.
+
+### What Was Achieved
+- Added padding to the PrimeNG button content via the existing inline styles.
+
+### Full Original Prompt
+"I dont want to expand much in files now. I just want to adjust the space between the content inside the button and the edge of the button"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+
+### Reasoning Snapshot
+- Kept the change minimal and localized to the existing inline styles as requested.
+
+---
+
 ## 📅 February 14, 2026 - Projects Flow Screen Rebuild (Client-First)
 
 ### Topic
