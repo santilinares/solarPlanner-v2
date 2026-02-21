@@ -1,147 +1,47 @@
-// Solar Planner Light Theme
-// Optimized for daylight readability with organic, clean feel
-@use './variables.scss' as *;
+// Solar Planner — Light Theme
+// Only CSS custom properties NOT covered by PrimeNG's --p-* token set.
+// Colors with a --p-* equivalent (--p-primary-*, --p-yellow-*, --p-surface-*,
+// --p-text-color, --p-green-*, --p-blue-*) were removed — use --p-* directly.
 
 :root {
   // =====================================================
-  // PRIMARY COLORS
+  // SURFACE (no clean --p-* equivalent)
   // =====================================================
-  --primary-50: #E8F5F0;
-  --primary-100: #D1F4E0;
-  --primary-200: #95D5B2;
-  --primary-300: #74C69D;
-  --primary-400: #52B788;
-  --primary-500: #{$light-primary};      // #2D6A4F - Main primary
-  --primary-600: #1B4332;
-  --primary-700: #081C15;
-  --primary-800: #041910;
-  --primary-900: #020C08;
+  --surface-border: #B7E4C7;   // use: var(--p-form-field-border-color) for PrimeNG inputs
+  --surface-hover:  #E8F5F0;   // use: var(--p-surface-50) in a pinch, but not identical
 
   // =====================================================
-  // SURFACE COLORS
+  // TEXT (secondary/muted have no --p-* token)
   // =====================================================
-  --surface-ground: #{$light-bg-main};   // #F0F7F4 - Page background
-  --surface-section: #{$light-surface};  // #FFFFFF - Card background
-  --surface-card: #{$light-surface};     // #FFFFFF
-  --surface-overlay: #{$light-surface};  // #FFFFFF
-  --surface-border: #{$light-border};    // #B7E4C7
-  --surface-hover: #{$light-surface-hover}; // #E8F5F0
+  --text-color-secondary: #40916C;
+  --text-color-muted:     #52B788;
 
   // =====================================================
-  // TEXT COLORS
+  // SEMANTIC STATES (no --p-* equivalent)
   // =====================================================
-  --text-color: #{$light-text-primary};           // #081C15
-  --text-color-secondary: #{$light-text-secondary}; // #40916C
-  --text-color-muted: #{$light-text-muted};       // #52B788
+  --red-500: #D62828;
 
   // =====================================================
-  // ACCENT COLORS (Solar Yellow)
+  // UTILITIES
   // =====================================================
-  --yellow-50: #FFFEF0;
-  --yellow-100: #FFFBD6;
-  --yellow-200: #FFF9AD;
-  --yellow-300: #FFF684;
-  --yellow-400: #FFE84D;
-  --yellow-500: #{$light-solar-accent};  // #FFD600 - Main accent
-  --yellow-600: #D6B400;
-  --yellow-700: #AD9200;
-  --yellow-800: #847000;
-  --yellow-900: #5C4E00;
+  --font-family:  'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --border-radius: 1.5rem;
+  --focus-ring:    0 0 0 0.2rem rgba(45, 106, 79, 0.3);
 
-  // =====================================================
-  // STATE COLORS
-  // =====================================================
-  --green-500: #{$light-success};   // #2D6A4F
-  --blue-500: #{$light-info};       // #219EBC
-  --yellow-warning: #{$light-warning}; // #FFB700
-  --red-500: #{$light-error};       // #D62828
-
-  // =====================================================
-  // COMPONENT VARIABLES
-  // =====================================================
-  
-  // Border Radius (Organic shapes)
-  --border-radius: #{$radius-lg};   // 1.5rem by default
-  --border-radius-sm: #{$radius-sm};
-  --border-radius-lg: #{$radius-xl};
-  
-  // Focus
-  --focus-ring: 0 0 0 0.2rem rgba(45, 106, 79, 0.3);
-  
-  // Transitions
-  --transition-duration: 0.25s;
-  
-  // Fonts
-  --font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-size-base: 1rem;
-  
-  // Shadows
-  --shadow-sm: #{$shadow-sm};
-  --shadow-md: #{$shadow-md};
-  --shadow-lg: #{$shadow-lg};
-  
-  // Content padding
-  --content-padding: #{$spacing-lg};
-  --inline-spacing: #{$spacing-md};
-  
-  // =====================================================
-  // BUTTON COLORS
-  // =====================================================
-  --button-primary-bg: var(--primary-500);
-  --button-primary-border: var(--primary-500);
-  --button-primary-color: #FFFFFF;
-  --button-primary-hover-bg: var(--primary-600);
-  --button-primary-hover-border: var(--primary-600);
-  
-  --button-secondary-bg: transparent;
-  --button-secondary-border: var(--primary-500);
-  --button-secondary-color: var(--primary-500);
-  --button-secondary-hover-bg: var(--surface-hover);
-  
-  // Solar accent button
-  --button-warning-bg: var(--yellow-500);
-  --button-warning-border: var(--yellow-500);
-  --button-warning-color: #000000;
-  --button-warning-hover-bg: var(--yellow-600);
-  
-  // =====================================================
-  // INPUT COLORS
-  // =====================================================
-  --input-bg: #{$light-surface};
-  --input-border: #{$light-border};
-  --input-border-focus: var(--primary-500);
-  --input-color: var(--text-color);
-  --input-placeholder-color: #{$light-text-muted};
-  
-  // =====================================================
-  // MENU & NAVIGATION
-  // =====================================================
-  --menubar-bg: #{$light-brand};        // #1B4332 - Deep forest
-  --menubar-color: #B7E4C7;
-  --menubar-hover-bg: #{$light-primary};
-  --menubar-hover-color: #FFFFFF;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 // =====================================================
-// CUSTOM COMPONENT STYLES
+// CUSTOM COMPONENT CLASSES (non-PrimeNG)
 // =====================================================
 
-// Solar accent glow for important elements
 .solar-accent {
-  &:hover {
-    box-shadow: #{$shadow-solar} !important;
-  }
-  
-  &:focus {
-    box-shadow: #{$shadow-solar-strong} !important;
-  }
+  &:hover { box-shadow: 0 0 15px rgba(255, 214, 0, 0.4) !important; }
+  &:focus { box-shadow: 0 0 30px rgba(255, 214, 0, 0.6) !important; }
 }
 
-// Data visualization bars (Solar = Yellow)
-.solar-bar {
-  background: #{$light-solar-accent} !important;
-}
-
-.grid-bar {
-  background: #{$light-primary} !important;
-}
+.solar-bar { background: #FFD600 !important; }
+.grid-bar  { background: #2D6A4F !important; }

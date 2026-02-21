@@ -1,55 +1,6 @@
-// Solar Planner Design System - Color Variables
-// Based on sustainability, energy, and technology themes
-
-// =====================================================
-// LIGHT MODE PALETTE (Daylight optimized)
-// =====================================================
-
-// Base Colors
-$light-bg-main: #F0F7F4;           // Extremely soft mint green
-$light-text-primary: #081C15;      // Near-black green
-$light-brand: #1B4332;             // Deep forest green
-$light-primary: #2D6A4F;           // Vibrant emerald green
-$light-solar-accent: #FFD600;      // Electric yellow
-$light-technical: #219EBC;         // Sky blue
-
-// Surface & UI Elements
-$light-surface: #FFFFFF;           // Pure white for cards
-$light-surface-hover: #E8F5F0;     // Hover state
-$light-border: #B7E4C7;            // Soft green border
-$light-text-secondary: #40916C;    // Medium green
-$light-text-muted: #52B788;        // Lighter green
-
-// States
-$light-success: #2D6A4F;
-$light-warning: #FFB700;
-$light-error: #D62828;
-$light-info: #219EBC;
-
-// =====================================================
-// DARK MODE PALETTE (Premium technical look)
-// =====================================================
-
-// Base Colors
-$dark-bg-main: #081C15;            // Obsidian green
-$dark-surface: #1B4332;            // Dark forest green
-$dark-text-primary: #B7E4C7;       // Pale pastel green
-$dark-solar-accent: #FFD600;       // Pure yellow with glow
-$dark-active: #40916C;             // Medium green
-$dark-technical: #48CAE4;          // Bright cyan
-
-// Surface & UI Elements
-$dark-surface-elevated: #2D6A4F;   // Elevated surfaces
-$dark-surface-hover: #40916C;      // Hover state
-$dark-border: #2D6A4F;             // Border color
-$dark-text-secondary: #95D5B2;     // Secondary text
-$dark-text-muted: #74C69D;         // Muted text
-
-// States
-$dark-success: #52B788;
-$dark-warning: #FFD600;
-$dark-error: #FF5757;
-$dark-info: #48CAE4;
+// Solar Planner Design System — SCSS-only variables
+// Used exclusively in SCSS files (layout utilities, mixins, media queries).
+// Color tokens live in primeng-preset.ts and theme-light/dark.scss.
 
 // =====================================================
 // SPACING & SIZING

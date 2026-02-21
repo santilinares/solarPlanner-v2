@@ -11,7 +11,7 @@ import { CardModule } from 'primeng/card';
       <section class="hero animate-fade-in-down">
         <div class="container">
           <div class="solar-icon animate-solar-pulse">
-            <i class="pi pi-sun" style="font-size: 4rem; color: var(--yellow-500);"></i>
+            <i class="pi pi-sun" style="font-size: 4rem; color: var(--p-yellow-500);"></i>
           </div>
           <h1 class="hero-title">Solar Energy Planning Made Easy</h1>
           <p class="subtitle">
@@ -46,7 +46,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-map" style="font-size: 2.5rem; color: var(--primary-500);"></i>
+                  <i class="pi pi-map" style="font-size: 2.5rem; color: var(--p-primary-500);"></i>
                 </div>
               </ng-template>
               <h3>Interactive Mapping</h3>
@@ -56,7 +56,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-chart-bar" style="font-size: 2.5rem; color: var(--primary-500);"></i>
+                  <i class="pi pi-chart-bar" style="font-size: 2.5rem; color: var(--p-primary-500);"></i>
                 </div>
               </ng-template>
               <h3>Production Analysis</h3>
@@ -66,7 +66,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-bolt" style="font-size: 2.5rem; color: var(--yellow-500);"></i>
+                  <i class="pi pi-bolt" style="font-size: 2.5rem; color: var(--p-yellow-500);"></i>
                 </div>
               </ng-template>
               <h3>Panel Optimization</h3>
@@ -76,7 +76,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-file-pdf" style="font-size: 2.5rem; color: var(--primary-500);"></i>
+                  <i class="pi pi-file-pdf" style="font-size: 2.5rem; color: var(--p-primary-500);"></i>
                 </div>
               </ng-template>
               <h3>PDF Reports</h3>
@@ -90,7 +90,7 @@ import { CardModule } from 'primeng/card';
   styles: [`
     .landing-page {
       .hero {
-        background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+        background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
         color: white;
         padding: 5rem 0;
         text-align: center;
@@ -147,15 +147,15 @@ import { CardModule } from 'primeng/card';
 
           ::ng-deep {
             .btn-solar {
-              background: var(--yellow-500) !important;
-              border-color: var(--yellow-500) !important;
+              background: var(--p-yellow-500) !important;
+              border-color: var(--p-yellow-500) !important;
               color: #000 !important;
               font-weight: 600;
               padding: 1rem 2.5rem;
               font-size: 1.1rem;
 
               &:hover {
-                background: var(--yellow-600) !important;
+                background: var(--p-yellow-600) !important;
                 box-shadow: 0 0 25px rgba(255, 214, 0, 0.6) !important;
                 transform: translateY(-3px) scale(1.02);
               }
@@ -184,13 +184,13 @@ import { CardModule } from 'primeng/card';
 
       .features {
         padding: 5rem 0;
-        background: var(--surface-ground);
+        background: var(--p-surface-50);
 
         .section-title {
           text-align: center;
           margin-bottom: 3.5rem;
           font-size: 2.5rem;
-          color: var(--text-color);
+          color: var(--p-text-color);
           font-weight: 700;
 
           &::after {
@@ -198,7 +198,7 @@ import { CardModule } from 'primeng/card';
             display: block;
             width: 80px;
             height: 4px;
-            background: var(--yellow-500);
+            background: var(--p-yellow-500);
             margin: 1rem auto 0;
             border-radius: 2px;
           }
@@ -230,7 +230,7 @@ import { CardModule } from 'primeng/card';
               }
 
               h3 {
-                color: var(--text-color);
+                color: var(--p-text-color);
                 margin-bottom: 1rem;
                 font-size: 1.4rem;
                 font-weight: 600;

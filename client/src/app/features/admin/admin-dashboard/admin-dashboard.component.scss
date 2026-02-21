@@ -14,7 +14,7 @@
     h1 {
       font-size: 2.5rem;
       font-weight: 700;
-      color: var(--text-color);
+      color: var(--p-text-color);
       margin: 0 0 0.5rem;
       display: flex;
       align-items: center;
@@ -65,7 +65,7 @@
         .stat-value {
           font-size: 2.5rem;
           font-weight: 700;
-          color: var(--primary-500);
+          color: var(--p-primary-500);
           margin: 0;
           line-height: 1;
         }
@@ -87,7 +87,7 @@
         h3 {
           margin: 0 0 1rem;
           font-size: 1.5rem;
-          color: var(--text-color);
+          color: var(--p-text-color);
         }
 
         ul {

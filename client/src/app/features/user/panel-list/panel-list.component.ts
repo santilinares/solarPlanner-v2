@@ -16,7 +16,7 @@ import { Panel } from '@core/models/panel.model';
       <div class="page-header">
         <div>
           <h1>
-            <i class="pi pi-th-large" style="color: var(--primary-500);"></i>
+            <i class="pi pi-th-large" style="color: var(--p-primary-500);"></i>
             Solar Panels
           </h1>
           <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
@@ -48,7 +48,7 @@ import { Panel } from '@core/models/panel.model';
             <p-card class="panel-card hover-lift">
               <div class="panel-header">
                 <div class="panel-icon">
-                  <i class="pi pi-bolt" style="color: var(--yellow-500); font-size: 1.5rem;"></i>
+                  <i class="pi pi-bolt" style="color: var(--p-yellow-500); font-size: 1.5rem;"></i>
                 </div>
                 <p-tag [value]="panel.efficiency + '%'" severity="success" class="efficiency-badge"></p-tag>
               </div>
@@ -85,7 +85,7 @@ import { Panel } from '@core/models/panel.model';
           h1 {
             font-size: 2.5rem;
             font-weight: 700;
-            color: var(--text-color);
+            color: var(--p-text-color);
             margin: 0 0 0.5rem;
             display: flex;
             align-items: center;
@@ -136,7 +136,7 @@ import { Panel } from '@core/models/panel.model';
               .panel-name {
                 font-size: 1.4rem;
                 font-weight: 700;
-                color: var(--text-color);
+                color: var(--p-text-color);
                 margin: 0 0 0.25rem;
               }
 
@@ -168,7 +168,7 @@ import { Panel } from '@core/models/panel.model';
                   .spec-value {
                     font-size: 1.125rem;
                     font-weight: 700;
-                    color: var(--primary-500);
+                    color: var(--p-primary-500);
                   }
                 }
               }
@@ -189,7 +189,7 @@ import { Panel } from '@core/models/panel.model';
 
                 h3 {
                   font-size: 1.5rem;
-                  color: var(--text-color);
+                  color: var(--p-text-color);
                   margin-bottom: 0.5rem;
                 }
 

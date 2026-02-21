@@ -126,7 +126,7 @@ export const SolarPreset = definePreset(Aura, {
         paddingX: '0.875rem',
         paddingY: '0.625rem'
       },
-      borderRadius: '1rem',
+      borderRadius: '{extend.radius.md}',
       focusRing: {
         width: '0',
         style: 'none',
@@ -138,15 +138,60 @@ export const SolarPreset = definePreset(Aura, {
     },
     focusRing: {
       width: '2px',
-      style: 'solid',
+      style: 'dashed',
       color: '{primary.color}',
       offset: '2px'
+    }
+  },
+  extend: {
+    solar: {
+      spacing: {
+        xs: '0.25rem',
+        sm: '0.5rem',
+        md: '1rem',
+        lg: '1.5rem',
+        xl: '2rem',
+        '2xl': '3rem',
+        '3xl': '4rem'
+      },
+      radius: {
+        sm: '0.5rem',
+        md: '1rem',
+        lg: '1.5rem',
+        xl: '2rem',
+        '2xl': '2.5rem',
+        '3xl': '3rem',
+        full: '9999px'
+      },
+      shadow: {
+        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        solar: '0 0 15px rgba(255, 214, 0, 0.4)',
+        solarStrong: '0 0 30px rgba(255, 214, 0, 0.6)'
+      },
+      transition: {
+        fast: '150ms ease-in-out',
+        base: '250ms ease-in-out',
+        slow: '350ms ease-in-out'
+      },
+      zIndex: {
+        base: '0',
+        raised: '10',
+        dropdown: '100',
+        sticky: '200',
+        overlay: '400',
+        modal: '600',
+        toast: '800',
+        tooltip: '1000'
+      }
     }
   },
   components: {
     button: {
       root: {
-        borderRadius: '1.5rem',
+        borderRadius: '{extend.radius.lg}',
         paddingX: '1.75rem',
         paddingY: '0.875rem',
         transitionDuration: '0.25s',
@@ -189,18 +234,18 @@ export const SolarPreset = definePreset(Aura, {
     },
     inputtext: {
       root: {
-        borderRadius: '1rem'
+        borderRadius: '{extend.radius.md}'
       }
     },
     select: {
       overlay: {
-        borderRadius: '1rem',
+        borderRadius: '{extend.radius.md}',
         shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
       }
     },
     card: {
       root: {
-        borderRadius: '2rem'
+        borderRadius: '{extend.radius.xl}'
       },
 
       body: {

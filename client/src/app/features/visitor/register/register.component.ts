@@ -153,7 +153,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
 
           .p-card-header {
             padding: 2.5rem 2rem 1rem;
-            background: linear-gradient(135deg, var(--yellow-500) 0%, var(--yellow-600) 100%);
+            background: linear-gradient(135deg, var(--p-yellow-500) 0%, var(--p-yellow-600) 100%);
             color: #000;
           }
 
@@ -206,7 +206,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
           display: block;
           margin-bottom: 0.5rem;
           font-weight: 600;
-          color: var(--text-color);
+          color: var(--p-text-color);
           font-size: 0.95rem;
         }
 
@@ -233,7 +233,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
           transition: all 0.2s ease;
 
           &:focus {
-            border-color: var(--primary-500);
+            border-color: var(--p-primary-500);
             box-shadow: var(--focus-ring);
           }
 
@@ -260,8 +260,8 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
         }
 
         .btn-solar {
-          background: var(--yellow-500) !important;
-          border-color: var(--yellow-500) !important;
+          background: var(--p-yellow-500) !important;
+          border-color: var(--p-yellow-500) !important;
           color: #000 !important;
           padding: 0.875rem 1.5rem;
           font-size: 1.05rem;
@@ -269,7 +269,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
           margin-top: 1rem;
 
           &:hover:not(:disabled) {
-            background: var(--yellow-600) !important;
+            background: var(--p-yellow-600) !important;
             transform: translateY(-2px);
             box-shadow: 0 0 25px rgba(255, 214, 0, 0.6) !important;
           }
@@ -286,7 +286,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
         margin-top: 1.5rem;
 
         .link {
-          color: var(--primary-500);
+          color: var(--p-primary-500);
           text-decoration: none;
           font-size: 0.95rem;
           font-weight: 500;
@@ -298,7 +298,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
           }
 
           &:hover {
-            color: var(--primary-600);
+            color: var(--p-primary-600);
             text-decoration: underline;
           }
         }

@@ -117,7 +117,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
             .p-card-header {
               padding: 2.5rem 2rem 1rem;
-              background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+              background: linear-gradient(135deg, var(--p-primary-500) 0%, var(--p-primary-600) 100%);
               color: white;
             }
 
@@ -130,7 +130,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
               .solar-icon {
                 font-size: 3rem;
-                color: var(--yellow-500);
+                color: var(--p-yellow-500);
                 margin-bottom: 1rem;
                 display: block;
                 animation: solarPulse 2s ease-in-out infinite;
@@ -159,7 +159,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
-            color: var(--text-color);
+            color: var(--p-text-color);
             font-size: 0.95rem;
           }
 
@@ -186,7 +186,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             transition: all 0.2s ease;
 
             &:focus {
-              border-color: var(--primary-500);
+              border-color: var(--p-primary-500);
               box-shadow: var(--focus-ring);
             }
 
@@ -209,15 +209,15 @@ import { LoginRequest, getErrorMessage } from '@core/models';
           }
 
           .btn-primary {
-            background: var(--primary-500) !important;
-            border-color: var(--primary-500) !important;
+            background: var(--p-primary-500) !important;
+            border-color: var(--p-primary-500) !important;
             padding: 0.875rem 1.5rem;
             font-size: 1.05rem;
             font-weight: 600;
             margin-top: 1rem;
 
             &:hover:not(:disabled) {
-              background: var(--primary-600) !important;
+              background: var(--p-primary-600) !important;
               transform: translateY(-2px);
               box-shadow: var(--shadow-lg);
             }
@@ -237,7 +237,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
           gap: 0.5rem;
 
           .link {
-            color: var(--primary-500);
+            color: var(--p-primary-500);
             text-decoration: none;
             font-size: 0.9rem;
             font-weight: 500;
@@ -249,7 +249,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             }
 
             &:hover {
-              color: var(--primary-600);
+              color: var(--p-primary-600);
               text-decoration: underline;
             }
           }

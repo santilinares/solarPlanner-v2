@@ -37,8 +37,8 @@ html, body {
 
 body {
   font-family: var(--font-family);
-  background-color: var(--surface-ground);
-  color: var(--text-color);
+  background-color: var(--p-surface-50);
+  color: var(--p-text-color);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -54,15 +54,15 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface-ground);
+  background: var(--p-surface-50);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--primary-400);
+  background: var(--p-primary-400);
   border-radius: 5px;
   
   &:hover {
-    background: var(--primary-500);
+    background: var(--p-primary-500);
   }
 }
 
@@ -122,7 +122,7 @@ body {
 // TYPOGRAPHY
 // =====================================================
 h1, h2, h3, h4, h5, h6 {
-  color: var(--text-color);
+  color: var(--p-text-color);
   font-weight: 600;
   line-height: 1.2;
   margin-bottom: vars.$spacing-md;
@@ -154,12 +154,12 @@ p {
 }
 
 a {
-  color: var(--primary-500);
+  color: var(--p-primary-500);
   text-decoration: none;
   transition: color 0.2s ease;
   
   &:hover {
-    color: var(--primary-600);
+    color: var(--p-primary-600);
     text-decoration: underline;
   }
 }
@@ -193,12 +193,12 @@ router-outlet + * {
 // SOLAR ACCENT ELEMENTS
 // =====================================================
 .solar-highlight {
-  color: var(--yellow-500) !important;
+  color: var(--p-yellow-500) !important;
   font-weight: 600;
 }
 
 .solar-badge {
-  background: var(--yellow-500);
+  background: var(--p-yellow-500);
   color: #000;
   padding: vars.$spacing-xs vars.$spacing-sm;
   border-radius: vars.$radius-full;
@@ -233,18 +233,18 @@ router-outlet + * {
 
 .error-message {
   padding: vars.$spacing-md;
-  background: rgba(vars.$light-error, 0.1);
-  border: 1px solid vars.$light-error;
+  background: color-mix(in srgb, var(--red-500) 10%, transparent);
+  border: 1px solid var(--red-500);
   border-radius: vars.$radius-lg;
-  color: vars.$light-error;
+  color: var(--red-500);
   margin: vars.$spacing-md 0;
 }
 
 .success-message {
   padding: vars.$spacing-md;
-  background: rgba(vars.$light-success, 0.1);
-  border: 1px solid vars.$light-success;
+  background: color-mix(in srgb, var(--p-green-500) 10%, transparent);
+  border: 1px solid var(--p-green-500);
   border-radius: vars.$radius-lg;
-  color: vars.$light-success;
+  color: var(--p-green-500);
   margin: vars.$spacing-md 0;
 }

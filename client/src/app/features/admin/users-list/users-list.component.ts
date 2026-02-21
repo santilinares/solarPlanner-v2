@@ -26,19 +26,19 @@ import { ButtonModule } from 'primeng/button';
           <p class="description">Advanced user management features coming soon</p>
           <div class="feature-list">
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--green-500);"></i>
+              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
               <span>Comprehensive user database with search and filters</span>
             </div>
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--green-500);"></i>
+              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
               <span>User activation and deactivation controls</span>
             </div>
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--green-500);"></i>
+              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
               <span>Role-based access control management</span>
             </div>
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--green-500);"></i>
+              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
               <span>Bulk actions and user data export</span>
             </div>
           </div>
@@ -63,7 +63,7 @@ import { ButtonModule } from 'primeng/button';
         h1 {
           font-size: 2.5rem;
           font-weight: 700;
-          color: var(--text-color);
+          color: var(--p-text-color);
           margin: 0 0 0.5rem;
           display: flex;
           align-items: center;
@@ -90,7 +90,7 @@ import { ButtonModule } from 'primeng/button';
 
             h2 {
               font-size: 2rem;
-              color: var(--text-color);
+              color: var(--p-text-color);
               margin-bottom: 1rem;
             }
 
@@ -121,7 +121,7 @@ import { ButtonModule } from 'primeng/button';
                 }
 
                 span {
-                  color: var(--text-color);
+                  color: var(--p-text-color);
                   font-weight: 500;
                 }
               }
