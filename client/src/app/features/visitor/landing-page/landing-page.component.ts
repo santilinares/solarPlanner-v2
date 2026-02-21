@@ -25,7 +25,7 @@ import { CardModule } from 'primeng/card';
               icon="pi pi-arrow-right" 
               iconPos="right"
               routerLink="/registration"
-              styleClass="btn-solar"
+              class="btn-solar"
               [raised]="true"
             ></p-button>
             <p-button 
@@ -33,7 +33,7 @@ import { CardModule } from 'primeng/card';
               icon="pi pi-sign-in"
               routerLink="/login"
               [outlined]="true"
-              styleClass="btn-outline"
+              class="btn-outline"
             ></p-button>
           </div>
         </div>
@@ -43,7 +43,7 @@ import { CardModule } from 'primeng/card';
         <div class="container">
           <h2 class="section-title animate-fade-in-up">Key Features</h2>
           <div class="feature-grid stagger-children">
-            <p-card styleClass="feature-card hover-lift">
+            <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-map" style="font-size: 2.5rem; color: var(--primary-500);"></i>
@@ -53,7 +53,7 @@ import { CardModule } from 'primeng/card';
               <p>Draw and visualize your solar farm layout with precision mapping tools powered by OpenStreetMap.</p>
             </p-card>
             
-            <p-card styleClass="feature-card hover-lift">
+            <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-chart-bar" style="font-size: 2.5rem; color: var(--primary-500);"></i>
@@ -63,7 +63,7 @@ import { CardModule } from 'primeng/card';
               <p>Analyze monthly production data and consumption patterns with interactive visualizations.</p>
             </p-card>
             
-            <p-card styleClass="feature-card hover-lift">
+            <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-bolt" style="font-size: 2.5rem; color: var(--yellow-500);"></i>
@@ -73,7 +73,7 @@ import { CardModule } from 'primeng/card';
               <p>Choose from a comprehensive database of solar panels and optimize your configuration for maximum efficiency.</p>
             </p-card>
             
-            <p-card styleClass="feature-card hover-lift">
+            <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-file-pdf" style="font-size: 2.5rem; color: var(--primary-500);"></i>

@@ -39,7 +39,7 @@ import { AuthService } from '@core/services';
               severity="secondary"
               [text]="true"
               label="Logout"
-              styleClass="logout-btn"
+              class="logout-btn"
             ></p-button>
           </nav>
         </div>

@@ -147,8 +147,8 @@ export const SolarPreset = definePreset(Aura, {
     button: {
       root: {
         borderRadius: '1.5rem',
-        paddingX: '1.5rem',
-        paddingY: '0.75rem',
+        paddingX: '1.75rem',
+        paddingY: '0.875rem',
         transitionDuration: '0.25s',
         label: {
           fontWeight: '600'
@@ -200,9 +200,9 @@ export const SolarPreset = definePreset(Aura, {
     },
     card: {
       root: {
-        borderRadius: '2rem',
-        shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        borderRadius: '2rem'
       },
+
       body: {
         padding: '1.5rem'
       },
@@ -214,7 +214,8 @@ export const SolarPreset = definePreset(Aura, {
         light: {
           root: {
             background: '{surface.0}',
-            color: '#081C15'
+            color: '#081C15',
+            shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px #B7E4C7'
           },
           subtitle: {
             color: '#40916C'
@@ -223,7 +224,8 @@ export const SolarPreset = definePreset(Aura, {
         dark: {
           root: {
             background: '{surface.0}',
-            color: '#B7E4C7'
+            color: '#B7E4C7',
+            shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 0 0 1px #2D6A4F'
           },
           subtitle: {
             color: '#95D5B2'

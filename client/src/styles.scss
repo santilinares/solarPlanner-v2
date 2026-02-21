@@ -164,54 +164,6 @@ a {
   }
 }
 
-// =====================================================
-// PRIMENG OVERRIDES
-// =====================================================
-
-// Make all buttons organic/rounded
-.p-button {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: vars.$shadow-md;
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-// Cards with organic design
-.p-card {
-  border: 1px solid var(--surface-border);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: vars.$shadow-lg;
-  }
-  
-  .p-card-title {
-    color: var(--text-color);
-  }
-  
-  .p-card-content {
-    color: var(--text-color-secondary);
-  }
-}
-
-// Input fields
-.p-inputtext,
-.p-dropdown,
-.p-calendar,
-.p-inputnumber-input {
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-  
-  &:focus {
-    box-shadow: var(--focus-ring);
-  }
-}
-
 
 // =====================================================
 // LEAFLET MAP OVERRIDES

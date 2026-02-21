@@ -4,6 +4,43 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 February 20, 2026 - PrimeNG Style Architecture Cleanup
+
+### Topic
+Remove PrimeNG class overrides that were competing with the preset token system and enforce the project's styling rules.
+
+### Summary of Request
+User reported that some PrimeNG component tokens defined in `primeng-preset.ts` were being overridden by global SCSS and component-level CSS rules, preventing the preset from being the single source of truth.
+
+### What Was Achieved
+- **Removed "PRIMENG OVERRIDES" section from `styles.scss`**: Eliminated global selectors `.p-button`, `.p-card`, `.p-card-title`, `.p-card-content`, `.p-inputtext`, `.p-dropdown`, `.p-calendar`, `.p-inputnumber-input`. These ruled outside any `@layer`, so they always won over preset tokens (which are emitted inside `@layer primeng`).
+- **Added card `borderColor` token to preset**: Since the card border was previously only set in `styles.scss`, it was moved into the `card.colorScheme.light.root.borderColor` and `card.colorScheme.dark.root.borderColor` tokens (`#B7E4C7` / `#2D6A4F`) so no visual regression occurs.
+- **Added card `borderWidth` and `borderStyle` to preset root**: Ensures the border is rendered via the token system.
+- **Removed DataTable row hover `!important` override from `theme-dark.scss`**: The preset already defines `datatable.row.hoverBackground`; the `!important` CSS rule was silently winning over it.
+- **Fixed dark mode selector mismatch**: All selectors in `theme-dark.scss` were using `[data-theme="dark"]` while `app.config.ts` declares `darkModeSelector: '.dark-mode'`. Changed `:root[data-theme="dark"]` → `:root.dark-mode`, `[data-theme="dark"]` → `.dark-mode`, and updated the `prefers-reduced-motion` block accordingly.
+- **Added `.btn-lift` and `.card-hoverable` utility classes to `animations.scss`**: Preserves the opt-in lift/hover-shadow animations as composable classes instead of global PrimeNG overrides.
+- **Removed component-level PrimeNG token overrides**: Stripped `.p-button { padding }` from `dashboard.component.scss` (scoped inside `.btn-solar`) and `.p-button { font-weight: 600 }` from `admin-dashboard.component.scss` (redundant with preset token `button.root.label.fontWeight: '600'`).
+
+### Full Original Prompt
+"Necesito que revisemos por qué en algunos casos se está sobreescribiendo los valores que se han definido en algunos componentes css de primeng, que no estan permitiendo que coja como referencia los valores establecidos en el fichero primeng-preset."  
+"Vale, hagamos lo que dices y eliminemos por completo los primeng overrides..."
+
+### Affected Files
+- `client/src/styles.scss`
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles/animations.scss`
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.scss`
+
+### Reasoning Snapshot
+- With `cssLayer: { name: 'primeng', order: 'theme, primeng' }`, any CSS rule written outside a layer wins over preset tokens regardless of specificity. Global `.p-button` / `.p-card` selectors in `styles.scss` were exactly this problem.
+- The `[data-theme="dark"]` vs `.dark-mode` mismatch meant PrimeNG dark tokens activated correctly but the app's own CSS variables (`--surface-ground`, `--text-color`, etc.) never switched, causing a split state.
+- Scoped component overrides like `.stat-card .p-card-body { padding }` are allowed per styling rules (wrapper-scoped); only unscoped or token-duplicating ones were removed.
+- Utility classes in `animations.scss` preserve the desired micro-interactions without polluting PrimeNG's token chain.
+
+---
+
 ## 📅 February 18, 2026 - Projects List Loading - Pagination & Validation Fix
 
 ### Topic
@@ -581,5 +618,35 @@ All animations respect `prefers-reduced-motion` for accessibility.
 - **New Files Created**: 4 theme files
 - **Lines of Code**: ~2,500 lines (styles + component templates)
 - **Bundle Size Impact**: TBD (needs production build measurement)
+
+---
+
+## 📅 February 18, 2026 - Admin Panels View — PrimeNG Redesign & File Split
+
+### Topic
+Redesign the admin panels management view to match the user panel-list style, and split it into 3 separate files.
+
+### Summary of Request
+User asked to update the admin panels list view using the user panel-list as a reference, and to break the single component file into separate component, HTML, and SCSS files.
+
+### What Was Achieved
+- **Replaced raw HTML table** with PrimeNG card grid layout matching `panel-list.component.ts` (user view).
+- **Added admin-specific actions** (Edit / Delete buttons) on each card using `p-button` with `severity="secondary"` and `severity="danger"`.
+- **Added "Add Panel" `p-button`** in the page header for quick access.
+- **Improved empty state** with an icon and "Add First Panel" call-to-action button.
+- **Skeleton loading states** using `p-skeleton` inside `p-card` grid (consistent with user view).
+- **Split into 3 files**: `panels.component.ts`, `panels.component.html`, `panels.component.scss`.
+- **Added `ChangeDetectionStrategy.OnPush`** and removed `CommonModule` in favour of specific PrimeNG modules.
+
+### Full Prompt
+> "Our routes are not very well organized, but lets worry about that later. Now lets continue updating screens. Lets update the admin panel list view using the one from the user. Also break the component file into three files (component, css and html)"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panels.component.ts` — Updated metadata, PrimeNG imports, OnPush
+- `client/src/app/features/admin/panels/panels.component.html` — New file (extracted + redesigned template)
+- `client/src/app/features/admin/panels/panels.component.scss` — New file (card grid styles matching user view)
+
+### AI Reasoning
+The user panel-list already established the design language (card grid, bolt icon with yellow pulse, efficiency badge, spec items). The admin view needed the same visual structure with two additional concerns: (1) action buttons per card (Edit/Delete) using PrimeNG outlined buttons, and (2) a top-level "Add Panel" button. Splitting into 3 files follows Angular best practices and makes the template maintainable as it grows.
 
 ---

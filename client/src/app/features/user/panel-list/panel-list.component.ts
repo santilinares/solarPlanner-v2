@@ -26,16 +26,16 @@ import { Panel } from '@core/models/panel.model';
       @if (isLoading()) {
         <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           @for (item of [1,2,3,4,5,6]; track item) {
-            <p-card styleClass="panel-card">
-              <p-skeleton height="2rem" styleClass="mb-3"></p-skeleton>
-              <p-skeleton height="1rem" styleClass="mb-2"></p-skeleton>
-              <p-skeleton height="1rem" styleClass="mb-2"></p-skeleton>
+            <p-card class="panel-card">
+              <p-skeleton height="2rem" class="mb-3"></p-skeleton>
+              <p-skeleton height="1rem" class="mb-2"></p-skeleton>
+              <p-skeleton height="1rem" class="mb-2"></p-skeleton>
               <p-skeleton height="1rem" width="70%"></p-skeleton>
             </p-card>
           }
         </div>
       } @else if (panels().length === 0) {
-        <p-card styleClass="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <p-card class="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           <div class="empty-content">
             <i class="pi pi-inbox" style="font-size: 4rem; color: var(--text-color-muted);"></i>
             <h3>No Panels Available</h3>
@@ -45,12 +45,12 @@ import { Panel } from '@core/models/panel.model';
       } @else {
         <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           @for (panel of panels(); track panel.id || panel._id) {
-            <p-card styleClass="panel-card hover-lift">
+            <p-card class="panel-card hover-lift">
               <div class="panel-header">
                 <div class="panel-icon">
                   <i class="pi pi-bolt" style="color: var(--yellow-500); font-size: 1.5rem;"></i>
                 </div>
-                <p-tag [value]="panel.efficiency + '%'" severity="success" styleClass="efficiency-badge"></p-tag>
+                <p-tag [value]="panel.efficiency + '%'" severity="success" class="efficiency-badge"></p-tag>
               </div>
               <h3 class="panel-name">{{ panel.brand }}</h3>
               <p class="panel-model">{{ panel.model }}</p>

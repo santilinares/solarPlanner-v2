@@ -1,0 +1,94 @@
+<div class="panels-admin animate-fade-in-up">
+  <div class="page-header">
+    <div>
+      <h1>
+        <i class="pi pi-th-large" style="color: var(--primary-500);"></i>
+        Manage Panels
+      </h1>
+      <p class="subtitle">Create, edit, and delete solar panel records</p>
+    </div>
+    <p-button
+      label="Add Panel"
+      icon="pi pi-plus"
+      (onClick)="openAddModal()"
+      class="add-btn"
+    />
+  </div>
+
+  @if (showModal()) {
+    <app-panel-form
+      [panel]="selectedPanel()"
+      (save)="onSavePanel($event)"
+      (cancel)="closeModal()"
+    />
+  }
+
+  @if (isLoading()) {
+    <div class="panels-grid stagger-children">
+      @for (item of [1,2,3,4,5,6]; track item) {
+        <p-card class="panel-card">
+          <p-skeleton height="2rem" class="mb-3"></p-skeleton>
+          <p-skeleton height="1rem" class="mb-2"></p-skeleton>
+          <p-skeleton height="1rem" class="mb-2"></p-skeleton>
+          <p-skeleton height="1rem" width="70%"></p-skeleton>
+        </p-card>
+      }
+    </div>
+  } @else if (panels().length === 0) {
+    <p-card class="empty-state">
+      <div class="empty-content">
+        <i class="pi pi-inbox" style="font-size: 4rem; color: var(--text-color-muted);"></i>
+        <h3>No Panels Found</h3>
+        <p>Add a panel to get started.</p>
+        <p-button label="Add First Panel" icon="pi pi-plus" (onClick)="openAddModal()" />
+      </div>
+    </p-card>
+  } @else {
+    <div class="panels-grid stagger-children">
+      @for (panel of panels(); track panel.id || panel._id) {
+        <p-card class="panel-card hover-lift">
+          <div class="panel-header">
+            <div class="panel-icon">
+              <i class="pi pi-bolt" style="color: var(--yellow-500); font-size: 1.5rem;"></i>
+            </div>
+            <p-tag [value]="panel.efficiency + '%'" severity="success" class="efficiency-badge"></p-tag>
+          </div>
+          <h3 class="panel-name">{{ panel.brand }}</h3>
+          <p class="panel-model">{{ panel.model }}</p>
+          <div class="panel-specs">
+            <div class="spec-item">
+              <span class="spec-label">Power Output</span>
+              <span class="spec-value solar-highlight">{{ panel.wattPeak }}W</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Efficiency</span>
+              <span class="spec-value">{{ panel.efficiency }}%</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Price</span>
+              <span class="spec-value">{{ panel.price }}</span>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <p-button
+              icon="pi pi-pencil"
+              label="Edit"
+              severity="secondary"
+              [outlined]="true"
+              class="action-btn"
+              (onClick)="openEditModal(panel)"
+            />
+            <p-button
+              icon="pi pi-trash"
+              label="Delete"
+              severity="danger"
+              [outlined]="true"
+              class="action-btn"
+              (onClick)="deletePanel(panel)"
+            />
+          </div>
+        </p-card>
+      }
+    </div>
+  }
+</div>

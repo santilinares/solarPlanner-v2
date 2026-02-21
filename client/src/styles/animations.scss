@@ -277,3 +277,31 @@
 .page-leave {
   animation: fadeIn 0.3s ease-in reverse;
 }
+
+// =====================================================
+// INTERACTIVE ELEMENT UTILITIES
+// Apply these classes to wrappers — do NOT put on .p-button/.p-card directly
+// =====================================================
+
+// Lift effect for buttons/CTAs — add to wrapper or use [class].btn-lift on the p-button
+.btn-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Hover shadow amplifier for cards — add to the host wrapper element
+.card-hoverable {
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}

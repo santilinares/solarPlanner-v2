@@ -24,7 +24,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
   ],
   template: `
     <div class="login-page animate-fade-in-up">
-      <p-card styleClass="login-card">
+      <p-card class="login-card">
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-sign-in solar-icon"></i>
@@ -59,8 +59,8 @@ import { LoginRequest, getErrorMessage } from '@core/models';
               placeholder="Enter your password"
               [toggleMask]="true"
               [feedback]="false"
-              styleClass="w-full"
-              inputStyleClass="w-full"
+              class="w-full"
+              inputclass="w-full"
             ></p-password>
             @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
                 <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
@@ -75,7 +75,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
                 animate.leave="animate-fade-out"
               severity="error" 
               [text]="errorMessage()"
-                styleClass="w-full"
+                class="w-full"
             ></p-message>
           }
 
@@ -85,7 +85,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             icon="pi pi-sign-in"
             [disabled]="loading() || loginForm.invalid"
             [loading]="loading()"
-            styleClass="w-full btn-primary"
+            class="w-full btn-primary"
           ></p-button>
 
           <div class="form-links">

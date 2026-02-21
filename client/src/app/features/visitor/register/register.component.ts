@@ -24,7 +24,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
   ],
   template: `
     <div class="register-page animate-fade-in-up">
-      <p-card styleClass="register-card">
+      <p-card class="register-card">
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-user-plus solar-icon"></i>
@@ -87,8 +87,8 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
               placeholder="Minimum 8 characters"
               [toggleMask]="true"
               [feedback]="true"
-              styleClass="w-full"
-              inputStyleClass="w-full"
+              class="w-full"
+              inputclass="w-full"
               [mediumRegex]="'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,})'"
               [strongRegex]="'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{10,})'"
             ></p-password>
@@ -105,7 +105,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
                 animate.leave="animate-fade-out"
               severity="error" 
               [text]="errorMessage()"
-                styleClass="w-full"
+                class="w-full"
             ></p-message>
           }
 
@@ -115,7 +115,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
                 animate.leave="animate-fade-out"
               severity="success" 
               [text]="successMessage()"
-                styleClass="w-full"
+                class="w-full"
             ></p-message>
           }
 
@@ -125,7 +125,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
             icon="pi pi-user-plus"
             [disabled]="loading() || registerForm.invalid"
             [loading]="loading()"
-            styleClass="w-full btn-solar"
+            class="w-full btn-solar"
           ></p-button>
 
           <div class="form-links">

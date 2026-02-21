@@ -19,7 +19,7 @@ import { ButtonModule } from 'primeng/button';
         </div>
       </div>
       
-      <p-card styleClass="content-placeholder">
+      <p-card class="content-placeholder">
         <div class="placeholder-content">
           <i class="pi pi-users animate-pulse" style="font-size: 4rem; color: var(--red-500); margin-bottom: 1.5rem;"></i>
           <h2>User Management System</h2>
@@ -47,7 +47,7 @@ import { ButtonModule } from 'primeng/button';
             icon="pi pi-arrow-left"
             routerLink="/admin"
             [outlined]="true"
-            styleClass="mt-4"
+            class="mt-4"
           ></p-button>
         </div>
       </p-card>

@@ -2,7 +2,7 @@
 // Premium technical look with battery savings optimization
 @use './variables.scss' as *;
 
-:root[data-theme="dark"] {
+:root.dark-mode {
   // =====================================================
   // PRIMARY COLORS (Dark Mode)
   // =====================================================
@@ -126,7 +126,7 @@
 // DARK MODE SPECIFIC STYLES
 // =====================================================
 
-[data-theme="dark"] {
+.dark-mode {
   
   // Solar accent glow effect (stronger in dark mode)
   .solar-accent {
@@ -166,10 +166,6 @@
     background: #{$dark-active} !important;
   }
   
-  // Table rows
-  .p-datatable .p-datatable-tbody > tr:hover {
-    background: rgba(64, 145, 108, 0.1) !important;
-  }
 }
 
 // =====================================================
@@ -177,7 +173,7 @@
 // =====================================================
 
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="dark"] * {
+  .dark-mode * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
