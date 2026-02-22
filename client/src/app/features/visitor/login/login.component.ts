@@ -74,7 +74,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
                 animate.enter="animate-shake"
                 animate.leave="animate-fade-out"
               severity="error" 
-              [text]="errorMessage()"
+              Content="errorMessage()"
                 class="w-full"
             ></p-message>
           }
@@ -117,8 +117,10 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
             .p-card-header {
               padding: 2.5rem 2rem 1rem;
-              background: linear-gradient(135deg, var(--p-primary-500) 0%, var(--p-primary-600) 100%);
+              background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
               color: white;
+              border-top-left-radius: var(--p-card-border-radius);
+              border-top-right-radius: var(--p-card-border-radius);
             }
 
             .p-card-body {
@@ -130,10 +132,9 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
               .solar-icon {
                 font-size: 3rem;
-                color: var(--p-yellow-500);
+                color: white;
                 margin-bottom: 1rem;
                 display: block;
-                animation: solarPulse 2s ease-in-out infinite;
               }
 
               h2 {
@@ -178,11 +179,6 @@ import { LoginRequest, getErrorMessage } from '@core/models';
         ::ng-deep {
           .p-inputtext,
           .p-password input {
-            width: 100%;
-            padding: 0.875rem;
-            font-size: 1rem;
-            border: 2px solid var(--surface-border);
-            border-radius: var(--border-radius);
             transition: all 0.2s ease;
 
             &:focus {
@@ -209,18 +205,6 @@ import { LoginRequest, getErrorMessage } from '@core/models';
           }
 
           .btn-primary {
-            background: var(--p-primary-500) !important;
-            border-color: var(--p-primary-500) !important;
-            padding: 0.875rem 1.5rem;
-            font-size: 1.05rem;
-            font-weight: 600;
-            margin-top: 1rem;
-
-            &:hover:not(:disabled) {
-              background: var(--p-primary-600) !important;
-              transform: translateY(-2px);
-              box-shadow: var(--shadow-lg);
-            }
 
             &:disabled {
               opacity: 0.6;

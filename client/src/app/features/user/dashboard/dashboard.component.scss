@@ -29,8 +29,10 @@
 
     ::ng-deep .btn-solar {
       &:hover {
-        box-shadow: 0 0 20px rgba(255, 214, 0, 0.5);
-      }
+          background-color: #1b4332;
+          border-color: #1b4332;
+          border-radius: var(--p-button-border-radius);
+        }
     }
   }
 

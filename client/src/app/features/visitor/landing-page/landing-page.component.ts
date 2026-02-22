@@ -10,8 +10,8 @@ import { CardModule } from 'primeng/card';
     <div class="landing-page">
       <section class="hero animate-fade-in-down">
         <div class="container">
-          <div class="solar-icon animate-solar-pulse">
-            <i class="pi pi-sun" style="font-size: 4rem; color: var(--p-yellow-500);"></i>
+          <div class="solar-icon">
+            <i class="pi pi-sun" style="font-size: 8rem; color: var(--p-yellow-500);"></i>
           </div>
           <h1 class="hero-title">Solar Energy Planning Made Easy</h1>
           <p class="subtitle">
@@ -110,6 +110,7 @@ import { CardModule } from 'primeng/card';
 
         .solar-icon {
           margin-bottom: 1.5rem;
+          display: inline-block;
         }
 
         .hero-title {
@@ -147,31 +148,14 @@ import { CardModule } from 'primeng/card';
 
           ::ng-deep {
             .btn-solar {
-              background: var(--p-yellow-500) !important;
-              border-color: var(--p-yellow-500) !important;
-              color: #000 !important;
-              font-weight: 600;
-              padding: 1rem 2.5rem;
-              font-size: 1.1rem;
-
               &:hover {
-                background: var(--p-yellow-600) !important;
-                box-shadow: 0 0 25px rgba(255, 214, 0, 0.6) !important;
-                transform: translateY(-3px) scale(1.02);
+                border-radius: var(--p-button-border-radius);
               }
             }
 
             .btn-outline {
-              border-color: white !important;
-              color: white !important;
-              font-weight: 600;
-              padding: 1rem 2.5rem;
-              font-size: 1.1rem;
-              background: rgba(255, 255, 255, 0.1) !important;
-
               &:hover {
-                background: rgba(255, 255, 255, 0.2) !important;
-                transform: translateY(-3px);
+                border-radius: var(--p-button-border-radius);
               }
             }
 

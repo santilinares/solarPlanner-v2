@@ -104,7 +104,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
                 animate.enter="animate-shake"
                 animate.leave="animate-fade-out"
               severity="error" 
-              [text]="errorMessage()"
+              Content="errorMessage()"
                 class="w-full"
             ></p-message>
           }
@@ -114,7 +114,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
                 animate.enter="animate-fade-in"
                 animate.leave="animate-fade-out"
               severity="success" 
-              [text]="successMessage()"
+              Content="successMessage()"
                 class="w-full"
             ></p-message>
           }
@@ -153,8 +153,10 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
 
           .p-card-header {
             padding: 2.5rem 2rem 1rem;
-            background: linear-gradient(135deg, var(--p-yellow-500) 0%, var(--p-yellow-600) 100%);
-            color: #000;
+            background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
+            color: #ffffff;
+            border-top-left-radius: var(--p-card-border-radius);
+            border-top-right-radius: var(--p-card-border-radius);
           }
 
           .p-card-body {
@@ -166,21 +168,20 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
 
             .solar-icon {
               font-size: 3rem;
-              color: #000;
+              color: #ffffff;
               margin-bottom: 1rem;
-              display: block;
-              animation: solarPulse 2s ease-in-out infinite;
+              display: inline-block;
             }
 
             h2 {
-              color: #000;
+              color: #ffffff;
               margin: 0 0 0.5rem;
               font-size: 2rem;
               font-weight: 700;
             }
 
             .subtitle {
-              color: rgba(0, 0, 0, 0.8);
+              color: #ffffff;
               font-size: 0.95rem;
               margin: 0;
               font-weight: 500;
@@ -225,11 +226,6 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
       ::ng-deep {
         .p-inputtext,
         .p-password input {
-          width: 100%;
-          padding: 0.875rem;
-          font-size: 1rem;
-          border: 2px solid var(--surface-border);
-          border-radius: var(--border-radius);
           transition: all 0.2s ease;
 
           &:focus {
@@ -260,19 +256,6 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
         }
 
         .btn-solar {
-          background: var(--p-yellow-500) !important;
-          border-color: var(--p-yellow-500) !important;
-          color: #000 !important;
-          padding: 0.875rem 1.5rem;
-          font-size: 1.05rem;
-          font-weight: 700;
-          margin-top: 1rem;
-
-          &:hover:not(:disabled) {
-            background: var(--p-yellow-600) !important;
-            transform: translateY(-2px);
-            box-shadow: 0 0 25px rgba(255, 214, 0, 0.6) !important;
-          }
 
           &:disabled {
             opacity: 0.6;

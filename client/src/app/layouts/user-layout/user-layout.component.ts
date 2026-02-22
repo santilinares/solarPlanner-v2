@@ -2,7 +2,6 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MenubarModule } from 'primeng/menubar';
 import { ButtonModule } from 'primeng/button';
-//import { MenuItem } from 'primeng/api';
 import { AuthService } from '@core/services';
 
 @Component({
@@ -37,7 +36,7 @@ import { AuthService } from '@core/services';
               icon="pi pi-sign-out" 
               (onClick)="logout()" 
               severity="secondary"
-              [text]="true"
+              Content="true"
               label="Logout"
               class="logout-btn"
             ></p-button>
@@ -144,15 +143,9 @@ import { AuthService } from '@core/services';
         }
 
         ::ng-deep .logout-btn {
-          color: white !important;
-          font-weight: 600;
-
           &:hover {
-            background: rgba(255, 255, 255, 0.15) !important;
-          }
-
-          .p-button-label {
-            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--p-button-border-radius);
           }
         }
       }

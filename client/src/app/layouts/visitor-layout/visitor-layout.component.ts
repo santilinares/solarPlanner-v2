@@ -36,7 +36,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .visitor-header {
-      background-color: #1976d2;
+      background-color: var(--p-primary-600);
       color: white;
       padding: 1rem 0;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -50,6 +50,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
       h1 {
         margin: 0;
         font-size: 1.5rem;
+        color: var(--p-amber-50);
       }
 
       nav {
@@ -79,7 +80,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .visitor-footer {
-      background-color: #f5f5f5;
+      background-color: var(--p-surface-100);
       padding: 1.5rem 0;
       text-align: center;
       color: #666;

@@ -79,7 +79,7 @@
         padding: 2rem;
       }
 
-      .info-content {
+      .p-card-content {
         display: flex;
         gap: 2rem;
         align-items: flex-start;
@@ -115,7 +115,7 @@
       grid-template-columns: 1fr;
     }
 
-    ::ng-deep .info-card .info-content {
+    ::ng-deep .info-card .p-card-content {
       flex-direction: column;
       text-align: center;
     }

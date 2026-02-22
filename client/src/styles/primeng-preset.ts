@@ -74,7 +74,7 @@ export const SolarPreset = definePreset(Aura, {
           borderColor: '#B7E4C7',
           focusBorderColor: '{green.500}',
           hoverBorderColor: '#B7E4C7',
-          color: '#081C15',
+          color: '#000000',
           placeholderColor: '#52B788',
           invalidBorderColor: '#D62828',
           invalidPlaceholderColor: '#D62828'
@@ -96,7 +96,7 @@ export const SolarPreset = definePreset(Aura, {
           950: '#F0F7F4'
         },
         primary: {
-          color: '#40916C',
+          color: '#625898',
           contrastColor: '#081C15',
           hoverColor: '#52B788',
           activeColor: '#74C69D'
@@ -115,7 +115,7 @@ export const SolarPreset = definePreset(Aura, {
     },
     formField: {
       paddingX: '0.75rem',
-      paddingY: '0.5rem',
+      paddingY: '0.85rem',
       sm: {
         fontSize: '0.875rem',
         paddingX: '0.625rem',
@@ -126,13 +126,13 @@ export const SolarPreset = definePreset(Aura, {
         paddingX: '0.875rem',
         paddingY: '0.625rem'
       },
-      borderRadius: '{extend.radius.md}',
+      borderRadius: '{extend.solar.radius.lg}',
       focusRing: {
         width: '0',
         style: 'none',
         color: 'transparent',
         offset: '0',
-        shadow: '0 0 0 0.2rem color-mix(in srgb, {primary.color}, transparent 70%)'
+        shadow: '0 0 0 0.2rem color-mix(in srgb, {prim}, transparent 70%)'
       },
       transitionDuration: '0.25s'
     },
@@ -191,7 +191,7 @@ export const SolarPreset = definePreset(Aura, {
   components: {
     button: {
       root: {
-        borderRadius: '{extend.radius.lg}',
+        borderRadius: '{extend.solar.radius.lg}',
         paddingX: '1.75rem',
         paddingY: '0.875rem',
         transitionDuration: '0.25s',
@@ -234,18 +234,18 @@ export const SolarPreset = definePreset(Aura, {
     },
     inputtext: {
       root: {
-        borderRadius: '{extend.radius.md}'
+        borderRadius: '{extend.solar.radius.lg}'
       }
     },
     select: {
       overlay: {
-        borderRadius: '{extend.radius.md}',
+        borderRadius: '{extend.solar.radius.lg}',
         shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
       }
     },
     card: {
       root: {
-        borderRadius: '{extend.radius.xl}'
+        borderRadius: '{extend.solar.radius.lg}',
       },
 
       body: {

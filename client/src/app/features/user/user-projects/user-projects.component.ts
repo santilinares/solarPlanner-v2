@@ -282,15 +282,11 @@ interface ProjectCardView {
       }
 
       ::ng-deep .btn-primary {
-        background-color: #2d6a4f !important;
-        border-color: #2d6a4f !important;
-        border-radius: 24px !important;
-        font-weight: 600;
 
         &:hover {
-          background-color: #1b4332 !important;
-          border-color: #1b4332 !important;
-          transform: translateY(-2px);
+          background-color: #1b4332;
+          border-color: #1b4332;
+          border-radius: var(--p-button-border-radius);
         }
       }
 
