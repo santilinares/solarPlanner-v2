@@ -650,3 +650,31 @@ User asked to update the admin panels list view using the user panel-list as a r
 The user panel-list already established the design language (card grid, bolt icon with yellow pulse, efficiency badge, spec items). The admin view needed the same visual structure with two additional concerns: (1) action buttons per card (Edit/Delete) using PrimeNG outlined buttons, and (2) a top-level "Add Panel" button. Splitting into 3 files follows Angular best practices and makes the template maintainable as it grows.
 
 ---
+
+## 📅 February 22, 2026 - Leaflet Map in View-Project Component
+
+### Topic
+Display an interactive Leaflet map in the view-project page using the project's stored coordinates.
+
+### Summary of Request
+User asked to add a Leaflet map to the view-project page showing the project's location. Leaflet was already present (used in add-project). Goal was to reuse the existing setup rather than duplicating code.
+
+### What Was Achieved
+- **Created `LocationMapComponent`** (`client/src/app/shared/components/location-map/location-map.component.ts`): A reusable, read-only Leaflet map standalone component using Angular signal inputs (`lat`, `lng`, `polygon`, `zoom`). Reuses the same three tile layers (Street/Satellite/Topo) already used in `AddProjectComponent`. Uses `@ViewChild` + `ElementRef` to avoid hard-coded `id="map"` conflicts. Optionally draws the installation polygon in yellow when coordinates are provided.
+- **Extended `ProjectDetailView`** interface with `lat: number | null`, `lng: number | null`, and `polygonCoords: Coordinates[]`.
+- **Updated `mapProject()`** to extract coordinates from `source.coordinates?.lat/lng` with fallbacks to `source.lat/source.lon`.
+- **Replaced the map placeholder** in view-project template with `<app-location-map>` inside a fixed-height wrapper. Falls back to the placeholder icon if coordinates are missing.
+- **Confirmed Leaflet CSS** is already imported globally in `styles.scss` — no additional setup needed.
+
+### Full Prompt
+> "Leaflet is already included. Look inside the add-project component. There is a leaflet map that has already been implemented there. Can we reuse that?"
+
+### Affected Files
+- `client/src/app/shared/components/location-map/location-map.component.ts` — New reusable map component
+- `client/src/app/features/user/view-project/view-project.component.ts` — Added imports, extended view model, replaced placeholder
+
+### AI Reasoning
+Instead of copying the Leaflet initialization directly into view-project (which would duplicate tile layer setup and CSS encapsulation concerns), the approach extracted the read-only display logic into a shared `LocationMapComponent`. This keeps `add-project` self-contained (it needs draw controls, edit events, geolocation), while giving any other page a simple drop-in map via signal inputs. `ViewEncapsulation.None` is carried over since Leaflet's CSS must escape component scope to style `.leaflet-container` and its children.
+
+---
+

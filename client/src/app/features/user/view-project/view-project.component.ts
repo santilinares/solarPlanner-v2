@@ -1,9 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule, DecimalPipe, TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ProjectService } from '@core/services/project.service';
-import { Project } from '@core/models';
+import { Project, Coordinates } from '@core/models';
+import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
 
 interface ProjectDetailView {
   id: string;
@@ -20,11 +21,15 @@ interface ProjectDetailView {
   bifacial: string;
   estimatedOutput: number;
   efficiency: number;
+  lat: number | null;
+  lng: number | null;
+  polygonCoords: Coordinates[];
 }
 
 @Component({
   selector: 'app-view-project',
-  imports: [CommonModule, RouterLink, ButtonModule, DecimalPipe, TitleCasePipe],
+  imports: [CommonModule, RouterLink, ButtonModule, DecimalPipe, TitleCasePipe, LocationMapComponent],
+  encapsulation: ViewEncapsulation.None,
   template: `
     <section class="project-detail-page animate-fade-in-up">
       @if (isLoading()) {
@@ -58,9 +63,19 @@ interface ProjectDetailView {
           <div class="main-content">
             <section class="content-card">
               <h2>Installation Area</h2>
-              <div class="placeholder map-placeholder">
-                <i class="pi pi-map-marker"></i>
-              </div>
+              @if (data.lat !== null && data.lng !== null) {
+                <div class="map-wrapper">
+                  <app-location-map
+                    [lat]="data.lat!"
+                    [lng]="data.lng!"
+                    [polygon]="data.polygonCoords"
+                  />
+                </div>
+              } @else {
+                <div class="placeholder map-placeholder">
+                  <i class="pi pi-map-marker"></i>
+                </div>
+              }
             </section>
 
             <section class="content-card">
@@ -223,6 +238,12 @@ interface ProjectDetailView {
         }
       }
 
+      .map-wrapper {
+        height: 384px;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
       .map-placeholder {
         background: linear-gradient(135deg, #d1fae5, #bfdbfe);
       }
@@ -360,6 +381,14 @@ export class ViewProjectComponent implements OnInit {
     const panelWidth = panelData?.dimensions?.width ?? 1.7;
     const panelHeight = panelData?.dimensions?.height ?? 1.0;
 
+    const lat = typeof source.lat === 'number' ? source.lat : null;
+    const lng = typeof source.lon === 'number' ? source.lon : null;
+
+    const polygonCoords: Coordinates[] =
+      Array.isArray(source.polygon?.coordinates) && source.polygon.coordinates.length >= 3
+        ? source.polygon.coordinates
+        : [];
+
     return {
       id: source.id || source._id || '',
       name: source.name,
@@ -375,6 +404,9 @@ export class ViewProjectComponent implements OnInit {
       bifacial: 'No',
       estimatedOutput: source.estimatedOutput ?? 0,
       efficiency: source.efficiency ?? panelData?.efficiency ?? 0,
+      lat,
+      lng,
+      polygonCoords,
     };
   }
 

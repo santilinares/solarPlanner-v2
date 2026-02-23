@@ -5,6 +5,11 @@ import { map } from 'rxjs/operators';
 import { environment } from '@environments/environment';
 import { Panel, PanelCreateRequest, PanelUpdateRequest, PaginatedResponse } from '../models';
 
+export interface PanelListResponse {
+  panels: Panel[];
+  total: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -15,8 +20,8 @@ export class PanelService {
   /**
    * Get all panels
    */
-  getAllPanels(page = 1, limit = 20): Observable<PaginatedResponse<Panel>> {
-    return this.http.get<PaginatedResponse<Panel>>(this.apiUrl, {
+  getAllPanels(page = 1, limit = 20): Observable<PanelListResponse> {
+    return this.http.get<PanelListResponse>(this.apiUrl, {
       params: { page: page.toString(), limit: limit.toString() },
     });
   }

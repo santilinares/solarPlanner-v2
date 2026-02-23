@@ -1,7 +1,6 @@
-import { Component, computed, inject, OnInit, signal, ViewEncapsulation } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import * as L from 'leaflet';
-import 'leaflet-draw';
+import { HttpClient } from '@angular/common/http';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
 import {
@@ -12,10 +11,12 @@ import {
   Coordinates,
 } from '@core/models';
 import { DecimalPipe } from '@angular/common';
+import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
+import { PanelListResponse } from '@core/services/panel.service';
 
 @Component({
   selector: 'app-add-project',
-  imports: [ReactiveFormsModule, DecimalPipe],
+  imports: [ReactiveFormsModule, DecimalPipe, LocationMapComponent],
   template: `
     <section class="create-project-page animate-fade-in-up">
       <header class="page-header">
@@ -28,7 +29,43 @@ import { DecimalPipe } from '@angular/common';
       <div class="content-layout">
         <section class="map-card">
           <h2>Installation Area</h2>
-          <div id="map" class="map-container"></div>
+
+          <div class="location-search">
+            <input
+              type="text"
+              class="location-input"
+              placeholder="Search address or place…"
+              [value]="addressQuery()"
+              (input)="addressQuery.set($any($event.target).value)"
+              (keydown.enter)="searchAddress()"
+              aria-label="Search location"
+            />
+            <button
+              type="button"
+              class="location-search-btn"
+              (click)="searchAddress()"
+              [disabled]="isSearching() || !addressQuery().trim()"
+              aria-label="Go to location"
+            >
+              @if (isSearching()) {
+                <span class="search-spinner"></span>
+              } @else {
+                <i class="pi pi-search"></i>
+              }
+            </button>
+          </div>
+          @if (searchError()) {
+            <p class="search-error">{{ searchError() }}</p>
+          }
+
+          <div class="map-container">
+            <app-location-map
+              [editable]="true"
+              [centerOnUser]="true"
+              [center]="mapCenter()"
+              (polygonChange)="onPolygonChange($event)"
+            />
+          </div>
           @if (!hasDrawnArea()) {
             <div class="map-instructions" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
               <i class="pi pi-info-circle"></i>
@@ -167,6 +204,60 @@ import { DecimalPipe } from '@angular/common';
           margin: 0 0 1rem;
           font-size: 1.25rem;
           color: #081c15;
+        }
+
+        .location-search {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+
+          .location-input {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            border: 1px solid #b7e4c7;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: #081c15;
+            transition: border-color 0.2s, box-shadow 0.2s;
+
+            &:focus {
+              border-color: #2d6a4f;
+              box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
+              outline: none;
+            }
+          }
+
+          .location-search-btn {
+            padding: 0 1rem;
+            background: #2d6a4f;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+
+            &:hover:not(:disabled) { background: #1b4332; }
+            &:disabled { opacity: 0.6; cursor: not-allowed; }
+          }
+        }
+
+        .search-error {
+          font-size: 0.82rem;
+          color: #991b1b;
+          margin: -0.25rem 0 0.5rem;
+        }
+
+        .search-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid transparent;
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+          display: inline-block;
         }
 
         .map-container {
@@ -336,23 +427,25 @@ import { DecimalPipe } from '@angular/common';
       }
     `,
   ],
-  // Important for Leaflet CSS to work if not global
-  encapsulation: ViewEncapsulation.None,
 })
 export class AddProjectComponent implements OnInit {
   private fb = inject(FormBuilder);
   private projectService = inject(ProjectService);
   private panelService = inject(PanelService);
+  private http = inject(HttpClient);
 
   // Signals
   panels = signal<Panel[]>([]);
   estimation = signal<OptimalConfigResponse | null>(null);
 
-  // Map State
-  map!: L.Map;
-  drawnItems = new L.FeatureGroup();
   drawnPolygonPoints = signal<Coordinates[]>([]);
   hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
+
+  // Address search
+  addressQuery = signal('');
+  isSearching = signal(false);
+  searchError = signal<string | null>(null);
+  mapCenter = signal<Coordinates | null>(null);
 
   projectForm: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
@@ -371,143 +464,43 @@ export class AddProjectComponent implements OnInit {
 
   ngOnInit() {
     this.loadPanels();
-    // Initialize map after view init (using setTimeout to ensure DOM is ready)
-    setTimeout(() => this.initMap(), 0);
   }
 
   loadPanels() {
     this.panelService.getAllPanels(1, 100).subscribe({
-      next: (res) => {
-        if (res.data) {
-          this.panels.set(res.data);
-        }
+      next: (res: PanelListResponse) => {
+        this.panels.set(res.panels ?? []);
       },
       error: (err) => console.error('Failed to load panels', err),
     });
   }
 
-  initMap() {
-    // Initialize map with default center (Madrid)
-    this.map = L.map('map').setView([40.4168, -3.7038], 18);
+  onPolygonChange(coords: Coordinates[]): void {
+    this.drawnPolygonPoints.set(coords);
+    this.estimation.set(null);
+  }
 
-    // Setup map layers and controls
-    this.setupMapLayers();
+  searchAddress(): void {
+    const query = this.addressQuery().trim();
+    if (!query) return;
 
-    // Setup user geolocation
-    this.setupUserLocation();
+    this.isSearching.set(true);
+    this.searchError.set(null);
 
-    this.map.addLayer(this.drawnItems);
-
-    // Initialize Draw Control
-    const drawControl = new L.Control.Draw({
-      draw: {
-        marker: false,
-        circle: false,
-        circlemarker: false,
-        polyline: false,
-        rectangle: false, // Force polygon for irregular roofs
-        polygon: {
-          allowIntersection: false,
-          drawError: {
-            color: '#e1e100',
-            message: "<strong>Oh snap!<strong> you can't draw that!",
-          },
-          shapeOptions: {
-            color: '#f1c40f',
-          },
-        },
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    this.http.get<{ lat: string; lon: string }[]>(url).subscribe({
+      next: (results) => {
+        this.isSearching.set(false);
+        if (results.length === 0) {
+          this.searchError.set('Location not found. Try a more specific address.');
+          return;
+        }
+        this.mapCenter.set({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
       },
-      edit: {
-        featureGroup: this.drawnItems,
-        remove: true,
+      error: () => {
+        this.isSearching.set(false);
+        this.searchError.set('Search failed. Please try again.');
       },
-    });
-
-    this.map.addControl(drawControl);
-
-    // Event handlers
-    this.map.on(L.Draw.Event.CREATED, (e: L.LeafletEvent) => {
-      const drawEvent = e as L.DrawEvents.Created;
-      const layer = drawEvent.layer;
-      this.drawnItems.clearLayers(); // Only allow one polygon
-      this.drawnItems.addLayer(layer);
-      this.updatePolygonPoints(layer);
-    });
-
-    this.map.on(L.Draw.Event.EDITED, (e: L.LeafletEvent) => {
-      const drawEvent = e as L.DrawEvents.Edited;
-      const layers = drawEvent.layers;
-      layers.eachLayer((layer: L.Layer) => {
-        this.updatePolygonPoints(layer);
-      });
-    });
-
-    this.map.on(L.Draw.Event.DELETED, () => {
-      this.drawnPolygonPoints.set([]);
-      this.estimation.set(null);
-    });
-  }
-
-  updatePolygonPoints(layer: L.Layer): void {
-    if (layer instanceof L.Polygon) {
-      // transform LatLng objects to plain objects
-      const latLngs = layer.getLatLngs()[0] as L.LatLng[];
-      const points = latLngs.map((ll) => ({ lat: ll.lat, lng: ll.lng }));
-      this.drawnPolygonPoints.set(points);
-      // Reset estimation when area changes
-      this.estimation.set(null);
-    }
-  }
-
-  setupMapLayers() {
-    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors',
-    });
-
-    const satelliteLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
-        maxZoom: 19,
-        attribution: '© Esri, Maxar, Earthstar Geographics',
-      }
-    );
-
-    const topoLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-      {
-        maxZoom: 19,
-        attribution: '© Esri, HERE, Garmin, USGS, NGA',
-      }
-    );
-
-    // Add default layer (street)
-    satelliteLayer.addTo(this.map);
-
-    // Create layer control
-    const baseMaps = {
-      Street: streetLayer,
-      Satellite: satelliteLayer,
-      Topographic: topoLayer,
-    };
-
-    L.control.layers(baseMaps).addTo(this.map);
-  }
-
-  setupUserLocation() {
-    // Request user's location and center map on it
-    this.map.locate({ setView: true, maxZoom: 18 });
-
-    // Handle successful location
-    this.map.on('locationfound', (locationEvent: L.LocationEvent) => {
-      // Add a marker at user's location
-      L.marker(locationEvent.latlng).addTo(this.map).bindPopup('You are here').openPopup();
-    });
-
-    // Handle location error (permission denied or unavailable)
-    this.map.on('locationerror', (locationErrorEvent: L.ErrorEvent) => {
-      console.warn('Location access denied or unavailable:', locationErrorEvent.message);
-      // Map stays at default location (Madrid)
     });
   }
 
