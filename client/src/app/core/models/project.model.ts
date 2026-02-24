@@ -32,13 +32,19 @@ export interface MonthlyProduction {
   deficit: number;
 }
 
+export interface GeoPoint {
+  lat: number;
+  lon: number;
+}
+
 export interface ProjectCreateRequest {
   name: string;
-  address?: Coordinates;
+  area: GeoPoint[];
   tilt: number;
-  polygon: Coordinates[];
-  orientation: string;
-  panelId: string;
+  direction: string;
+  panelNumber: number;
+  panelId?: string;
+  rawSpacing?: number;
 }
 
 export interface ProjectUpdateRequest {
@@ -177,7 +183,7 @@ export interface OptimalConfigResponse {
 }
 
 export interface OptimalConfigFromPolygonRequest {
-  coordinates: Coordinates[];
+  area: GeoPoint[];
   panelId: string;
   tilt: number;
 }

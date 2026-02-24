@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from 'mongoose';
+import { GeoPointInput } from '../schemas/project.schema';
 
 /**
  * Production data point (subdocument)
@@ -30,7 +31,7 @@ const ProductionPointSchema = new Schema<IProductionPoint>(
 // Project data interface
 export interface IProject {
   name: string;
-  area: { lat: number; lon: number }[]; // Polygon coordinates
+  area: GeoPointInput[]; // Polygon coordinates
   lat?: number; // Derived center latitude
   lon?: number; // Derived center longitude
   surface?: number; // Derived area in m²

@@ -9,6 +9,7 @@ export * from './http-error.model';
 export {
   Project,
   Coordinates,
+  GeoPoint,
   Polygon,
   MonthlyProduction,
   ProjectCreateRequest,

@@ -340,9 +340,9 @@ export class ProjectService {
    * @returns Optimal configuration recommendations
    */
   async calculateOptimalConfig(data: OptimalConfigInput): Promise<OptimalConfigResponse> {
-    const { surfaceArea, panelWidth, panelHeight, tilt, latitude } = data;
+    const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak } = data;
 
-    // Calculate panel area
+    // Calculate panel area (dimensions are in metres)
     const panelArea = panelWidth * panelHeight; // m²
 
     // Account for tilt (increases effective space needed)
@@ -356,9 +356,9 @@ export class ProjectService {
     // Calculate recommended number of panels
     const recommendedPanels = Math.floor(usableSurfaceArea / effectivePanelArea);
 
-    // Estimate capacity (assuming 300W per panel as average)
-    const avgPanelCapacity = 300; // Watts
-    const estimatedCapacity = (recommendedPanels * avgPanelCapacity) / 1000; // kW
+    // Use actual panel wattage when available, otherwise fall back to 300 W average
+    const panelWatts = wattPeak ?? 300;
+    const estimatedCapacity = (recommendedPanels * panelWatts) / 1000; // kW
 
     // Estimate annual production (simplified calculation)
     // Peak sun hours vary by latitude: equator ~5.5h, higher latitudes ~3-4h
@@ -404,12 +404,14 @@ export class ProjectService {
     );
 
     // Call the core calculation method
+    // dimensions are stored in mm — convert to metres for the area calculation
     return this.calculateOptimalConfig({
       surfaceArea,
-      panelWidth: panel.dimensions.width,
-      panelHeight: panel.dimensions.height,
+      panelWidth: panel.dimensions.width / 1000,
+      panelHeight: panel.dimensions.height / 1000,
       tilt,
       latitude: center.latitude,
+      wattPeak: panel.wattPeak,
     });
   }
 

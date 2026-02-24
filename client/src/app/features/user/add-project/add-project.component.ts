@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ProjectService } from '@core/services/project.service';
@@ -9,6 +10,7 @@ import {
   OptimalConfigFromPolygonRequest,
   ProjectCreateRequest,
   Coordinates,
+  GeoPoint,
 } from '@core/models';
 import { DecimalPipe } from '@angular/common';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
@@ -147,7 +149,7 @@ import { PanelListResponse } from '@core/services/panel.service';
             <button
               type="submit"
               class="btn-primary"
-              [disabled]="projectForm.invalid || !hasDrawnArea()"
+              [disabled]="!canSubmit()"
             >
               <i class="pi pi-plus"></i>
               Create Project
@@ -454,11 +456,24 @@ export class AddProjectComponent implements OnInit {
     orientation: ['south', Validators.required],
   });
 
+  private formValue = toSignal(this.projectForm.valueChanges, {
+    initialValue: this.projectForm.value,
+  });
+
   canCalculate = computed(() => {
+    const { panelId, tilt } = this.formValue();
+    return this.hasDrawnArea() && !!panelId && tilt >= 0 && tilt <= 90;
+  });
+
+  canSubmit = computed(() => {
+    const { name, panelId, tilt, orientation } = this.formValue();
     return (
       this.hasDrawnArea() &&
-      this.projectForm.get('panelId')?.valid &&
-      this.projectForm.get('tilt')?.valid
+      this.estimation() !== null &&
+      name?.trim().length >= 2 &&
+      !!panelId &&
+      tilt >= 0 && tilt <= 90 &&
+      !!orientation
     );
   });
 
@@ -507,8 +522,9 @@ export class AddProjectComponent implements OnInit {
   onCalculate() {
     if (!this.canCalculate()) return;
 
+    const area = this.drawnPolygonPoints().map((c) => ({ lat: c.lat, lon: c.lng }));
     const request: OptimalConfigFromPolygonRequest = {
-      coordinates: this.drawnPolygonPoints(),
+      area,
       panelId: this.projectForm.get('panelId')?.value,
       tilt: this.projectForm.get('tilt')?.value,
     };
@@ -523,22 +539,22 @@ export class AddProjectComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.projectForm.invalid || !this.hasDrawnArea()) return;
+    if (!this.canSubmit()) return;
 
     const formValue = this.projectForm.value;
+    const area: GeoPoint[] = this.drawnPolygonPoints().map((c) => ({
+      lat: c.lat,
+      lon: c.lng,
+    }));
+
     const projectData: ProjectCreateRequest = {
       name: formValue.name,
-      address: this.drawnPolygonPoints()[0],
+      area,
       tilt: formValue.tilt,
-      polygon: this.drawnPolygonPoints(),
-      orientation: formValue.orientation,
+      direction: formValue.orientation,
+      panelNumber: this.estimation()!.recommendedPanels,
       panelId: formValue.panelId,
     };
-
-    // Note: createProject expects specific schema.
-    // We are mapping form + map data to ProjectCreateRequest-like structure.
-    // The service expects ProjectCreateRequest which roughly matches our data but check keys.
-    // Server expects: name, area, tilt, direction, panelNumber, panelId.
 
     this.projectService.createProject(projectData).subscribe({
       next: () => {

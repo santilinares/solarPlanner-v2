@@ -136,6 +136,7 @@ export const OptimalConfigSchema = z.object({
   panelHeight: z.number().positive(),
   tilt: z.number().min(0).max(90),
   latitude: z.number().min(-90).max(90),
+  wattPeak: z.number().positive().optional(),
 });
 
 /** Type inferred from OptimalConfigSchema - used for optimal configuration calculations */

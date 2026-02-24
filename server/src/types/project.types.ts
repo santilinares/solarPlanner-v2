@@ -3,11 +3,12 @@
  */
 
 import { IProductionPoint } from '../models/project.model';
+import { GeoPointInput } from '../schemas/project.schema';
 
 export interface ProjectResponse {
   _id: string;
   name: string;
-  area: { lat: number; lon: number }[];
+  area: GeoPointInput[];
   lat?: number;
   lon?: number;
   surface?: number;
