@@ -4,6 +4,325 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 4, 2026 - Meta-editable Styled as p-tag Pills
+
+### Topic
+Styled `.meta-editable` wrappers to visually match `p-tag` using PrimeNG tag CSS variables.
+
+### Summary of Request
+User wanted to wrap meta-editables inside a `p-tag`. Since PrimeNG Tag doesn't support content projection for arbitrary form controls, `.meta-editable` was styled to match `p-tag` exactly using `--p-tag-*` CSS variables.
+
+### What Was Achieved
+- `.meta-editable` now uses `--p-tag-primary-background`, `--p-tag-primary-color`, `--p-tag-font-size`, `--p-tag-font-weight`, `--p-tag-padding`, and `--p-tag-rounded-border-radius` — visually identical to `p-tag` and auto-switches with light/dark.
+- Embedded `p-select` and `p-inputnumber` rendered borderless/transparent so they blend into the tag pill.
+- Labels inherit color/weight from the wrapper — zero hardcoded values.
+
+### Full Prompt
+"Would it be possible to wrap the meta-editables around a p-tag? and inside the p-tag include the label and the p-select/p-inputnumber"
+
+### Affected Files
+`client/src/app/features/user/configure-project/configure-project.component.ts`
+
+---
+
+## 📅 March 4, 2026 - Meta-editable Height Alignment with p-tag
+
+### Topic
+Sized the `p-select` and `p-inputnumber` inside the metadata strip to match the height of the `p-tag` pills.
+
+### Summary of Request
+User wanted the meta-editable form controls (currency select, energy price input) to be the same height as the `p-tag` chips in the metadata strip.
+
+### What Was Achieved
+- Matched `font-size` to `0.875rem` (same as `p-tag` root) for `.meta-editable`, its label, and the inner `p-select` / `p-inputnumber`.
+- Set inner label padding to `0.25rem 0.5rem` (matching `p-tag`'s `padding` from the preset) on `.p-select-label` and `.p-inputnumber-input`.
+- Bumped label `font-weight` to `700` to match `p-tag`'s weight.
+
+### Full Prompt
+"Great. Now can you customize the meta-editables and the p-select and p-inputnumber to that they have the same size as the p-labels (same height)"
+
+### Affected Files
+`client/src/app/features/user/configure-project/configure-project.component.ts`
+
+---
+
+## 📅 March 4, 2026 - Meta-chip & Meta-editable Dark/Light Theme Support
+
+### Topic
+Made the metadata strip in configure-project follow the PrimeNG dark/light theme automatically.
+
+### Summary of Request
+User asked to modify `meta-chip` and `meta-editable` so they follow the dark/light themes from the PrimeNG preset. Suggested using `p-tag` for the chips to avoid extra maintenance code.
+
+### What Was Achieved
+- **Replaced** custom `<div class="meta-chip">` elements with PrimeNG `<p-tag>` components (already imported via `TagModule`). Tags automatically pick up `tag.colorScheme.light/dark` tokens from the preset for theming.
+- **Removed** ~15 lines of hardcoded `.meta-chip` / `.meta-chip i` CSS that used non-theme-aware colors (`var(--p-green-700)`, `var(--p-green-100)`).
+- **Updated** `.meta-separator` background to `var(--p-content-border-color)` (theme-aware).
+- **Updated** `.meta-editable label` color to `var(--p-text-muted-color)` (theme-aware).
+- Zero new CSS classes or custom color logic — all theming delegated to PrimeNG design tokens.
+
+### Full Prompt
+"Can you modify the meta-chip and meta-editable so that they can follow the dark and light themes from the preset in primeng? Maybe you can use p-label for the meta-chips? I dont want to add extra code that makes this not mantainable"
+
+### Affected Files
+`client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Reasoning
+- `TagModule` was already imported. Using `<p-tag>` with `[rounded]="true"` replaces the custom chip markup.
+- PrimeNG `p-tag` reads the `tag.colorScheme.light` / `tag.colorScheme.dark` tokens from the `SolarPreset`, so colors adapt automatically — no manual `@media (prefers-color-scheme)` or class toggles needed.
+- The existing custom `.meta-chip` CSS hardcoded `var(--p-green-700)` / `var(--p-green-100)` which only looked correct in dark mode; deleting it in favor of the preset-driven Tag eliminates the issue entirely.
+- For `meta-editable` labels and the separator, switching to `--p-text-muted-color` and `--p-content-border-color` achieves the same automatic theme adaptation without adding any component or wrapper.
+
+---
+
+## 📅 March 3, 2026 - Extract Shared Constants to project.constants.ts
+
+### Topic
+Identified and eliminated duplicated constant definitions in `configure-project.component.ts` by extracting them into a shared `project.constants.ts` file under `core/constants/`.
+
+### Summary of Request
+User confirmed that the last session had extracted components globally. They noticed the configure-project component was still +1100 lines and asked if it was actually using the global objects. After analysis, it was confirmed that `TimezoneOption`, `CurrencyOption`, `COUNTRY_TIMEZONE`, `COUNTRY_CURRENCY`, `orientationOptions`, `timezoneOptions`, and `currencyOptions` were all still locally duplicated in the component. User approved moving them to a new `project.constants.ts` constants file.
+
+### What Was Achieved
+- **Created `client/src/app/core/constants/project.constants.ts`** with all shared types and data:
+  - Interfaces: `OrientationOption`, `TimezoneOption`, `CurrencyOption`
+  - Maps: `COUNTRY_CURRENCY_MAP`, `COUNTRY_TIMEZONE_MAP`
+  - Arrays: `ORIENTATION_OPTIONS`, `TIMEZONE_OPTIONS`, `CURRENCY_OPTIONS`
+- **`configure-project.component.ts`**: Removed 3 local interface definitions + 2 private class record maps + 3 large options arrays (~90 lines). Now imports and references constants directly. Component reduced from **1459 → 1369 lines**.
+- **`metadata-strip.component.ts`**: Removed locally-defined `CurrencyOption` and `TimezoneOption` interfaces; now imports from `project.constants.ts` and re-exports with `export type { ... }` for backward compatibility.
+- Build passes with zero errors (`ng build --configuration=development` ✓).
+
+### Full Prompt
+"Yes, but add the constants under the name project.constants.ts"
+
+### Affected Files
+**New:** `client/src/app/core/constants/project.constants.ts`
+**Modified:** `client/src/app/features/user/configure-project/configure-project.component.ts`, `client/src/app/shared/components/metadata-strip/metadata-strip.component.ts`
+
+### AI Reasoning
+The constants were duplicated between the previously extracted `MetadataStripComponent` and the parent `configure-project.component.ts`. Centralizing them in `core/constants/project.constants.ts` follows the feature-first + core/shared architecture: `core/` holds app-wide singletons and constants, while `shared/` holds reusable UI components. Using `export type { ... }` in `metadata-strip.component.ts` preserves the existing public API for any consumers that import types from there.
+
+---
+
+## 📅 March 3, 2026 - Configure-Project Component Refactoring (Phase 1–2)
+
+### Topic
+Refactored the `ConfigureProjectComponent` based on a detailed analysis document (`CONFIGURE-PROJECT-ANALYSIS.md`). Extracted reusable components, consolidated CSS into SCSS partials, and eliminated all 11 `::ng-deep` selectors using the PrimeNG PT (Pass Through) API.
+
+### Summary of Request
+User approved a 3-phase plan:
+1. **Phase 1 (Quick Wins):** Extract `MetadataStripComponent` and `ReviewCardComponent`.
+2. **Phase 2 (ng-deep Elimination):** Replace all `::ng-deep` with PT API bindings and global SCSS overrides.
+3. **Phase 3 (SCSS Consolidation):** Extract shared styles into SCSS partial files.
+
+### What Was Achieved
+- **`MetadataStripComponent`** (`shared/components/metadata-strip/`) — encapsulates the metadata strip (country, timezone chips + currency select + energy price input). Uses `input()` signals and PrimeNG PT API bindings (`metaSelectPt`, `metaInputNumberPt`) with classes defined in `_meta-editable.scss`, replacing all 10 `::ng-deep` selectors targeting `.meta-editable`.
+- **`ReviewCardComponent`** (`shared/components/review-card/`) — reusable review summary card accepting `title`, `icon`, `items[]`, optional `badge`, and `editButton`. Used 4 times in Step 2 replacing ~140 lines of inline template.
+- **4 computed signals added** to `ConfigureProjectComponent`: `projectReviewItems`, `locationReviewItems`, `panelReviewItems`, `capacityReviewItems`, `capacityBadge` — each builds `ReviewItem[]` from existing signals, keeping logic in the component class.
+- **`errorCardPt`** PT binding added, replacing the last `::ng-deep .error-card` selector.
+- **7 SCSS partial files created:**
+  - `styles/components/_metadata-strip.scss`
+  - `styles/components/_review-card.scss`
+  - `styles/components/_step-card.scss`
+  - `styles/components/_step-navigation.scss`
+  - `styles/layout/_forms.scss`
+  - `styles/layout/_grids.scss`
+  - `styles/layout/_spacing.scss`
+  - `styles/primeng-overrides/_meta-editable.scss`
+- **`styles.scss` updated** with `@use` imports for all 8 new partials (components, layout, primeng-overrides sections).
+- **`ConfigureProjectComponent` styles array reduced** from ~1000 lines to ~300 lines (only component-specific, non-reusable styles remain inline).
+- **Zero `::ng-deep` selectors** remain in the component.
+- Build passes with no errors (`ng build --configuration=development` ✓).
+
+### Full Prompt
+> "Follow all of the recommendations detailed here, but not Location Search & Map Component extraction. Include: 2. Consolidate & Extract Shared Styles. Create a list for all the changes."
+> [approved] "Yes, lets go"
+
+### Affected Files
+**New:** `client/src/app/shared/components/metadata-strip/metadata-strip.component.ts`, `client/src/app/shared/components/review-card/review-card.component.ts`, `client/src/styles/components/_metadata-strip.scss`, `client/src/styles/components/_review-card.scss`, `client/src/styles/components/_step-card.scss`, `client/src/styles/components/_step-navigation.scss`, `client/src/styles/layout/_forms.scss`, `client/src/styles/layout/_grids.scss`, `client/src/styles/layout/_spacing.scss`, `client/src/styles/primeng-overrides/_meta-editable.scss`
+
+**Modified:** `client/src/app/features/user/configure-project/configure-project.component.ts`, `client/src/styles.scss`
+
+### AI Reasoning
+The component had grown to 1905 lines with 1000+ lines of inline CSS, which violated Angular's single-responsibility principle and made maintenance difficult. The approach prioritized:
+1. Using Angular 21 `input()` signals in new components (vs `@Input()`) for the modern API.
+2. Using PrimeNG's PT API for all PrimeNG overrides — avoids encapsulation violations that `::ng-deep` causes.
+3. SCSS `@use` over `@import` (the latter is deprecated in Dart Sass) for all new partials.
+4. Co-located styles: each extracted component could eventually have its own `.scss` file, but given the global nature of the overrides, the `styles/` folder structure was chosen for shared patterns.
+
+---
+
+
+
+### Topic
+Restructured the configure-project flow: removed the dedicated General Info stepper step, made the project name always inline-editable in the header, and added a metadata strip (country, timezone, currency, energy price) that auto-populates from reverse geocoding when the user searches for a location.
+
+### Summary of Request
+User wanted country and timezone to auto-update based on project location. Currency should be auto-mapped from country (EUR default). Energy price stays user-entered. Project name should always be editable inline. The General Info step should be removed; its fields (currency, price, country, timezone) should appear as a compact strip above the Panel Setup cards.
+
+### What Was Achieved
+- **Eliminated Step 1 (General Info)** — stepper reduced from 3 steps to 2: Panel Setup → Review & Save.
+- **Inline-editable project name** in the page header — styled as a heading with pencil hint; focus reveals a bottom border. No separate "name" field needed.
+- **Metadata strip** added above the 2×2 grid in Panel Setup: shows Country (auto, read-only chip), Timezone (auto, read-only chip with human-readable label), Currency (auto-set but overridable dropdown), and Energy Price (user input).
+- **Enhanced Nominatim address search** with `addressdetails=1&accept-language=en` — extracts `country` and `country_code` from results.
+- **Country → Timezone mapping** (~30 countries) using static `COUNTRY_TIMEZONE` map; values match existing `timezoneOptions`.
+- **Country → Currency mapping** (~30 countries) using static `COUNTRY_CURRENCY` map; defaults to EUR for unmapped countries.
+- **`applyLocationMetadata()`** method patches country, timezone, and currency into the form whenever an address search succeeds.
+- **`timezoneLabel` computed signal** resolves the raw timezone value to a human-readable label for display.
+- **`hasUnsavedChanges`** now tracks country, timezone, currency, and price in addition to existing fields.
+- Step navigation updated: "Step X of 2", labels adjusted, Review step edit buttons point to step 1.
+
+### Full Original Prompt
+"I think we could rethink some things related to the fields in the general information step. The country and timezone should update automatically when modifying the location of the project. For the currency we could have a mapping that sets a currency when the timezone is x (or the country) and use euro as default. Then for the energy price, that must be set by the user. The thing is, with this in mind, it does not make sense to have this step before the location setter. As for the project name, would it be possible to make the project name always editable? Like when showing the project name, make it always editable. So currency, price, country, timezone could be added to the panel setup as a strip on top of the location and area, and panel and instalation cards. Lets try that"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` (template, styles, logic)
+
+### Agent Reasoning
+Removing the General Info step reduces friction — all configuration now happens in a single step with the metadata strip providing context. The inline-editable name gives constant visibility and editability without a dedicated form section. Auto-detecting country/timezone/currency from the Nominatim geocoding response eliminates manual data entry for fields that are derivable from the map location. The currency remains overridable because users in border regions or using foreign currencies may need to change it. Static mappings were chosen over external timezone APIs to keep the app dependency-free and fast (acceptable for a thesis project with ~30-country coverage).
+
+---
+
+## 📅 March 1, 2026 - Restructure Configure-Project Stepper
+
+### Topic
+Major restructure of the `configure-project` component to improve UX: reorganized stepper steps, added 2-column Panel Setup layout, sticky navigation, optimal config auto-calculation, and 3D view placeholder.
+
+### Summary of Request
+User wanted to restructure the configure-project stepper so that (1) General Info only contains general info (no map), (2) Panel Setup shows location/area, panel config, 3D placeholder, and live capacity preview in a 2×2 grid, (3) polygon changes auto-recalculate optimal panel config, (4) an Optimal/Custom badge indicates when the user deviates from the computed optimal, and (5) navigation buttons are always visible via a sticky top bar instead of being at the bottom.
+
+### What Was Achieved
+- **Step 1 (General Info)** now only contains the general information card (name, country, timezone, currency, energy price). The location map was moved out.
+- **Step 2 (Panel Setup)** uses a **2×2 CSS grid layout**:
+  - **Top-left**: Location & Area card with address search, editable Leaflet map, and polygon status.
+  - **Top-right**: Panel & Installation card with panel selector, panel number, tilt, direction, azimuth, and row spacing.
+  - **Bottom-left**: 3D Installation View placeholder card.
+  - **Bottom-right**: Live Capacity Preview card with Optimal/Custom badge, panel stats, capacity, annual production estimate, and coverage %. Includes a "Restore optimal" link when a custom configuration is active.
+- **Step 3 (Review & Save)** shows 4 summary cards (General Info, Location & Area, Panel & Installation, Capacity) in a 2×2 review grid, plus the total capacity highlight card.
+- **Sticky navigation bar** placed between the header and stepper, always visible at the top. Contains Back/Next/Save buttons and a "Step X of 3 — Title" indicator. Navigation uses `activeStep.set()` instead of in-template `activateCallback`.
+- **Optimal config auto-calculation**: when the user changes the polygon, panel selection, or tilt, the server's `/projects/calculate` endpoint is called to compute the optimal panel count. The result auto-fills the panel number field. If the user manually changes the panel number, the badge switches from "Optimal" to "Custom" with a restore link.
+- **Form watchers** use `distinctUntilChanged()` and `debounceTime(500)` (for tilt) with `takeUntilDestroyed()` to avoid redundant API calls.
+- Page max-width increased from 1080px to 1280px to accommodate the 2-column layout.
+- Setup grid collapses to single column at ≤960px; form/review grids collapse at ≤768px.
+
+### Full Original Prompt
+"I want to modify the configure project component. The thing is, If we let the user redefine the area polygon, the most normal thing to do would be to recalculate the number of panels, row spacing, etc (optimal config). I think the proper way to do this would be to leave the general info tab only containing the general information card. Then I am thinking what to do in the panel setup part. Because I would like to add the following things as part of the setup: 1. Current location and area selected (that can be edited) 2. panel and installation card containing the chosen panel, number of panels given as per the optimal config, and the other values 3. Live capacity preview that changes depending on the configuration in the panel and installation card (that will change if the user changes the polygon area, but could also be modified if the user wants to. It could be nice to include some kind of indicator to show when the optimal config is showing in that card and when manual edition has been made) 4. 3D view of the installation (for now this could be just a placeholder). After this, a summary of the setup can be shown with a summary of this info (maybe cards of all the 4 steps described above). Another thing is. Either we avoid vertical scrolling in this whole configure-project component, or we reposition the back and next buttons to be on the top instead of at the bottom where the user might not see them."
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` (full rewrite)
+
+### Agent Reasoning
+Keeping 3 stepper steps (rather than 4-5) minimizes cognitive load while reorganizing content: Step 1 is lightweight general info, Step 2 packs the core technical config into a space-efficient 2×2 grid, and Step 3 provides a full summary. The sticky nav bar solves the "hidden buttons" problem without forcing no-scroll constraints. Auto-calculating optimal config on polygon/panel/tilt changes creates the "smart recalculation" UX the user described, while the Optimal/Custom badge and restore link give transparency and control over manual overrides. The `fetchOptimalConfig(autoApply)` pattern lets the initial load establish the optimal baseline without overriding the user's saved configuration.
+
+---
+
+## 📅 February 28, 2026 - Configure Project Map Loading Fix
+
+### Topic
+Fix map rendering issues in `configure-project` where the Leaflet map was not loading properly inside the stepper layout.
+
+### Summary of Request
+User reported: "For some reason the map in the configure-project component is not loading properly" and approved applying a targeted fix.
+
+### What Was Achieved
+- **Stabilized map initialization in shared Leaflet component** by adding post-render size invalidation passes (`invalidateSize`) after map creation.
+- **Added `ResizeObserver` support** in `LocationMapComponent` to automatically invalidate map size whenever host/container dimensions change (e.g., stepper panel render/layout changes).
+- **Improved map recenter robustness** by invalidating size before `flyTo` when the address-search center input changes.
+- **Added geolocation fallback in Configure Project** using `[centerOnUser]="mapLat() == null || mapLng() == null"` to avoid starting at `0,0` when no project coordinates exist.
+- **Lifecycle cleanup added** for timers and observer disconnection in `ngOnDestroy`.
+
+### Full Original Prompt
+"For some reason the map in the configure-project component is not loading properly"
+
+### Affected Files
+- `client/src/app/shared/components/location-map/location-map.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Agent Reasoning
+Leaflet often initializes incorrectly when its container is hidden or not fully measured (common in steppers/tabs/cards), producing blank or partially rendered maps. The root-cause fix is to trigger `invalidateSize()` after mount and on container size changes rather than only at initial `setView`. A small caller fallback was added so missing project coordinates do not force an initial center at Gulf of Guinea (`0,0`).
+
+---
+
+## 📅 Current Session - Project Infrastructure Analysis Updated (Fixes Documented)
+
+### Topic
+Updated `PROJECT-INFRASTRUCTURE-ANALYSIS.md` to reflect the optimized architecture after fixing critical bugs in the project management system.
+
+### Summary of Request
+User asked to "redo the project infrastructure analysis" after completing fixes to the project CRUD operations and geospatial field handling.
+
+### What Was Achieved
+
+**Documentation Updated in `PROJECT-INFRASTRUCTURE-ANALYSIS.md`:**
+
+All sections were completely rewritten to reflect the optimized state:
+
+1. **Section 3: Design Principles & Trade-offs** — Documented the advantages and trade-offs of on-demand geospatial field calculation
+2. **Section 4: CRUD Operations Summary** — Added comprehensive table showing all project operations working with proper authorization
+3. **Section 5: Communication Flow Examples** — Three flow diagrams showing the now-fixed workflow:
+   - Flow #1: Create Project (on-demand calculation in response)
+   - Flow #2: Update Project with area change
+   - Flow #3: Update Project without area (graceful null handling)
+4. **Section 6: Summary of Changes & Fixes** — Detailed before/after code examples for 5 critical issues fixed:
+   - Issue #1: updateProject() now uses findByIdAndUpdate instead of create
+   - Issue #2: Null check for optional area parameter
+   - Issue #3: Refactored to on-demand geospatial calculation (not stored in DB)
+   - Issue #4: updateProject() controller handler added
+   - Issue #5: PUT /projects/:id route added and properly scoped
+5. **Section 7: Architecture Summary** — Updated to show all 6 layers are ✅ fixed
+6. **Section 8: Data Consistency Matrix** — Revised to show lat/lon/surface calculated on-demand, not persisted
+7. **Conclusion** — Changed from "Critical bugs identified" to "Fixed & Optimized" with production-ready status
+
+### Full Original Prompt
+"Can you redo the project infrastructure analysis?"
+
+### Affected Files
+- `PROJECT-INFRASTRUCTURE-ANALYSIS.md` — Complete documentation refresh
+
+### Agent Reasoning
+The analysis document identified 5 critical bugs in an earlier session. After code fixes were implemented and tested, the document needed updating to serve as a reference for the optimized architecture. Key design principle documented:
+
+**On-Demand Calculation Pattern:** `lat`, `lon`, and `surface` are now calculated from `area` polygon on every response transformation (via `calculateGeospatialFields()`) instead of being persisted in the database. Benefits:
+- Single source of truth (area polygon only)
+- Guaranteed data consistency (impossible to become stale)
+- Minimal storage overhead
+- Simple update logic (no sync complexity)
+
+---
+
+## 📅 February 24, 2026 - Fix Dashboard Total Production Always Showing Zero
+
+### Topic
+`totalProduction` on the user dashboard was always `0` and never updated automatically.
+
+### Summary of Request
+User noticed "Total Production" was stuck at 0 and asked why it wasn't updating automatically.
+
+### What Was Achieved
+
+**Root cause identified (two layers):**
+1. **Server:** `getUserDashboard` and `getAdminDashboard` both computed `totalProduction` by summing `prodToday[].pv` across projects. However, `prodToday` is never written by any part of the application (no scheduler, no external API call, no update endpoint), so the array is always empty and the sum is always `0`.
+2. **Client:** `DashboardComponent.ngOnInit` loaded stats once and never re-fetched, so even if server data changed the UI would not reflect it.
+
+**Changes applied:**
+
+- **Server `getUserDashboard` and `getAdminDashboard`** — replaced the dead `prodToday` sum with a capacity-based annual production estimate using the same formula already present in `generatePlanData`: `capacityKW × peakSunHours × 365 × 0.85`. Peak sun hours are derived from the project's latitude (`max(2, 5.5 − |lat| × 0.02)`), falling back to `4 h` when latitude is absent.
+- **`DashboardComponent`** — added `OnDestroy`, a `POLL_INTERVAL_MS = 60_000` constant, and a `setInterval` started in `ngOnInit` that calls `loadDashboard()` every 60 seconds. The interval is cleared in `ngOnDestroy` to prevent memory leaks.
+- **Dashboard HTML** — updated the card header from "Total Production" → "Est. Annual Production" and the unit from `kWh` → `kWh / year` to correctly reflect that the value is an estimate, not a live reading.
+
+### Full Original Prompt
+"The total production is not updating automatically. Can we fix it? What is it dependant on?"
+
+### Affected Files
+- `server/src/services/project.service.ts` — `getUserDashboard` and `getAdminDashboard` methods
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+
+### Agent Reasoning
+The `totalProduction` field in the dashboard response is computed server-side at request time. Since `prodToday` is never populated (no live telemetry integration exists yet), the correct short-term fix is to derive the stat from the data that *is* available: panel wattage, panel count, and project latitude. This is consistent with the estimation logic already in `generatePlanData`. On the frontend, a simple `setInterval` polling pattern is the safest approach that avoids introducing RxJS `timer`/`takeUntilDestroyed` complexity while guaranteeing the value stays current and the interval is always cleaned up.
+
+---
+
 ## 📅 February 20, 2026 - PrimeNG Style Architecture Cleanup
 
 ### Topic
@@ -651,6 +970,101 @@ The user panel-list already established the design language (card grid, bolt ico
 
 ---
 
+## 📅 February 28, 2026 - Editable Location Map in Configure Project
+
+### Topic
+Add editable project location (address search + polygon drawing) to the configure-project component, matching the add-project UX.
+
+### Summary of Request
+User requested making the project location editable in the configure-project component, like it is in the add-project component — with address search and polygon drawing.
+
+### What Was Achieved
+
+Replaced the read-only map preview in Step 1 of the configure-project wizard with a fully editable location section:
+
+- **Address search bar** using Nominatim/OpenStreetMap geocoding (same as add-project) with PrimeNG InputText + Button
+- **Editable Leaflet map** with polygon draw controls via the shared `LocationMapComponent` in editable mode
+- **Pre-populated polygon** from the existing project data that users can redraw
+- **Polygon status indicator** showing whether a polygon is defined and with how many points
+- **Location & area summary** in the Step 3 review view (coordinates + polygon point count)
+- **Smart save logic**: if the user edits the polygon, the new coordinates are sent to the server; otherwise the original `area` is preserved
+- **Unsaved changes detection** now also tracks polygon edits via `polygonEdited` signal
+
+### Full Original Prompt
+"We should add the project location to be editable, like in the add-project component"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Added editable map, address search, polygon handling, location review items, CSS
+
+### Agent Reasoning
+- Reused the existing `LocationMapComponent` in `[editable]="true"` mode — same component used by `AddProjectComponent`, no duplication.
+- Added `HttpClient` for Nominatim geocoding (same approach as add-project).
+- Added `polygonEdited` signal to track whether the user actually changed the polygon, so the unsaved changes indicator and save payload logic are correct.
+- The map pre-loads with the existing project's coordinates and polygon, so users see their current installation area and can modify it if needed.
+- Styled the address search using PrimeNG InputText + Button for visual consistency with the rest of the step, replacing the plain HTML inputs used in add-project.
+
+### Validation
+- `ng build --configuration=development` — clean build, no errors
+- Zero TypeScript/lint errors
+
+---
+
+## 📅 February 28, 2026 - Configure Project Component (PrimeNG Stepper Wizard)
+
+### Topic
+Create a rich, multi-step configure-project page using PrimeNG components for editing existing solar project settings.
+
+### Summary of Request
+User requested a highly aesthetic and UX-friendly configure-project component using PrimeNG CSS components. The component should allow users to edit all configurable fields of an existing project.
+
+### What Was Achieved
+
+**Created `ConfigureProjectComponent`** — a 3-step wizard using PrimeNG Stepper:
+
+1. **Step 1 — General Info**: Project name, country, timezone (filterable Select), currency, energy price. Includes a read-only Leaflet map preview showing the project's polygon.
+2. **Step 2 — Panel & Installation**: Solar panel selection (rich dropdown with wattage, efficiency, technology details), number of panels, tilt/inclination, orientation/direction, azimuth, row spacing. Features a live capacity preview card that updates reactively.
+3. **Step 3 — Review & Save**: Side-by-side summary cards with edit buttons to jump back to any step, a highlighted total capacity card with solar glow effect, success/error messages, and save button.
+
+**PrimeNG components used:** Stepper, FloatLabel, InputText, InputNumber, Select, Button, Card, Tag, Divider, Message, Skeleton, Tooltip.
+
+**Design highlights:**
+- Custom step icons with active state transitions
+- Organic rounded corners (24px cards) consistent with solar planner design system
+- Solar yellow highlight for capacity preview with glow effect
+- Responsive grid that collapses to single column on mobile
+- Unsaved changes indicator tag in header
+- Loading skeleton state and error state with back navigation
+- `ChangeDetectionStrategy.OnPush` for performance
+
+**Additional fixes:**
+- Updated `ProjectUpdateRequest` interface to match server's `ProjectUpdateSchema` (was outdated with only name/address/orientation)
+- Removed stale `console.warn` from `ProjectService.updateProject()` — the server endpoint exists
+- Wired "Configure" button in `ViewProjectComponent` to navigate to `/projects/:id/configure`
+- Added lazy-loaded route for the new component
+
+### Full Original Prompt
+"I want you to help me create a very good in UX and very aesthetic configure-project component using primeng css components."
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — **New** (main component)
+- `client/src/app/app.routes.ts` — Added `/projects/:id/configure` route
+- `client/src/app/features/user/view-project/view-project.component.ts` — Wired Configure button with routerLink
+- `client/src/app/core/models/project.model.ts` — Updated `ProjectUpdateRequest` to match server schema
+- `client/src/app/core/services/project.service.ts` — Cleaned up `updateProject` method
+
+### Agent Reasoning
+- Chose PrimeNG Stepper over a flat form to break the ~12 configurable fields into digestible steps, reducing cognitive load for farmers/homeowners who are the primary audience.
+- Used `ProjectResponse` type instead of `Project` in the component since the server API returns the flat response shape (with `tilt`, `direction`, `panelNumber`, etc.) rather than the domain model shape.
+- The `area` field (polygon coordinates) is required by the server's `ProjectUpdateSchema` — the component passes through the original `area` from the loaded project on save, since polygon editing is deferred to a later iteration.
+- Used `forkJoin` to load project + panels in parallel for faster initial render.
+- Reactive form with `toSignal(valueChanges)` enables computed signals for live capacity preview and unsaved changes detection without manual subscriptions.
+
+### Validation
+- `ng build --configuration=development` — clean build, no errors
+- Zero TypeScript/lint errors in all affected files
+
+---
+
 ## 📅 February 22, 2026 - Leaflet Map in View-Project Component
 
 ### Topic
@@ -678,3 +1092,100 @@ Instead of copying the Leaflet initialization directly into view-project (which 
 
 ---
 
+## 📅 March 1, 2026 - Fix Layout Headers/Footers Not Filling Full Width
+
+### Topic
+Headers and footers in all three layout components (user, admin, visitor) were not spanning the full horizontal viewport width, and had a gap at the top.
+
+### Summary of Request
+User reported that all layout headers and footers did not completely fill the horizontal space, and headers didn't fill the top space either. Asked whether switching to a PrimeNG header component would help.
+
+### What Was Achieved
+- **Added `margin: 0; padding: 0;` to the global `html, body` reset** in `styles.scss` to eliminate the browser's default `8px` body margin that was causing the gap at the top and sides.
+- **Added `:host { display: block; }` to all three layout components** (`UserLayoutComponent`, `AdminLayoutComponent`, `VisitorLayoutComponent`) so Angular custom elements take full width instead of defaulting to `display: inline`.
+- **Recommended keeping custom headers** over PrimeNG Menubar/Toolbar since the custom headers already match the solar design system, are fully responsive, and offer more styling control.
+
+### Full Prompt
+> "I have an issue with the layouts (user, admin, visitor). All of the headers and footers do not completely fill the horizontal space. And the headers dont fill the top space either. How can I fix that? I was using a normal header. Maybe for simplicity would it make sense to use a header from primeng? What do you think?"
+
+### Affected Files
+- `client/src/styles.scss` — Added `margin: 0; padding: 0;` to `html, body` reset
+- `client/src/app/layouts/user-layout/user-layout.component.ts` — Added `:host { display: block; }`
+- `client/src/app/layouts/admin-layout/admin-layout.component.ts` — Added `:host { display: block; }`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts` — Added `:host { display: block; }`
+
+### AI Reasoning
+The root cause was two compounding CSS issues: (1) browsers apply a default `margin: 8px` on `<body>`, which was never reset, creating visible gaps around all edges; (2) Angular component host elements render as `display: inline` by default, so the layout wrappers weren't stretching to full width. The `app-root` already had `:host { display: block }` but the layout components did not. Switching to PrimeNG header components was not recommended since it would introduce styling constraints (fighting built-in padding/colors) without solving the actual CSS reset issue, and the existing custom headers already align with the design system.
+
+---
+
+## 📅 March 1, 2026 - Fix Panel Dropdown Selection & Capacity Preview Bug
+
+### Topic
+Bug fix for the configure-project component where the solar panel dropdown didn't show the selected panel and the live capacity preview showed "Select a panel" even after selection.
+
+### Summary of Request
+When configuring a project with a different polygon and location, the solar panel dropdown does not show the panel being used for calculations as selected, and when selecting it, the live capacity preview shows a message that a panel must be selected first.
+
+### What Was Achieved
+- Identified root cause: the server's `transformPanelToResponse` returns panels with `_id` but **no `id` field**, while the PrimeNG dropdown used `optionValue="id"` and the form stored the panel's MongoDB `_id` string. This mismatch meant every dropdown option had `undefined` as its value, so nothing matched the form's `panelId`.
+- **Fixed** by normalizing panel data when loaded: `panels.map(p => ({ ...p, id: p.id ?? p._id ?? '' }))`. This ensures every panel object has a populated `id` field that matches the stored `panelId` from `project.panel`.
+- The `selectedPanelData` computed signal now correctly resolves the panel, making the capacity preview display properly.
+
+### Full Original Prompt
+"When configuring a project and using a different polygon and location, the solar pannel dropdown does not show the panel being used for the calculations as selected, and when I select it, the live capacity preview shows a message that I must select a panel first. Lets fix that bug"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Normalize `id` from `_id` when setting panel list
+
+### AI Reasoning
+The server's panel transform function (`transformPanelToResponse`) only maps `_id` to a string but never adds an `id` property. The client's `Panel` interface declares `id: string` but the actual API response objects lack it. The PrimeNG `<p-select>` with `optionValue="id"` resolved to `undefined` for every option, so the pre-populated `panelId` (a valid ObjectId string from `project.panel`) never matched any option. After selection, `panelId` was set to `undefined`, causing `selectedPanelData()` to return `null` and showing the "Select a panel" fallback message. The fix normalizes panel data on the client side immediately after loading, ensuring `id` is always populated from `_id`.
+
+---
+
+## 📅 March 4, 2026 - Match Currency & Energy Price Input Sizes to Meta-Chips
+
+### Topic
+Resize the PrimeNG `p-select` (currency) and `p-inputnumber` (energy price) inside the metadata strip so they visually match the compact height of the adjacent `.meta-chip` pills.
+
+### Summary of Request
+User asked to make the currency dropdown and energy price input in the metadata strip match the size of the meta-chip elements.
+
+### What Was Achieved
+Updated `::ng-deep` styles in `configure-project.component.ts` to apply identical padding (`0.4rem 0.85rem`), `font-size: 0.82rem`, and `line-height: 1` to the inner elements of both PrimeNG components. Set `height: auto` on the wrapper so they shrink naturally, and narrowed the select dropdown trigger to `1.75rem`.
+
+### Full Prompt
+"Can you help me with the size of the currency and energy price editables and inputtext, dropdown to match the size of the meta-chips"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Updated `::ng-deep` styles for `.meta-editable .p-select` and `.meta-editable .p-inputnumber`
+
+### AI Reasoning
+The `.meta-chip` elements used compact padding (`0.4rem 0.85rem`) and small font (`0.82rem`), while the PrimeNG input components used their default larger sizing. The fix targets the inner rendered elements (`.p-select-label`, `.p-inputtext`) with matching padding, font-size, and line-height to bring them to the same visual height as the chips.
+
+---
+
+## 📅 March 4, 2026 - Restore Bubble Backgrounds & Migrate to PrimeNG Tokens
+
+### Topic
+Restore bubble backgrounds on `.meta-chip` and `.meta-editable` and replace all hardcoded hex colors with PrimeNG CSS custom properties for theme-awareness.
+
+### Summary of Request
+User noticed the meta-editable inputs had lost their bubble background and asked to restore it, while converting all hardcoded colors to PrimeNG design tokens.
+
+### What Was Achieved
+- **`.meta-chip`**: Replaced `#f0f7f4` → `var(--p-surface-50)`, `#1b4332` → `var(--p-green-600)`.
+- **`.meta-chip i`**: `#40916c` → `var(--text-color-secondary)`.
+- **`.meta-separator`**: `#b7e4c7` → `var(--surface-border)`.
+- **`.meta-editable`**: Added bubble background (`var(--p-surface-50)`), `border-radius: 20px`, asymmetric padding for compact look.
+- **`.meta-editable label`**: `#40916c` → `var(--text-color-secondary)`.
+- **PrimeNG `::ng-deep` overrides**: Made `p-select` and `p-inputnumber` inside `.meta-editable` transparent/borderless so they blend into the bubble; set text color to `var(--p-green-600)` with `font-weight: 600`; removed hover/focus borders and box-shadows.
+
+### Full Prompt
+"Ok, that is good, but did you remove the background those meta chips and meta editables had? if so, put them back, so that they look like bubbles. Remember to make everything primeng first so that the elements can use the color preset"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Replaced hardcoded hex colors with PrimeNG/theme CSS variables; restored bubble backgrounds on `.meta-editable`
+
+### AI Reasoning
+The metadata strip had hardcoded hex colors that wouldn't respond to theme changes (light/dark mode). The PrimeNG preset defines `--p-surface-50`, `--p-green-600`, etc., and the custom theme files define `--text-color-secondary` and `--surface-border`. By converting to these variables, the bubbles now adapt automatically to the active theme. The PrimeNG inputs inside `.meta-editable` were made transparent and borderless so the bubble container itself acts as the visual boundary, matching the `.meta-chip` aesthetic.

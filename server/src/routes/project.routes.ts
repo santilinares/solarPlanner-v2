@@ -5,6 +5,7 @@ import {
   getUserDashboard,
   getAdminDashboard,
   getProjectById,
+  updateProject,
   getSunPath,
   generatePlan,
   calculateOptimalConfig,
@@ -18,6 +19,7 @@ import { validateBody, validateQuery } from '../middleware/validation.middleware
 import {
   ProjectCreateSchema,
   ProjectQuerySchema,
+  ProjectUpdateSchema,
   OptimalConfigSchema,
   OptimalConfigFromPolygonSchema,
 } from '../schemas/project.schema';
@@ -54,6 +56,8 @@ router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
 router.get('/admin/summary', verifyAdminJwtToken, getAdminSummary);
 
 router.get('/:id', verifyUserJwtToken, getProjectById);
+
+router.put('/:id', verifyUserJwtToken, validateBody(ProjectUpdateSchema), updateProject);
 
 router.delete('/:id', verifyUserJwtToken, deleteProject);
 

@@ -78,7 +78,7 @@ export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;
  */
 export const ProjectUpdateSchema = z.object({
   name: z.string().min(2).optional(),
-  area: z.array(GeoPointSchema).min(3).optional(),
+  area: z.array(GeoPointSchema).min(3),
   tilt: z.number().min(0).max(90).optional(),
   direction: z.string().min(1).optional(),
   azimuth: z.number().min(0).max(360).optional(),

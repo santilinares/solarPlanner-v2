@@ -29,6 +29,10 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+    }
+
     .visitor-layout {
       display: flex;
       flex-direction: column;

@@ -83,12 +83,15 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
   private map?: L.Map;
   private drawnItems = new L.FeatureGroup();
   private searchMarker?: L.Marker;
+  private resizeObserver?: ResizeObserver;
+  private invalidateTimers: number[] = [];
 
   constructor() {
     // React to external center changes (e.g. address search) after the map is ready
     effect(() => {
       const c = this.center();
       if (c && this.map) {
+        this.invalidateMapSize();
         this.map.flyTo([c.lat, c.lng], this.zoom());
         // Replace previous search marker
         this.searchMarker?.remove();
@@ -135,6 +138,41 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
       this.drawnItems.addLayer(poly);
       this.map.fitBounds(poly.getBounds(), { padding: [40, 40] });
     }
+
+    this.setupResizeObserver();
+    this.scheduleInitialInvalidate();
+  }
+
+  private setupResizeObserver(): void {
+    const host = this.mapContainer.nativeElement;
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    this.resizeObserver = new ResizeObserver(() => {
+      this.invalidateMapSize();
+    });
+
+    this.resizeObserver.observe(host);
+    if (host.parentElement) {
+      this.resizeObserver.observe(host.parentElement);
+    }
+  }
+
+  private scheduleInitialInvalidate(): void {
+    this.invalidateMapSize();
+
+    const shortTimer = window.setTimeout(() => this.invalidateMapSize(), 120);
+    const longTimer = window.setTimeout(() => this.invalidateMapSize(), 350);
+    this.invalidateTimers.push(shortTimer, longTimer);
+  }
+
+  private invalidateMapSize(): void {
+    if (!this.map) return;
+
+    requestAnimationFrame(() => {
+      this.map?.invalidateSize({ pan: false, debounceMoveend: true });
+    });
   }
 
   private setupTileLayers(): void {
@@ -208,6 +246,10 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    for (const timer of this.invalidateTimers) {
+      window.clearTimeout(timer);
+    }
+    this.resizeObserver?.disconnect();
     this.searchMarker?.remove();
     this.map?.remove();
   }

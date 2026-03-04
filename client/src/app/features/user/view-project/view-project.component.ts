@@ -55,7 +55,7 @@ interface ProjectDetailView {
                 <span><i class="pi pi-bolt"></i>{{ data.panels }} panels • {{ data.power | number: '1.1-1' }}kW</span>
               </div>
             </div>
-            <p-button label="Configure" icon="pi pi-cog" class="btn-primary"></p-button>
+            <p-button label="Configure" icon="pi pi-cog" class="btn-primary" [routerLink]="'/projects/' + data.id + '/configure'"></p-button>
           </div>
         </header>
 

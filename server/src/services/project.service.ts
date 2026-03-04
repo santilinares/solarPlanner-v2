@@ -7,6 +7,8 @@ import {
   ProjectQueryInput,
   OptimalConfigInput,
   OptimalConfigFromPolygonInput,
+  ProjectUpdateInput,
+  GeoPointInput,
 } from '../schemas/project.schema';
 import {
   ProjectResponse,
@@ -49,33 +51,63 @@ interface PlanData {
 }
 
 /**
- * Transform project document to response format
+ * Calculate geospatial fields from polygon area
  */
-const transformProjectToResponse = (project: HydratedDocument<IProject>): ProjectResponse => ({
-  _id: project._id.toString(),
-  name: project.name,
-  area: project.area,
-  lat: project.lat,
-  lon: project.lon,
-  surface: project.surface,
-  country: project.country,
-  timezone: project.timezone,
-  currency: project.currency,
-  price: project.price,
-  tilt: project.tilt,
-  direction: project.direction,
-  azimuth: project.azimuth,
-  rawSpacing: project.rawSpacing,
-  panelNumber: project.panelNumber,
-  panel: project.panel?._id.toString(),
-  owner: project.owner?._id.toString(),
-  prodToday: project.prodToday,
-  nextProd: project.nextProd,
-  previousProd: project.previousProd,
-  installDate: project.installDate.toISOString(),
-  createdAt: project.createdAt.toISOString(),
-  updatedAt: project.updatedAt.toISOString(),
-});
+const calculateGeospatialFields = (area: GeoPointInput[]): { lat?: number; lon?: number; surface?: number } => {
+  if (!area || area.length < 3) {
+    return {};
+  }
+
+  try {
+    const geoPoints = area.map((point: GeoPointInput) => ({ latitude: point.lat, longitude: point.lon }));
+    const center = getCenter(geoPoints);
+    const surface = getAreaOfPolygon(geoPoints);
+
+    return {
+      lat: center && typeof center === 'object' ? (center as { latitude: number; longitude: number }).latitude : undefined,
+      lon: center && typeof center === 'object' ? (center as { latitude: number; longitude: number }).longitude : undefined,
+      surface: typeof surface === 'number' ? surface : undefined,
+    };
+  } catch (error) {
+    console.error('Error calculating geospatial fields:', error);
+    return {};
+  }
+};
+
+/**
+ * Transform project document to response format
+ * Includes calculated geospatial fields (lat, lon, surface)
+ */
+const transformProjectToResponse = (project: HydratedDocument<IProject>): ProjectResponse => {
+  // Calculate geospatial fields from area polygon
+  const geo = calculateGeospatialFields(project.area);
+
+  return {
+    _id: project._id.toString(),
+    name: project.name,
+    area: project.area,
+    lat: geo.lat,
+    lon: geo.lon,
+    surface: geo.surface,
+    country: project.country,
+    timezone: project.timezone,
+    currency: project.currency,
+    price: project.price,
+    tilt: project.tilt,
+    direction: project.direction,
+    azimuth: project.azimuth,
+    rawSpacing: project.rawSpacing,
+    panelNumber: project.panelNumber,
+    panel: project.panel?._id.toString(),
+    owner: project.owner?._id.toString(),
+    prodToday: project.prodToday,
+    nextProd: project.nextProd,
+    previousProd: project.previousProd,
+    installDate: project.installDate.toISOString(),
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+  };
+};
 
 export class ProjectService {
   /**
@@ -93,24 +125,11 @@ export class ProjectService {
       }
     }
 
-    // Calculate center coordinates from polygon
-    const center = getCenter(
-      data.area.map((point) => ({ latitude: point.lat, longitude: point.lon }))
-    );
-
-    // Calculate surface area in square meters
-    const surface = getAreaOfPolygon(
-      data.area.map((point) => ({ latitude: point.lat, longitude: point.lon }))
-    );
-
-    // Create project
+    // Create project (lat, lon, surface are calculated on-demand in response)
     const project = await ProjectModel.create({
       ...data,
       panel: data.panelId,
       owner: userId,
-      lat: center ? center.latitude : undefined,
-      lon: center ? center.longitude : undefined,
-      surface,
     });
 
     return transformProjectToResponse(project);
@@ -137,6 +156,23 @@ export class ProjectService {
     }
 
     return transformProjectToResponse(project);
+  }
+
+  async updateProject(userId: string, projectId: string, data: ProjectUpdateInput): Promise<ProjectResponse> {
+    // Find existing project
+    const project = await ProjectModel.findById(projectId);
+    if (!project) throw new Error('Project not found');
+    
+    // Check ownership for non-admin
+    if (userId && project.owner?.toString() !== userId) {
+      throw new Error('Not authorized');
+    }
+
+    // Update project (lat, lon, surface are calculated on-demand in response)
+    const updated = await ProjectModel.findByIdAndUpdate(projectId, data, { new: true });
+    
+    if (!updated) throw new Error('Failed to update project');
+    return transformProjectToResponse(updated);
   }
 
   /**
@@ -276,10 +312,13 @@ export class ProjectService {
       return sum;
     }, 0);
 
-    // Calculate total production today
+    // Calculate total estimated annual production (kWh/year) using capacity and location
     const totalProduction = projects.reduce((sum, p) => {
-      if (p.prodToday && p.prodToday.length > 0) {
-        return sum + p.prodToday.reduce((pSum, point) => pSum + point.pv, 0);
+      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
+        const panel = p.panel as unknown as IPanel;
+        const capacityKw = (panel.wattPeak * p.panelNumber) / 1000;
+        const peakSunHours = p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4;
+        return sum + capacityKw * peakSunHours * 365 * 0.85;
       }
       return sum;
     }, 0);
@@ -317,8 +356,11 @@ export class ProjectService {
     }, 0);
 
     const totalProduction = projects.reduce((sum, p) => {
-      if (p.prodToday && p.prodToday.length > 0) {
-        return sum + p.prodToday.reduce((pSum, point) => pSum + point.pv, 0);
+      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
+        const panel = p.panel as unknown as IPanel;
+        const capacityKw = (panel.wattPeak * p.panelNumber) / 1000;
+        const peakSunHours = p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4;
+        return sum + capacityKw * peakSunHours * 365 * 0.85;
       }
       return sum;
     }, 0);

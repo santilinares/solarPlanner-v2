@@ -58,6 +58,10 @@ import { AuthService } from '@core/services';
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+    }
+
     .user-layout {
       display: flex;
       flex-direction: column;

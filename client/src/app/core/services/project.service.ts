@@ -45,11 +45,9 @@ export class ProjectService {
   }
 
   /**
-   * Update project
-   * TODO: Server doesn't have update endpoint yet
+   * Update project configuration
    */
   updateProject(id: string, data: ProjectUpdateRequest): Observable<Project> {
-    console.warn('Project update not implemented on server');
     return this.http.put<Project>(`${this.apiUrl}/${id}`, data);
   }
 

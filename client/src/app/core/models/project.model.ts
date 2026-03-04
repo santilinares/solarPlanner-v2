@@ -49,9 +49,17 @@ export interface ProjectCreateRequest {
 
 export interface ProjectUpdateRequest {
   name?: string;
-  address?: string;
-  averageConsumption?: number;
-  orientation?: string;
+  area?: GeoPoint[];
+  tilt?: number;
+  direction?: string;
+  azimuth?: number;
+  rawSpacing?: number;
+  panelNumber?: number;
+  panelId?: string;
+  country?: string;
+  timezone?: string;
+  currency?: string;
+  price?: number;
 }
 
 // Simplified Panel reference for project

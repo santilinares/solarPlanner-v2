@@ -52,6 +52,10 @@ import { ButtonModule } from 'primeng/button';
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+    }
+
     .admin-layout {
       display: flex;
       flex-direction: column;

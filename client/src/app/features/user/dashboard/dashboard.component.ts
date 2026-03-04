@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -25,15 +25,25 @@ interface DashboardData {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private readonly projectService = inject(ProjectService);
 
   stats = signal<DashboardData | null>(null);
   loading = signal<boolean>(true);
   error = signal<string>('');
 
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly POLL_INTERVAL_MS = 60_000;
+
   ngOnInit(): void {
     this.loadDashboard();
+    this.pollInterval = setInterval(() => this.loadDashboard(), this.POLL_INTERVAL_MS);
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
   }
 
   private loadDashboard(): void {

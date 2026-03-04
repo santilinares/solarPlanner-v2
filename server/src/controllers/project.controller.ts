@@ -5,6 +5,7 @@ import { projectService } from '../services/project.service';
 import {
   ProjectCreateInput,
   ProjectQueryInput,
+  ProjectUpdateInput,
   OptimalConfigInput,
   OptimalConfigFromPolygonInput,
 } from '../schemas/project.schema';
@@ -79,6 +80,27 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
 
   const project = await projectService.getProjectById(req.params.id, effectiveUserId);
   return success(res, project);
+});
+
+/**
+ * @route   PUT /projects/:id
+ * @desc    Update project
+ * @access  Private
+ */
+export const updateProject = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.userId!;
+  const userRole = req.userRole!;
+  const projectId = req.params.id;
+
+  // Admin can update any project, users only their own
+  const effectiveUserId = userRole === 'admin' ? undefined : userId;
+
+  const updatedProject = await projectService.updateProject(
+    effectiveUserId!,
+    projectId,
+    req.body as ProjectUpdateInput
+  );
+  return success(res, updatedProject, 'Project updated successfully');
 });
 
 /**

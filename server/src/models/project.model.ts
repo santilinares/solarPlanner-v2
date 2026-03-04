@@ -70,9 +70,8 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
         lon: { type: Number, required: true, min: -180, max: 180 },
       },
     ],
-    lat: Number,
-    lon: Number,
-    surface: Number,
+    // NOTE: lat, lon, and surface are calculated from area polygon (not stored)
+    // They are derived in the service layer when returning responses
     country: String,
     timezone: String,
     currency: String,

@@ -32,6 +32,11 @@ export const routes: Routes = [
         path: ':id',
         loadComponent: () => import('./features/user/view-project/view-project.component')
           .then(m => m.ViewProjectComponent)
+      },
+      {
+        path: ':id/configure',
+        loadComponent: () => import('./features/user/configure-project/configure-project.component')
+          .then(m => m.ConfigureProjectComponent)
       }
     ]
   },
