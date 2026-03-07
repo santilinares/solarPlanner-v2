@@ -2,7 +2,7 @@
   <div class="dashboard-header">
     <div>
       <h1>
-        <i class="pi pi-home icon-lg" style="color: var(--p-primary-500);"></i>
+        <i class="pi pi-home icon-lg icon-primary"></i>
         Dashboard
       </h1>
       <p class="welcome-text">Welcome back! Here's your solar planning overview</p>
@@ -29,8 +29,8 @@
   } @else if (stats()) {
     <div class="dashboard-grid stagger-children">
       <p-card class="stat-card hover-lift">
-        <div class="stat-icon" style="background: rgba(45, 106, 79, 0.1);">
-          <i class="pi pi-folder icon-lg" style="color: var(--p-primary-500);"></i>
+        <div class="stat-icon stat-icon-primary">
+          <i class="pi pi-folder icon-lg icon-primary"></i>
         </div>
         <h3>My Projects</h3>
         <p class="stat-value">{{ stats()!.totalProjects }}</p>
@@ -40,8 +40,8 @@
       </p-card>
 
       <p-card class="stat-card hover-lift solar-accent-card">
-        <div class="stat-icon" style="background: rgba(255, 214, 0, 0.15);">
-          <i class="pi pi-bolt icon-lg" style="color: var(--p-yellow-500);"></i>
+        <div class="stat-icon stat-icon-solar">
+          <i class="pi pi-bolt icon-lg icon-solar"></i>
         </div>
         <h3>Est. Annual Production</h3>
         <p class="stat-value solar-highlight">{{ stats()!.totalProduction.toFixed(2) }}</p>
@@ -49,8 +49,8 @@
       </p-card>
 
       <p-card class="stat-card hover-lift">
-        <div class="stat-icon" style="background: rgba(33, 158, 188, 0.1);">
-          <i class="pi pi-th-large icon-lg" style="color: var(--p-blue-500);"></i>
+        <div class="stat-icon stat-icon-tech">
+          <i class="pi pi-th-large icon-lg icon-blue"></i>
         </div>
         <h3>Active Panels</h3>
         <p class="stat-value">{{ stats()!.totalPanels }}</p>
@@ -58,8 +58,8 @@
       </p-card>
 
       <p-card class="stat-card hover-lift">
-        <div class="stat-icon" style="background: rgba(45, 106, 79, 0.1);">
-          <i class="pi pi-chart-line icon-lg" style="color: var(--p-primary-500);"></i>
+        <div class="stat-icon stat-icon-primary">
+          <i class="pi pi-chart-line icon-lg icon-primary"></i>
         </div>
         <h3>Total Capacity</h3>
         <p class="stat-value">{{ stats()!.totalCapacity.toFixed(2) }}</p>
@@ -71,7 +71,7 @@
       <div class="recent-projects animate-fade-in-up">
         <div class="section-header">
           <h2>
-            <i class="pi pi-clock icon-lg" style="color: var(--p-primary-500);"></i>
+            <i class="pi pi-clock icon-lg icon-primary"></i>
             Recent Projects
           </h2>
           <p-button
@@ -88,17 +88,17 @@
             <p-card class="project-card hover-lift" [routerLink]="['/projects', project._id]">
               <div class="project-header">
                 <div class="project-icon">
-                  <i class="pi pi-map-marker icon-md" style="color: var(--p-primary-500);"></i>
+                  <i class="pi pi-map-marker icon-md icon-primary"></i>
                 </div>
                 <h3>{{ project.name }}</h3>
               </div>
               <div class="project-details">
                 <span class="detail-item">
-                  <i class="pi pi-globe icon-sm" style="color: var(--p-primary-500);"></i>
+                  <i class="pi pi-globe icon-sm icon-primary"></i>
                   {{ project.country || 'N/A' }}
                 </span>
                 <span class="detail-item">
-                  <i class="pi pi-chart-bar icon-sm" style="color: var(--p-primary-500);"></i>
+                  <i class="pi pi-chart-bar icon-sm icon-primary"></i>
                   {{ project.surface || 0 }} m²
                 </span>
               </div>

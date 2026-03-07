@@ -109,50 +109,6 @@ import { LoginRequest, getErrorMessage } from '@core/models';
         min-height: 70vh;
         padding: 2rem 1rem;
 
-        ::ng-deep {
-          .login-card {
-            width: 100%;
-            max-width: 480px;
-            box-shadow: var(--shadow-xl);
-
-            .p-card-header {
-              padding: 2.5rem 2rem 1rem;
-              background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
-              color: white;
-              border-top-left-radius: var(--p-card-border-radius);
-              border-top-right-radius: var(--p-card-border-radius);
-            }
-
-            .p-card-body {
-              padding: 2rem;
-            }
-
-            .card-header {
-              text-align: center;
-
-              .solar-icon {
-                font-size: 3rem;
-                color: white;
-                margin-bottom: 1rem;
-                display: block;
-              }
-
-              h2 {
-                color: white;
-                margin: 0 0 0.5rem;
-                font-size: 2rem;
-                font-weight: 700;
-              }
-
-              .subtitle {
-                color: rgba(255, 255, 255, 0.9);
-                font-size: 0.95rem;
-                margin: 0;
-              }
-            }
-          }
-        }
-
         .form-field {
           margin-bottom: 1.5rem;
 
@@ -166,49 +122,12 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
           .error-text {
             display: block;
-            color: var(--red-500);
+            color: var(--p-red-500);
             font-size: 0.875rem;
             margin-top: 0.5rem;
 
             i {
               margin-right: 0.25rem;
-            }
-          }
-        }
-
-        ::ng-deep {
-          .p-inputtext,
-          .p-password input {
-            transition: all 0.2s ease;
-
-            &:focus {
-              border-color: var(--p-primary-500);
-              box-shadow: var(--focus-ring);
-            }
-
-            &.ng-invalid.ng-touched {
-              border-color: var(--red-500);
-              animation: shake 0.5s ease-in-out;
-            }
-          }
-
-          .p-password {
-            width: 100%;
-
-            .p-password-input {
-              width: 100%;
-            }
-          }
-
-          .p-message {
-            margin-bottom: 1.5rem;
-          }
-
-          .btn-primary {
-
-            &:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
             }
           }
         }
@@ -237,6 +156,75 @@ import { LoginRequest, getErrorMessage } from '@core/models';
               text-decoration: underline;
             }
           }
+        }
+      }
+
+
+      .login-card {
+        width: 100%;
+        max-width: 480px;
+        box-shadow: var(--shadow-xl);
+      }
+
+      .card-header {
+        text-align: center;
+
+        .solar-icon {
+          font-size: 3rem;
+          color: white;
+          margin-bottom: 1rem;
+          display: block;
+        }
+
+        h2 {
+          color: white;
+          margin: 0 0 0.5rem;
+          font-size: 2rem;
+          font-weight: 700;
+        }
+
+        .subtitle {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 0.95rem;
+          margin: 0;
+        }
+      }
+
+      :host ::ng-deep {
+        .login-card .p-card-header {
+          padding: 2.5rem 2rem 1rem;
+          background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
+          color: white;
+          border-top-left-radius: var(--p-card-border-radius);
+          border-top-right-radius: var(--p-card-border-radius);
+        }
+
+        .login-card .p-card-body {
+          padding: 2rem;
+        }
+
+        .login-page .p-inputtext,
+        .login-page .p-password .p-password-input {
+          transition: all 0.2s ease;
+
+          &:focus {
+            border-color: var(--p-primary-500);
+            box-shadow: var(--focus-ring);
+          }
+
+          &.ng-invalid.ng-touched {
+            border-color: var(--p-red-500);
+            animation: shake 0.5s ease-in-out;
+          }
+        }
+
+        .login-page .p-password,
+        .login-page .p-password .p-password-input {
+          width: 100%;
+        }
+
+        .login-page .p-message {
+          margin-bottom: 1.5rem;
         }
       }
     `,

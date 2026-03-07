@@ -145,51 +145,6 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
       min-height: 70vh;
       padding: 2rem 1rem;
 
-      ::ng-deep {
-        .register-card {
-          width: 100%;
-          max-width: 550px;
-          box-shadow: var(--shadow-xl);
-
-          .p-card-header {
-            padding: 2.5rem 2rem 1rem;
-            background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
-            color: #ffffff;
-            border-top-left-radius: var(--p-card-border-radius);
-            border-top-right-radius: var(--p-card-border-radius);
-          }
-
-          .p-card-body {
-            padding: 2rem;
-          }
-
-          .card-header {
-            text-align: center;
-
-            .solar-icon {
-              font-size: 3rem;
-              color: #ffffff;
-              margin-bottom: 1rem;
-              display: inline-block;
-            }
-
-            h2 {
-              color: #ffffff;
-              margin: 0 0 0.5rem;
-              font-size: 2rem;
-              font-weight: 700;
-            }
-
-            .subtitle {
-              color: #ffffff;
-              font-size: 0.95rem;
-              margin: 0;
-              font-weight: 500;
-            }
-          }
-        }
-      }
-
       .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -213,53 +168,12 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
 
         .error-text {
           display: block;
-          color: var(--red-500);
+          color: var(--p-red-500);
           font-size: 0.875rem;
           margin-top: 0.5rem;
 
           i {
             margin-right: 0.25rem;
-          }
-        }
-      }
-
-      ::ng-deep {
-        .p-inputtext,
-        .p-password input {
-          transition: all 0.2s ease;
-
-          &:focus {
-            border-color: var(--p-primary-500);
-            box-shadow: var(--focus-ring);
-          }
-
-          &.ng-invalid.ng-touched {
-            border-color: var(--red-500);
-            animation: shake 0.5s ease-in-out;
-          }
-        }
-
-        .p-password {
-          width: 100%;
-
-          .p-password-input {
-            width: 100%;
-          }
-
-          .p-password-panel {
-            border-radius: var(--border-radius);
-          }
-        }
-
-        .p-message {
-          margin-bottom: 1.5rem;
-        }
-
-        .btn-solar {
-
-          &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
           }
         }
       }
@@ -285,6 +199,79 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
             text-decoration: underline;
           }
         }
+      }
+    }
+
+    .register-card {
+      width: 100%;
+      max-width: 550px;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .card-header {
+      text-align: center;
+
+      .solar-icon {
+        font-size: 3rem;
+        color: #ffffff;
+        margin-bottom: 1rem;
+        display: inline-block;
+      }
+
+      h2 {
+        color: #ffffff;
+        margin: 0 0 0.5rem;
+        font-size: 2rem;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: #ffffff;
+        font-size: 0.95rem;
+        margin: 0;
+        font-weight: 500;
+      }
+    }
+
+    :host ::ng-deep {
+      .register-card .p-card-header {
+        padding: 2.5rem 2rem 1rem;
+        background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
+        color: #ffffff;
+        border-top-left-radius: var(--p-card-border-radius);
+        border-top-right-radius: var(--p-card-border-radius);
+      }
+
+      .register-card .p-card-body {
+        padding: 2rem;
+      }
+
+      .register-page .p-inputtext,
+      .register-page .p-password .p-password-input {
+        transition: all 0.2s ease;
+
+        &:focus {
+          border-color: var(--p-primary-500);
+          box-shadow: var(--focus-ring);
+        }
+
+        &.ng-invalid.ng-touched {
+          border-color: var(--p-red-500);
+          animation: shake 0.5s ease-in-out;
+        }
+      }
+
+      .register-page .p-password,
+      .register-page .p-password .p-password-input {
+        width: 100%;
+      }
+
+      .register-page .p-password .p-password-panel {
+        border-radius: var(--border-radius);
+      }
+
+      .register-page .p-message {
+        margin-bottom: 1.5rem;
       }
     }
   `]

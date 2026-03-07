@@ -1,37 +1,26 @@
-// Solar Planner — Light Theme
-// Only CSS custom properties NOT covered by PrimeNG's --p-* token set.
-// Colors with a --p-* equivalent (--p-primary-*, --p-yellow-*, --p-surface-*,
-// --p-text-color, --p-green-*, --p-blue-*) were removed — use --p-* directly.
+// Solar Planner — Light Theme Bridge
+// Minimal custom properties for tokens not exposed by PrimeNG Aura preset.
+// Use PrimeNG tokens (--p-*) directly wherever possible.
 
 :root {
-  // =====================================================
-  // SURFACE (no clean --p-* equivalent)
-  // =====================================================
-  --surface-border: #B7E4C7;   // use: var(--p-form-field-border-color) for PrimeNG inputs
-  --surface-hover:  #E8F5F0;   // use: var(--p-surface-50) in a pinch, but not identical
+  // Legacy semantic tokens - migrate components to PrimeNG tokens over time
+  --text-color-secondary: var(--p-text-muted-color);
+  --text-color-muted:     var(--p-text-muted-color);
+  --surface-border:       var(--p-content-border-color);
+  --surface-hover:        var(--p-content-hover-background);
+  
+  // Error state (PrimeNG has --p-red-* but components may reference --red-500)
+  --red-500: var(--p-red-500);
 
-  // =====================================================
-  // TEXT (secondary/muted have no --p-* token)
-  // =====================================================
-  --text-color-secondary: #40916C;
-  --text-color-muted:     #52B788;
-
-  // =====================================================
-  // SEMANTIC STATES (no --p-* equivalent)
-  // =====================================================
-  --red-500: #D62828;
-
-  // =====================================================
-  // UTILITIES
-  // =====================================================
-  --font-family:  'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --border-radius: 1.5rem;
-  --focus-ring:    0 0 0 0.2rem rgba(45, 106, 79, 0.3);
-
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  // Utility tokens
+  --shadow-sm: var(--p-shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  --shadow-md: var(--p-shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  --shadow-lg: var(--p-shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  --shadow-xl: var(--p-shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+  
+  --focus-ring: 0 0 0 0.2rem var(--p-focus-ring-color);
+  --border-radius: var(--p-content-border-radius);
+  --font-family: var(--p-font-family, 'Inter', 'Segoe UI', system-ui, sans-serif);
 }
 
 // =====================================================

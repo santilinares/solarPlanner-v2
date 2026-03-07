@@ -1,11 +1,13 @@
 /* =====================================================
    SOLAR PLANNER V2 - GLOBAL STYLES
-   Modern, sustainable design with PrimeNG
+   Using PrimeNG Aura preset as design system baseline
    ===================================================== */
 
 // =====================================================
-// CUSTOM SOLAR THEME (must come first with @use)
+// THEME BRIDGE VARIABLES
 // =====================================================
+// Minimal custom vars for tokens not exposed by PrimeNG.
+// Components should prefer --p-* tokens from Aura preset.
 @use './styles/variables.scss' as vars;
 @use './styles/theme-light.scss';
 @use './styles/theme-dark.scss';
@@ -33,7 +35,7 @@ html, body {
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-family, 'Inter', 'Segoe UI', system-ui, sans-serif);
   background-color: var(--p-surface-50);
   color: var(--p-text-color);
   line-height: 1.6;

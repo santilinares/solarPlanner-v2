@@ -11,7 +11,7 @@ import { CardModule } from 'primeng/card';
       <section class="hero animate-fade-in-down">
         <div class="container">
           <div class="solar-icon">
-            <i class="pi pi-sun" style="font-size: 8rem; color: var(--p-yellow-500);"></i>
+            <i class="pi pi-sun hero-sun-icon"></i>
           </div>
           <h1 class="hero-title">Solar Energy Planning Made Easy</h1>
           <p class="subtitle">
@@ -46,7 +46,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-map" style="font-size: 2.5rem; color: var(--p-primary-500);"></i>
+                  <i class="pi pi-map feature-icon feature-icon-primary"></i>
                 </div>
               </ng-template>
               <h3>Interactive Mapping</h3>
@@ -56,7 +56,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-chart-bar" style="font-size: 2.5rem; color: var(--p-primary-500);"></i>
+                  <i class="pi pi-chart-bar feature-icon feature-icon-primary"></i>
                 </div>
               </ng-template>
               <h3>Production Analysis</h3>
@@ -66,7 +66,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-bolt" style="font-size: 2.5rem; color: var(--p-yellow-500);"></i>
+                  <i class="pi pi-bolt feature-icon feature-icon-solar"></i>
                 </div>
               </ng-template>
               <h3>Panel Optimization</h3>
@@ -76,7 +76,7 @@ import { CardModule } from 'primeng/card';
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
-                  <i class="pi pi-file-pdf" style="font-size: 2.5rem; color: var(--p-primary-500);"></i>
+                  <i class="pi pi-file-pdf feature-icon feature-icon-primary"></i>
                 </div>
               </ng-template>
               <h3>PDF Reports</h3>
@@ -89,9 +89,11 @@ import { CardModule } from 'primeng/card';
   `,
   styles: [`
     .landing-page {
+      --hero-contrast-color: var(--p-primary-contrast-color, #ffffff);
+
       .hero {
         background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
-        color: white;
+        color: var(--hero-contrast-color);
         padding: 5rem 0;
         text-align: center;
         position: relative;
@@ -111,13 +113,18 @@ import { CardModule } from 'primeng/card';
         .solar-icon {
           margin-bottom: 1.5rem;
           display: inline-block;
+
+          .hero-sun-icon {
+            font-size: 8rem;
+            color: var(--p-yellow-500);
+          }
         }
 
         .hero-title {
           font-size: 3rem;
           margin-bottom: 1.5rem;
           font-weight: 700;
-          color: white;
+          color: var(--hero-contrast-color);
           text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 
           @media (max-width: 768px) {
@@ -133,7 +140,7 @@ import { CardModule } from 'primeng/card';
           margin-left: auto;
           margin-right: auto;
           line-height: 1.8;
-          color: rgba(255, 255, 255, 0.95);
+          color: color-mix(in srgb, var(--hero-contrast-color) 95%, transparent);
 
           @media (max-width: 768px) {
             font-size: 1.1rem;
@@ -145,24 +152,6 @@ import { CardModule } from 'primeng/card';
           gap: 1.5rem;
           justify-content: center;
           flex-wrap: wrap;
-
-          ::ng-deep {
-            .btn-solar {
-              &:hover {
-                border-radius: var(--p-button-border-radius);
-              }
-            }
-
-            .btn-outline {
-              &:hover {
-                border-radius: var(--p-button-border-radius);
-              }
-            }
-
-            .p-button {
-              transition: all 0.3s ease;
-            }
-          }
         }
       }
 
@@ -193,41 +182,57 @@ import { CardModule } from 'primeng/card';
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: 2rem;
 
-          ::ng-deep {
-            .feature-card {
-              text-align: center;
-              transition: all 0.3s ease;
+          .feature-card {
+            text-align: center;
+            transition: all 0.3s ease;
 
-              .p-card-header {
-                padding: 2rem 0 0;
+            .card-icon {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin-bottom: 1rem;
+
+              .feature-icon {
+                font-size: 2.5rem;
               }
 
-              .card-icon {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin-bottom: 1rem;
+              .feature-icon-primary {
+                color: var(--p-primary-500);
               }
 
-              .p-card-body {
-                padding: 1.5rem;
+              .feature-icon-solar {
+                color: var(--p-yellow-500);
               }
+            }
 
-              h3 {
-                color: var(--p-text-color);
-                margin-bottom: 1rem;
-                font-size: 1.4rem;
-                font-weight: 600;
-              }
+            h3 {
+              color: var(--p-text-color);
+              margin-bottom: 1rem;
+              font-size: 1.4rem;
+              font-weight: 600;
+            }
 
-              p {
-                color: var(--text-color-secondary);
-                line-height: 1.7;
-                font-size: 1rem;
-              }
+            p {
+              color: var(--p-text-muted-color);
+              line-height: 1.7;
+              font-size: 1rem;
             }
           }
         }
+      }
+    }
+
+    :host ::ng-deep {
+      .landing-page .cta-buttons .p-button {
+        transition: all 0.3s ease;
+      }
+
+      .landing-page .feature-card .p-card-header {
+        padding: 2rem 0 0;
+      }
+
+      .landing-page .feature-card .p-card-body {
+        padding: 1.5rem;
       }
     }
   `]

@@ -289,10 +289,10 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
         acceptLabel: 'Leave',
         rejectLabel: 'Cancel',
         acceptButtonStyleClass: 'p-button-danger',
-        accept: () => this.router.navigate(['/projects']),
+        accept: () => void this.router.navigate(['/projects']),
       });
     } else {
-      this.router.navigate(['/projects']);
+      void this.router.navigate(['/projects']);
     }
   }
 
@@ -493,7 +493,7 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
         this.projectDescription.set('');
         this.drawnPolygonPoints.set([]);
         this.selectedPanelId.set(null);
-        this.router.navigate(['/projects']);
+        void this.router.navigate(['/projects']);
       },
       error: (err) => {
         this.isSubmitting.set(false);

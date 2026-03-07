@@ -4,6 +4,163 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 7, 2026 - Dashboard Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored dashboard page styles to remove inline template styles, migrate to PrimeNG tokens, and reduce `::ng-deep` usage to PrimeNG internals only.
+
+### Summary of Request
+User requested to continue the component cleanup sequence after landing page updates.
+
+### What Was Achieved
+- Removed inline icon/background styles from `dashboard.component.html` and replaced them with semantic classes (`icon-primary`, `icon-solar`, `icon-blue`, `stat-icon-*`).
+- Migrated bridge tokens to PrimeNG native tokens in `dashboard.component.scss`:
+  - `--text-color-secondary` / `--text-color-muted` → `--p-text-muted-color`
+  - `--surface-border` → `--p-content-border-color`
+- Replaced hardcoded RGBA backgrounds with token-derived `color-mix(...)` values for better theme compatibility.
+- Removed custom deep hover override for `.btn-solar` that used hardcoded green values.
+- Reduced deep selectors to only required PrimeNG internals (`.p-card-body`) scoped under `:host ::ng-deep`.
+- Preserved structure, behavior, and component logic.
+
+### Full Prompt
+"Continue"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+
+### Reasoning Snapshot
+- Inline template styles were centralised into SCSS classes to improve maintainability and consistency.
+- PrimeNG Aura token equivalents were preferred over bridge aliases to align with the new styling baseline.
+- `::ng-deep` remained only where PrimeNG internal structure requires it, minimizing style leakage.
+
+---
+
+## 📅 March 7, 2026 - Landing Page Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored landing page component styles to remove inline styles, reduce `::ng-deep`, and use PrimeNG Aura tokens consistently.
+
+### Summary of Request
+User approved continuing the component cleanup sequence after typography updates, with the next target being `landing-page.component.ts`.
+
+### What Was Achieved
+- Removed all inline icon styles from template and replaced them with semantic CSS classes:
+  - `hero-sun-icon`, `feature-icon`, `feature-icon-primary`, `feature-icon-solar`.
+- Replaced bridge muted text token usage with PrimeNG token:
+  - `var(--text-color-secondary)` → `var(--p-text-muted-color)`.
+- Reduced `::ng-deep` usage to only PrimeNG internals (`.p-button`, `.p-card-header`, `.p-card-body`) and scoped it with `:host ::ng-deep`.
+- Removed redundant hover border-radius overrides on `btn-solar`/`btn-outline` that duplicated PrimeNG button defaults.
+- Kept visual behavior and structure intact while improving token consistency and maintainability.
+
+### Full Prompt
+"Yes, continue"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+
+### Reasoning Snapshot
+- Inline styles were migrated to classes to centralize styling concerns and improve maintainability.
+- `::ng-deep` was kept only where PrimeNG renders internal DOM outside straightforward component selectors.
+- Aura-native tokens were preferred over bridge aliases where direct equivalents existed.
+
+---
+
+## 📅 March 7, 2026 - Primary Font Switch to Inter
+
+### Topic
+Changed the application typography baseline to use Inter as the primary font family.
+
+### Summary of Request
+User requested replacing the current primary font and using Inter across the application.
+
+### What Was Achieved
+- Updated Google Fonts import to Inter in `index.html`.
+- Replaced fallback font stacks from Manrope to Inter in:
+  - `theme-light.scss`
+  - `theme-dark.scss`
+  - global `body` declaration in `styles.scss`
+- Verified touched files with diagnostics: no errors found.
+
+### Full Prompt
+"I want to use Inter as primary font"
+
+### Affected Files
+- `client/src/index.html`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles.scss`
+
+### Reasoning Snapshot
+- Keeping font import and fallback stacks aligned prevents inconsistent typography between token-driven and direct style usage.
+- Using Inter in both token-level and body-level fallbacks ensures reliable rendering even if a PrimeNG font token is missing at runtime.
+
+---
+
+## 📅 March 7, 2026 - Global Typography Fix + Register Style Cleanup
+
+### Topic
+Fixed global font fallback behavior and continued visitor style cleanup by refactoring `register.component.ts` toward Aura token usage.
+
+### Summary of Request
+User requested fixing the app typography first because the UI was falling back to an undesirable default font, then continuing immediately with the register component style refactor.
+
+### What Was Achieved
+- Replaced Google Font import in `index.html` from Roboto to Manrope and added `fonts.googleapis.com` preconnect.
+- Added robust fallback chain for font tokens in both theme bridge files:
+  - `--font-family: var(--p-font-family, 'Manrope', 'Segoe UI', system-ui, sans-serif)`
+- Added the same fallback at global usage site in `styles.scss` (`body { font-family: ... }`) to prevent browser-default fallback when token resolution fails.
+- Refactored `register.component.ts` styles:
+  - Consolidated fragmented `::ng-deep` usage into one scoped `:host ::ng-deep` block.
+  - Migrated error token usage from `--red-500` to `--p-red-500`.
+  - Removed redundant disabled button override block while preserving behavior and layout.
+- Verified all touched files with diagnostics: no compile or style errors.
+
+### Full Prompt
+"Before that, we are using no fonts and is using a awful default one. After fixing that well continue with the register component"
+
+### Affected Files
+- `client/src/index.html`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles.scss`
+- `client/src/app/features/visitor/register/register.component.ts`
+
+### Reasoning Snapshot
+- The root issue was token fallback: `body` depended on `--font-family`, which depended on `--p-font-family` without a hard fallback.
+- Adding fallback at both token definition and usage levels ensures stable typography in all load orders and theme states.
+- Register style refactor follows the same low-risk pattern used for visitor pages: keep visual behavior, reduce deep selector spread, and use PrimeNG native tokens directly.
+
+---
+
+## 📅 March 7, 2026 - Login Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored `login.component.ts` styles to better align with PrimeNG Aura tokens and reduce `::ng-deep` footprint.
+
+### Summary of Request
+User approved starting the component-style cleanup plan from `login.component.ts` and requested migration toward PrimeNG `--p-*` tokens with safer scoped deep selectors.
+
+### What Was Achieved
+- Consolidated scattered deep overrides into a single scoped `:host ::ng-deep` block.
+- Kept PrimeNG defaults where possible and retained only required internal overrides for card body/header and password/input internals.
+- Migrated error color usage from bridge token `--red-500` to PrimeNG token `--p-red-500`.
+- Removed redundant/dead style override block for `.btn-primary` disabled state.
+- Preserved template structure, component logic, animations, and brand styling behavior.
+
+### Full Prompt
+"Pick up where we left off: Component Style Cleanup — Solar Planner v2 ... Ready to begin? Start with: 'Refactor login.component.ts to use PrimeNG Aura tokens and reduce ::ng-deep usage'"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+
+### Reasoning Snapshot
+- PrimeNG Aura should remain the source of truth for component theming, so bridge-token usage was reduced where direct `--p-*` tokens are available.
+- `::ng-deep` cannot be fully removed for PrimeNG internal DOM targets, but scoping under `:host` reduces global leakage.
+- A style-only refactor minimizes regression risk while improving long-term maintainability for subsequent component cleanup steps.
+
+---
+
 ## 📅 March 4, 2026 - Meta-editable Styled as p-tag Pills
 
 ### Topic

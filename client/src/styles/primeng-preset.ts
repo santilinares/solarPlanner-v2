@@ -1,3 +1,11 @@
+// =====================================================
+// DEPRECATED: This custom preset is no longer in use
+// =====================================================
+// The app now uses pure Aura baseline (see app.config.ts).
+// This file is preserved for reference. If you need to customize
+// PrimeNG tokens, rebuild this preset incrementally on top of Aura.
+// =====================================================
+
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
 
@@ -191,7 +199,7 @@ export const SolarPreset = definePreset(Aura, {
   components: {
     button: {
       root: {
-        borderRadius: '{extend.solar.radius.lg}',
+        borderRadius: '{extend.solar.radius.md}',
         paddingX: '1.75rem',
         paddingY: '0.875rem',
         transitionDuration: '0.25s',
@@ -352,7 +360,7 @@ export const SolarPreset = definePreset(Aura, {
       closeButton: {
         width: '1.75rem',
         height: '1.75rem',
-        borderRadius: '50%',
+        borderRadius: '{extend.solar.radius.lg}',
         focusRing: {
           width: '{focus.ring.width}',
           style: '{focus.ring.style}',

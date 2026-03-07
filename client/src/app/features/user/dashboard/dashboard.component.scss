@@ -3,6 +3,18 @@
 .dashboard {
   padding: 1rem;
 
+  .icon-primary {
+    color: var(--p-primary-500);
+  }
+
+  .icon-solar {
+    color: var(--p-yellow-500);
+  }
+
+  .icon-blue {
+    color: var(--p-blue-500);
+  }
+
   .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -22,17 +34,9 @@
     }
 
     .welcome-text {
-      color: var(--text-color-secondary);
+      color: var(--p-text-muted-color);
       margin: 0;
       font-size: 1.1rem;
-    }
-
-    ::ng-deep .btn-solar {
-      &:hover {
-          background-color: #1b4332;
-          border-color: #1b4332;
-          border-radius: var(--p-button-border-radius);
-        }
     }
   }
 
@@ -42,70 +46,80 @@
     gap: 1.5rem;
     margin-bottom: 3rem;
 
-    ::ng-deep {
-      .stat-card {
-        position: relative;
-        overflow: visible;
+    .stat-card {
+      position: relative;
+      overflow: visible;
 
-        .p-card-body {
-          padding: 1.75rem;
-        }
+      &.solar-accent-card {
+        border: 2px solid var(--p-yellow-500);
+        background: linear-gradient(
+          135deg,
+          var(--p-surface-0) 0%,
+          color-mix(in srgb, var(--p-yellow-500) 8%, transparent) 100%
+        );
+      }
 
-        &.solar-accent-card {
-          border: 2px solid var(--p-yellow-500);
-          background: linear-gradient(135deg, var(--p-surface-0) 0%, rgba(255, 214, 0, 0.05) 100%);
-        }
+      .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
 
-        .stat-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 1rem;
-        }
+      .stat-icon-primary {
+        background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
+      }
 
-        h3 {
-          font-size: 0.875rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--text-color-secondary);
-          margin: 0 0 0.75rem;
-          font-weight: 600;
-        }
+      .stat-icon-solar {
+        background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+      }
 
-        .stat-value {
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--p-primary-500);
-          margin: 0;
-          line-height: 1;
-        }
+      .stat-icon-tech {
+        background: color-mix(in srgb, var(--p-blue-500) 12%, transparent);
+      }
 
-        .stat-unit {
-          display: block;
-          font-size: 0.875rem;
-          color: var(--text-color-muted);
-          margin-top: 0.5rem;
-          font-weight: 500;
-        }
+      h3 {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--p-text-muted-color);
+        margin: 0 0 0.75rem;
+        font-weight: 600;
+      }
 
-        .stat-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin-top: 1rem;
-          color: var(--p-primary-500);
-          text-decoration: none;
-          font-size: 0.9rem;
-          font-weight: 600;
-          transition: all 0.2s ease;
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--p-primary-500);
+        margin: 0;
+        line-height: 1;
+      }
 
-          &:hover {
-            color: var(--p-primary-600);
-            gap: 0.75rem;
-          }
+      .stat-unit {
+        display: block;
+        font-size: 0.875rem;
+        color: var(--p-text-muted-color);
+        margin-top: 0.5rem;
+        font-weight: 500;
+      }
+
+      .stat-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        color: var(--p-primary-500);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: var(--p-primary-600);
+          gap: 0.75rem;
         }
       }
     }
@@ -140,89 +154,92 @@
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 1.5rem;
 
-      ::ng-deep {
-        .project-card {
-          cursor: pointer;
-          transition: all 0.3s ease;
+      .project-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
 
-          &:hover {
-            border-color: var(--p-primary-500);
-          }
+        &:hover {
+          border-color: var(--p-primary-500);
+        }
 
-          .p-card-body {
-            padding: 1.5rem;
-          }
+        .project-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
 
-          .project-header {
+          .project-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
             display: flex;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-
-            .project-icon {
-              width: 48px;
-              height: 48px;
-              border-radius: 12px;
-              background: rgba(45, 106, 79, 0.1);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 1.25rem;
-            }
-
-            h3 {
-              margin: 0;
-              font-size: 1.25rem;
-              font-weight: 600;
-              color: var(--p-text-color);
-              flex: 1;
-            }
+            justify-content: center;
+            font-size: 1.25rem;
           }
 
-          .project-details {
+          h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--p-text-color);
+            flex: 1;
+          }
+        }
+
+        .project-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+
+          .detail-item {
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 0.5rem;
-            margin-bottom: 1rem;
+            color: var(--p-text-muted-color);
+            font-size: 0.95rem;
 
-            .detail-item {
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-              color: var(--text-color-secondary);
-              font-size: 0.95rem;
-
-              i {
-                color: var(--p-primary-500);
-                font-size: 0.875rem;
-              }
-            }
-          }
-
-          .project-action {
-            padding-top: 1rem;
-            border-top: 1px solid var(--surface-border);
-
-            .action-link {
-              display: inline-flex;
-              align-items: center;
-              gap: 0.5rem;
-              color: var(--p-primary-500);
-              font-weight: 600;
-              font-size: 0.95rem;
-              transition: all 0.2s ease;
-
-              i {
-                transition: transform 0.2s ease;
-              }
-            }
-
-            &:hover .action-link i {
-              transform: translateX(4px);
+            i {
+              font-size: 0.875rem;
             }
           }
         }
+
+        .project-action {
+          padding-top: 1rem;
+          border-top: 1px solid var(--p-content-border-color);
+
+          .action-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--p-primary-500);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+
+            i {
+              transition: transform 0.2s ease;
+            }
+          }
+
+          &:hover .action-link i {
+            transform: translateX(4px);
+          }
+        }
       }
+    }
+  }
+
+  :host ::ng-deep {
+    .dashboard .stat-card .p-card-body {
+      padding: 1.75rem;
+    }
+
+    .dashboard .project-card .p-card-body {
+      padding: 1.5rem;
     }
   }
 
