@@ -397,19 +397,36 @@ export class ProjectService {
   async calculateOptimalConfig(data: OptimalConfigInput): Promise<OptimalConfigResponse> {
     const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak } = data;
 
-    // Calculate panel area (dimensions are in metres)
-    const panelArea = panelWidth * panelHeight; // m²
+    // Panel dimensions are already in metres
+    const W = panelWidth;
+    const H = panelHeight;
+    const tiltRad = (tilt * Math.PI) / 180;
 
-    // Account for tilt (increases effective space needed)
-    // As tilt increases, rows need more spacing to avoid shading
-    const tiltFactor = 1 + (tilt / 90) * 0.3; // Up to 30% more space at 90° tilt
+    // Calculate shadow-based optimal row spacing:
+    // d = H × sin(α) / tan(β)  where β = 90° − |lat| − 23.45°
+    const betaDeg = 90 - Math.abs(latitude) - 23.45;
+    let recommendedRowSpacing: number;
+    if (betaDeg <= 0) {
+      recommendedRowSpacing = H * 3; // extreme latitude fallback
+    } else {
+      const betaRad = (betaDeg * Math.PI) / 180;
+      recommendedRowSpacing = (H * Math.sin(tiltRad)) / Math.tan(betaRad);
+    }
+    // Enforce a minimum of 0.6 m for maintenance access
+    recommendedRowSpacing = Math.max(recommendedRowSpacing, 0.6);
+    // Round to 2 decimal places
+    recommendedRowSpacing = Math.round(recommendedRowSpacing * 100) / 100;
 
-    // Calculate usable surface area (accounting for spacing and tilt)
-    const usableSurfaceArea = surfaceArea * 0.8; // 80% utilization
-    const effectivePanelArea = panelArea * tiltFactor;
+    // panelFootprint = W × (H × cos(α) + d)
+    const panelFootprint = W * (H * Math.cos(tiltRad) + recommendedRowSpacing);
 
-    // Calculate recommended number of panels
-    const recommendedPanels = Math.floor(usableSurfaceArea / effectivePanelArea);
+    // Utilisation factor: 85% for roof (default)
+    const utilisation = 0.85;
+    const usableArea = surfaceArea * utilisation;
+
+    const recommendedPanels = panelFootprint > 0
+      ? Math.floor(usableArea / panelFootprint)
+      : 0;
 
     // Use actual panel wattage when available, otherwise fall back to 300 W average
     const panelWatts = wattPeak ?? 300;
@@ -421,7 +438,8 @@ export class ProjectService {
     const systemEfficiency = 0.85; // Account for losses
     const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency; // kWh/year
 
-    // Coverage percentage
+    // Coverage percentage based on raw panel area vs total surface
+    const panelArea = W * H;
     const coverage = ((recommendedPanels * panelArea) / surfaceArea) * 100;
 
     return Promise.resolve({
@@ -429,6 +447,9 @@ export class ProjectService {
       estimatedCapacity,
       estimatedProduction,
       coverage: Math.min(coverage, 100),
+      surfaceArea,
+      latitude,
+      recommendedRowSpacing,
     });
   }
 

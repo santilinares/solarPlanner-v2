@@ -1249,3 +1249,113 @@ Implement the approved `ADD-PROJECT-WIZARD-PLAN.md` — transform the single-pag
 
 ### AI Reasoning
 The plan specified a clear architecture: move the `projects/add` route outside `UserLayoutComponent` in `app.routes.ts` so no header/footer renders (Angular evaluates routes top-to-bottom, so `projects/add` matches before the `projects` parent route). The Cultivar backend entity follows the exact same layered pattern as Panel (Model → Schema → Types → Service → Controller → Routes). The wizard component uses PrimeNG Stepper with `activateCallback` for programmatic step navigation. Signals replace reactive forms for simpler state management in a wizard context. The `HasUnsavedWork` interface enables both the `canDeactivate` guard (URL-based navigation) and the `beforeunload` listener (browser close) to protect unsaved progress. Warning computations use `computed()` signals that auto-react to panel count and cultivar changes.
+
+---
+
+## 📅 March 7, 2026 — Fix: Optimal Config not calculating after panel selection
+
+### Topic
+Bug fix: `computed()` signals using plain properties instead of signals — optimal config never triggered.
+
+### Summary of Request
+After drawing a polygon and selecting a panel, the optimal config calculation was not being triggered. The user reported the calculate flow was broken.
+
+### What Was Achieved
+- **Root cause identified:** `selectedPanelId`, `panelCount`, `tiltAngle`, `selectedDirection`, `rowSpacing`, and `energyPrice` were declared as plain class properties (not signals). They were used inside `computed()` signals (`canCalculate`, `canProceedStep3`, `totalCapacity`, `warnings`, `selectedPanelData`, etc.). Angular's `computed()` only tracks signal reads — plain property mutations are invisible, so computed values returned stale cached results. When `onPanelChange()` called `onCalculate()`, `canCalculate()` still returned the cached `false` from before the panel was selected.
+- **Fix applied:** Converted all 7 plain properties to `signal()`. Updated all reads to `.()`, all writes to `.set()`, all `[(ngModel)]` bindings to split `[ngModel]`/`(ngModelChange)` pattern, and all template interpolations to call the signal.
+
+### Full Prompt
+"Ok. There are several things I want to fix, but the first is that the optimal config is not working. And after setting the location and drawing the polygon, the optimal config is not being calculated after setting the panel"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.ts` — 7 properties converted from plain to `signal()`, all method references and computed signals updated
+- `client/src/app/features/user/add-project/add-project.component.html` — All ngModel bindings and interpolations updated for signal reads
+
+### AI Reasoning
+Angular's `computed()` creates a reactive computation that tracks which signals were read during evaluation. When a `computed()` reads a plain class property (e.g., `this.selectedPanelId`), that read is NOT tracked — Angular has no way to know the property changed. The cached result is returned until a tracked signal dependency changes. Converting all mutable configuration properties to signals ensures `computed()` re-evaluates whenever any dependency changes, making the reactive chain from panel selection → `canCalculate` → `onCalculate` → estimation work correctly.
+
+---
+
+## 📅 March 7, 2026 — Fix: Row spacing not recalculating panel count
+
+### Topic
+Row spacing changes did not update max panels or panel count — missing client-side `maxPanels` formula.
+
+### Summary of Request
+User reported that modifying row spacing did not recalculate the number of panels.
+
+### What Was Achieved
+- **Server response extended:** Added `surfaceArea` (m²) and `latitude` to `OptimalConfigResponse` so the client has the polygon area for local recalculation without a server round-trip.
+- **Client-side `maxPanels` computed signal:** Uses the plan formula `panelFootprint = W × (H × cos(α) + d)` with utilisation factors (roof 0.85, agrivoltaic 0.70). Reacts instantly to `rowSpacing`, `tiltAngle`, `selectedPanelData`, `projectType`, and `estimation` changes.
+- **Client-side `shadowSpacing` computed signal:** Calculates minimum row spacing to avoid winter solstice noon shadows using `d = H × sin(α) / tan(β)` where `β = 90° − |lat| − 23.45°`.
+- **`onRowSpacingChange()` handler:** Auto-clamps `panelCount` to `maxPanels` when row spacing increases beyond what fits the current panel count.
+- **Warnings upgraded:** Now use client-side `maxPanels()` instead of server `recommendedPanels`, and include a new shadow-distance info warning.
+- **Max panels badge:** Shows "Max panels for current spacing: **N**" below the row spacing input.
+
+### Full Prompt
+"There are issues with the row spacing. When I modify it, the number of panels does not recalculate automatically, or at least I am not seing it"
+
+### Affected Files
+- `server/src/types/project.types.ts` — Added `surfaceArea` and `latitude` to `OptimalConfigResponse`
+- `server/src/services/project.service.ts` — Return new fields from `calculateOptimalConfig`
+- `client/src/app/core/models/project.model.ts` — Added fields to client interface
+- `client/src/app/features/user/add-project/add-project.component.ts` — Added `maxPanels`, `shadowSpacing` computed signals + `onRowSpacingChange()`
+- `client/src/app/features/user/add-project/add-project.component.html` — Wired `onRowSpacingChange` on input, added max panels badge
+- `client/src/app/features/user/add-project/add-project.component.scss` — Added `.max-panels-badge` style
+
+### AI Reasoning
+The server calculated `recommendedPanels` using only tilt and surface area — row spacing was not a factor. The plan (section 6) specifies a client-side `maxPanels` formula that explicitly includes row spacing (`d`) in the panel footprint. To avoid a server round-trip on every slider change, the server now returns `surfaceArea` and `latitude` once (after initial calculation), and the client computes `maxPanels` locally as a `computed()` signal that reacts instantly to row spacing, tilt, and panel selection changes.
+
+---
+
+## 📅 March 7, 2026 — Fix: Mismatched panel count between server and client + row spacing not updating input
+
+### Topic
+Unified panel calculation formula between server and client; row spacing changes now update the panel count input field.
+
+### Summary of Request
+User reported two issues: (1) the server's recommended panels and the client's "max panels" badge showed different numbers, and (2) changing row spacing didn't visually update the panel count input field.
+
+### What Was Achieved
+- **Unified formula:** Replaced the server's old `tiltFactor`-based formula (`panelArea × (1 + tilt/90 × 0.3)` with 80% utilisation) with the plan's canonical formula: `panelFootprint = W × (H × cos(α) + d)` where `d` is the shadow-based optimal row spacing, with 85% utilisation. Both server and client now use the same formula, so `recommendedPanels` from the server matches `maxPanels()` on the client (at the same row spacing).
+- **Server computes `recommendedRowSpacing`:** Using `d = H × sin(α) / tan(β)` where `β = 90° − |lat| − 23.45°`, with a 0.6m minimum. Returned in `OptimalConfigResponse` so the client initialises the row spacing input from it.
+- **Client sets initial `rowSpacing` from server response:** `onCalculate()` now sets both `rowSpacing` and `panelCount` from the server response, ensuring they start consistent.
+- **`onRowSpacingChange(value)` always sets `panelCount` to `maxPanels()`:** Previously it only clamped down — now it recalculates for any direction of change, and accepts the value as a parameter for correct signal ordering.
+- **`resetToOptimal()` also resets row spacing** to `recommendedRowSpacing` from the estimation.
+
+### Full Prompt
+"For some reason the calculations being made by the optimal config and what is showing as a info panel for max panels is different. Make sure you use the same function to calculate the number of panels, also, when modififying the row spacing, the number of panels in the input field is not updating"
+
+### Affected Files
+- `server/src/types/project.types.ts` — Added `recommendedRowSpacing` to `OptimalConfigResponse`
+- `server/src/services/project.service.ts` — Replaced old tiltFactor formula with plan formula (panelFootprint + shadow-based row spacing)
+- `client/src/app/core/models/project.model.ts` — Added `recommendedRowSpacing` to client interface
+- `client/src/app/features/user/add-project/add-project.component.ts` — `onCalculate` sets `rowSpacing` from server; `onRowSpacingChange(value)` accepts param and always updates `panelCount`; `resetToOptimal` resets spacing too
+- `client/src/app/features/user/add-project/add-project.component.html` — Row spacing `(ngModelChange)` calls `onRowSpacingChange($event)` directly
+
+### AI Reasoning
+The root cause of the mismatch was two different formulas: the server used a simplistic `tiltFactor` approach while the client used the plan's `panelFootprint = W × (H × cos(α) + d)`. By making the server use the same formula (including shadow-based row spacing), both sides agree on `recommendedPanels` at the default spacing. The input field not updating was caused by `onRowSpacingChange()` only clamping down — it now always sets `panelCount = maxPanels()` so the number reacts in both directions. Refactoring the handler to accept the value parameter ensures `rowSpacing` signal is set before `maxPanels()` is read.
+
+---
+
+## 📅 March 7, 2026 — Feature: Panel count changes recalculate row spacing
+
+### Topic
+Bidirectional relationship between panel count and row spacing.
+
+### Summary of Request
+User requested that modifying the number of panels also recalculates the row spacing.
+
+### What Was Achieved
+- **`onPanelCountChange(value)` now reverse-calculates row spacing** using the inverse of the plan formula: `d = (usableArea / (panelCount × W)) − H × cos(α)`. When the user increases panels, spacing shrinks; when they reduce panels, spacing grows.
+- Template updated to call `onPanelCountChange($event)` on `(ngModelChange)` instead of the old no-op pattern.
+
+### Full Prompt
+"Nice but one more thing. I also want the calculation to be made for the row spacing when the number of panels is modified in the input field"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.ts` — `onPanelCountChange(value)` implements inverse formula
+- `client/src/app/features/user/add-project/add-project.component.html` — `(ngModelChange)` calls `onPanelCountChange($event)`
+
+### AI Reasoning
+The forward formula is `maxPanels = floor(usableArea / (W × (H × cos(α) + d)))`. Solving algebraically for `d`: `d = (usableArea / (panelCount × W)) − H × cos(α)`. This makes the panel count ↔ row spacing relationship fully bidirectional while using the same underlying formula.

@@ -87,17 +87,17 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
   detectedCountry = signal('');
   detectedTimezone = signal('');
-  energyPrice = 0.15;
+  energyPrice = signal(0.15);
 
   // ── Step 3: Configuration ────────────────────────
   panels = signal<Panel[]>([]);
   cultivars = signal<Cultivar[]>([]);
-  selectedPanelId: string | null = null;
-  selectedCultivarId: string | null = null;
-  panelCount = 0;
-  tiltAngle = 30;
-  selectedDirection = 'south';
-  rowSpacing = 1.2;
+  selectedPanelId = signal<string | null>(null);
+  selectedCultivarId = signal<string | null>(null);
+  panelCount = signal(0);
+  tiltAngle = signal(30);
+  selectedDirection = signal('south');
+  rowSpacing = signal(1.2);
   estimation = signal<OptimalConfigResponse | null>(null);
   isCalculating = signal(false);
 
@@ -125,11 +125,11 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   );
 
   selectedPanelData = computed(() =>
-    this.panels().find((p) => p._id === this.selectedPanelId)
+    this.panels().find((p) => p._id === this.selectedPanelId())
   );
 
   selectedCultivarData = computed(() =>
-    this.cultivars().find((c) => c._id === this.selectedCultivarId)
+    this.cultivars().find((c) => c._id === this.selectedCultivarId())
   );
 
   selectedPanelLabel = computed(() => {
@@ -143,7 +143,48 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
 
   totalCapacity = computed(() => {
     const watt = this.selectedPanelWatt();
-    return (watt * this.panelCount) / 1000;
+    return (watt * this.panelCount()) / 1000;
+  });
+
+  // ── Max panels (client-side, reacts to row spacing) ────
+  maxPanels = computed(() => {
+    const est = this.estimation();
+    const panel = this.selectedPanelData();
+    if (!est || !panel) return 0;
+
+    // Panel dimensions stored in mm → convert to metres
+    const W = panel.dimensions.width / 1000;
+    const H = panel.dimensions.height / 1000;
+    const tiltRad = (this.tiltAngle() * Math.PI) / 180;
+    const d = this.rowSpacing();
+
+    // panelFootprint = W × (H × cos(α) + d)
+    const panelFootprint = W * (H * Math.cos(tiltRad) + d);
+    if (panelFootprint <= 0) return 0;
+
+    // Utilisation factor: roof 0.85, agrivoltaic 0.70
+    const utilisation = this.projectType() === 'agrivoltaic' ? 0.70 : 0.85;
+    const usableArea = est.surfaceArea * utilisation;
+
+    return Math.max(0, Math.floor(usableArea / panelFootprint));
+  });
+
+  // ── Row spacing shadow distance (informational) ───
+  shadowSpacing = computed(() => {
+    const est = this.estimation();
+    const panel = this.selectedPanelData();
+    if (!est || !panel) return 0;
+
+    const H = panel.dimensions.height / 1000; // m
+    const tiltRad = (this.tiltAngle() * Math.PI) / 180;
+    const lat = est.latitude;
+    // Winter solstice noon sun elevation: 90° − lat − 23.45°
+    const betaDeg = 90 - Math.abs(lat) - 23.45;
+    if (betaDeg <= 0) return 99; // extreme latitude, shadow is very long
+    const betaRad = (betaDeg * Math.PI) / 180;
+
+    // d = H × sin(α) / tan(β)
+    return (H * Math.sin(tiltRad)) / Math.tan(betaRad);
   });
 
   // ── Warnings ─────────────────────────────────────
@@ -152,15 +193,15 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
     const est = this.estimation();
     if (!est) return items;
 
-    const maxPanels = est.recommendedPanels;
-    if (this.panelCount > maxPanels) {
+    const max = this.maxPanels();
+    if (max > 0 && this.panelCount() > max) {
       items.push({
         severity: 'warn',
-        message: `Max recommended panels for this area is ${maxPanels}. Exceeding may cause overlap or insufficient spacing.`,
+        message: `Max recommended panels for this area is ${max}. Exceeding may cause overlap or insufficient spacing.`,
       });
     }
 
-    if (this.projectType() === 'roof' && this.rowSpacing < 0.6) {
+    if (this.projectType() === 'roof' && this.rowSpacing() < 0.6) {
       items.push({
         severity: 'warn',
         message: 'Row spacing below 0.6m — insufficient for maintenance access.',
@@ -168,10 +209,18 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
     }
 
     const crop = this.selectedCultivarData();
-    if (this.projectType() === 'agrivoltaic' && crop && this.rowSpacing < crop.recommendedSpacing) {
+    if (this.projectType() === 'agrivoltaic' && crop && this.rowSpacing() < crop.recommendedSpacing) {
       items.push({
         severity: 'warn',
         message: `Row spacing below ${crop.name} requirement of ${crop.recommendedSpacing}m — machinery/growth access compromised.`,
+      });
+    }
+
+    const shadow = this.shadowSpacing();
+    if (shadow > 0 && this.rowSpacing() < shadow) {
+      items.push({
+        severity: 'info',
+        message: 'Panels may cast shadows on adjacent rows at winter solstice noon.',
       });
     }
 
@@ -189,11 +238,11 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   canProceedStep2 = computed(() => this.hasDrawnArea());
 
   canCalculate = computed(
-    () => this.hasDrawnArea() && !!this.selectedPanelId && this.tiltAngle >= 0 && this.tiltAngle <= 90
+    () => this.hasDrawnArea() && !!this.selectedPanelId() && this.tiltAngle() >= 0 && this.tiltAngle() <= 90
   );
 
   canProceedStep3 = computed(
-    () => !!this.selectedPanelId && this.panelCount > 0 && this.estimation() !== null
+    () => !!this.selectedPanelId() && this.panelCount() > 0 && this.estimation() !== null
   );
 
   canSubmit = computed(
@@ -215,7 +264,7 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
       this.projectName().length > 0 ||
       this.projectDescription().length > 0 ||
       this.hasDrawnArea() ||
-      !!this.selectedPanelId
+      !!this.selectedPanelId()
     );
   }
 
@@ -327,7 +376,7 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   onPanelChange(): void {
     this.estimation.set(null);
     // Auto-calculate if polygon exists
-    if (this.hasDrawnArea() && this.selectedPanelId) {
+    if (this.hasDrawnArea() && this.selectedPanelId()) {
       this.onCalculate();
     }
   }
@@ -336,13 +385,38 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
     const crop = this.selectedCultivarData();
     if (crop) {
       // Apply cultivar recommendations
-      this.tiltAngle = Math.max(0, this.tiltAngle - crop.optimalTiltReduction);
-      this.rowSpacing = Math.max(this.rowSpacing, crop.recommendedSpacing);
+      this.tiltAngle.set(Math.max(0, this.tiltAngle() - crop.optimalTiltReduction));
+      this.rowSpacing.set(Math.max(this.rowSpacing(), crop.recommendedSpacing));
     }
   }
 
-  onPanelCountChange(): void {
-    // Warnings recompute automatically via computed signals
+  onPanelCountChange(value: number): void {
+    this.panelCount.set(value);
+    // Reverse-calculate row spacing from panel count:
+    // d = (usableArea / (panelCount × W)) − H × cos(α)
+    const est = this.estimation();
+    const panel = this.selectedPanelData();
+    if (!est || !panel || value <= 0) return;
+
+    const W = panel.dimensions.width / 1000;
+    const H = panel.dimensions.height / 1000;
+    const tiltRad = (this.tiltAngle() * Math.PI) / 180;
+    const utilisation = this.projectType() === 'agrivoltaic' ? 0.70 : 0.85;
+    const usableArea = est.surfaceArea * utilisation;
+
+    const spacing = (usableArea / (value * W)) - (H * Math.cos(tiltRad));
+    if (spacing > 0) {
+      this.rowSpacing.set(Math.round(spacing * 100) / 100);
+    }
+  }
+
+  onRowSpacingChange(value: number): void {
+    this.rowSpacing.set(value);
+    // Recalculate panelCount to match maxPanels for the new spacing
+    const max = this.maxPanels();
+    if (max > 0) {
+      this.panelCount.set(max);
+    }
   }
 
   onConfigChange(): void {
@@ -357,15 +431,17 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
     const area = this.drawnPolygonPoints().map((c) => ({ lat: c.lat, lon: c.lng }));
     const request: OptimalConfigFromPolygonRequest = {
       area,
-      panelId: this.selectedPanelId!,
-      tilt: this.tiltAngle,
+      panelId: this.selectedPanelId()!,
+      tilt: this.tiltAngle(),
     };
 
     this.projectService.calculateOptimalConfig(request).subscribe({
       next: (res) => {
         this.isCalculating.set(false);
         this.estimation.set(res);
-        this.panelCount = res.recommendedPanels;
+        // Set initial row spacing and panel count from server recommendation
+        this.rowSpacing.set(res.recommendedRowSpacing);
+        this.panelCount.set(res.recommendedPanels);
       },
       error: (err) => {
         this.isCalculating.set(false);
@@ -377,7 +453,8 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   resetToOptimal(): void {
     const est = this.estimation();
     if (est) {
-      this.panelCount = est.recommendedPanels;
+      this.rowSpacing.set(est.recommendedRowSpacing);
+      this.panelCount.set(est.recommendedPanels);
     }
   }
 
@@ -397,14 +474,14 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
       description: this.projectDescription() || undefined,
       projectType: this.projectType(),
       area,
-      tilt: this.tiltAngle,
-      direction: this.selectedDirection,
-      panelNumber: this.panelCount,
-      panelId: this.selectedPanelId ?? undefined,
-      rawSpacing: this.rowSpacing,
+      tilt: this.tiltAngle(),
+      direction: this.selectedDirection(),
+      panelNumber: this.panelCount(),
+      panelId: this.selectedPanelId() ?? undefined,
+      rawSpacing: this.rowSpacing(),
       cultivarId:
         this.projectType() === 'agrivoltaic'
-          ? this.selectedCultivarId ?? undefined
+          ? this.selectedCultivarId() ?? undefined
           : undefined,
     };
 
@@ -415,7 +492,7 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
         this.projectName.set('');
         this.projectDescription.set('');
         this.drawnPolygonPoints.set([]);
-        this.selectedPanelId = null;
+        this.selectedPanelId.set(null);
         this.router.navigate(['/projects']);
       },
       error: (err) => {

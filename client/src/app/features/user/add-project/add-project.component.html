@@ -166,7 +166,8 @@
                     <label for="energyPrice">Energy Price (per kWh)</label>
                     <p-inputNumber
                       inputId="energyPrice"
-                      [(ngModel)]="energyPrice"
+                      [ngModel]="energyPrice()"
+                      (ngModelChange)="energyPrice.set($event)"
                       mode="decimal"
                       [minFractionDigits]="2"
                       [maxFractionDigits]="4"
@@ -223,7 +224,8 @@
                     <p-select
                       inputId="panelSelect"
                       [options]="panelOptions()"
-                      [(ngModel)]="selectedPanelId"
+                      [ngModel]="selectedPanelId()"
+                      (ngModelChange)="selectedPanelId.set($event)"
                       optionLabel="label"
                       optionValue="value"
                       placeholder="Select a panel"
@@ -236,10 +238,10 @@
                     <label for="panelCount">Number of Panels</label>
                     <p-inputNumber
                       inputId="panelCount"
-                      [(ngModel)]="panelCount"
+                      [ngModel]="panelCount()"
+                      (ngModelChange)="onPanelCountChange($event)"
                       [min]="1"
                       [showButtons]="true"
-                      (onInput)="onPanelCountChange()"
                     />
                   </div>
 
@@ -247,7 +249,8 @@
                     <label for="tiltAngle">Tilt Angle (°)</label>
                     <p-inputNumber
                       inputId="tiltAngle"
-                      [(ngModel)]="tiltAngle"
+                      [ngModel]="tiltAngle()"
+                      (ngModelChange)="tiltAngle.set($event)"
                       [min]="0"
                       [max]="90"
                       [showButtons]="true"
@@ -261,7 +264,8 @@
                     <p-select
                       inputId="direction"
                       [options]="directionOptions"
-                      [(ngModel)]="selectedDirection"
+                      [ngModel]="selectedDirection()"
+                      (ngModelChange)="selectedDirection.set($event)"
                       optionLabel="label"
                       optionValue="value"
                       class="w-full"
@@ -272,7 +276,8 @@
                     <label for="rowSpacing">Row Spacing (m)</label>
                     <p-inputNumber
                       inputId="rowSpacing"
-                      [(ngModel)]="rowSpacing"
+                      [ngModel]="rowSpacing()"
+                      (ngModelChange)="onRowSpacingChange($event)"
                       mode="decimal"
                       [minFractionDigits]="1"
                       [maxFractionDigits]="2"
@@ -281,6 +286,13 @@
                     />
                   </div>
 
+                  @if (maxPanels() > 0) {
+                    <div class="max-panels-badge">
+                      <i class="pi pi-info-circle"></i>
+                      <span>Max panels for current spacing: <strong>{{ maxPanels() }}</strong></span>
+                    </div>
+                  }
+
                   <!-- Agrivoltaic: Cultivar selector -->
                   @if (projectType() === 'agrivoltaic') {
                     <div class="form-group">
@@ -288,7 +300,8 @@
                       <p-select
                         inputId="cultivarSelect"
                         [options]="cultivarOptions()"
-                        [(ngModel)]="selectedCultivarId"
+                      [ngModel]="selectedCultivarId()"
+                      (ngModelChange)="selectedCultivarId.set($event)"
                         optionLabel="label"
                         optionValue="value"
                         placeholder="Select a crop type"
@@ -330,7 +343,7 @@
                       </div>
                       <div class="preview-item">
                         <span class="preview-label">Panels</span>
-                        <strong>{{ panelCount }}</strong>
+                        <strong>{{ panelCount() }}</strong>
                       </div>
                       <div class="preview-item highlight">
                         <span class="preview-label">Total Capacity</span>
@@ -443,10 +456,10 @@
                     <span>Polygon</span>
                     <strong>{{ drawnPolygonPoints().length }} points</strong>
                   </div>
-                  @if (energyPrice) {
+                  @if (energyPrice()) {
                     <div class="review-row">
                       <span>Energy Price</span>
-                      <strong>€{{ energyPrice }}/kWh</strong>
+                      <strong>€{{ energyPrice() }}/kWh</strong>
                     </div>
                   }
                   <button pButton type="button" label="Edit" icon="pi pi-pencil" severity="secondary" size="small" (click)="goToStep(2, activateCallback)"></button>
@@ -461,20 +474,20 @@
                   </div>
                   <div class="review-row">
                     <span>Panels</span>
-                    <strong>{{ panelCount }}</strong>
+                    <strong>{{ panelCount() }}</strong>
                   </div>
                   <div class="review-row">
                     <span>Tilt</span>
-                    <strong>{{ tiltAngle }}°</strong>
+                    <strong>{{ tiltAngle() }}°</strong>
                   </div>
                   <div class="review-row">
                     <span>Direction</span>
-                    <strong class="capitalize">{{ selectedDirection }}</strong>
+                    <strong class="capitalize">{{ selectedDirection() }}</strong>
                   </div>
-                  @if (rowSpacing) {
+                  @if (rowSpacing()) {
                     <div class="review-row">
                       <span>Row Spacing</span>
-                      <strong>{{ rowSpacing }}m</strong>
+                      <strong>{{ rowSpacing() }}m</strong>
                     </div>
                   }
                   @if (projectType() === 'agrivoltaic' && selectedCultivarLabel()) {

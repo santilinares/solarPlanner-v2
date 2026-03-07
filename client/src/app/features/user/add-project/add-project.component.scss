@@ -345,6 +345,18 @@
   margin-top: 0.5rem;
 }
 
+.max-panels-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #e3f2fd;
+  border-radius: 12px;
+  color: #0d47a1;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
 .warning-msg {
   display: flex;
   align-items: flex-start;

@@ -55,4 +55,7 @@ export interface OptimalConfigResponse {
   estimatedCapacity: number; // kW
   estimatedProduction: number; // kWh/year
   coverage: number; // percentage
+  surfaceArea: number; // m² — polygon area for client-side maxPanels recalc
+  latitude: number; // centre latitude for client-side sun elevation calc
+  recommendedRowSpacing: number; // m — shadow-based optimal row spacing
 }
