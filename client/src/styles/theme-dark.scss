@@ -30,34 +30,6 @@
 // DARK MODE SPECIFIC STYLES
 // =====================================================
 
-.dark-mode {
-  .solar-accent {
-    position: relative;
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: -2px;
-      border-radius: inherit;
-      background: linear-gradient(45deg, transparent, rgba(255, 214, 0, 0.1));
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    &:hover::before { opacity: 1; }
-    &:hover { box-shadow: 0 0 30px rgba(255, 214, 0, 0.6) !important; }
-    &:focus { box-shadow: 0 0 40px rgba(255, 214, 0, 0.8) !important; }
-  }
-
-  .solar-bar {
-    background: #FFD600 !important;
-    box-shadow: 0 0 15px rgba(255, 214, 0, 0.4);
-  }
-
-  .grid-bar { background: #40916C !important; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .dark-mode * {
     animation-duration: 0.01ms !important;

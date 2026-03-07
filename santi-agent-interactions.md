@@ -4,6 +4,138 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 7, 2026 - Medium Priority Cleanup (User + Admin Views)
+
+### Topic
+Continued component style refactor for medium-priority files with Aura token alignment and inline-style removal.
+
+### Summary of Request
+User asked to continue cleanup after high-priority components were completed.
+
+### What Was Achieved
+- **Users List (`users-list.component.ts`)**
+  - Removed inline icon styles and replaced with semantic classes (`icon-danger`, `icon-success`, `hero-icon`).
+  - Migrated deprecated bridge tokens:
+    - `--text-color-secondary` → `--p-text-muted-color`
+    - `--surface-hover` → `--p-content-hover-background`
+    - `--red-500` usage replaced by `--p-red-500` class styling.
+  - Reduced deep selectors to PrimeNG internal card body padding only.
+
+- **User Projects (`user-projects.component.ts`)**
+  - Migrated hardcoded color palette to PrimeNG tokens (`--p-text-color`, `--p-text-muted-color`, `--p-content-border-color`, `--p-primary-*`, `--p-yellow-*`).
+  - Replaced static RGBA/hex status and card backgrounds with token-driven `color-mix(...)` gradients and surfaces.
+  - Removed redundant `::ng-deep .btn-primary` hover override.
+
+- **View Project (`view-project.component.ts`)**
+  - Migrated hardcoded colors and gradients to PrimeNG token-based colors.
+  - Converted error and placeholder visuals to token-aware `color-mix(...)` backgrounds.
+  - Removed redundant `::ng-deep .btn-primary` hover override.
+
+- **Add Project (`add-project.component.scss`)**
+  - Performed focused token migration across key surfaces and semantic text states:
+    - hardcoded surface/text/border colors → `--p-surface-*`, `--p-text-*`, `--p-content-border-color`, `--p-primary-*`.
+  - Updated warning/info/success badges and map feedback blocks to token-based `color-mix(...)` backgrounds.
+  - Replaced focus ring/hover accents with theme token equivalents (`--focus-ring`, Prime shadows).
+
+- **Configure Project (`configure-project.component.ts`)**
+  - Verified by search that deprecated bridge tokens and hardcoded inline color styles targeted by this cleanup were not present, so no changes were needed in this pass.
+
+- Validation: diagnostics run on all modified files with **no errors found**.
+
+### Full Prompt
+"Ok, continue"
+
+### Affected Files
+- `client/src/app/features/admin/users-list/users-list.component.ts`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+
+### Reasoning Snapshot
+- This batch prioritized replacing hardcoded and bridge-token color usage in medium-priority views while preserving component behavior and markup structure.
+- `configure-project` was intentionally left untouched after verification to avoid unnecessary churn in a large, already-modernized file.
+
+---
+
+## 📅 March 7, 2026 - Panel Views Cleanup (User + Admin)
+
+### Topic
+Continued Aura token migration and style cleanup for panel-related views (`panel-list`, admin `panels`, and `admin-dashboard`).
+
+### Summary of Request
+User requested to continue with the prioritized component cleanup sequence.
+
+### What Was Achieved
+- **User Panel List (`panel-list.component.ts`)**
+  - Removed inline icon styles and replaced with semantic classes.
+  - Migrated bridge token usage to PrimeNG tokens:
+    - `--text-color-secondary` / `--text-color-muted` → `--p-text-muted-color`
+    - `--surface-hover` → `--p-content-hover-background`
+  - Replaced hardcoded RGBA yellow accent with token-derived `color-mix(...)`.
+  - Reduced `::ng-deep` to PrimeNG internals for card body padding only.
+
+- **Admin Panels (`panels.component.html`, `panels.component.scss`)**
+  - Removed inline icon styles from template (`Manage Panels` header, empty-state, panel icon).
+  - Applied same token migration pattern as user panel list.
+  - Replaced RGBA backgrounds with token-derived `color-mix(...)`.
+  - Reduced deep selectors to required PrimeNG internals (`.p-button` width in action buttons, empty-state `.p-card-body` padding).
+
+- **Admin Dashboard (`admin-dashboard.component.html`, `admin-dashboard.component.scss`)**
+  - Removed inline icon/background styles and introduced semantic classes (`icon-primary`, `icon-solar`, `icon-danger`, `stat-icon-*`).
+  - Migrated bridge tokens:
+    - `--text-color-secondary` → `--p-text-muted-color`
+    - `--red-500` usage replaced with `--p-red-500` in styling classes
+  - Replaced hardcoded RGBA backgrounds with token-driven `color-mix(...)`.
+  - Reduced and scoped `::ng-deep` to PrimeNG internals (`.p-card-body`, `.p-card-content`).
+
+- Verified all touched files with diagnostics: **no errors found**.
+
+### Full Prompt
+"Continue"
+
+### Affected Files
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `client/src/app/features/admin/panels/panels.component.html`
+- `client/src/app/features/admin/panels/panels.component.scss`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.html`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.scss`
+
+### Reasoning Snapshot
+- Both user/admin panel views shared repeated anti-patterns (inline styles, bridge tokens, broad deep selectors), so applying a single consistent token-first pattern reduced maintenance overhead.
+- Deep selectors were retained only where PrimeNG internal DOM required targeted overrides.
+
+---
+
+## 📅 March 7, 2026 - Panel List Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored panel list component styling to remove inline styles, migrate to PrimeNG tokens, and reduce `::ng-deep` to required internals only.
+
+### Summary of Request
+User asked to continue the style cleanup sequence after dashboard updates.
+
+### What Was Achieved
+- Removed inline icon styles from template and replaced with semantic classes (`icon-primary`, `empty-icon`, `panel-bolt-icon`).
+- Migrated bridge token usage to PrimeNG Aura tokens:
+  - `--text-color-secondary` / `--text-color-muted` → `--p-text-muted-color`
+  - `--surface-hover` → `--p-content-hover-background`
+- Replaced hardcoded yellow RGBA panel icon background with token-driven blend using `color-mix(...)`.
+- Moved most styles out of deep selectors; kept `:host ::ng-deep` only for PrimeNG internal card body padding.
+- Preserved templates, behavior, and business logic.
+
+### Full Prompt
+"Continue"
+
+### Affected Files
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+
+### Reasoning Snapshot
+- Token-first styling ensures consistency with Aura light/dark theming.
+- Inline style removal improves maintainability and keeps templates cleaner.
+- Deep selectors are minimized to only required PrimeNG internals, reducing style leakage.
+
+---
+
 ## 📅 March 7, 2026 - Dashboard Style Cleanup (Aura Token Alignment)
 
 ### Topic

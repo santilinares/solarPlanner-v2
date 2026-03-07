@@ -16,7 +16,7 @@ import { Panel } from '@core/models/panel.model';
       <div class="page-header">
         <div>
           <h1>
-            <i class="pi pi-th-large" style="color: var(--p-primary-500);"></i>
+            <i class="pi pi-th-large icon-primary"></i>
             Solar Panels
           </h1>
           <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
@@ -37,7 +37,7 @@ import { Panel } from '@core/models/panel.model';
       } @else if (panels().length === 0) {
         <p-card class="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           <div class="empty-content">
-            <i class="pi pi-inbox" style="font-size: 4rem; color: var(--text-color-muted);"></i>
+            <i class="pi pi-inbox empty-icon"></i>
             <h3>No Panels Available</h3>
             <p>No solar panels found in the database.</p>
           </div>
@@ -48,7 +48,7 @@ import { Panel } from '@core/models/panel.model';
             <p-card class="panel-card hover-lift">
               <div class="panel-header">
                 <div class="panel-icon">
-                  <i class="pi pi-bolt" style="color: var(--p-yellow-500); font-size: 1.5rem;"></i>
+                  <i class="pi pi-bolt panel-bolt-icon"></i>
                 </div>
                 <p-tag [value]="panel.efficiency + '%'" severity="success" class="efficiency-badge"></p-tag>
               </div>
@@ -79,6 +79,10 @@ import { Panel } from '@core/models/panel.model';
       .panel-list {
         padding: 1rem;
 
+        .icon-primary {
+          color: var(--p-primary-500);
+        }
+
         .page-header {
           margin-bottom: 2rem;
 
@@ -93,7 +97,7 @@ import { Panel } from '@core/models/panel.model';
           }
 
           .subtitle {
-            color: var(--text-color-secondary);
+            color: var(--p-text-muted-color);
             margin: 0;
             font-size: 1.1rem;
           }
@@ -104,101 +108,108 @@ import { Panel } from '@core/models/panel.model';
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: 1.5rem;
 
-          ::ng-deep {
-            .panel-card {
-              .p-card-body {
-                padding: 1.5rem;
+          .panel-card {
+            .panel-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-bottom: 1rem;
+
+              .panel-icon {
+                width: 56px;
+                height: 56px;
+                border-radius: 12px;
+                background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: solarPulse 3s ease-in-out infinite;
               }
 
-              .panel-header {
+              .panel-bolt-icon {
+                color: var(--p-yellow-500);
+                font-size: 1.5rem;
+              }
+
+              .efficiency-badge {
+                font-weight: 700;
+                font-size: 0.875rem;
+              }
+            }
+
+            .panel-name {
+              font-size: 1.4rem;
+              font-weight: 700;
+              color: var(--p-text-color);
+              margin: 0 0 0.25rem;
+            }
+
+            .panel-model {
+              font-size: 1rem;
+              color: var(--p-text-muted-color);
+              margin: 0 0 1.5rem;
+            }
+
+            .panel-specs {
+              display: flex;
+              flex-direction: column;
+              gap: 0.875rem;
+
+              .spec-item {
                 display: flex;
                 justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 1rem;
+                align-items: center;
+                padding: 0.75rem;
+                background: var(--p-content-hover-background);
+                border-radius: 8px;
 
-                .panel-icon {
-                  width: 56px;
-                  height: 56px;
-                  border-radius: 12px;
-                  background: rgba(255, 214, 0, 0.15);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  animation: solarPulse 3s ease-in-out infinite;
-                }
-
-                .efficiency-badge {
-                  font-weight: 700;
+                .spec-label {
                   font-size: 0.875rem;
+                  color: var(--p-text-muted-color);
+                  font-weight: 500;
                 }
-              }
 
-              .panel-name {
-                font-size: 1.4rem;
-                font-weight: 700;
-                color: var(--p-text-color);
-                margin: 0 0 0.25rem;
-              }
-
-              .panel-model {
-                font-size: 1rem;
-                color: var(--text-color-secondary);
-                margin: 0 0 1.5rem;
-              }
-
-              .panel-specs {
-                display: flex;
-                flex-direction: column;
-                gap: 0.875rem;
-
-                .spec-item {
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  padding: 0.75rem;
-                  background: var(--surface-hover);
-                  border-radius: 8px;
-
-                  .spec-label {
-                    font-size: 0.875rem;
-                    color: var(--text-color-secondary);
-                    font-weight: 500;
-                  }
-
-                  .spec-value {
-                    font-size: 1.125rem;
-                    font-weight: 700;
-                    color: var(--p-primary-500);
-                  }
+                .spec-value {
+                  font-size: 1.125rem;
+                  font-weight: 700;
+                  color: var(--p-primary-500);
                 }
               }
             }
+          }
+        }
 
-            .empty-state {
-              .p-card-body {
-                padding: 4rem 2rem;
-              }
+        .empty-state {
+          .empty-content {
+            text-align: center;
 
-              .empty-content {
-                text-align: center;
-
-                i {
-                  display: block;
-                  margin-bottom: 1.5rem;
-                }
-
-                h3 {
-                  font-size: 1.5rem;
-                  color: var(--p-text-color);
-                  margin-bottom: 0.5rem;
-                }
-
-                p {
-                  color: var(--text-color-secondary);
-                  font-size: 1.1rem;
-                }
-              }
+            .empty-icon {
+              display: block;
+              margin-bottom: 1.5rem;
+              font-size: 4rem;
+              color: var(--p-text-muted-color);
             }
+
+            h3 {
+              font-size: 1.5rem;
+              color: var(--p-text-color);
+              margin-bottom: 0.5rem;
+            }
+
+            p {
+              color: var(--p-text-muted-color);
+              font-size: 1.1rem;
+            }
+          }
+        }
+
+        :host ::ng-deep {
+          .panel-list .panel-card .p-card-body {
+            padding: 1.5rem;
+          }
+
+          .panel-list .empty-state .p-card-body {
+            padding: 4rem 2rem;
           }
         }
 

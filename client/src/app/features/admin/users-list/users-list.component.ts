@@ -12,7 +12,7 @@ import { ButtonModule } from 'primeng/button';
       <div class="page-header">
         <div>
           <h1>
-            <i class="pi pi-users" style="color: var(--red-500);"></i>
+            <i class="pi pi-users icon-danger"></i>
             User Management
           </h1>
           <p class="subtitle">Manage system users, roles, and permissions</p>
@@ -21,24 +21,24 @@ import { ButtonModule } from 'primeng/button';
       
       <p-card class="content-placeholder">
         <div class="placeholder-content">
-          <i class="pi pi-users animate-pulse" style="font-size: 4rem; color: var(--red-500); margin-bottom: 1.5rem;"></i>
+          <i class="pi pi-users animate-pulse hero-icon icon-danger"></i>
           <h2>User Management System</h2>
           <p class="description">Advanced user management features coming soon</p>
           <div class="feature-list">
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
+              <i class="pi pi-check-circle icon-success"></i>
               <span>Comprehensive user database with search and filters</span>
             </div>
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
+              <i class="pi pi-check-circle icon-success"></i>
               <span>User activation and deactivation controls</span>
             </div>
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
+              <i class="pi pi-check-circle icon-success"></i>
               <span>Role-based access control management</span>
             </div>
             <div class="feature-item">
-              <i class="pi pi-check-circle" style="color: var(--p-green-500);"></i>
+              <i class="pi pi-check-circle icon-success"></i>
               <span>Bulk actions and user data export</span>
             </div>
           </div>
@@ -57,6 +57,19 @@ import { ButtonModule } from 'primeng/button';
     .users-list {
       padding: 1rem;
 
+      .icon-danger {
+        color: var(--p-red-500);
+      }
+
+      .icon-success {
+        color: var(--p-green-500);
+      }
+
+      .hero-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+      }
+
       .page-header {
         margin-bottom: 2rem;
 
@@ -71,62 +84,62 @@ import { ButtonModule } from 'primeng/button';
         }
 
         .subtitle {
-          color: var(--text-color-secondary);
+          color: var(--p-text-muted-color);
           margin: 0;
           font-size: 1.1rem;
         }
       }
 
-      ::ng-deep {
-        .content-placeholder {
-          .p-card-body {
-            padding: 4rem 2rem;
+      .content-placeholder {
+        .placeholder-content {
+          text-align: center;
+          max-width: 600px;
+          margin: 0 auto;
+
+          h2 {
+            font-size: 2rem;
+            color: var(--p-text-color);
+            margin-bottom: 1rem;
           }
 
-          .placeholder-content {
-            text-align: center;
-            max-width: 600px;
-            margin: 0 auto;
+          .description {
+            font-size: 1.1rem;
+            color: var(--p-text-muted-color);
+            margin-bottom: 2rem;
+          }
 
-            h2 {
-              font-size: 2rem;
-              color: var(--p-text-color);
-              margin-bottom: 1rem;
-            }
+          .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            text-align: left;
 
-            .description {
-              font-size: 1.1rem;
-              color: var(--text-color-secondary);
-              margin-bottom: 2rem;
-            }
-
-            .feature-list {
+            .feature-item {
               display: flex;
-              flex-direction: column;
+              align-items: center;
               gap: 1rem;
-              margin-bottom: 2rem;
-              text-align: left;
+              padding: 1rem;
+              background: var(--p-content-hover-background);
+              border-radius: 8px;
 
-              .feature-item {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-                padding: 1rem;
-                background: var(--surface-hover);
-                border-radius: 8px;
+              i {
+                font-size: 1.25rem;
+                flex-shrink: 0;
+              }
 
-                i {
-                  font-size: 1.25rem;
-                  flex-shrink: 0;
-                }
-
-                span {
-                  color: var(--p-text-color);
-                  font-weight: 500;
-                }
+              span {
+                color: var(--p-text-color);
+                font-weight: 500;
               }
             }
           }
+        }
+      }
+
+      :host ::ng-deep {
+        .users-list .content-placeholder .p-card-body {
+          padding: 4rem 2rem;
         }
       }
 

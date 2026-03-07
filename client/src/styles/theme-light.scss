@@ -22,15 +22,3 @@
   --border-radius: var(--p-content-border-radius);
   --font-family: var(--p-font-family, 'Inter', 'Segoe UI', system-ui, sans-serif);
 }
-
-// =====================================================
-// CUSTOM COMPONENT CLASSES (non-PrimeNG)
-// =====================================================
-
-.solar-accent {
-  &:hover { box-shadow: 0 0 15px rgba(255, 214, 0, 0.4) !important; }
-  &:focus { box-shadow: 0 0 30px rgba(255, 214, 0, 0.6) !important; }
-}
-
-.solar-bar { background: #FFD600 !important; }
-.grid-bar  { background: #2D6A4F !important; }

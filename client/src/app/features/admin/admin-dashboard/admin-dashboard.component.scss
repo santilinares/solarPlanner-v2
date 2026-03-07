@@ -3,6 +3,18 @@
 .admin-dashboard {
   padding: 1rem;
 
+  .icon-primary {
+    color: var(--p-primary-500);
+  }
+
+  .icon-solar {
+    color: var(--p-yellow-500);
+  }
+
+  .icon-danger {
+    color: var(--p-red-500);
+  }
+
   .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -22,7 +34,7 @@
     }
 
     .welcome-text {
-      color: var(--text-color-secondary);
+      color: var(--p-text-muted-color);
       margin: 0;
       font-size: 1.1rem;
     }
@@ -34,73 +46,85 @@
     gap: 1.5rem;
     margin-bottom: 3rem;
 
-    ::ng-deep {
-      .stat-card {
-        position: relative;
-        overflow: visible;
+    .stat-card {
+      position: relative;
+      overflow: visible;
 
-        .p-card-body {
-          padding: 1.75rem;
-        }
+      .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+      }
 
-        .stat-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 1rem;
-        }
+      .stat-icon-primary {
+        background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
+      }
 
-        h3 {
-          font-size: 0.875rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--text-color-secondary);
-          margin: 0 0 0.75rem;
-          font-weight: 600;
-        }
+      .stat-icon-solar {
+        background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+      }
 
-        .stat-value {
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--p-primary-500);
-          margin: 0;
-          line-height: 1;
-        }
+      .stat-icon-danger {
+        background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
+      }
+
+      h3 {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--p-text-muted-color);
+        margin: 0 0 0.75rem;
+        font-weight: 600;
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--p-primary-500);
+        margin: 0;
+        line-height: 1;
       }
     }
   }
 
-  ::ng-deep {
-    .info-card {
-      .p-card-body {
-        padding: 2rem;
+  .info-content {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+
+    h3 {
+      margin: 0 0 1rem;
+      font-size: 1.5rem;
+      color: var(--p-text-color);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.5rem;
+
+      li {
+        color: var(--p-text-muted-color);
+        margin-bottom: 0.5rem;
+        font-size: 1.05rem;
       }
+    }
+  }
 
-      .p-card-content {
-        display: flex;
-        gap: 2rem;
-        align-items: flex-start;
+  :host ::ng-deep {
+    .admin-dashboard .stat-card .p-card-body {
+      padding: 1.75rem;
+    }
 
-        h3 {
-          margin: 0 0 1rem;
-          font-size: 1.5rem;
-          color: var(--p-text-color);
-        }
+    .admin-dashboard .info-card .p-card-body {
+      padding: 2rem;
+    }
 
-        ul {
-          margin: 0;
-          padding-left: 1.5rem;
-
-          li {
-            color: var(--text-color-secondary);
-            margin-bottom: 0.5rem;
-            font-size: 1.05rem;
-          }
-        }
-      }
+    .admin-dashboard .info-card .p-card-content {
+      padding: 0;
     }
   }
 
@@ -115,7 +139,7 @@
       grid-template-columns: 1fr;
     }
 
-    ::ng-deep .info-card .p-card-content {
+    .info-content {
       flex-direction: column;
       text-align: center;
     }

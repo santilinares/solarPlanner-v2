@@ -129,15 +129,15 @@ interface ProjectDetailView {
         width: 48px;
         height: 48px;
         border: 3px solid transparent;
-        border-top: 3px solid #2d6a4f;
+        border-top: 3px solid var(--p-primary-500);
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
 
       .error-state {
-        background: rgba(254, 226, 226, 0.5);
-        border: 1px solid rgba(239, 68, 68, 0.5);
-        color: #991b1b;
+        background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
+        color: var(--p-red-700, var(--p-red-500));
         border-radius: 12px;
         padding: 1rem;
       }
@@ -146,8 +146,8 @@ interface ProjectDetailView {
         position: sticky;
         top: 0;
         z-index: 10;
-        background: #ffffff;
-        border-bottom: 1px solid #b7e4c7;
+        background: var(--p-surface-0);
+        border-bottom: 1px solid var(--p-content-border-color);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         border-radius: 1.5rem;
@@ -158,13 +158,13 @@ interface ProjectDetailView {
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 1rem;
-        color: #1b4332;
+        color: var(--p-primary-500);
         text-decoration: none;
         font-size: 0.875rem;
         font-weight: 600;
 
         &:hover {
-          color: #081c15;
+          color: var(--p-primary-700, var(--p-primary-600));
         }
       }
 
@@ -179,7 +179,7 @@ interface ProjectDetailView {
           margin: 0 0 0.5rem;
           font-size: clamp(2rem, 3vw, 2.25rem);
           font-weight: 800;
-          color: #081c15;
+          color: var(--p-text-color);
         }
       }
 
@@ -187,7 +187,7 @@ interface ProjectDetailView {
         display: flex;
         flex-wrap: wrap;
         gap: 1rem;
-        color: #1b4332;
+        color: var(--p-text-muted-color);
         font-size: 0.875rem;
 
         span {
@@ -211,17 +211,17 @@ interface ProjectDetailView {
       }
 
       .content-card {
-        background: #ffffff;
-        border: 2px solid #b7e4c7;
+        background: var(--p-surface-0);
+        border: 2px solid var(--p-content-border-color);
         border-radius: 24px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--p-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
         padding: 1.5rem;
 
         h2 {
           margin: 0 0 1rem;
           font-size: 1.25rem;
           font-weight: 700;
-          color: #081c15;
+          color: var(--p-text-color);
         }
       }
 
@@ -234,7 +234,7 @@ interface ProjectDetailView {
 
         i {
           font-size: 4rem;
-          color: #9ca3af;
+          color: var(--p-text-muted-color);
         }
       }
 
@@ -245,11 +245,19 @@ interface ProjectDetailView {
       }
 
       .map-placeholder {
-        background: linear-gradient(135deg, #d1fae5, #bfdbfe);
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--p-green-500) 15%, var(--p-surface-0)) 0%,
+          color-mix(in srgb, var(--p-blue-500) 15%, var(--p-surface-0)) 100%
+        );
       }
 
       .visual-placeholder {
-        background: linear-gradient(135deg, #fef3c7, #fed7aa);
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--p-yellow-500) 18%, var(--p-surface-0)) 0%,
+          color-mix(in srgb, var(--p-orange-500) 14%, var(--p-surface-0)) 100%
+        );
       }
 
       .stat-item {
@@ -257,27 +265,17 @@ interface ProjectDetailView {
         justify-content: space-between;
         gap: 1rem;
         padding: 0.5rem 0;
-        border-bottom: 1px solid #f0f7f4;
-        color: #1b4332;
+        border-bottom: 1px solid var(--p-content-border-color);
+        color: var(--p-text-muted-color);
 
         &:last-child {
           border-bottom: none;
         }
 
         strong {
-          color: #081c15;
+          color: var(--p-text-color);
           text-align: right;
           font-weight: 700;
-        }
-      }
-
-      ::ng-deep .btn-primary {
-
-        &:hover {
-          background-color: #1b4332;
-          border-color: #1b4332;
-          border-radius: var(--p-button-border-radius);
-          transition: background-color 0.3s ease, color 0.3s ease;
         }
       }
 

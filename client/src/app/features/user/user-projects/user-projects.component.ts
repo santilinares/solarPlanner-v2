@@ -117,13 +117,13 @@ interface ProjectCardView {
         h1 {
           margin: 0;
           font-size: clamp(2rem, 3vw, 2.5rem);
-          color: #081c15;
+          color: var(--p-text-color);
           font-weight: 800;
         }
 
         p {
           margin: 0.5rem 0 0;
-          color: #1b4332;
+          color: var(--p-text-muted-color);
           font-size: 1rem;
         }
       }
@@ -139,23 +139,23 @@ interface ProjectCardView {
         width: 48px;
         height: 48px;
         border: 3px solid transparent;
-        border-top: 3px solid #2d6a4f;
+        border-top: 3px solid var(--p-primary-500);
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
 
       .error-state {
-        background: rgba(254, 226, 226, 0.5);
-        border: 1px solid rgba(239, 68, 68, 0.5);
-        color: #991b1b;
+        background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
+        border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
+        color: var(--p-red-700, var(--p-red-500));
         border-radius: 12px;
         padding: 1rem;
       }
 
       .empty-state {
-        border: 2px dashed #b7e4c7;
+        border: 2px dashed var(--p-content-border-color);
         border-radius: 24px;
-        background: #ffffff;
+        background: var(--p-surface-0);
         min-height: 320px;
         display: flex;
         flex-direction: column;
@@ -166,20 +166,20 @@ interface ProjectCardView {
 
         i {
           font-size: 4rem;
-          color: #cccccc;
+          color: var(--p-text-muted-color);
           margin-bottom: 1rem;
         }
 
         h2 {
           margin: 0;
-          color: #1b4332;
+          color: var(--p-text-color);
           font-size: 1.4rem;
           font-weight: 700;
         }
 
         p {
           margin: 0.75rem 0 1.5rem;
-          color: #1b4332;
+          color: var(--p-text-muted-color);
         }
       }
 
@@ -190,20 +190,20 @@ interface ProjectCardView {
       }
 
       .project-card {
-        background: #ffffff;
-        border: 2px solid #b7e4c7;
+        background: var(--p-surface-0);
+        border: 2px solid var(--p-content-border-color);
         border-radius: 24px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--p-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
         transition: all 0.3s ease;
         overflow: hidden;
         cursor: pointer;
 
         &:hover {
           transform: translateY(-4px);
-          box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+          box-shadow: var(--p-shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
 
           h3 {
-            color: #2d6a4f;
+            color: var(--p-primary-600);
           }
 
           .thumb-icon {
@@ -214,7 +214,11 @@ interface ProjectCardView {
 
       .card-thumbnail {
         height: 192px;
-        background: linear-gradient(135deg, #fef3c7, #fed7aa);
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--p-yellow-500) 18%, var(--p-surface-0)) 0%,
+          color-mix(in srgb, var(--p-primary-500) 16%, var(--p-surface-0)) 100%
+        );
         display: flex;
         align-items: center;
         justify-content: center;
@@ -222,7 +226,7 @@ interface ProjectCardView {
 
       .thumb-icon {
         font-size: 5rem;
-        color: #ffd600;
+        color: var(--p-yellow-500);
         opacity: 0.2;
         transition: transform 0.3s ease;
       }
@@ -232,7 +236,7 @@ interface ProjectCardView {
 
         h3 {
           margin: 0 0 1rem;
-          color: #081c15;
+          color: var(--p-text-color);
           font-size: 1.25rem;
           font-weight: 700;
           transition: color 0.3s ease;
@@ -243,19 +247,19 @@ interface ProjectCardView {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: #1b4332;
+        color: var(--p-text-muted-color);
         font-size: 0.875rem;
         margin-bottom: 0.625rem;
 
         i {
-          color: #2d6a4f;
+          color: var(--p-primary-500);
         }
       }
 
       .card-footer {
         margin-top: 1rem;
         padding-top: 1rem;
-        border-top: 1px solid #f0f7f4;
+        border-top: 1px solid var(--p-content-border-color);
       }
 
       .status-badge {
@@ -266,27 +270,18 @@ interface ProjectCardView {
         font-size: 0.8rem;
 
         &.status-active {
-          background: #dcfce7;
-          color: #166534;
+          background: color-mix(in srgb, var(--p-green-500) 20%, transparent);
+          color: var(--p-green-700, var(--p-green-500));
         }
 
         &.status-planning {
-          background: #dbeafe;
-          color: #1e40af;
+          background: color-mix(in srgb, var(--p-blue-500) 18%, transparent);
+          color: var(--p-blue-700, var(--p-blue-500));
         }
 
         &.status-completed {
-          background: #f3f4f6;
-          color: #374151;
-        }
-      }
-
-      ::ng-deep .btn-primary {
-
-        &:hover {
-          background-color: #1b4332;
-          border-color: #1b4332;
-          border-radius: var(--p-button-border-radius);
+          background: var(--p-surface-200);
+          color: var(--p-text-muted-color);
         }
       }
 
