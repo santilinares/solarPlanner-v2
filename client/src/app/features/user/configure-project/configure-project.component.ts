@@ -767,14 +767,14 @@ interface CurrencyOption {
       }
       .error-icon {
         font-size: 3rem;
-        color: #d62828;
+        color: var(--p-red-500);
       }
       .error-content h2 {
         margin: 0;
-        color: #081c15;
+        color: var(--p-text-color);
       }
       .error-content p {
-        color: #1b4332;
+        color: var(--p-text-muted-color);
         margin: 0;
       }
 
@@ -788,14 +788,14 @@ interface CurrencyOption {
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 1rem;
-        color: #1b4332;
+        color: var(--p-primary-color);
         text-decoration: none;
         font-size: 0.875rem;
         font-weight: 600;
         transition: color 0.2s;
       }
       .back-link:hover {
-        color: #081c15;
+        color: var(--p-text-color);
       }
 
       .header-row {
@@ -809,10 +809,10 @@ interface CurrencyOption {
         margin: 0;
         font-size: clamp(1.75rem, 3vw, 2.25rem);
         font-weight: 800;
-        color: #081c15;
+        color: var(--p-text-color);
       }
       .subtitle {
-        color: #1b4332;
+        color: var(--p-text-muted-color);
         margin: 0.25rem 0 0;
         font-size: 0.95rem;
         display: flex;
@@ -834,7 +834,7 @@ interface CurrencyOption {
       .editable-name {
         font-size: clamp(1.75rem, 3vw, 2.25rem);
         font-weight: 800;
-        color: #081c15;
+        color: var(--p-text-color);
         border: none;
         background: transparent;
         outline: none;
@@ -846,23 +846,23 @@ interface CurrencyOption {
         line-height: 1.2;
       }
       .editable-name:hover {
-        border-bottom-color: #b7e4c7;
+        border-bottom-color: var(--p-primary-200);
       }
       .editable-name:focus {
-        border-bottom-color: #2d6a4f;
+        border-bottom-color: var(--p-primary-color);
       }
       .editable-name::placeholder {
-        color: #b7e4c7;
+        color: var(--p-text-muted-color);
       }
       .editable-name-hint {
         font-size: 0.85rem;
-        color: #b7e4c7;
+        color: var(--p-text-muted-color);
         flex-shrink: 0;
         pointer-events: none;
         transition: color 0.2s;
       }
       .editable-name-wrapper:focus-within .editable-name-hint {
-        color: #2d6a4f;
+        color: var(--p-primary-color);
       }
 
       /* ─── Metadata Strip ─── */
@@ -933,19 +933,19 @@ interface CurrencyOption {
         align-items: center;
         padding: 0.65rem 1.25rem;
         margin-bottom: 1rem;
-        background: rgba(240, 247, 244, 0.92);
+        background: color-mix(in srgb, var(--p-surface-0) 92%, transparent);
         backdrop-filter: blur(12px);
-        border: 1px solid #b7e4c7;
+        border: 1px solid var(--p-content-border-color);
         border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--p-text-color) 8%, transparent);
       }
       .step-nav-indicator {
         font-size: 0.9rem;
-        color: #1b4332;
+        color: var(--p-text-muted-color);
         font-weight: 500;
       }
       .step-nav-indicator strong {
-        color: #081c15;
+        color: var(--p-text-color);
       }
 
       /* ─── Stepper Custom Steps ─── */
@@ -967,21 +967,21 @@ interface CurrencyOption {
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid #b7e4c7;
-        color: #52b788;
+        border: 2px solid var(--p-content-border-color);
+        color: var(--p-primary-color);
         font-size: 1.1rem;
         transition: all 0.3s ease;
       }
       .step-icon-wrapper.active {
-        background: #2d6a4f;
-        border-color: #2d6a4f;
-        color: #ffffff;
-        box-shadow: 0 4px 14px rgba(45, 106, 79, 0.3);
+        background: var(--p-primary-color);
+        border-color: var(--p-primary-color);
+        color: var(--p-primary-contrast-color);
+        box-shadow: 0 4px 14px color-mix(in srgb, var(--p-primary-color) 32%, transparent);
       }
       .step-label {
         font-size: 0.82rem;
         font-weight: 600;
-        color: #1b4332;
+        color: var(--p-text-muted-color);
       }
 
       /* ─── Step Content Area ─── */
@@ -1002,15 +1002,15 @@ interface CurrencyOption {
 
       /* ─── Step Cards ─── */
       .step-card {
-        background: #ffffff;
-        border: 2px solid #b7e4c7;
+        background: var(--p-content-background);
+        border: 1px solid var(--p-content-border-color);
         border-radius: 24px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--p-text-color) 10%, transparent);
         transition: box-shadow 0.25s, border-color 0.25s;
       }
       .step-card:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 16px color-mix(in srgb, var(--p-text-color) 14%, transparent);
       }
 
       .step-card-header {
@@ -1022,11 +1022,11 @@ interface CurrencyOption {
         margin: 0;
         font-size: 1.25rem;
         font-weight: 700;
-        color: #081c15;
+        color: var(--p-text-color);
       }
       .step-card-header p {
         margin: 0.25rem 0 0;
-        color: #40916c;
+        color: var(--p-text-muted-color);
         font-size: 0.85rem;
       }
 
@@ -1041,24 +1041,24 @@ interface CurrencyOption {
         flex-shrink: 0;
       }
       .general-icon {
-        background: linear-gradient(135deg, #d1f4e0, #95d5b2);
-        color: #1b4332;
+        background: linear-gradient(135deg, var(--p-green-100), var(--p-green-300));
+        color: var(--p-green-800);
       }
       .panel-icon {
-        background: linear-gradient(135deg, #fff9ad, #ffd600);
-        color: #5c4e00;
+        background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+        color: var(--p-amber-900);
       }
       .location-icon {
-        background: linear-gradient(135deg, #bfdbfe, #219ebc);
-        color: #0c3547;
+        background: linear-gradient(135deg, var(--p-sky-100), var(--p-cyan-400));
+        color: var(--p-cyan-900);
       }
       .threedee-icon {
-        background: linear-gradient(135deg, #e0e7ff, #818cf8);
-        color: #312e81;
+        background: linear-gradient(135deg, var(--p-indigo-100), var(--p-indigo-400));
+        color: var(--p-indigo-900);
       }
       .capacity-icon {
-        background: linear-gradient(135deg, #fef3c7, #ffd600);
-        color: #5c4e00;
+        background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+        color: var(--p-amber-900);
       }
 
       /* ─── Form Grid ─── */
@@ -1079,13 +1079,13 @@ interface CurrencyOption {
       }
 
       .field-error {
-        color: #d62828;
+        color: var(--p-red-500);
         font-size: 0.8rem;
         margin-top: 0.35rem;
         display: block;
       }
       .field-hint {
-        color: #52b788;
+        color: var(--p-text-muted-color);
         font-size: 0.8rem;
         margin-top: 0.35rem;
         display: block;
@@ -1104,7 +1104,7 @@ interface CurrencyOption {
         height: 320px;
         border-radius: 16px;
         overflow: hidden;
-        border: 2px solid #b7e4c7;
+        border: 1px solid var(--p-content-border-color);
       }
       .map-instructions,
       .map-status {
@@ -1118,12 +1118,12 @@ interface CurrencyOption {
         font-weight: 500;
       }
       .map-instructions {
-        background: #fff9ad;
-        color: #5c4e00;
+        background: color-mix(in srgb, var(--p-amber-100) 60%, var(--p-surface-0));
+        color: var(--p-amber-800);
       }
       .map-status {
-        background: #d1f4e0;
-        color: #1b4332;
+        background: color-mix(in srgb, var(--p-green-100) 65%, var(--p-surface-0));
+        color: var(--p-green-800);
       }
 
       /* ─── Panel Option Template ─── */
@@ -1135,17 +1135,17 @@ interface CurrencyOption {
         width: 100%;
       }
       .panel-option strong {
-        color: #081c15;
+        color: var(--p-text-color);
       }
       .panel-meta {
         display: block;
-        color: #52b788;
+        color: var(--p-text-muted-color);
         font-size: 0.8rem;
         margin-top: 0.15rem;
       }
       .panel-watts {
         font-weight: 700;
-        color: #2d6a4f;
+        color: var(--p-primary-color);
         white-space: nowrap;
       }
 
@@ -1161,17 +1161,17 @@ interface CurrencyOption {
       }
       .placeholder-main-icon {
         font-size: 3.5rem;
-        color: #818cf8;
+        color: var(--p-indigo-400);
         opacity: 0.35;
       }
       .placeholder-title {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #1b4332;
+        color: var(--p-text-color);
       }
       .placeholder-text {
         font-size: 0.85rem;
-        color: #40916c;
+        color: var(--p-text-muted-color);
         max-width: 300px;
         line-height: 1.45;
       }
@@ -1191,25 +1191,25 @@ interface CurrencyOption {
         flex-direction: column;
         gap: 0.25rem;
         padding: 0.75rem;
-        background: #f0f7f4;
+        background: var(--p-content-hover-background);
         border-radius: 12px;
       }
       .capacity-item.highlight {
         grid-column: 1 / -1;
-        background: linear-gradient(135deg, #fff9ad 0%, #ffd600 100%);
+        background: linear-gradient(135deg, var(--p-amber-100) 0%, var(--p-yellow-400) 100%);
         text-align: center;
       }
       .capacity-item.highlight strong {
         font-size: 1.3rem;
-        color: #000;
+        color: var(--p-text-color);
       }
       .capacity-label {
         font-size: 0.8rem;
-        color: #40916c;
+        color: var(--p-text-muted-color);
         font-weight: 500;
       }
       .capacity-item strong {
-        color: #081c15;
+        color: var(--p-text-color);
         font-weight: 700;
       }
       .calculating-state {
@@ -1223,8 +1223,8 @@ interface CurrencyOption {
         gap: 0.5rem;
         padding: 1rem;
         border-radius: 12px;
-        background: #f0f7f4;
-        color: #40916c;
+        background: var(--p-content-hover-background);
+        color: var(--p-text-muted-color);
         font-size: 0.88rem;
       }
 
@@ -1237,13 +1237,13 @@ interface CurrencyOption {
         padding: 0.6rem 1rem;
         border-radius: 12px;
         font-size: 0.85rem;
-        background: #e8f5e9;
-        color: #1b4332;
+        background: color-mix(in srgb, var(--p-primary-100) 45%, var(--p-surface-0));
+        color: var(--p-text-color);
       }
       .link-btn {
         background: none;
         border: none;
-        color: #2d6a4f;
+        color: var(--p-primary-color);
         font-weight: 700;
         cursor: pointer;
         text-decoration: underline;
@@ -1251,7 +1251,7 @@ interface CurrencyOption {
         padding: 0;
       }
       .link-btn:hover {
-        color: #081c15;
+        color: var(--p-text-color);
       }
 
       /* ─── Review Grid ─── */
@@ -1269,7 +1269,7 @@ interface CurrencyOption {
         margin: 0;
         font-size: 1.05rem;
         font-weight: 700;
-        color: #081c15;
+        color: var(--p-text-color);
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -1284,23 +1284,28 @@ interface CurrencyOption {
         align-items: center;
         gap: 1rem;
         padding: 0.55rem 0;
-        border-bottom: 1px solid #f0f7f4;
-        color: #1b4332;
+        border-bottom: 1px solid var(--p-content-border-color);
+        color: var(--p-text-muted-color);
         font-size: 0.9rem;
       }
       .review-item:last-child {
         border-bottom: none;
       }
       .review-item strong {
-        color: #081c15;
+        color: var(--p-text-color);
         font-weight: 700;
         text-align: right;
       }
 
       /* ─── Total Capacity Highlight ─── */
       .total-capacity-card {
-        background: linear-gradient(135deg, #fef3c7 0%, #ffd600 50%, #ffea70 100%);
-        border-color: #ffd600;
+        background: linear-gradient(
+          135deg,
+          var(--p-amber-100) 0%,
+          var(--p-yellow-400) 50%,
+          var(--p-yellow-300) 100%
+        );
+        border-color: var(--p-yellow-400);
       }
       .total-capacity-content {
         display: flex;
@@ -1311,13 +1316,13 @@ interface CurrencyOption {
         width: 64px;
         height: 64px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.6);
+        background: color-mix(in srgb, var(--p-surface-0) 60%, transparent);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.8rem;
-        color: #5c4e00;
-        box-shadow: 0 0 20px rgba(255, 214, 0, 0.4);
+        color: var(--p-amber-900);
+        box-shadow: 0 0 20px color-mix(in srgb, var(--p-yellow-400) 45%, transparent);
         flex-shrink: 0;
       }
       .capacity-info {
@@ -1327,13 +1332,13 @@ interface CurrencyOption {
       }
       .capacity-info span {
         font-size: 0.95rem;
-        color: #5c4e00;
+        color: var(--p-amber-900);
         font-weight: 500;
       }
       .capacity-info strong {
         font-size: 2rem;
         font-weight: 800;
-        color: #000;
+        color: var(--p-text-color);
       }
 
       /* ─── Responsive ─── */

@@ -69,17 +69,17 @@ import { getErrorMessage } from '@core/models';
       min-height: 60vh;
 
       .reset-password-card {
-        background: white;
+        background: var(--p-surface-0);
         padding: 2rem;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: var(--p-shadow-md, 0 2px 8px rgba(0,0,0,0.1));
         width: 100%;
         max-width: 400px;
 
         h2 {
           text-align: center;
           margin-bottom: 2rem;
-          color: #333;
+          color: var(--p-text-color);
         }
 
         .form-group {
@@ -89,29 +89,31 @@ import { getErrorMessage } from '@core/models';
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
-            color: #333;
+            color: var(--p-text-color);
           }
 
           input {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid #ddd;
+            border: 1px solid var(--p-content-border-color);
             border-radius: 4px;
             font-size: 1rem;
+            color: var(--p-text-color);
+            background: var(--p-surface-0);
 
             &.error {
-              border-color: #f44336;
+              border-color: var(--p-red-500);
             }
 
             &:focus {
               outline: none;
-              border-color: #1976d2;
+              border-color: var(--p-primary-500);
             }
           }
 
           .error-message {
             display: block;
-            color: #f44336;
+            color: var(--p-red-500);
             font-size: 0.875rem;
             margin-top: 0.25rem;
           }
@@ -123,13 +125,13 @@ import { getErrorMessage } from '@core/models';
           margin-bottom: 1rem;
 
           &.alert-error {
-            background-color: #ffebee;
-            color: #c62828;
+            background-color: color-mix(in srgb, var(--p-red-500) 12%, transparent);
+            color: var(--p-red-700, var(--p-red-500));
           }
 
           &.alert-success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
+            background-color: color-mix(in srgb, var(--p-green-500) 12%, transparent);
+            color: var(--p-green-700, var(--p-green-500));
           }
         }
 
@@ -144,11 +146,11 @@ import { getErrorMessage } from '@core/models';
           transition: background-color 0.2s;
 
           &.btn-primary {
-            background-color: #1976d2;
-            color: white;
+            background-color: var(--p-primary-500);
+            color: var(--p-primary-contrast-color, #fff);
 
             &:hover:not(:disabled) {
-              background-color: #1565c0;
+              background-color: var(--p-primary-600);
             }
 
             &:disabled {
@@ -163,7 +165,7 @@ import { getErrorMessage } from '@core/models';
           margin-top: 1rem;
 
           a {
-            color: #1976d2;
+            color: var(--p-primary-500);
             text-decoration: none;
             font-size: 0.875rem;
 

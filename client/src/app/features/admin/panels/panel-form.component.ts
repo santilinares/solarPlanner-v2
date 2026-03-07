@@ -1,7 +1,6 @@
 import { Component, inject, signal, input, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { PanelService } from '@core/services/panel.service';
 import { Panel, PanelCreateRequest } from '@core/models/panel.model';
 
 @Component({
@@ -117,7 +116,7 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        background: color-mix(in srgb, var(--p-surface-900) 55%, transparent);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -125,14 +124,14 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
       }
 
       .modal-content {
-        background: white;
+        background: var(--p-surface-0);
         border-radius: 8px;
         padding: 1.5rem;
         width: 100%;
         max-width: 500px;
         max-height: 90vh;
         overflow-y: auto;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--p-shadow-lg, 0 4px 12px rgba(0, 0, 0, 0.15));
       }
 
       .modal-header {
@@ -144,12 +143,14 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         h2 {
           margin: 0;
           font-size: 1.5rem;
+          color: var(--p-text-color);
         }
 
         .close-btn {
           background: none;
           border: none;
           font-size: 1.5rem;
+          color: var(--p-text-muted-color);
           cursor: pointer;
           padding: 0;
           line-height: 1;
@@ -164,24 +165,27 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
           margin-bottom: 0.5rem;
           font-weight: 500;
           font-size: 0.9rem;
+          color: var(--p-text-color);
         }
 
         input,
         select {
           width: 100%;
           padding: 0.5rem;
-          border: 1px solid #ddd;
+          border: 1px solid var(--p-content-border-color);
           border-radius: 4px;
           font-size: 1rem;
+          color: var(--p-text-color);
+          background: var(--p-surface-0);
 
           &:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: var(--p-primary-500);
           }
         }
 
         .error {
-          color: #ef4444;
+          color: var(--p-red-500);
           font-size: 0.8rem;
           margin-top: 0.25rem;
           display: block;
@@ -219,18 +223,18 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         }
 
         .btn-secondary {
-          background: #e5e7eb;
-          color: #374151;
+          background: var(--p-surface-200);
+          color: var(--p-text-color);
           &:hover {
-            background: #d1d5db;
+            background: var(--p-surface-300);
           }
         }
 
         .btn-primary {
-          background: #2563eb;
-          color: white;
+          background: var(--p-primary-500);
+          color: var(--p-primary-contrast-color, #fff);
           &:hover {
-            background: #1d4ed8;
+            background: var(--p-primary-600);
           }
         }
       }

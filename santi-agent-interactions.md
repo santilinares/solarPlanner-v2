@@ -4,6 +4,89 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 7, 2026 - Configure Project Token Cleanup (Sectioned Pass)
+
+### Topic
+Completed a section-by-section style cleanup for the high-impact `configure-project` feature component to align with PrimeNG Aura tokens.
+
+### Summary of Request
+User requested continuing the refactor on `feature/frontend-modernization` by targeting `client/src/app/features/user/configure-project/configure-project.component.ts` in safe chunks, avoiding logic/layout changes, and preferring `--p-*` tokens over bridge/hardcoded colors.
+
+### What Was Achieved
+- **Section A: Header + Step Nav + Step Indicators**
+  - Replaced hardcoded header/nav/indicator colors with tokenized values (`--p-text-*`, `--p-primary-*`, `--p-content-border-color`).
+  - Updated sticky nav translucent background/shadow using token-aware `color-mix(...)`.
+
+- **Section B: Card Shells + Metadata-Adjacent Surfaces**
+  - Migrated card backgrounds, borders, and shadows to token-based surfaces/borders.
+  - Updated card heading/subtext and map container border to token equivalents.
+
+- **Section C: Status Badges/Messages**
+  - Migrated error, hint, map instruction/status, no-panel message, and optimal-config hint styles to semantic tokens (`--p-red-*`, `--p-green-*`, `--p-amber-*`, `--p-primary-*`).
+  - Replaced hardcoded warning/success/info backgrounds with tokenized `color-mix(...)` variants.
+
+- **Section D: Review/Summary + Capacity Highlights**
+  - Refactored remaining review block colors/borders and total-capacity highlight styles to token-based gradients and text colors.
+  - Migrated icon gradient palettes (panel/location/3D/capacity/general) from hardcoded values to semantic token gradients.
+
+- **Validation**
+  - Diagnostics run after each section: no TS/template/style errors in the edited file.
+  - Target-file sweep confirms no remaining `#hex`, `rgba(...)`, or deprecated bridge tokens in `configure-project.component.ts`.
+
+### Full Prompt
+"You are continuing a style refactor in `solarPlanner-v2` on branch `feature/frontend-modernization`... Start with: `client/src/app/features/user/configure-project/configure-project.component.ts` and do one section at a time with small, verifiable patches."
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The component is large and high-risk for visual regressions, so changes were intentionally split into small, independently validated style-only patches.
+- Token-first replacements improve Aura theme consistency (light/dark) and reduce maintenance overhead from mixed palette sources.
+
+---
+
+## 📅 March 7, 2026 - Sweep Pass (Forgot/Reset/Admin Utility Views)
+
+### Topic
+Executed an additional sweep pass to modernize remaining low-complexity components with hardcoded color values.
+
+### Summary of Request
+User approved running the final sweep to clean leftover hardcoded colors and token inconsistencies.
+
+### What Was Achieved
+- **Forgot Password (`forgot-password.component.ts`)**
+  - Replaced hardcoded colors with PrimeNG tokens (`--p-text-*`, `--p-content-border-color`, `--p-primary-*`, `--p-red-*`, `--p-green-*`).
+  - Updated alert states and primary button colors to token-driven values.
+
+- **Reset Password (`reset-password.component.ts`)**
+  - Applied the same token migration pattern as forgot-password.
+  - Replaced direct red/blue state colors with `--p-red-*` and `--p-primary-*` tokens.
+
+- **Admin Projects List (`projects-list.component.ts`)**
+  - Replaced placeholder hardcoded colors with `--p-surface-0` and `--p-text-muted-color`.
+
+- **Admin Panel Form (`panel-form.component.ts`)**
+  - Migrated modal, inputs, errors, and action button palette from hardcoded values to PrimeNG tokens.
+  - Overlay and shadows updated to token-aware styles with safe fallbacks.
+
+- Diagnostics run across all edited files: **no errors found**.
+
+### Full Prompt
+"Yeah, lets do that"
+
+### Affected Files
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `client/src/app/features/admin/projects-list/projects-list.component.ts`
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+
+### Reasoning Snapshot
+- This pass prioritized smaller, isolated components for low-risk improvements and immediate token consistency.
+- The large `configure-project.component.ts` still contains numerous intentional, branded hardcoded values and should be handled in a dedicated, carefully segmented pass to avoid visual regressions.
+
+---
+
 ## 📅 March 7, 2026 - Medium Priority Cleanup (User + Admin Views)
 
 ### Topic

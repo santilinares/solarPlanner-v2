@@ -24,11 +24,11 @@ import { CommonModule } from '@angular/common';
       }
 
       .content-placeholder {
-        background: white;
+        background: var(--p-surface-0);
         padding: 3rem;
         border-radius: 8px;
         text-align: center;
-        color: #666;
+        color: var(--p-text-muted-color);
 
         p {
           margin: 1rem 0;
