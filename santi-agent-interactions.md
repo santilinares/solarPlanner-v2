@@ -1189,3 +1189,63 @@ User noticed the meta-editable inputs had lost their bubble background and asked
 
 ### AI Reasoning
 The metadata strip had hardcoded hex colors that wouldn't respond to theme changes (light/dark mode). The PrimeNG preset defines `--p-surface-50`, `--p-green-600`, etc., and the custom theme files define `--text-color-secondary` and `--surface-border`. By converting to these variables, the bubbles now adapt automatically to the active theme. The PrimeNG inputs inside `.meta-editable` were made transparent and borderless so the bubble container itself acts as the visual boundary, matching the `.meta-chip` aesthetic.
+
+---
+
+## 📅 March 7, 2026 - Add-Project Full-Screen Wizard & Cultivar Entity
+
+### Topic
+Full-screen multi-step project creation wizard + new Cultivar backend entity for agrivoltaic support.
+
+### Summary of Request
+Implement the approved `ADD-PROJECT-WIZARD-PLAN.md` — transform the single-page `AddProjectComponent` into a full-screen 4-step wizard (Project Info → Location & Area → Configuration → Review), introduce the Cultivar backend entity for agrivoltaic crop types, add new fields to the Project entity (`projectType`, `description`, `cultivar`), create an unsaved-changes guard, and route `projects/add` outside the user layout for a headerless/footerless experience.
+
+### What Was Achieved
+- **New Cultivar backend entity (6 files):** Mongoose model, Zod schema, types, service (CRUD), controller, routes — registered at `/api/cultivars` with admin-only write endpoints and user-accessible read endpoints.
+- **Project entity extended:** Added `projectType` (roof/agrivoltaic), `description`, and `cultivar` (ObjectId ref) to Mongoose model, Zod create/update schemas, TypeScript response types, and service layer (with cultivar validation on create).
+- **Client Cultivar model + service:** New `Cultivar` interface and `CultivarService` with `getAllCultivars`, `getCultivarById`, `getCultivarsByCategory`.
+- **Unsaved-changes guard:** `canDeactivate` guard with `HasUnsavedWork` interface — warns on navigation away from dirty wizard state.
+- **Routing change:** `projects/add` moved to a top-level standalone route (outside `UserLayoutComponent`) with `canDeactivate: [unsavedChangesGuard]`.
+- **Full add-project component rewrite:** 4-step PrimeNG Stepper wizard with:
+  - Step 1: Name, description, project type toggle (Roof / Agrivoltaic)
+  - Step 2: Map + search + polygon drawing + country/timezone auto-detection + energy price
+  - Step 3: Panel selector, panel count, tilt, direction, row spacing, cultivar selector (agrivoltaic), optimal config calculation, warnings system, Reset to Optimal, 3D placeholder
+  - Step 4: Full review with edit buttons per section + Create Project
+- **Minimal top bar** with brand icon, step indicator, and exit button with PrimeNG ConfirmDialog.
+- **`beforeunload` listener** for browser tab close protection.
+- **Client project model updated:** `ProjectCreateRequest` and `ProjectResponse` gained `description`, `projectType`, `cultivarId`/`cultivar` fields.
+- **Barrel exports updated:** Models index exports Cultivar types; Guards index exports `unsavedChangesGuard`; Services index exports `CultivarService`.
+
+### Full Prompt
+"Let's follow this add-project-wizard-plan.md to update the component and implement all the new features. Read everything and start implementing when you have all the context necessary, we have got to nail this!"
+
+### Affected Files
+
+**New files (9):**
+- `server/src/models/cultivar.model.ts`
+- `server/src/schemas/cultivar.schema.ts`
+- `server/src/types/cultivar.types.ts`
+- `server/src/services/cultivar.service.ts`
+- `server/src/controllers/cultivar.controller.ts`
+- `server/src/routes/cultivar.routes.ts`
+- `client/src/app/core/models/cultivar.model.ts`
+- `client/src/app/core/services/cultivar.service.ts`
+- `client/src/app/core/guards/unsaved-changes.guard.ts`
+
+**Modified files (9):**
+- `client/src/app/app.routes.ts` — Moved `projects/add` outside layout + added `canDeactivate`
+- `client/src/app/features/user/add-project/add-project.component.ts` — Full rewrite as 4-step wizard
+- `client/src/app/features/user/add-project/add-project.component.html` — New external template
+- `client/src/app/features/user/add-project/add-project.component.scss` — New external styles
+- `client/src/app/core/models/project.model.ts` — Added `description`, `projectType`, `cultivarId`/`cultivar`
+- `client/src/app/core/models/index.ts` — Added cultivar model exports
+- `client/src/app/core/guards/index.ts` — Added `unsavedChangesGuard` export
+- `client/src/app/core/services/index.ts` — Added `CultivarService` export
+- `server/src/routes/index.ts` — Registered `/cultivars` routes
+- `server/src/models/project.model.ts` — Added `projectType`, `description`, `cultivar` fields
+- `server/src/schemas/project.schema.ts` — Added new fields to create/update schemas
+- `server/src/types/project.types.ts` — Added new fields to `ProjectResponse`
+- `server/src/services/project.service.ts` — Cultivar validation + new fields in transform
+
+### AI Reasoning
+The plan specified a clear architecture: move the `projects/add` route outside `UserLayoutComponent` in `app.routes.ts` so no header/footer renders (Angular evaluates routes top-to-bottom, so `projects/add` matches before the `projects` parent route). The Cultivar backend entity follows the exact same layered pattern as Panel (Model → Schema → Types → Service → Controller → Routes). The wizard component uses PrimeNG Stepper with `activateCallback` for programmatic step navigation. Signals replace reactive forms for simpler state management in a wizard context. The `HasUnsavedWork` interface enables both the `canDeactivate` guard (URL-based navigation) and the `beforeunload` listener (browser close) to protect unsaved progress. Warning computations use `computed()` signals that auto-react to panel count and cultivar changes.

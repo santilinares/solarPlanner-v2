@@ -8,6 +8,8 @@ import { GeoPointInput } from '../schemas/project.schema';
 export interface ProjectResponse {
   _id: string;
   name: string;
+  description?: string;
+  projectType: 'roof' | 'agrivoltaic';
   area: GeoPointInput[];
   lat?: number;
   lon?: number;
@@ -22,6 +24,7 @@ export interface ProjectResponse {
   rawSpacing?: number;
   panelNumber: number;
   panel?: string | object; // Panel ID or populated panel object
+  cultivar?: string | object; // Cultivar ID or populated cultivar object
   owner?: string | object; // User ID or populated user object
   prodToday?: IProductionPoint[];
   nextProd?: IProductionPoint[];

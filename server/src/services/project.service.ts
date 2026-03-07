@@ -2,6 +2,7 @@ import { HydratedDocument, FilterQuery } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { ProjectModel, IProject } from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
+import { CultivarModel } from '../models/cultivar.model';
 import {
   ProjectCreateInput,
   ProjectQueryInput,
@@ -85,6 +86,8 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
   return {
     _id: project._id.toString(),
     name: project.name,
+    description: project.description,
+    projectType: project.projectType ?? 'roof',
     area: project.area,
     lat: geo.lat,
     lon: geo.lon,
@@ -99,6 +102,7 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     rawSpacing: project.rawSpacing,
     panelNumber: project.panelNumber,
     panel: project.panel?._id.toString(),
+    cultivar: project.cultivar?._id?.toString(),
     owner: project.owner?._id.toString(),
     prodToday: project.prodToday,
     nextProd: project.nextProd,
@@ -125,10 +129,19 @@ export class ProjectService {
       }
     }
 
+    // Validate cultivar exists if agrivoltaic + cultivarId provided
+    if (data.projectType === 'agrivoltaic' && data.cultivarId) {
+      const cultivar = await CultivarModel.findById(data.cultivarId);
+      if (!cultivar) {
+        throw new Error('Cultivar not found');
+      }
+    }
+
     // Create project (lat, lon, surface are calculated on-demand in response)
     const project = await ProjectModel.create({
       ...data,
       panel: data.panelId,
+      cultivar: data.projectType === 'agrivoltaic' ? data.cultivarId : undefined,
       owner: userId,
     });
 

@@ -1,0 +1,556 @@
+// Wizard full-screen layout
+:host {
+  display: block;
+  width: 100vw;
+  min-height: 100vh;
+  background: #f0f7f4;
+  overflow-y: auto;
+}
+
+.wizard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// ── Top Bar ────────────────────────────────────────
+.wizard-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: #1b4332;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .brand-icon {
+      font-size: 1.5rem;
+      color: #ffd600;
+    }
+
+    .brand-label {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+  }
+
+  .top-bar-center {
+    .step-indicator {
+      font-size: 0.9rem;
+      opacity: 0.85;
+    }
+  }
+
+  .top-bar-right {
+    .exit-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 24px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+    }
+  }
+}
+
+// ── Wizard Content ─────────────────────────────────
+.wizard-content {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.wizard-stepper {
+  width: 100%;
+}
+
+// ── Steps ──────────────────────────────────────────
+.step-body {
+  padding: 1.5rem 0;
+}
+
+.step-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #081c15;
+}
+
+.step-subtitle {
+  color: #1b4332;
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+// ── Form Groups ────────────────────────────────────
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+
+  label {
+    font-weight: 600;
+    color: #1b4332;
+    font-size: 0.9rem;
+  }
+
+  .optional {
+    font-weight: 400;
+    color: #777;
+    font-size: 0.82rem;
+  }
+
+  .char-count {
+    text-align: right;
+    color: #777;
+    font-size: 0.78rem;
+  }
+
+  input[type='text'],
+  textarea {
+    padding: 0.75rem 1rem;
+    border: 1px solid #b7e4c7;
+    border-radius: 12px;
+    font-size: 1rem;
+    color: #081c15;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+
+    &:focus {
+      border-color: #2d6a4f;
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
+      outline: none;
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 70px;
+  }
+}
+
+.w-full {
+  width: 100%;
+}
+
+// ── Type Cards (Step 1) ────────────────────────────
+.type-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 2px solid #b7e4c7;
+  border-radius: 24px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  &:hover {
+    border-color: #2d6a4f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(45, 106, 79, 0.12);
+  }
+
+  &.selected {
+    border-color: #2d6a4f;
+    background: #f0f7f4;
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
+  }
+
+  .type-icon {
+    font-size: 2rem;
+    color: #2d6a4f;
+  }
+
+  .type-label {
+    font-weight: 700;
+    color: #081c15;
+    font-size: 1.1rem;
+  }
+
+  .type-desc {
+    font-size: 0.82rem;
+    color: #555;
+  }
+}
+
+// ── Step Actions ───────────────────────────────────
+.step-actions {
+  display: flex;
+  padding-top: 1.5rem;
+
+  &.end {
+    justify-content: flex-end;
+  }
+
+  &.between {
+    justify-content: space-between;
+  }
+}
+
+// ── Location (Step 2) ──────────────────────────────
+.location-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+
+  .search-input {
+    flex: 1;
+  }
+}
+
+.search-error {
+  font-size: 0.82rem;
+  color: #991b1b;
+  margin: -0.25rem 0 0.5rem;
+}
+
+.map-wrapper {
+  height: 450px;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #b7e4c7;
+}
+
+.polygon-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #d4edda;
+  border-radius: 12px;
+  color: #155724;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.map-instructions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #fff3cd;
+  border-radius: 12px;
+  color: #856404;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.metadata-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #b7e4c7;
+
+  .meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    background: #f0f7f4;
+    border-radius: 24px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1b4332;
+  }
+
+  .meta-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    label {
+      font-weight: 600;
+      color: #1b4332;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+  }
+}
+
+// ── Configuration (Step 3) ─────────────────────────
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.config-card {
+  background: #fff;
+  border: 2px solid #b7e4c7;
+  border-radius: 24px;
+  padding: 1.5rem;
+
+  h3 {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+    color: #081c15;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      color: #2d6a4f;
+    }
+  }
+}
+
+.cultivar-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #e8f5e9;
+  border-radius: 12px;
+  color: #1b5e20;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.warning-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+
+  &.warn {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  &.info {
+    background: #e3f2fd;
+    color: #0d47a1;
+  }
+}
+
+.preview-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+
+  .preview-label {
+    color: #1b4332;
+  }
+
+  strong {
+    color: #081c15;
+  }
+
+  &.highlight {
+    font-weight: 700;
+    color: #2d6a4f;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #b7e4c7;
+
+    strong {
+      color: #2d6a4f;
+    }
+  }
+}
+
+.empty-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: #777;
+
+  i {
+    font-size: 2.5rem;
+    color: #b7e4c7;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+.reset-btn {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.placeholder-3d {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  background: #fff;
+  border: 2px dashed #b7e4c7;
+  border-radius: 24px;
+  color: #999;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+
+  i {
+    font-size: 1.5rem;
+  }
+}
+
+// ── Review (Step 4) ────────────────────────────────
+.review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.review-card {
+  background: #fff;
+  border: 2px solid #b7e4c7;
+  border-radius: 24px;
+  padding: 1.25rem;
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
+    color: #081c15;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      color: #2d6a4f;
+    }
+  }
+
+  .review-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #1b4332;
+
+    strong {
+      color: #081c15;
+      text-align: right;
+      max-width: 60%;
+      word-break: break-word;
+    }
+
+    &.highlight {
+      font-weight: 700;
+      color: #2d6a4f;
+
+      strong {
+        color: #2d6a4f;
+      }
+    }
+  }
+
+  button {
+    margin-top: 0.5rem;
+  }
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.total-capacity-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #ffd600;
+  color: #000;
+  border-radius: 24px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 15px rgba(255, 214, 0, 0.4);
+
+  i {
+    font-size: 1.4rem;
+  }
+}
+
+// ── Responsive ─────────────────────────────────────
+@media (max-width: 900px) {
+  .config-grid,
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .type-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .wizard-top-bar {
+    padding: 0.5rem 1rem;
+
+    .top-bar-center {
+      display: none;
+    }
+  }
+
+  .map-wrapper {
+    height: 320px;
+  }
+
+  .step-title {
+    font-size: 1.3rem;
+  }
+}

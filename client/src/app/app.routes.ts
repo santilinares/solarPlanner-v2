@@ -1,10 +1,20 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { unsavedChangesGuard } from './core/guards/unsaved-changes.guard';
 import { LandingPageComponent } from './features/visitor/landing-page/landing-page.component';
 import { VisitorLayoutComponent } from './layouts/visitor-layout/visitor-layout.component';
 
 export const routes: Routes = [
+  // Full-screen wizard — NO header / footer
+  {
+    path: 'projects/add',
+    loadComponent: () => import('./features/user/add-project/add-project.component')
+      .then(m => m.AddProjectComponent),
+    canActivate: [authGuard],
+    canDeactivate: [unsavedChangesGuard],
+  },
+
   // User routes (protected)
   {
     path: 'projects',
@@ -17,11 +27,6 @@ export const routes: Routes = [
         pathMatch: 'full',
         loadComponent: () => import('./features/user/dashboard/dashboard.component')
           .then(m => m.DashboardComponent)
-      },
-      {
-        path: 'add',
-        loadComponent: () => import('./features/user/add-project/add-project.component')
-          .then(m => m.AddProjectComponent)
       },
       {
         path: 'all',

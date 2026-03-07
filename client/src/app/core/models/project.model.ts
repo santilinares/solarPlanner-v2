@@ -39,12 +39,15 @@ export interface GeoPoint {
 
 export interface ProjectCreateRequest {
   name: string;
+  description?: string;
+  projectType: 'roof' | 'agrivoltaic';
   area: GeoPoint[];
   tilt: number;
   direction: string;
   panelNumber: number;
   panelId?: string;
   rawSpacing?: number;
+  cultivarId?: string;
 }
 
 export interface ProjectUpdateRequest {
@@ -157,6 +160,8 @@ export interface DashboardStats {
 export interface ProjectResponse {
   _id: string;
   name: string;
+  description?: string;
+  projectType: 'roof' | 'agrivoltaic';
   area: Array<{ lat: number; lon: number }>;
   lat?: number;
   lon?: number;
@@ -171,6 +176,7 @@ export interface ProjectResponse {
   rawSpacing?: number;
   panelNumber: number;
   panel?: string;
+  cultivar?: string;
   owner?: string;
   prodToday?: unknown[];
   nextProd?: unknown[];

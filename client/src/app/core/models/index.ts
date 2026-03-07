@@ -26,3 +26,4 @@ export {
 } from './project.model';
 
 export * from './panel.model';
+export * from './cultivar.model';

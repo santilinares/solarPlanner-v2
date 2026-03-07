@@ -31,6 +31,8 @@ const ProductionPointSchema = new Schema<IProductionPoint>(
 // Project data interface
 export interface IProject {
   name: string;
+  description?: string;
+  projectType: 'roof' | 'agrivoltaic';
   area: GeoPointInput[]; // Polygon coordinates
   lat?: number; // Derived center latitude
   lon?: number; // Derived center longitude
@@ -45,6 +47,7 @@ export interface IProject {
   rawSpacing?: number; // Spacing between panel rows
   panelNumber: number; // Number of panels in project
   panel?: mongoose.Types.ObjectId; // Reference to Panel
+  cultivar?: mongoose.Types.ObjectId; // Reference to Cultivar (agrivoltaic only)
   owner?: mongoose.Types.ObjectId; // Reference to User
   prodToday?: IProductionPoint[]; // Today's production data
   nextProd?: IProductionPoint[]; // Forecast production data
@@ -63,6 +66,17 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
       type: String,
       required: true,
       trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    projectType: {
+      type: String,
+      enum: ['roof', 'agrivoltaic'],
+      required: true,
+      default: 'roof',
     },
     area: [
       {
@@ -103,6 +117,10 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
     panel: {
       type: Schema.Types.ObjectId,
       ref: 'Panels',
+    },
+    cultivar: {
+      type: Schema.Types.ObjectId,
+      ref: 'Cultivars',
     },
     owner: {
       type: Schema.Types.ObjectId,

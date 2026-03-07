@@ -54,6 +54,8 @@ export type GeoPointInput = z.infer<typeof GeoPointSchema>;
  */
 export const ProjectCreateSchema = z.object({
   name: z.string().min(2, 'Project name must be at least 2 characters'),
+  description: z.string().max(500).optional(),
+  projectType: z.enum(['roof', 'agrivoltaic']),
   area: z
     .array(GeoPointSchema)
     .min(3, 'Area polygon requires at least 3 points')
@@ -63,6 +65,7 @@ export const ProjectCreateSchema = z.object({
   rawSpacing: z.number().positive().optional(),
   panelNumber: z.number().int().positive('Panel number must be a positive integer'),
   panelId: z.string().optional(), // Reference to Panel document
+  cultivarId: z.string().optional(), // Reference to Cultivar document (agrivoltaic only)
 });
 
 /** Type inferred from ProjectCreateSchema - used for creating solar projects */
@@ -78,6 +81,8 @@ export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;
  */
 export const ProjectUpdateSchema = z.object({
   name: z.string().min(2).optional(),
+  description: z.string().max(500).optional(),
+  projectType: z.enum(['roof', 'agrivoltaic']).optional(),
   area: z.array(GeoPointSchema).min(3),
   tilt: z.number().min(0).max(90).optional(),
   direction: z.string().min(1).optional(),
@@ -85,6 +90,7 @@ export const ProjectUpdateSchema = z.object({
   rawSpacing: z.number().positive().optional(),
   panelNumber: z.number().int().positive().optional(),
   panelId: z.string().optional(),
+  cultivarId: z.string().optional(),
   country: z.string().optional(),
   timezone: z.string().optional(),
   currency: z.string().optional(),

@@ -1,9 +1,27 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
+import { ConfirmationService } from 'primeng/api';
+import { StepperModule } from 'primeng/stepper';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
+import { SelectModule } from 'primeng/select';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+
 import { ProjectService } from '@core/services/project.service';
-import { PanelService } from '@core/services/panel.service';
+import { PanelService, PanelListResponse } from '@core/services/panel.service';
+import { CultivarService } from '@core/services/cultivar.service';
 import {
   Panel,
   OptimalConfigResponse,
@@ -12,489 +30,239 @@ import {
   Coordinates,
   GeoPoint,
 } from '@core/models';
-import { DecimalPipe } from '@angular/common';
+import { Cultivar, CultivarListResponse } from '@core/models/cultivar.model';
+import { HasUnsavedWork } from '@core/guards/unsaved-changes.guard';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
-import { PanelListResponse } from '@core/services/panel.service';
+
+interface WarningItem {
+  severity: 'warn' | 'info';
+  message: string;
+}
 
 @Component({
   selector: 'app-add-project',
-  imports: [ReactiveFormsModule, DecimalPipe, LocationMapComponent],
-  template: `
-    <section class="create-project-page animate-fade-in-up">
-      <header class="page-header">
-        <div>
-          <h1>Create New Project</h1>
-          <p>Define installation area and panel setup to estimate production.</p>
-        </div>
-      </header>
-
-      <div class="content-layout">
-        <section class="map-card">
-          <h2>Installation Area</h2>
-
-          <div class="location-search">
-            <input
-              type="text"
-              class="location-input"
-              placeholder="Search address or place…"
-              [value]="addressQuery()"
-              (input)="addressQuery.set($any($event.target).value)"
-              (keydown.enter)="searchAddress()"
-              aria-label="Search location"
-            />
-            <button
-              type="button"
-              class="location-search-btn"
-              (click)="searchAddress()"
-              [disabled]="isSearching() || !addressQuery().trim()"
-              aria-label="Go to location"
-            >
-              @if (isSearching()) {
-                <span class="search-spinner"></span>
-              } @else {
-                <i class="pi pi-search"></i>
-              }
-            </button>
-          </div>
-          @if (searchError()) {
-            <p class="search-error">{{ searchError() }}</p>
-          }
-
-          <div class="map-container">
-            <app-location-map
-              [editable]="true"
-              [centerOnUser]="true"
-              [center]="mapCenter()"
-              (polygonChange)="onPolygonChange($event)"
-            />
-          </div>
-          @if (!hasDrawnArea()) {
-            <div class="map-instructions" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-              <i class="pi pi-info-circle"></i>
-              <span>Use polygon draw tool to define your roof or field area.</span>
-            </div>
-          }
-        </section>
-
-        <aside class="sidebar">
-          <form [formGroup]="projectForm" (ngSubmit)="onSubmit()" class="form-card">
-            <h2>Project Configuration</h2>
-
-            <div class="form-group">
-              <label for="name">Project Name</label>
-              <input id="name" type="text" formControlName="name" placeholder="My Home Solar" />
-            </div>
-
-            <div class="form-group">
-              <label for="panel">Solar Panel</label>
-              <select id="panel" formControlName="panelId">
-                <option value="" disabled>Select a panel</option>
-                @for (panel of panels(); track panel.id || panel._id) {
-                  <option [value]="panel.id || panel._id">
-                    {{ panel.brand }} {{ panel.model }} ({{ panel.wattPeak }}W)
-                  </option>
-                }
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="tilt">Inclination</label>
-              <input id="tilt" type="number" formControlName="tilt" min="0" max="90" />
-            </div>
-
-            <div class="form-group">
-              <label for="orientation">Orientation</label>
-              <select id="orientation" formControlName="orientation">
-                <option value="south">South</option>
-                <option value="southeast">South-East</option>
-                <option value="southwest">South-West</option>
-                <option value="east">East</option>
-                <option value="west">West</option>
-                <option value="north">North</option>
-              </select>
-            </div>
-
-            <button
-              type="button"
-              class="btn-secondary"
-              (click)="onCalculate()"
-              [disabled]="!canCalculate()"
-            >
-              <i class="pi pi-bolt"></i>
-              Estimate Production
-            </button>
-
-            @if (estimation(); as est) {
-              <div class="results-card" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <h3>Estimation Results</h3>
-                <div class="result-item">
-                  <span>Recommended Panels</span>
-                  <strong>{{ est.recommendedPanels }}</strong>
-                </div>
-                <div class="result-item">
-                  <span>Total Capacity</span>
-                  <strong>{{ est.estimatedCapacity | number: '1.1-2' }} kW</strong>
-                </div>
-                <div class="result-item highlight">
-                  <span>Annual Production</span>
-                  <strong>{{ est.estimatedProduction | number: '1.0-0' }} kWh</strong>
-                </div>
-                <div class="result-item">
-                  <span>Roof Coverage</span>
-                  <strong>{{ est.coverage | number: '1.0-1' }}%</strong>
-                </div>
-              </div>
-            }
-
-            <button
-              type="submit"
-              class="btn-primary"
-              [disabled]="!canSubmit()"
-            >
-              <i class="pi pi-plus"></i>
-              Create Project
-            </button>
-          </form>
-        </aside>
-      </div>
-    </section>
-  `,
-  styles: [
-    `
-      .create-project-page {
-        max-width: 1280px;
-        margin: 0 auto;
-        padding: 1.5rem;
-      }
-
-      .page-header {
-        margin-bottom: 2rem;
-
-        h1 {
-          margin: 0;
-          font-size: clamp(2rem, 3vw, 2.5rem);
-          color: #081c15;
-          font-weight: 800;
-        }
-
-        p {
-          color: #1b4332;
-          margin-top: 0.5rem;
-        }
-      }
-
-      .content-layout {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 1.5rem;
-        align-items: start;
-      }
-
-      .map-card,
-      .form-card {
-        background: #ffffff;
-        border: 2px solid #b7e4c7;
-        border-radius: 24px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
-      }
-
-      .map-card {
-        position: relative;
-
-        h2 {
-          margin: 0 0 1rem;
-          font-size: 1.25rem;
-          color: #081c15;
-        }
-
-        .location-search {
-          display: flex;
-          gap: 0.5rem;
-          margin-bottom: 0.75rem;
-
-          .location-input {
-            flex: 1;
-            padding: 0.65rem 1rem;
-            border: 1px solid #b7e4c7;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            color: #081c15;
-            transition: border-color 0.2s, box-shadow 0.2s;
-
-            &:focus {
-              border-color: #2d6a4f;
-              box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
-              outline: none;
-            }
-          }
-
-          .location-search-btn {
-            padding: 0 1rem;
-            background: #2d6a4f;
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            transition: background 0.2s;
-
-            &:hover:not(:disabled) { background: #1b4332; }
-            &:disabled { opacity: 0.6; cursor: not-allowed; }
-          }
-        }
-
-        .search-error {
-          font-size: 0.82rem;
-          color: #991b1b;
-          margin: -0.25rem 0 0.5rem;
-        }
-
-        .search-spinner {
-          width: 16px;
-          height: 16px;
-          border: 2px solid transparent;
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-          display: inline-block;
-        }
-
-        .map-container {
-          height: 650px;
-          width: 100%;
-          border-radius: 12px;
-          overflow: hidden;
-          z-index: 1;
-        }
-
-        .map-instructions {
-          position: absolute;
-          bottom: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(255, 255, 255, 0.9);
-          padding: 0.75rem 1rem;
-          border-radius: 50px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-          z-index: 1000;
-          font-weight: 500;
-          color: #1b4332;
-          display: inline-flex;
-          gap: 0.5rem;
-          align-items: center;
-        }
-      }
-
-      .form-card {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-
-        h2 {
-          margin: 0 0 0.5rem;
-          font-size: 1.25rem;
-          color: #081c15;
-        }
-      }
-
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-
-        label {
-          font-weight: 600;
-          color: #1b4332;
-          font-size: 0.9rem;
-        }
-
-        input,
-        select {
-          padding: 0.75rem;
-          border: 1px solid #b7e4c7;
-          border-radius: 12px;
-          font-size: 1rem;
-          color: #081c15;
-          transition: border-color 0.2s, box-shadow 0.2s;
-
-          &:focus {
-            border-color: #2d6a4f;
-            box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
-            outline: none;
-          }
-        }
-      }
-
-      .btn-secondary,
-      .btn-primary {
-        border: none;
-        padding: 0.75rem;
-        border-radius: 24px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 0.25rem;
-        transition: all 0.25s ease;
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .btn-secondary {
-        background-color: #ffd600;
-        color: #000000;
-
-        &:hover:not(:disabled) {
-          box-shadow: 0 0 20px rgba(255, 214, 0, 0.35);
-          transform: translateY(-2px);
-        }
-      }
-
-      .btn-primary {
-        background-color: #2d6a4f;
-        color: #ffffff;
-
-        &:hover:not(:disabled) {
-          background-color: #1b4332;
-          transform: translateY(-2px);
-        }
-      }
-
-      .btn-secondary,
-      .btn-primary {
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
-        }
-      }
-
-      .results-card {
-        background: #f0f7f4;
-        border: 1px solid #b7e4c7;
-        border-radius: 16px;
-        padding: 1rem;
-
-        h3 {
-          margin: 0 0 0.75rem;
-          font-size: 1.1rem;
-          color: #081c15;
-        }
-
-        .result-item {
-          display: flex;
-          justify-content: space-between;
-          gap: 1rem;
-          margin-bottom: 0.6rem;
-          font-size: 0.95rem;
-          color: #1b4332;
-
-          &.highlight {
-            font-weight: 700;
-            color: #2d6a4f;
-            margin-top: 0.5rem;
-            border-top: 1px dashed #b7e4c7;
-            padding-top: 0.5rem;
-          }
-
-          strong {
-            color: #081c15;
-            text-align: right;
-          }
-        }
-      }
-
-      @media (max-width: 1024px) {
-        .content-layout {
-          grid-template-columns: 1fr;
-        }
-
-        .map-card .map-container {
-          height: 460px;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .create-project-page {
-          padding: 1rem;
-        }
-
-        .map-card .map-container {
-          height: 360px;
-        }
-      }
-    `,
+  templateUrl: './add-project.component.html',
+  styleUrls: ['./add-project.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FormsModule,
+    DecimalPipe,
+    StepperModule,
+    ButtonModule,
+    InputTextModule,
+    TextareaModule,
+    SelectModule,
+    InputNumberModule,
+    ConfirmDialogModule,
+    LocationMapComponent,
   ],
+  providers: [ConfirmationService],
+  host: {
+    '(window:beforeunload)': 'onBeforeUnload($event)',
+  },
 })
-export class AddProjectComponent implements OnInit {
-  private fb = inject(FormBuilder);
-  private projectService = inject(ProjectService);
-  private panelService = inject(PanelService);
-  private http = inject(HttpClient);
+export class AddProjectComponent implements OnInit, HasUnsavedWork {
+  private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly confirmationService = inject(ConfirmationService);
+  private readonly projectService = inject(ProjectService);
+  private readonly panelService = inject(PanelService);
+  private readonly cultivarService = inject(CultivarService);
 
-  // Signals
-  panels = signal<Panel[]>([]);
-  estimation = signal<OptimalConfigResponse | null>(null);
+  // ── Step management ──────────────────────────────
+  activeStep = signal(1);
+  totalSteps = signal(4);
 
-  drawnPolygonPoints = signal<Coordinates[]>([]);
-  hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
+  // ── Step 1: Project Info ─────────────────────────
+  projectName = signal('');
+  projectDescription = signal('');
+  projectType = signal<'roof' | 'agrivoltaic'>('roof');
 
-  // Address search
+  // ── Step 2: Location & Area ──────────────────────
   addressQuery = signal('');
   isSearching = signal(false);
   searchError = signal<string | null>(null);
   mapCenter = signal<Coordinates | null>(null);
+  drawnPolygonPoints = signal<Coordinates[]>([]);
+  hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
+  detectedCountry = signal('');
+  detectedTimezone = signal('');
+  energyPrice = 0.15;
 
-  projectForm: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    panelId: ['', Validators.required],
-    tilt: [30, [Validators.required, Validators.min(0), Validators.max(90)]],
-    orientation: ['south', Validators.required],
+  // ── Step 3: Configuration ────────────────────────
+  panels = signal<Panel[]>([]);
+  cultivars = signal<Cultivar[]>([]);
+  selectedPanelId: string | null = null;
+  selectedCultivarId: string | null = null;
+  panelCount = 0;
+  tiltAngle = 30;
+  selectedDirection = 'south';
+  rowSpacing = 1.2;
+  estimation = signal<OptimalConfigResponse | null>(null);
+  isCalculating = signal(false);
+
+  directionOptions = [
+    { label: 'South', value: 'south' },
+    { label: 'South-East', value: 'southeast' },
+    { label: 'South-West', value: 'southwest' },
+    { label: 'East', value: 'east' },
+    { label: 'West', value: 'west' },
+    { label: 'North', value: 'north' },
+  ];
+
+  panelOptions = computed(() =>
+    this.panels().map((p) => ({
+      label: `${p.brand} ${p.model} (${p.wattPeak}W)`,
+      value: p._id,
+    }))
+  );
+
+  cultivarOptions = computed(() =>
+    this.cultivars().map((c) => ({
+      label: `${c.name} (${c.category})`,
+      value: c._id,
+    }))
+  );
+
+  selectedPanelData = computed(() =>
+    this.panels().find((p) => p._id === this.selectedPanelId)
+  );
+
+  selectedCultivarData = computed(() =>
+    this.cultivars().find((c) => c._id === this.selectedCultivarId)
+  );
+
+  selectedPanelLabel = computed(() => {
+    const p = this.selectedPanelData();
+    return p ? `${p.brand} ${p.model}` : '—';
   });
 
-  private formValue = toSignal(this.projectForm.valueChanges, {
-    initialValue: this.projectForm.value,
+  selectedPanelWatt = computed(() => this.selectedPanelData()?.wattPeak ?? 0);
+
+  selectedCultivarLabel = computed(() => this.selectedCultivarData()?.name ?? '');
+
+  totalCapacity = computed(() => {
+    const watt = this.selectedPanelWatt();
+    return (watt * this.panelCount) / 1000;
   });
 
-  canCalculate = computed(() => {
-    const { panelId, tilt } = this.formValue();
-    return this.hasDrawnArea() && !!panelId && tilt >= 0 && tilt <= 90;
+  // ── Warnings ─────────────────────────────────────
+  warnings = computed<WarningItem[]>(() => {
+    const items: WarningItem[] = [];
+    const est = this.estimation();
+    if (!est) return items;
+
+    const maxPanels = est.recommendedPanels;
+    if (this.panelCount > maxPanels) {
+      items.push({
+        severity: 'warn',
+        message: `Max recommended panels for this area is ${maxPanels}. Exceeding may cause overlap or insufficient spacing.`,
+      });
+    }
+
+    if (this.projectType() === 'roof' && this.rowSpacing < 0.6) {
+      items.push({
+        severity: 'warn',
+        message: 'Row spacing below 0.6m — insufficient for maintenance access.',
+      });
+    }
+
+    const crop = this.selectedCultivarData();
+    if (this.projectType() === 'agrivoltaic' && crop && this.rowSpacing < crop.recommendedSpacing) {
+      items.push({
+        severity: 'warn',
+        message: `Row spacing below ${crop.name} requirement of ${crop.recommendedSpacing}m — machinery/growth access compromised.`,
+      });
+    }
+
+    return items;
   });
 
-  canSubmit = computed(() => {
-    const { name, panelId, tilt, orientation } = this.formValue();
-    return (
-      this.hasDrawnArea() &&
-      this.estimation() !== null &&
-      name?.trim().length >= 2 &&
-      !!panelId &&
-      tilt >= 0 && tilt <= 90 &&
-      !!orientation
-    );
-  });
+  // ── Submission ───────────────────────────────────
+  isSubmitting = signal(false);
 
-  ngOnInit() {
+  // ── Step validation ──────────────────────────────
+  canProceedStep1 = computed(
+    () => this.projectName().trim().length >= 2 && !!this.projectType()
+  );
+
+  canProceedStep2 = computed(() => this.hasDrawnArea());
+
+  canCalculate = computed(
+    () => this.hasDrawnArea() && !!this.selectedPanelId && this.tiltAngle >= 0 && this.tiltAngle <= 90
+  );
+
+  canProceedStep3 = computed(
+    () => !!this.selectedPanelId && this.panelCount > 0 && this.estimation() !== null
+  );
+
+  canSubmit = computed(
+    () =>
+      this.canProceedStep1() &&
+      this.canProceedStep2() &&
+      this.canProceedStep3()
+  );
+
+  // ── Lifecycle ────────────────────────────────────
+  ngOnInit(): void {
     this.loadPanels();
+    this.loadCultivars();
   }
 
-  loadPanels() {
+  // ── HasUnsavedWork interface ─────────────────────
+  hasUnsavedWork(): boolean {
+    return (
+      this.projectName().length > 0 ||
+      this.projectDescription().length > 0 ||
+      this.hasDrawnArea() ||
+      !!this.selectedPanelId
+    );
+  }
+
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedWork()) {
+      event.preventDefault();
+    }
+  }
+
+  // ── Navigation ───────────────────────────────────
+  goToStep(step: number, activateCallback: (step: number) => void): void {
+    this.activeStep.set(step);
+    activateCallback(step);
+  }
+
+  onExit(): void {
+    if (this.hasUnsavedWork()) {
+      this.confirmationService.confirm({
+        header: 'Leave project creation?',
+        message: 'Your progress will not be saved. Are you sure you want to exit?',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Leave',
+        rejectLabel: 'Cancel',
+        acceptButtonStyleClass: 'p-button-danger',
+        accept: () => this.router.navigate(['/projects']),
+      });
+    } else {
+      this.router.navigate(['/projects']);
+    }
+  }
+
+  // ── Data loading ─────────────────────────────────
+  private loadPanels(): void {
     this.panelService.getAllPanels(1, 100).subscribe({
-      next: (res: PanelListResponse) => {
-        this.panels.set(res.panels ?? []);
-      },
+      next: (res: PanelListResponse) => this.panels.set(res.panels ?? []),
       error: (err) => console.error('Failed to load panels', err),
     });
   }
 
-  onPolygonChange(coords: Coordinates[]): void {
-    this.drawnPolygonPoints.set(coords);
-    this.estimation.set(null);
+  private loadCultivars(): void {
+    this.cultivarService.getAllCultivars(1, 100).subscribe({
+      next: (res: CultivarListResponse) => this.cultivars.set(res.data ?? []),
+      error: (err) => console.error('Failed to load cultivars', err),
+    });
   }
 
+  // ── Step 2 methods ───────────────────────────────
   searchAddress(): void {
     const query = this.addressQuery().trim();
     if (!query) return;
@@ -502,69 +270,159 @@ export class AddProjectComponent implements OnInit {
     this.isSearching.set(true);
     this.searchError.set(null);
 
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
-    this.http.get<{ lat: string; lon: string }[]>(url).subscribe({
-      next: (results) => {
-        this.isSearching.set(false);
-        if (results.length === 0) {
-          this.searchError.set('Location not found. Try a more specific address.');
-          return;
-        }
-        this.mapCenter.set({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
-      },
-      error: () => {
-        this.isSearching.set(false);
-        this.searchError.set('Search failed. Please try again.');
-      },
-    });
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+    this.http
+      .get<Array<{ lat: string; lon: string; address?: { country?: string; country_code?: string } }>>(url)
+      .subscribe({
+        next: (results) => {
+          this.isSearching.set(false);
+          if (results.length === 0) {
+            this.searchError.set('Location not found. Try a more specific address.');
+            return;
+          }
+          const r = results[0];
+          this.mapCenter.set({ lat: parseFloat(r.lat), lng: parseFloat(r.lon) });
+
+          // Auto-detect country/timezone
+          if (r.address?.country) {
+            this.detectedCountry.set(r.address.country);
+          }
+          // Approximate timezone from country_code — simple mapping
+          this.detectedTimezone.set(this.guessTimezone(r.address?.country_code));
+        },
+        error: () => {
+          this.isSearching.set(false);
+          this.searchError.set('Search failed. Please try again.');
+        },
+      });
   }
 
-  onCalculate() {
+  onPolygonChange(coords: Coordinates[]): void {
+    this.drawnPolygonPoints.set(coords);
+    this.estimation.set(null);
+  }
+
+  private guessTimezone(countryCode?: string): string {
+    if (!countryCode) return '';
+    const map: Record<string, string> = {
+      es: 'Europe/Madrid',
+      fr: 'Europe/Paris',
+      de: 'Europe/Berlin',
+      it: 'Europe/Rome',
+      pt: 'Europe/Lisbon',
+      gb: 'Europe/London',
+      us: 'America/New_York',
+      ar: 'America/Argentina/Buenos_Aires',
+      br: 'America/Sao_Paulo',
+      mx: 'America/Mexico_City',
+      au: 'Australia/Sydney',
+      jp: 'Asia/Tokyo',
+      cn: 'Asia/Shanghai',
+      in: 'Asia/Kolkata',
+    };
+    return map[countryCode.toLowerCase()] ?? '';
+  }
+
+  // ── Step 3 methods ───────────────────────────────
+  onPanelChange(): void {
+    this.estimation.set(null);
+    // Auto-calculate if polygon exists
+    if (this.hasDrawnArea() && this.selectedPanelId) {
+      this.onCalculate();
+    }
+  }
+
+  onCultivarChange(): void {
+    const crop = this.selectedCultivarData();
+    if (crop) {
+      // Apply cultivar recommendations
+      this.tiltAngle = Math.max(0, this.tiltAngle - crop.optimalTiltReduction);
+      this.rowSpacing = Math.max(this.rowSpacing, crop.recommendedSpacing);
+    }
+  }
+
+  onPanelCountChange(): void {
+    // Warnings recompute automatically via computed signals
+  }
+
+  onConfigChange(): void {
+    this.estimation.set(null);
+  }
+
+  onCalculate(): void {
     if (!this.canCalculate()) return;
+
+    this.isCalculating.set(true);
 
     const area = this.drawnPolygonPoints().map((c) => ({ lat: c.lat, lon: c.lng }));
     const request: OptimalConfigFromPolygonRequest = {
       area,
-      panelId: this.projectForm.get('panelId')?.value,
-      tilt: this.projectForm.get('tilt')?.value,
+      panelId: this.selectedPanelId!,
+      tilt: this.tiltAngle,
     };
 
     this.projectService.calculateOptimalConfig(request).subscribe({
-      next: (res) => this.estimation.set(res),
+      next: (res) => {
+        this.isCalculating.set(false);
+        this.estimation.set(res);
+        this.panelCount = res.recommendedPanels;
+      },
       error: (err) => {
+        this.isCalculating.set(false);
         console.error('Estimation failed', err);
-        alert('Could not calculate estimation. Please check your inputs.');
       },
     });
   }
 
-  onSubmit() {
-    if (!this.canSubmit()) return;
+  resetToOptimal(): void {
+    const est = this.estimation();
+    if (est) {
+      this.panelCount = est.recommendedPanels;
+    }
+  }
 
-    const formValue = this.projectForm.value;
+  // ── Submit ───────────────────────────────────────
+  onSubmit(): void {
+    if (!this.canSubmit() || this.isSubmitting()) return;
+
+    this.isSubmitting.set(true);
+
     const area: GeoPoint[] = this.drawnPolygonPoints().map((c) => ({
       lat: c.lat,
       lon: c.lng,
     }));
 
     const projectData: ProjectCreateRequest = {
-      name: formValue.name,
+      name: this.projectName(),
+      description: this.projectDescription() || undefined,
+      projectType: this.projectType(),
       area,
-      tilt: formValue.tilt,
-      direction: formValue.orientation,
-      panelNumber: this.estimation()!.recommendedPanels,
-      panelId: formValue.panelId,
+      tilt: this.tiltAngle,
+      direction: this.selectedDirection,
+      panelNumber: this.panelCount,
+      panelId: this.selectedPanelId ?? undefined,
+      rawSpacing: this.rowSpacing,
+      cultivarId:
+        this.projectType() === 'agrivoltaic'
+          ? this.selectedCultivarId ?? undefined
+          : undefined,
     };
 
     this.projectService.createProject(projectData).subscribe({
       next: () => {
-        alert('Project created successfully!');
-        // Navigate away or reset
+        this.isSubmitting.set(false);
+        // Clear state so guard doesn't fire
+        this.projectName.set('');
+        this.projectDescription.set('');
+        this.drawnPolygonPoints.set([]);
+        this.selectedPanelId = null;
+        this.router.navigate(['/projects']);
       },
       error: (err) => {
+        this.isSubmitting.set(false);
         console.error('Creation failed', err);
-        alert('Failed to create project.');
       },
     });
   }
 }
+
