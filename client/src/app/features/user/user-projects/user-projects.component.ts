@@ -193,14 +193,14 @@ interface ProjectCardView {
         background: var(--p-surface-0);
         border: 2px solid var(--p-content-border-color);
         border-radius: 24px;
-        box-shadow: var(--p-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+        box-shadow: var(--p-shadow-sm);
         transition: all 0.3s ease;
         overflow: hidden;
         cursor: pointer;
 
         &:hover {
           transform: translateY(-4px);
-          box-shadow: var(--p-shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
+          box-shadow: var(--p-shadow-lg);
 
           h3 {
             color: var(--p-primary-600);

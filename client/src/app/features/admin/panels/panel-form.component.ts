@@ -131,7 +131,7 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         max-width: 500px;
         max-height: 90vh;
         overflow-y: auto;
-        box-shadow: var(--p-shadow-lg, 0 4px 12px rgba(0, 0, 0, 0.15));
+        box-shadow: var(--p-shadow-lg);
       }
 
       .modal-header {
@@ -232,7 +232,7 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
 
         .btn-primary {
           background: var(--p-primary-500);
-          color: var(--p-primary-contrast-color, #fff);
+          color: var(--p-primary-contrast-color);
           &:hover {
             background: var(--p-primary-600);
           }

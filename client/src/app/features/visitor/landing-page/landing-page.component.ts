@@ -89,7 +89,7 @@ import { CardModule } from 'primeng/card';
   `,
   styles: [`
     .landing-page {
-      --hero-contrast-color: var(--p-primary-contrast-color, #ffffff);
+      --hero-contrast-color: var(--p-primary-contrast-color);
 
       .hero {
         background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
@@ -106,7 +106,11 @@ import { CardModule } from 'primeng/card';
           right: -20%;
           width: 500px;
           height: 500px;
-          background: radial-gradient(circle, rgba(255, 214, 0, 0.1) 0%, transparent 70%);
+          background: radial-gradient(
+            circle,
+            color-mix(in srgb, var(--p-yellow-400) 12%, transparent) 0%,
+            transparent 70%
+          );
           border-radius: 50%;
         }
 
@@ -125,7 +129,7 @@ import { CardModule } from 'primeng/card';
           margin-bottom: 1.5rem;
           font-weight: 700;
           color: var(--hero-contrast-color);
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+          text-shadow: 0 2px 10px color-mix(in srgb, var(--p-surface-900) 25%, transparent);
 
           @media (max-width: 768px) {
             font-size: 2rem;

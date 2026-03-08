@@ -56,7 +56,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
         background: var(--p-surface-0);
         padding: 2rem;
         border-radius: 8px;
-        box-shadow: var(--p-shadow-md, 0 2px 8px rgba(0,0,0,0.1));
+        box-shadow: var(--p-shadow-md);
         width: 100%;
         max-width: 400px;
 
@@ -131,7 +131,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
           &.btn-primary {
             background-color: var(--p-primary-500);
-            color: var(--p-primary-contrast-color, #fff);
+            color: var(--p-primary-contrast-color);
 
             &:hover:not(:disabled) {
               background-color: var(--p-primary-600);

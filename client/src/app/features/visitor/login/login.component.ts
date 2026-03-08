@@ -171,20 +171,20 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
         .solar-icon {
           font-size: 3rem;
-          color: white;
+          color: var(--p-primary-contrast-color);
           margin-bottom: 1rem;
           display: block;
         }
 
         h2 {
-          color: white;
+          color: var(--p-primary-contrast-color);
           margin: 0 0 0.5rem;
           font-size: 2rem;
           font-weight: 700;
         }
 
         .subtitle {
-          color: rgba(255, 255, 255, 0.9);
+          color: color-mix(in srgb, var(--p-primary-contrast-color) 90%, transparent);
           font-size: 0.95rem;
           margin: 0;
         }
@@ -194,7 +194,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
         .login-card .p-card-header {
           padding: 2.5rem 2rem 1rem;
           background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
-          color: white;
+          color: var(--p-primary-contrast-color);
           border-top-left-radius: var(--p-card-border-radius);
           border-top-right-radius: var(--p-card-border-radius);
         }

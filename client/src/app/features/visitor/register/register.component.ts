@@ -213,20 +213,20 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
 
       .solar-icon {
         font-size: 3rem;
-        color: #ffffff;
+        color: var(--p-primary-contrast-color);
         margin-bottom: 1rem;
         display: inline-block;
       }
 
       h2 {
-        color: #ffffff;
+        color: var(--p-primary-contrast-color);
         margin: 0 0 0.5rem;
         font-size: 2rem;
         font-weight: 700;
       }
 
       .subtitle {
-        color: #ffffff;
+        color: var(--p-primary-contrast-color);
         font-size: 0.95rem;
         margin: 0;
         font-weight: 500;
@@ -237,7 +237,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
       .register-card .p-card-header {
         padding: 2.5rem 2rem 1rem;
         background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
-        color: #ffffff;
+        color: var(--p-primary-contrast-color);
         border-top-left-radius: var(--p-card-border-radius);
         border-top-right-radius: var(--p-card-border-radius);
       }

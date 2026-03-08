@@ -4,6 +4,43 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 7, 2026 - Final Sweep (Feature Styles Token Hardening)
+
+### Topic
+Executed the final style sweep across feature components to remove remaining hardcoded hex/rgba values and fallback literals where practical.
+
+### Summary of Request
+User confirmed this would be the final sweep after the `configure-project` cleanup.
+
+### What Was Achieved
+- Replaced leftover hardcoded/fallback color values in feature components with PrimeNG Aura token values.
+- Removed fallback literals from token declarations where safe:
+  - `var(--p-primary-contrast-color, #fff)` → `var(--p-primary-contrast-color)`
+  - `var(--p-shadow-*, <rgba fallback>)` → `var(--p-shadow-*)`
+- Converted remaining white/black/rgba visual accents to token-safe equivalents using `color-mix(...)` where needed.
+- Kept all `::ng-deep` usage scoped as `:host ::ng-deep` and unchanged in behavior.
+- Confirmed no deprecated bridge token usage remained in `client/src/app/features/**`.
+
+### Full Prompt
+"OK. That will be the final sweep"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+
+### Reasoning Snapshot
+- The remaining issues were isolated cosmetic leftovers, so a small, direct sweep minimized risk while completing token consistency.
+- Changes were limited to style declarations only to avoid business logic or template behavior impact.
+
+---
+
 ## 📅 March 7, 2026 - Configure Project Token Cleanup (Sectioned Pass)
 
 ### Topic
@@ -1731,3 +1768,30 @@ User requested that modifying the number of panels also recalculates the row spa
 
 ### AI Reasoning
 The forward formula is `maxPanels = floor(usableArea / (W × (H × cos(α) + d)))`. Solving algebraically for `d`: `d = (usableArea / (panelCount × W)) − H × cos(α)`. This makes the panel count ↔ row spacing relationship fully bidirectional while using the same underlying formula.
+
+---
+
+## 📅 March 8, 2026 - Git Line Ending Warning Fix (LF/CRLF)
+
+### Topic
+Resolved Git line-ending warning in Windows working copy by enforcing repository line-ending rules.
+
+### Summary of Request
+"Do it yourself please" (after asking how to fix warning: `LF will be replaced by CRLF the next time Git touches it`).
+
+### What Was Achieved
+- Added repository-level `.gitattributes` with `* text=auto eol=lf`.
+- Applied local Git setting: `core.autocrlf=false` in this repository.
+- Ran `git add --renormalize .` so Git re-indexes files according to the new policy.
+
+### Full Prompt
+"Do it yourself please"
+
+### Affected Files
+- `.gitattributes`
+- `santi-agent-interactions.md`
+- Re-indexed tracked text files due to normalization (no intentional logic changes).
+
+### AI Reasoning
+- A repo-level `.gitattributes` is the safest cross-platform fix because it makes line-ending behavior explicit and consistent for all contributors.
+- `--renormalize` applies the policy immediately so future Git operations stop producing this warning.

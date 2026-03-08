@@ -214,7 +214,7 @@ interface ProjectDetailView {
         background: var(--p-surface-0);
         border: 2px solid var(--p-content-border-color);
         border-radius: 24px;
-        box-shadow: var(--p-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+        box-shadow: var(--p-shadow-sm);
         padding: 1.5rem;
 
         h2 {
