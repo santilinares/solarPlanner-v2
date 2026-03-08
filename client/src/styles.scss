@@ -26,12 +26,34 @@
 // RESET & BASE
 // =====================================================
 
+:root {
+  // Global density knob: 0.85 approximates viewing at 80-85% browser zoom.
+  --app-font-scale: 0.85;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    // Keep text more readable on tablets and phones.
+    --app-font-scale: 0.9;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --app-font-scale: 0.95;
+  }
+}
+
 html, body {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+}
+
+html {
+  font-size: calc(16px * var(--app-font-scale));
 }
 
 body {

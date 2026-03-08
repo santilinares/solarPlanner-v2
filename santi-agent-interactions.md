@@ -4,6 +4,37 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 8, 2026 - Global UI Scale Calibration (100% Zoom)
+
+### Topic
+Implemented an app-wide density adjustment so screens render at a comfortable size on browser zoom 100%.
+
+### Summary of Request
+User reported that UI elements looked too large at 100% zoom and requested a global fix equivalent to their current 80% zoom workaround.
+
+### What Was Achieved
+- Added a global root scale variable in `client/src/styles.scss`:
+  - `--app-font-scale: 0.85` (desktop baseline)
+- Applied scale through root font-size:
+  - `html { font-size: calc(16px * var(--app-font-scale)); }`
+- Added responsive safeguards to preserve readability on smaller screens:
+  - `0.9` for widths `<= 1024px`
+  - `0.95` for widths `<= 640px`
+- Ran a scan for hardcoded `px` values in `client/src/app/**` to prepare next incremental conversion pass to `rem` where appropriate.
+
+### Full Prompt
+"Implement it. If there are hardcoded elements that use px as sizing, we will figure it out and adjust it to rem units"
+
+### Affected Files
+- `client/src/styles.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A root font-size scale is the lowest-risk global approach because the codebase already uses many `rem`-based sizes and PrimeNG tokenized spacing.
+- Responsive overrides avoid over-shrinking text and touch targets on mobile devices.
+
+---
+
 ## 📅 March 7, 2026 - Final Sweep (Feature Styles Token Hardening)
 
 ### Topic
