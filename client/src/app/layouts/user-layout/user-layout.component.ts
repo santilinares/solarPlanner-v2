@@ -155,10 +155,12 @@ interface DockItem {
       height: 2.5rem;
       border-radius: 999px;
       transition: all 0.2s ease;
-
+      padding: 0.75rem;
+      
       &:hover {
         background: color-mix(in srgb, var(--p-primary-contrast-color) 12%, transparent);
       }
+      
     }
 
     .dock-brand {
@@ -228,6 +230,12 @@ interface DockItem {
     }
 
     .user-dock:not(.expanded) {
+      .dock-brand,
+      .dock-toggle {
+        justify-content: center;
+        gap: 0;
+      }
+
       .dock-item {
         gap: 0;
         justify-content: center;

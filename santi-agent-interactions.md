@@ -4,6 +4,63 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 8, 2026 - Dock Style Reuse (Brand + Toggle)
+
+### Topic
+Applied the same collapsed-state alignment config to the dock toggle and refactored to avoid repeating style code.
+
+### Summary of Request
+User asked to apply the same config used for `.dock-brand` to `.dock-toggle` and requested reusing settings rather than duplicating declarations.
+
+### What Was Achieved
+- In collapsed state (`.user-dock:not(.expanded)`), merged selectors into one shared rule:
+  - `.dock-brand, .dock-toggle { justify-content: center; gap: 0; }`
+- Kept behavior unchanged for expanded mode.
+- Verified diagnostics on edited file: no errors.
+
+### Full Prompt
+"I want to apply the same config to the .dock-toggle class"
+
+"approve. Can we reutilize the dock brand settings, like not repeting the code?"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Grouped selectors provide consistent behavior and eliminate style duplication while preserving scoped collapsed-only behavior.
+
+---
+
+## 📅 March 8, 2026 - Dock Brand Centering (Collapsed State)
+
+### Topic
+Centered the dock brand icon when the left dock is collapsed.
+
+### Summary of Request
+User reported the brand anchor looked left-pushed due to spacing/padding behavior and requested the icon to be centered.
+
+### What Was Achieved
+- Added collapsed-only style override for `.dock-brand`:
+  - `justify-content: center`
+  - `gap: 0`
+- Preserved expanded-mode behavior (icon + label layout).
+- Verified edited file diagnostics: no errors.
+
+### Full Prompt
+"The dock brand has something weird inside the anchor element, it has some kind of padding or gap on the right. I want it to be in the middle, not pushed to the left"
+
+"approve"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- In collapsed mode, the brand text is hidden and the anchor still spans the dock width, so centering and removing the gap aligns the icon visually with the dock's icon-only design.
+
+---
+
 ## 📅 March 8, 2026 - Dock Icon Spacing Fix (Collapsed Mode)
 
 ### Topic
