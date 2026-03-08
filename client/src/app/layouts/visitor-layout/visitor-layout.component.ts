@@ -43,7 +43,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
       background-color: var(--p-primary-600);
       color: white;
       padding: 1rem 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.1);
 
       .container {
         display: flex;

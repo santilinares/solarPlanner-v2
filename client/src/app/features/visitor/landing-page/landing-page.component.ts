@@ -104,8 +104,8 @@ import { CardModule } from 'primeng/card';
           position: absolute;
           top: -50%;
           right: -20%;
-          width: 500px;
-          height: 500px;
+          width: 31.25rem;
+          height: 31.25rem;
           background: radial-gradient(
             circle,
             color-mix(in srgb, var(--p-yellow-400) 12%, transparent) 0%,
@@ -129,7 +129,7 @@ import { CardModule } from 'primeng/card';
           margin-bottom: 1.5rem;
           font-weight: 700;
           color: var(--hero-contrast-color);
-          text-shadow: 0 2px 10px color-mix(in srgb, var(--p-surface-900) 25%, transparent);
+          text-shadow: 0 0.125rem 0.625rem color-mix(in srgb, var(--p-surface-900) 25%, transparent);
 
           @media (max-width: 768px) {
             font-size: 2rem;
@@ -140,7 +140,7 @@ import { CardModule } from 'primeng/card';
           font-size: 1.3rem;
           margin-bottom: 2.5rem;
           opacity: 0.95;
-          max-width: 700px;
+          max-width: 43.75rem;
           margin-left: auto;
           margin-right: auto;
           line-height: 1.8;
@@ -173,17 +173,17 @@ import { CardModule } from 'primeng/card';
           &::after {
             content: '';
             display: block;
-            width: 80px;
-            height: 4px;
+            width: 5rem;
+            height: 0.25rem;
             background: var(--p-yellow-500);
             margin: 1rem auto 0;
-            border-radius: 2px;
+            border-radius: 0.125rem;
           }
         }
 
         .feature-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
           gap: 2rem;
 
           .feature-card {

@@ -73,7 +73,7 @@ import { AuthService } from '@core/services';
       background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
       color: white;
       padding: 0;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
       position: sticky;
       top: 0;
       z-index: 1000;
@@ -126,7 +126,7 @@ import { AuthService } from '@core/services';
           text-decoration: none;
           font-weight: 600;
           padding: 0.625rem 1rem;
-          border-radius: 8px;
+          border-radius: 0.5rem;
           transition: all 0.2s ease;
           font-size: 0.95rem;
 
@@ -142,7 +142,7 @@ import { AuthService } from '@core/services';
           &.active {
             background: rgba(255, 255, 255, 0.2);
             color: white;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
           }
         }
 

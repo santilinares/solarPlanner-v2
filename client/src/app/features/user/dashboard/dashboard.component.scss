@@ -42,7 +42,7 @@
 
   .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(16.25rem, 1fr));
     gap: 1.5rem;
     margin-bottom: 3rem;
 
@@ -60,9 +60,9 @@
       }
 
       .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
+        width: 3.75rem;
+        height: 3.75rem;
+        border-radius: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -151,7 +151,7 @@
 
     .projects-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
       gap: 1.5rem;
 
       .project-card {
@@ -169,9 +169,9 @@
           margin-bottom: 1rem;
 
           .project-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.75rem;
             background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
             display: flex;
             align-items: center;
@@ -226,7 +226,7 @@
           }
 
           &:hover .action-link i {
-            transform: translateX(4px);
+            transform: translateX(0.25rem);
           }
         }
       }

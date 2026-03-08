@@ -102,7 +102,7 @@ interface ProjectCardView {
     `
       .projects-page {
         padding: 1.5rem;
-        max-width: 1280px;
+        max-width: 80rem;
         margin: 0 auto;
       }
 
@@ -129,15 +129,15 @@ interface ProjectCardView {
       }
 
       .loading-state {
-        min-height: 320px;
+        min-height: 20rem;
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
       .spinner {
-        width: 48px;
-        height: 48px;
+        width: 3rem;
+        height: 3rem;
         border: 3px solid transparent;
         border-top: 3px solid var(--p-primary-500);
         border-radius: 50%;
@@ -148,15 +148,15 @@ interface ProjectCardView {
         background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
         border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
         color: var(--p-red-700, var(--p-red-500));
-        border-radius: 12px;
+        border-radius: 0.75rem;
         padding: 1rem;
       }
 
       .empty-state {
         border: 2px dashed var(--p-content-border-color);
-        border-radius: 24px;
+        border-radius: 1.5rem;
         background: var(--p-surface-0);
-        min-height: 320px;
+        min-height: 20rem;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -192,14 +192,14 @@ interface ProjectCardView {
       .project-card {
         background: var(--p-surface-0);
         border: 2px solid var(--p-content-border-color);
-        border-radius: 24px;
+        border-radius: 1.5rem;
         box-shadow: var(--p-shadow-sm);
         transition: all 0.3s ease;
         overflow: hidden;
         cursor: pointer;
 
         &:hover {
-          transform: translateY(-4px);
+          transform: translateY(-0.25rem);
           box-shadow: var(--p-shadow-lg);
 
           h3 {
@@ -213,7 +213,7 @@ interface ProjectCardView {
       }
 
       .card-thumbnail {
-        height: 192px;
+        height: 12rem;
         background: linear-gradient(
           135deg,
           color-mix(in srgb, var(--p-yellow-500) 18%, var(--p-surface-0)) 0%,
@@ -264,7 +264,7 @@ interface ProjectCardView {
 
       .status-badge {
         display: inline-flex;
-        border-radius: 999px;
+        border-radius: 999rem;
         padding: 0.25rem 0.75rem;
         font-weight: 600;
         font-size: 0.8rem;

@@ -1,7 +1,7 @@
 
     /* ─── Page Layout ─── */
     .configure-page {
-    max-width: 1280px;
+    max-width: 80rem;
     margin: 0 auto;
     padding: 1.5rem;
     }
@@ -22,9 +22,9 @@
     padding: 4rem 1rem;
     }
     :host ::ng-deep .error-card {
-    max-width: 480px;
+    max-width: 30rem;
     text-align: center;
-    border-radius: 24px !important;
+    border-radius: 1.5rem !important;
     }
     .error-content {
     display: flex;
@@ -143,7 +143,7 @@
     }
     .meta-separator {
     width: 1px;
-    height: 28px;
+    height: 1.75rem;
     background: var(--p-content-border-color);
     flex-shrink: 0;
     }
@@ -201,10 +201,10 @@
     padding: 0.65rem 1.25rem;
     margin-bottom: 1rem;
     background: color-mix(in srgb, var(--p-surface-0) 92%, transparent);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(0.75rem);
     border: 1px solid var(--p-content-border-color);
-    border-radius: 16px;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--p-text-color) 8%, transparent);
+    border-radius: 1rem;
+    box-shadow: 0 0.125rem 0.5rem color-mix(in srgb, var(--p-text-color) 8%, transparent);
     }
     .step-nav-indicator {
     font-size: 0.9rem;
@@ -228,8 +228,8 @@
     transition: all 0.25s;
     }
     .step-icon-wrapper {
-    width: 48px;
-    height: 48px;
+    width: 3rem;
+    height: 3rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -243,7 +243,7 @@
     background: var(--p-primary-color);
     border-color: var(--p-primary-color);
     color: var(--p-primary-contrast-color);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--p-primary-color) 32%, transparent);
+    box-shadow: 0 0.25rem 0.875rem color-mix(in srgb, var(--p-primary-color) 32%, transparent);
     }
     .step-label {
     font-size: 0.82rem;
@@ -271,13 +271,13 @@
     .step-card {
     background: var(--p-content-background);
     border: 1px solid var(--p-content-border-color);
-    border-radius: 24px;
+    border-radius: 1.5rem;
     padding: 1.5rem;
-    box-shadow: 0 1px 3px color-mix(in srgb, var(--p-text-color) 10%, transparent);
+    box-shadow: 0 0.0625rem 0.1875rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
     transition: box-shadow 0.25s, border-color 0.25s;
     }
     .step-card:hover {
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--p-text-color) 14%, transparent);
+    box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--p-text-color) 14%, transparent);
     }
 
     .step-card-header {
@@ -298,9 +298,9 @@
     }
 
     .step-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.875rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -368,8 +368,8 @@
     flex: 1;
     }
     .map-container {
-    height: 320px;
-    border-radius: 16px;
+    height: 20rem;
+    border-radius: 1rem;
     overflow: hidden;
     border: 1px solid var(--p-content-border-color);
     }
@@ -380,7 +380,7 @@
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding: 0.6rem 1rem;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     font-size: 0.85rem;
     font-weight: 500;
     }
@@ -422,7 +422,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 220px;
+    min-height: 13.75rem;
     gap: 0.75rem;
     text-align: center;
     }
@@ -439,7 +439,7 @@
     .placeholder-text {
     font-size: 0.85rem;
     color: var(--p-text-muted-color);
-    max-width: 300px;
+    max-width: 18.75rem;
     line-height: 1.45;
     }
 
@@ -459,7 +459,7 @@
     gap: 0.25rem;
     padding: 0.75rem;
     background: var(--p-content-hover-background);
-    border-radius: 12px;
+    border-radius: 0.75rem;
     }
     .capacity-item.highlight {
     grid-column: 1 / -1;
@@ -489,7 +489,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 1rem;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     background: var(--p-content-hover-background);
     color: var(--p-text-muted-color);
     font-size: 0.88rem;
@@ -502,7 +502,7 @@
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding: 0.6rem 1rem;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     font-size: 0.85rem;
     background: color-mix(in srgb, var(--p-primary-100) 45%, var(--p-surface-0));
     color: var(--p-text-color);
@@ -580,8 +580,8 @@
     gap: 1.25rem;
     }
     .capacity-sun-icon {
-    width: 64px;
-    height: 64px;
+    width: 4rem;
+    height: 4rem;
     border-radius: 50%;
     background: color-mix(in srgb, var(--p-surface-0) 60%, transparent);
     display: flex;
@@ -589,7 +589,7 @@
     justify-content: center;
     font-size: 1.8rem;
     color: var(--p-amber-900);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--p-yellow-400) 45%, transparent);
+    box-shadow: 0 0 1.25rem color-mix(in srgb, var(--p-yellow-400) 45%, transparent);
     flex-shrink: 0;
     }
     .capacity-info {

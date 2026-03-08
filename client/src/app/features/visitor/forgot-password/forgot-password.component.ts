@@ -55,10 +55,10 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
       .forgot-password-card {
         background: var(--p-surface-0);
         padding: 2rem;
-        border-radius: 8px;
+        border-radius: 0.5rem;
         box-shadow: var(--p-shadow-md);
         width: 100%;
-        max-width: 400px;
+        max-width: 25rem;
 
         h2 {
           text-align: center;
@@ -87,7 +87,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
             width: 100%;
             padding: 0.75rem;
             border: 1px solid var(--p-content-border-color);
-            border-radius: 4px;
+            border-radius: 0.25rem;
             font-size: 1rem;
             color: var(--p-text-color);
             background: var(--p-surface-0);
@@ -105,7 +105,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
         .alert {
           padding: 0.75rem;
-          border-radius: 4px;
+          border-radius: 0.25rem;
           margin-bottom: 1rem;
 
           &.alert-error {
@@ -123,7 +123,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
           width: 100%;
           padding: 0.75rem;
           border: none;
-          border-radius: 4px;
+          border-radius: 0.25rem;
           font-size: 1rem;
           font-weight: 500;
           cursor: pointer;

@@ -28,13 +28,13 @@
 
 :root {
   // Global density knob: 0.85 approximates viewing at 80-85% browser zoom.
-  --app-font-scale: 0.85;
+  --app-font-scale: 0.8;
 }
 
 @media (max-width: 1024px) {
   :root {
     // Keep text more readable on tablets and phones.
-    --app-font-scale: 0.9;
+    --app-font-scale: 0.8;
   }
 }
 

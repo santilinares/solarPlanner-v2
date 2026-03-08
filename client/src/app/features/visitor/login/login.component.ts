@@ -162,7 +162,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
       .login-card {
         width: 100%;
-        max-width: 480px;
+        max-width: 30rem;
         box-shadow: var(--shadow-xl);
       }
 

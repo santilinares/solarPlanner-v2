@@ -113,21 +113,21 @@ interface ProjectDetailView {
   styles: [
     `
       .project-detail-page {
-        max-width: 1280px;
+        max-width: 80rem;
         margin: 0 auto;
         padding: 1.5rem;
       }
 
       .loading-state {
-        min-height: 320px;
+        min-height: 20rem;
         display: flex;
         align-items: center;
         justify-content: center;
       }
 
       .spinner {
-        width: 48px;
-        height: 48px;
+        width: 3rem;
+        height: 3rem;
         border: 3px solid transparent;
         border-top: 3px solid var(--p-primary-500);
         border-radius: 50%;
@@ -138,7 +138,7 @@ interface ProjectDetailView {
         background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
         border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
         color: var(--p-red-700, var(--p-red-500));
-        border-radius: 12px;
+        border-radius: 0.75rem;
         padding: 1rem;
       }
 
@@ -213,7 +213,7 @@ interface ProjectDetailView {
       .content-card {
         background: var(--p-surface-0);
         border: 2px solid var(--p-content-border-color);
-        border-radius: 24px;
+        border-radius: 1.5rem;
         box-shadow: var(--p-shadow-sm);
         padding: 1.5rem;
 
@@ -226,8 +226,8 @@ interface ProjectDetailView {
       }
 
       .placeholder {
-        height: 384px;
-        border-radius: 12px;
+        height: 24rem;
+        border-radius: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -239,8 +239,8 @@ interface ProjectDetailView {
       }
 
       .map-wrapper {
-        height: 384px;
-        border-radius: 12px;
+        height: 24rem;
+        border-radius: 0.75rem;
         overflow: hidden;
       }
 
@@ -291,7 +291,7 @@ interface ProjectDetailView {
         }
 
         .placeholder {
-          height: 256px;
+          height: 16rem;
         }
       }
     `,

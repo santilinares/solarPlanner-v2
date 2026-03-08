@@ -105,7 +105,7 @@ import { Panel } from '@core/models/panel.model';
 
         .panels-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
           gap: 1.5rem;
 
           .panel-card {
@@ -116,9 +116,9 @@ import { Panel } from '@core/models/panel.model';
               margin-bottom: 1rem;
 
               .panel-icon {
-                width: 56px;
-                height: 56px;
-                border-radius: 12px;
+                width: 3.5rem;
+                height: 3.5rem;
+                border-radius: 0.75rem;
                 background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
                 display: flex;
                 align-items: center;
@@ -161,7 +161,7 @@ import { Panel } from '@core/models/panel.model';
                 align-items: center;
                 padding: 0.75rem;
                 background: var(--p-content-hover-background);
-                border-radius: 8px;
+                border-radius: 0.5rem;
 
                 .spec-label {
                   font-size: 0.875rem;

@@ -73,7 +73,7 @@
 // ── Wizard Content ─────────────────────────────────
 .wizard-content {
   flex: 1;
-  max-width: 1100px;
+  max-width: 68.75rem;
   width: 100%;
   margin: 0 auto;
   padding: 1.5rem;
@@ -130,7 +130,7 @@
   textarea {
     padding: 0.75rem 1rem;
     border: 1px solid var(--p-content-border-color);
-    border-radius: 12px;
+    border-radius: 0.75rem;
     font-size: 1rem;
     color: var(--p-text-color);
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -145,7 +145,7 @@
 
   textarea {
     resize: vertical;
-    min-height: 70px;
+    min-height: 4.375rem;
   }
 }
 
@@ -167,14 +167,14 @@
   gap: 0.5rem;
   padding: 1.5rem 1rem;
   border: 2px solid var(--p-content-border-color);
-  border-radius: 24px;
+  border-radius: 1.5rem;
   background: var(--p-surface-0);
   cursor: pointer;
   transition: all 0.25s ease;
 
   &:hover {
     border-color: var(--p-primary-500);
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
     box-shadow: var(--p-shadow-md);
   }
 
@@ -233,9 +233,9 @@
 }
 
 .map-wrapper {
-  height: 450px;
+  height: 28.125rem;
   width: 100%;
-  border-radius: 16px;
+  border-radius: 1rem;
   overflow: hidden;
   border: 2px solid var(--p-content-border-color);
 }
@@ -247,7 +247,7 @@
   margin-top: 0.75rem;
   padding: 0.5rem 1rem;
   background: color-mix(in srgb, var(--p-green-500) 18%, transparent);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   color: var(--p-green-700, var(--p-green-500));
   font-weight: 600;
   font-size: 0.9rem;
@@ -260,7 +260,7 @@
   margin-top: 0.75rem;
   padding: 0.5rem 1rem;
   background: color-mix(in srgb, var(--p-yellow-500) 18%, transparent);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   color: var(--p-yellow-800, var(--p-yellow-700, var(--p-yellow-500)));
   font-weight: 500;
   font-size: 0.9rem;
@@ -274,7 +274,7 @@
   margin-top: 1rem;
   padding: 1rem;
   background: var(--p-surface-0);
-  border-radius: 16px;
+  border-radius: 1rem;
   border: 1px solid var(--p-content-border-color);
 
   .meta-tag {
@@ -283,7 +283,7 @@
     gap: 0.35rem;
     padding: 0.35rem 0.75rem;
     background: var(--p-surface-50);
-    border-radius: 24px;
+    border-radius: 1.5rem;
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--p-text-color);
@@ -314,7 +314,7 @@
 .config-card {
   background: var(--p-surface-0);
   border: 2px solid var(--p-content-border-color);
-  border-radius: 24px;
+  border-radius: 1.5rem;
   padding: 1.5rem;
 
   h3 {
@@ -337,7 +337,7 @@
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: color-mix(in srgb, var(--p-green-500) 16%, transparent);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   color: var(--p-green-700, var(--p-green-500));
   font-size: 0.85rem;
   font-weight: 500;
@@ -350,7 +350,7 @@
   gap: 0.5rem;
   padding: 0.6rem 1rem;
   background: color-mix(in srgb, var(--p-blue-500) 16%, transparent);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   color: var(--p-blue-700, var(--p-blue-500));
   font-size: 0.85rem;
   margin-top: 0.25rem;
@@ -361,7 +361,7 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: 0.75rem;
   font-size: 0.85rem;
   font-weight: 500;
   margin-top: 0.5rem;
@@ -442,7 +442,7 @@
   padding: 2rem;
   background: var(--p-surface-0);
   border: 2px dashed var(--p-content-border-color);
-  border-radius: 24px;
+  border-radius: 1.5rem;
   color: var(--p-text-muted-color);
   font-size: 1rem;
   font-weight: 500;
@@ -464,7 +464,7 @@
 .review-card {
   background: var(--p-surface-0);
   border: 2px solid var(--p-content-border-color);
-  border-radius: 24px;
+  border-radius: 1.5rem;
   padding: 1.25rem;
 
   h3 {
@@ -521,11 +521,11 @@
   padding: 1rem;
   background: var(--p-yellow-500);
   color: var(--p-text-color);
-  border-radius: 24px;
+  border-radius: 1.5rem;
   font-size: 1.15rem;
   font-weight: 700;
   margin-bottom: 1rem;
-  box-shadow: 0 0 15px color-mix(in srgb, var(--p-yellow-500) 45%, transparent);
+  box-shadow: 0 0 0.9375rem color-mix(in srgb, var(--p-yellow-500) 45%, transparent);
 
   i {
     font-size: 1.4rem;
@@ -558,7 +558,7 @@
   }
 
   .map-wrapper {
-    height: 320px;
+    height: 20rem;
   }
 
   .step-title {

@@ -4,6 +4,140 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 8, 2026 - px to rem Migration (Final Layout + Visitor Sweep)
+
+### Topic
+Completed an additional sweep for layout shells and remaining visitor pages to align sizing units with the global scale strategy.
+
+### Summary of Request
+User approved continuing with the final suggested batch including layouts and visitor screens.
+
+### What Was Achieved
+- Converted dimensional `px` values to `rem` in:
+  - `layouts/admin-layout.component.ts`
+  - `layouts/user-layout.component.ts`
+  - `layouts/visitor-layout.component.ts`
+  - `visitor/landing-page.component.ts`
+  - `visitor/forgot-password.component.ts`
+  - `visitor/reset-password.component.ts`
+- Converted where appropriate:
+  - shadows and inset shadows
+  - border-radius values
+  - hero/visual block width and height values
+  - max-width and grid min widths
+  - text-shadow numeric dimensions
+- Intentionally preserved `px` values for:
+  - media-query breakpoints
+  - border stroke widths/hairlines
+  - letter-spacing micro-typography
+- Diagnostics checked on all edited files: no errors.
+
+### Full Prompt
+"Yeah, do it"
+
+### Affected Files
+- `client/src/app/layouts/admin-layout/admin-layout.component.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- This pass targets shared shells and auth/landing surfaces where sizing consistency has high visible impact.
+- Breakpoints and border strokes were kept fixed in pixels to avoid responsive threshold drift and maintain crisp edges.
+
+---
+
+## 📅 March 8, 2026 - px to rem Migration (Continuation Batch)
+
+### Topic
+Continued converting hardcoded dimensional `px` values to `rem` across additional user/admin/visitor screens.
+
+### Summary of Request
+User approved continuing the migration pass after the previous high-impact batch.
+
+### What Was Achieved
+- Converted dimensional `px` values to `rem` in the following files:
+  - `user/dashboard.component.scss`
+  - `user/panel-list.component.ts` (inline styles)
+  - `admin/admin-dashboard.component.scss`
+  - `admin/panels.component.scss`
+  - `visitor/login.component.ts` (inline styles)
+  - `visitor/register.component.ts` (inline styles)
+- Included conversion of:
+  - `minmax(...px, ...)` grid minimums
+  - icon/card width and height values
+  - border radius values
+  - transform offsets
+  - auth card max widths
+- Intentionally preserved `px` values for:
+  - media-query breakpoints
+  - thin border strokes/hairlines
+  - letter-spacing fine-tuning
+- Ran diagnostics for all modified files: no errors.
+
+### Full Prompt
+"approved"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.scss`
+- `client/src/app/features/admin/panels/panels.component.scss`
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- This continuation keeps the unit system consistent with the global font-scale strategy while avoiding risky responsive shifts.
+- Border and breakpoint `px` values were kept intentionally to preserve crisp rendering and stable layout thresholds.
+
+---
+
+## 📅 March 8, 2026 - px to rem Migration (High-Impact User Screens)
+
+### Topic
+Executed a focused migration from hardcoded `px` sizing values to `rem` units in key user-facing screens.
+
+### Summary of Request
+User approved proceeding with the next pass after global scaling, specifically to start converting hardcoded `px` sizing to `rem` units.
+
+### What Was Achieved
+- Converted dimensional `px` values to `rem` across 4 high-impact files:
+  - `configure-project.component.scss`
+  - `add-project.component.scss`
+  - `view-project.component.ts` (inline styles)
+  - `user-projects.component.ts` (inline styles)
+- Updated major layout and UI dimensions including:
+  - max/min widths and heights
+  - card/map/placeholder sizes
+  - border-radius values
+  - transform offsets
+  - shadow and blur dimensions
+- Intentionally kept these in `px` for stability and predictable behavior:
+  - media query breakpoints
+  - thin border widths (`1px`, `2px`, `3px`)
+  - separator hairlines
+- Ran diagnostics on all edited files: no errors.
+
+### Full Prompt
+"Yeah, lets do it"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- This pass targeted the highest-impact user flows first to quickly improve consistency with the new root scaling strategy.
+- Breakpoints and thin borders were preserved in `px` to avoid unintended responsive and visual regressions.
+
+---
+
 ## 📅 March 8, 2026 - Global UI Scale Calibration (100% Zoom)
 
 ### Topic

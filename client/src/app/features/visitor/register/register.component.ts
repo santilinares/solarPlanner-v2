@@ -204,7 +204,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
 
     .register-card {
       width: 100%;
-      max-width: 550px;
+      max-width: 34.375rem;
       box-shadow: var(--shadow-xl);
     }
 
