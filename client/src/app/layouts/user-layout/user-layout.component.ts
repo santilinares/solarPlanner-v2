@@ -1,60 +1,107 @@
-import { Component, inject } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
-import { MenubarModule } from 'primeng/menubar';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '@core/services';
+
+interface DockItem {
+  readonly label: string;
+  readonly icon: string;
+  readonly path: string;
+  readonly exact?: boolean;
+  readonly matchPrefixes?: readonly string[];
+}
 
 @Component({
   selector: 'app-user-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MenubarModule, ButtonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterOutlet, RouterLink, ButtonModule, TooltipModule],
   template: `
-    <div class="user-layout">
-      <header class="user-header">
-        <div class="container">
-          <div class="header-brand">
-            <i class="pi pi-sun brand-icon"></i>
-            <h1 routerLink="/projects">Solar Planner</h1>
-          </div>
-          <nav class="header-nav">
-            <a routerLink="/projects" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-              <i class="pi pi-home"></i>
-              <span>Dashboard</span>
-            </a>
-            <a routerLink="/projects/add" routerLinkActive="active">
-              <i class="pi pi-plus"></i>
-              <span>New Project</span>
-            </a>
-            <a routerLink="/projects/all" routerLinkActive="active">
-              <i class="pi pi-folder"></i>
-              <span>My Projects</span>
-            </a>
-            <a routerLink="/panels/all" routerLinkActive="active">
-              <i class="pi pi-th-large"></i>
-              <span>Panels</span>
-            </a>
-            <p-button 
-              icon="pi pi-sign-out" 
-              (onClick)="logout()" 
-              severity="secondary"
-              Content="true"
-              label="Logout"
-              class="logout-btn"
-            ></p-button>
+    <div class="user-shell">
+      <aside class="user-dock" [class.expanded]="isDockExpanded()" aria-label="User Navigation Dock">
+        <div class="dock-top">
+          <button
+            pButton
+            type="button"
+            class="dock-toggle"
+            [icon]="isDockExpanded() ? 'pi pi-angle-left' : 'pi pi-angle-right'"
+            [text]="true"
+            [rounded]="true"
+            [ariaLabel]="isDockExpanded() ? 'Collapse dock' : 'Expand dock'"
+            (click)="toggleDock()"
+            pTooltip="Toggle menu"
+            tooltipPosition="right"
+            [tooltipDisabled]="isDockExpanded()"
+          ></button>
+
+          <a class="dock-brand" routerLink="/projects" aria-label="Solar Planner Dashboard">
+            <i class="pi pi-sun"></i>
+            @if (isDockExpanded()) {
+              <span>Solar Planner</span>
+            }
+          </a>
+
+          <nav class="dock-nav" aria-label="Primary">
+            @for (item of primaryNavItems; track item.path) {
+              <a
+                class="dock-item"
+                [routerLink]="item.path"
+                [class.active]="isRouteActive(item)"
+                [attr.aria-label]="item.label"
+                [pTooltip]="item.label"
+                tooltipPosition="right"
+                [tooltipDisabled]="isDockExpanded()"
+              >
+                <i [class]="item.icon"></i>
+                @if (isDockExpanded()) {
+                  <span>{{ item.label }}</span>
+                }
+              </a>
+            }
           </nav>
         </div>
-      </header>
+
+        <div class="dock-bottom">
+          <a
+            class="dock-item profile"
+            [routerLink]="'/projects/profile'"
+            [class.active]="isRouteActive(profileNavItem)"
+            aria-label="Profile"
+            pTooltip="Profile"
+            tooltipPosition="right"
+            [tooltipDisabled]="isDockExpanded()"
+          >
+            <i class="pi pi-user"></i>
+            @if (isDockExpanded()) {
+              <span>Profile</span>
+            }
+          </a>
+
+          <button
+            pButton
+            type="button"
+            class="dock-item logout"
+            [class.expanded]="isDockExpanded()"
+            [text]="true"
+            icon="pi pi-sign-out"
+            [ariaLabel]="isDockExpanded() ? 'Logout' : 'Logout user'"
+            (onClick)="logout()"
+            pTooltip="Logout"
+            tooltipPosition="right"
+            [tooltipDisabled]="isDockExpanded()"
+          >
+            @if (isDockExpanded()) {
+              <span>Logout</span>
+            }
+          </button>
+        </div>
+      </aside>
 
       <main class="user-content">
-        <div class="container">
+        <section class="content-inner">
           <router-outlet />
-        </div>
+        </section>
       </main>
-
-      <footer class="user-footer">
-        <div class="container">
-          <p>&copy; 2026 Solar Planner v2.0 - Powering Your Sustainable Future</p>
-        </div>
-      </footer>
     </div>
   `,
   styles: [`
@@ -62,153 +109,188 @@ import { AuthService } from '@core/services';
       display: block;
     }
 
-    .user-layout {
-      display: flex;
-      flex-direction: column;
+    .user-shell {
+      display: grid;
+      grid-template-columns: auto 1fr;
       min-height: 100vh;
-      background: var(--p-surface-50);
+      background:
+        radial-gradient(circle at 15% 15%, color-mix(in srgb, var(--p-primary-200) 40%, transparent) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--p-cyan-200) 35%, transparent) 0%, transparent 45%),
+        var(--p-surface-50);
     }
 
-    .user-header {
-      background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
-      color: white;
-      padding: 0;
-      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+    .user-dock {
+      width: 5.5rem;
+      background: linear-gradient(160deg, var(--p-primary-900) 0%, var(--p-primary-800) 60%, color-mix(in srgb, var(--p-primary-700) 80%, var(--p-cyan-700)) 100%);
+      color: var(--p-primary-contrast-color);
+      border-right: 1px solid color-mix(in srgb, var(--p-primary-200) 30%, transparent);
+      padding: 1rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1rem;
       position: sticky;
       top: 0;
-      z-index: 1000;
+      height: 100vh;
+      transition: width 0.25s ease;
+      box-shadow: var(--p-shadow-6);
 
-      .container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        gap: 2rem;
+      &.expanded {
+        width: 16rem;
+      }
+    }
+
+    .dock-top,
+    .dock-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .dock-toggle {
+      align-self: center;
+      color: var(--p-primary-contrast-color);
+      border: 1px solid color-mix(in srgb, var(--p-primary-contrast-color) 30%, transparent);
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 999px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: color-mix(in srgb, var(--p-primary-contrast-color) 12%, transparent);
+      }
+    }
+
+    .dock-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--p-primary-contrast-color);
+      text-decoration: none;
+      border-radius: 1rem;
+      padding: 0.75rem;
+
+      i {
+        font-size: 1.5rem;
+        color: var(--p-yellow-500);
+        filter: drop-shadow(0 0 0.625rem rgba(255, 214, 0, 0.35));
       }
 
-      .header-brand {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        cursor: pointer;
-        transition: transform 0.2s ease;
+      span {
+        font-size: 1rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+    }
 
-        &:hover {
-          transform: scale(1.02);
-        }
+    .dock-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
 
-        .brand-icon {
-          font-size: 2rem;
-          color: var(--p-yellow-500);
-          animation: solarPulse 3s ease-in-out infinite;
-        }
+    .dock-item {
+      border: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: color-mix(in srgb, var(--p-primary-contrast-color) 90%, transparent);
+      padding: 0.75rem;
+      border-radius: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+      font-weight: 600;
+      font-size: 0.95rem;
 
-        h1 {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 800;
-          color: white;
-          letter-spacing: -0.5px;
-        }
+      i {
+        font-size: 1.1rem;
+        min-width: 1.25rem;
+        text-align: center;
       }
 
-      .header-nav {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        flex-wrap: wrap;
+      span {
+        white-space: nowrap;
+      }
 
-        a {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: rgba(255, 255, 255, 0.9);
-          text-decoration: none;
-          font-weight: 600;
-          padding: 0.625rem 1rem;
-          border-radius: 0.5rem;
-          transition: all 0.2s ease;
-          font-size: 0.95rem;
+      &:hover {
+        background: color-mix(in srgb, var(--p-primary-contrast-color) 12%, transparent);
+        color: var(--p-primary-contrast-color);
+      }
 
-          i {
-            font-size: 1.1rem;
-          }
+      &.active {
+        background: linear-gradient(120deg, color-mix(in srgb, var(--p-yellow-500) 85%, #fff) 0%, color-mix(in srgb, var(--p-yellow-400) 75%, #fff) 100%);
+        color: #000;
+        box-shadow: 0 0 0.875rem rgba(255, 214, 0, 0.25);
+      }
+    }
 
-          &:hover {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-          }
+    .dock-bottom {
+      padding-top: 0.75rem;
+      border-top: 1px solid color-mix(in srgb, var(--p-primary-contrast-color) 15%, transparent);
+    }
 
-          &.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            box-shadow: inset 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
-          }
-        }
+    .logout {
+      justify-content: flex-start;
+      color: color-mix(in srgb, var(--p-red-200) 85%, var(--p-primary-contrast-color));
 
-        ::ng-deep .logout-btn {
-          &:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: var(--p-button-border-radius);
-          }
-        }
+      &:hover {
+        background: color-mix(in srgb, var(--p-red-400) 18%, transparent);
       }
     }
 
     .user-content {
-      flex: 1;
-      padding: 2rem 0;
+      min-width: 0;
+      padding: 1.5rem;
     }
 
-    .user-footer {
-      background: var(--p-primary-700);
-      color: rgba(255, 255, 255, 0.8);
-      padding: 2rem 0;
-      margin-top: 4rem;
-      text-align: center;
-
-      p {
-        margin: 0;
-        font-size: 0.95rem;
-      }
+    .content-inner {
+      min-height: calc(100vh - 3rem);
     }
 
     @media (max-width: 1024px) {
-      .user-header {
-        .container {
-          flex-direction: column;
-          gap: 1rem;
-        }
+      .user-shell {
+        grid-template-columns: 1fr;
+      }
 
-        .header-nav {
+      .user-dock {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        width: 100%;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--p-primary-200) 30%, transparent);
+        padding: 0.75rem;
+
+        &.expanded {
           width: 100%;
-          justify-content: center;
-
-          a span {
-            display: none;
-          }
         }
+      }
+
+      .dock-top {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .dock-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .dock-bottom {
+        flex-direction: row;
+        border-top: 0;
+        padding-top: 0;
       }
     }
 
     @media (max-width: 768px) {
       .user-content {
-        padding: 1rem 0;
-      }
-
-      .user-header {
-        .header-brand h1 {
-          font-size: 1.25rem;
-        }
-
-        .header-nav {
-          gap: 0.25rem;
-
-          a {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-          }
-        }
+        padding: 1rem;
       }
     }
   `]
@@ -216,6 +298,66 @@ import { AuthService } from '@core/services';
 export class UserLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  readonly isDockExpanded = signal(false);
+
+  readonly primaryNavItems: readonly DockItem[] = [
+    {
+      label: 'Dashboard',
+      icon: 'pi pi-home',
+      path: '/projects',
+      exact: true,
+    },
+    {
+      label: 'Create Project',
+      icon: 'pi pi-plus-circle',
+      path: '/projects/add',
+      matchPrefixes: ['/projects/add'],
+    },
+    {
+      label: 'Project List',
+      icon: 'pi pi-folder-open',
+      path: '/projects/all',
+      matchPrefixes: ['/projects/all'],
+    },
+    {
+      label: 'Panels',
+      icon: 'pi pi-th-large',
+      path: '/panels/all',
+      matchPrefixes: ['/panels'],
+    },
+    {
+      label: 'Settings',
+      icon: 'pi pi-cog',
+      path: '/projects/settings',
+      matchPrefixes: ['/projects/settings'],
+    },
+  ];
+
+  readonly profileNavItem: DockItem = {
+    label: 'Profile',
+    icon: 'pi pi-user',
+    path: '/projects/profile',
+    matchPrefixes: ['/projects/profile'],
+  };
+
+  toggleDock(): void {
+    this.isDockExpanded.update((expanded) => !expanded);
+  }
+
+  isRouteActive(item: DockItem): boolean {
+    const currentUrl = this.router.url;
+
+    if (item.exact) {
+      return currentUrl === item.path;
+    }
+
+    if (item.matchPrefixes && item.matchPrefixes.length > 0) {
+      return item.matchPrefixes.some((prefix) => currentUrl.startsWith(prefix));
+    }
+
+    return currentUrl.startsWith(item.path);
+  }
 
   logout(): void {
     this.authService.logout();
