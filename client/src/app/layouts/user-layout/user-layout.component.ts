@@ -148,9 +148,9 @@ interface DockItem {
     }
 
     .dock-toggle {
-      align-self: center;
+      align-self: flex-start;
       color: var(--p-primary-contrast-color);
-      border: 1px solid color-mix(in srgb, var(--p-primary-contrast-color) 30%, transparent);
+      border: 0;
       width: 2.5rem;
       height: 2.5rem;
       border-radius: 999px;
@@ -224,6 +224,17 @@ interface DockItem {
         background: linear-gradient(120deg, color-mix(in srgb, var(--p-yellow-500) 85%, #fff) 0%, color-mix(in srgb, var(--p-yellow-400) 75%, #fff) 100%);
         color: #000;
         box-shadow: 0 0 0.875rem rgba(255, 214, 0, 0.25);
+      }
+    }
+
+    .user-dock:not(.expanded) {
+      .dock-item {
+        gap: 0;
+        justify-content: center;
+
+        i {
+          min-width: 0;
+        }
       }
     }
 

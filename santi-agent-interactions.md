@@ -4,6 +4,115 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 8, 2026 - Dock Icon Spacing Fix (Collapsed Mode)
+
+### Topic
+Removed the extra right-side space around dock icons in collapsed mode while preserving expanded-mode alignment.
+
+### Summary of Request
+User observed remaining right-side space for dock icons and requested removing it.
+
+### What Was Achieved
+- Added collapsed-only style overrides in user layout dock:
+  - `gap: 0` for `.dock-item`
+  - `justify-content: center` for icon-only alignment
+  - `min-width: 0` on icon element in collapsed mode
+- Kept expanded mode spacing intact for icon + label readability.
+- Verified edited file diagnostics: no errors.
+
+### Full Prompt
+"All of the icons in the dock have a remaining space in right. Can you remove that space? Did you add it for a specific reason?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The original gap/min-width values were useful for expanded mode text alignment; scoped collapsed-only overrides remove unwanted icon spacing without regressing expanded layout.
+
+---
+
+## 📅 March 8, 2026 - Dock Toggle Alignment Polish
+
+### Topic
+Polished the dock toggle button alignment and visual style in the user layout.
+
+### Summary of Request
+User requested making the dock toggle button pinned to the left like the rest of dock actions and removing its border.
+
+### What Was Achieved
+- Updated `.dock-toggle` alignment from centered to left-aligned (`align-self: flex-start`).
+- Removed the toggle border (`border: 0`) for a cleaner appearance.
+- Verified edited layout file diagnostics: no errors.
+
+### Full Prompt
+"Good first iteration. Now I want to make the toggle menu button to be pined to the left like the rest of the buttons in the dock. Also, remove the border in that button"
+
+"approved"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Left alignment improves consistency with dock item alignment and visual rhythm.
+- Border removal reduces visual noise and better matches the minimal dock style direction.
+
+---
+
+## 📅 March 8, 2026 - User Layout Vertical Dock Navigation
+
+### Topic
+Replaced the user top navigation with a left vertical dock inspired by PrimeNG and Canva, including a collapsible icon-only/expanded mode.
+
+### Summary of Request
+User requested a left-side vertical dock/menu for the user layout with simple icons, hover labels, optional expansion to icon + text, and inclusion of existing tabs (`dashboard`, `create project`, `project list`, `panels`, `settings`, and `profile`). User also requested that new components be created as single `.ts` files containing template and styles.
+
+### What Was Achieved
+- Rebuilt `user-layout` as a left vertical, collapsible dock:
+  - Collapsed mode: icon-only navigation with tooltips.
+  - Expanded mode: icon + label entries.
+  - Active route highlighting and bottom profile/logout actions.
+- Kept/added dock tabs:
+  - Dashboard (`/projects`)
+  - Create Project (`/projects/add`)
+  - Project List (`/projects/all`)
+  - Panels (`/panels/all`)
+  - Settings (`/projects/settings`)
+  - Profile (`/projects/profile`)
+- Added new routed user pages as **single-file components** (`.ts` only with inline template/styles):
+  - `settings.component.ts`
+  - `profile.component.ts`
+- Updated user child routes to include `settings` and `profile`.
+- Ran frontend typecheck successfully after changes.
+
+### Full Prompt
+"I want to modify the user layout so that it uses a vertical dock on the left (either a dock or a menu but what i want is the simplicity of the dock icons - hover on the icon to see the name of the tab. It could be nice if the dock/menu could be expandable to show the icon + name.). And include in that dock the tabs I currently have (dashboard, create project, project list, panels, settings, and then a user profile or something)
+
+https://primeng.org/dock
+https://primeng.org/
+https://www.canva.com/
+
+I get the inspo from the primeng landing site example and from the canva vertical menu/dock (which is expandable)"
+
+"For the new components, create only one file (the ts file) and include everything there"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `client/src/app/app.routes.ts`
+- `client/src/app/features/user/settings/settings.component.ts`
+- `client/src/app/features/user/profile/profile.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A custom dock-style sidebar provided better control for collapsible behavior and Canva-like interaction than a default top menubar.
+- PrimeNG tooltip integration preserves icon-only simplicity while keeping labels discoverable.
+- New pages were implemented as single-file standalone components to match the explicit user constraint.
+
+---
+
 ## 📅 March 8, 2026 - px to rem Migration (Final Layout + Visitor Sweep)
 
 ### Topic
