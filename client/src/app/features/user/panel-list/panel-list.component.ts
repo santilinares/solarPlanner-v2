@@ -7,6 +7,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
 import { PanelService } from '@core/services/panel.service';
 import { Panel, PanelCreateRequest } from '@core/models/panel.model';
+import { UserRole } from '@core/models';
 import { AuthService } from '@core/services';
 import { PanelFormComponent } from '@features/admin/panels/panel-form.component';
 
@@ -23,15 +24,15 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
             Solar Panels
           </h1>
           <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
+          @if (isAdmin()) {
+            <p-button
+              label="Add Panel"
+              icon="pi pi-plus"
+              (onClick)="openAddModal()"
+              class="add-btn"
+            />
+          }
         </div>
-        @if (isAdmin()) {
-          <p-button
-            label="Add Panel"
-            icon="pi pi-plus"
-            (onClick)="openAddModal()"
-            class="add-btn"
-          />
-        }
       </div>
 
       @if (showModal() && isAdmin()) {
@@ -145,7 +146,8 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           }
 
           .add-btn {
-            flex-shrink: 0;
+            margin-top: 0.85rem;
+            display: inline-flex;
           }
         }
 
@@ -296,7 +298,7 @@ export class PanelListComponent implements OnInit {
   protected readonly selectedPanel = signal<Panel | null>(null);
   protected readonly isAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
-    return role === 'admin' || this.authService.isAdmin();
+    return role === UserRole.ADMIN || this.authService.isAdmin();
   });
 
   ngOnInit() {

@@ -4,6 +4,104 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 10, 2026 - Reposition Add Panel Button Under Header Subtitle
+
+### Topic
+Moved the admin-only `Add Panel` action from the right side of the panel page header to directly below the subtitle text.
+
+### Summary of Request
+User requested placing the `Add Panel` button below the descriptive paragraph.
+
+### What Was Achieved
+- Updated panel list header template:
+  - Moved `Add Panel` button inside the left text block under subtitle.
+- Adjusted button styling for vertical spacing and inline placement.
+- Fixed a strict typing regression found during validation:
+  - Replaced string role check with enum-safe check (`UserRole.ADMIN`).
+- Verified diagnostics: no compile errors in edited file.
+
+### Full Prompt
+"Can you move the add panel button to below the paragraph?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Grouping the primary admin action under the section description improves visual hierarchy and keeps related context/action together.
+
+---
+
+## 📅 March 10, 2026 - Move Panel Modal Actions to Header and Remove Close Icon
+
+### Topic
+Relocated panel modal action buttons (`Cancel`, `Update/Create`) to the `p-dialog` header and removed the default close (`x`) icon.
+
+### Summary of Request
+User requested moving update/cancel actions into the modal header and removing the `x` exit button.
+
+### What Was Achieved
+- Updated `p-dialog` behavior:
+  - Set `[closable]="false"` to remove the default close icon.
+  - Replaced string header with `pTemplate="header"` for custom header content.
+- Added header action area with:
+  - `Cancel` button (calls `onCancel()`)
+  - `Update Panel` / `Create Panel` button (calls `onSubmit()` and preserves disabled/loading states)
+- Removed old action button row from the bottom of the form.
+- Added responsive styles for header action wrapping on smaller screens.
+- Verified diagnostics: no compile errors in the edited file.
+
+### Full Prompt
+"Can you move the update panel and cancel buttons to the p-dialog-header and remove the exit button (x)"
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Header actions improve discoverability and keep modal controls fixed at the top while the content scrolls.
+
+---
+
+## 📅 March 10, 2026 - Edit Panel Modal Boundary Containment Fix
+
+### Topic
+Prevented the edit panel form card from overflowing outside the PrimeNG modal boundaries.
+
+### Summary of Request
+User reported the edit panel card was going outside modal limits and requested strict prevention.
+
+### What Was Achieved
+- Enforced modal content containment:
+  - `p-dialog` content now uses fixed viewport-safe constraints:
+    - `max-height: 80vh`
+    - `overflow-y: auto`
+    - `overflow-x: hidden`
+- Added defensive width constraints across form layout to prevent horizontal overflow:
+  - `min-width: 0`, `max-width: 100%`, and `box-sizing` on core wrappers (`panel-form`, `step-card`, `form-grid`, `form-field`, `field-group`).
+  - PrimeNG controls now have strict `width/max-width/min-width` constraints.
+  - Added `overflow-x: hidden` on dialog content scope.
+- Improved action row resilience:
+  - `flex-wrap: wrap` for action buttons on constrained widths.
+
+### Full Prompt
+"Ok, but the edit panel card is going out of the boundaries of the modal. Prevent that at all costs."
+
+"Ok, lets try"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Overflow came from unconstrained nested grid/card elements and dialog content overflow settings; adding hard width constraints plus modal-level overflow policy prevents escape in both edit and create modes.
+
+---
+
 ## 📅 March 10, 2026 - UI Refresh Blocker Fix (Dashboard Template Compile Error)
 
 ### Topic

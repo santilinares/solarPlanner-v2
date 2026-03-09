@@ -372,12 +372,6 @@ export class UserLayoutComponent {
       matchPrefixes: ['/projects/management/users'],
     },
     {
-      label: 'Manage Panels',
-      icon: 'pi pi-th-large',
-      path: '/projects/management/panels',
-      matchPrefixes: ['/projects/management/panels'],
-    },
-    {
       label: 'Manage Projects',
       icon: 'pi pi-folder',
       path: '/projects/management/projects',

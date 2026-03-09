@@ -36,11 +36,27 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
       [draggable]="false"
       [resizable]="false"
       [style]="{ width: 'min(95vw, 48rem)' }"
-      [contentStyle]="{ overflow: 'visible' }"
-      [closable]="true"
-      [header]="isEditMode() ? 'Edit Panel' : 'Add New Panel'"
+      [contentStyle]="{ 'max-height': '80vh', 'overflow-y': 'auto', 'overflow-x': 'hidden' }"
+      [closable]="false"
       (onHide)="onCancel()"
     >
+      <ng-template pTemplate="header">
+        <div class="dialog-header-content">
+          <h3 class="dialog-title">{{ isEditMode() ? 'Edit Panel' : 'Add New Panel' }}</h3>
+          <div class="dialog-header-actions">
+            <button pButton type="button" label="Cancel" severity="secondary" [outlined]="true" (click)="onCancel()"></button>
+            <button
+              pButton
+              type="button"
+              [label]="isSubmitting() ? 'Saving...' : (isEditMode() ? 'Update Panel' : 'Create Panel')"
+              icon="pi pi-check"
+              [disabled]="panelForm.invalid || isSubmitting()"
+              (click)="onSubmit()"
+            ></button>
+          </div>
+        </div>
+      </ng-template>
+
       <form [formGroup]="panelForm" (ngSubmit)="onSubmit()" class="panel-form">
         <section class="step-card">
           <header class="step-card-header">
@@ -108,6 +124,19 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
             <p-inputNumber inputId="warranty" formControlName="warranty" [min]="0" [useGrouping]="false" />
           </div>
 
+            <div class="form-field">
+             <label for="temperatureCoefficient">Temp. Coefficient (%/degC)</label>
+              <p-inputNumber
+                inputId="temperatureCoefficient"
+                formControlName="temperatureCoefficient"
+                mode="decimal"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                [useGrouping]="false"
+              />
+              <small class="field-hint">Use manufacturer coefficient. Negative values are supported.</small>
+          </div>
+
             <div class="form-field full-width field-group" formGroupName="dimensions">
               <h3>Dimensions (mm)</h3>
               <div class="form-grid nested-grid">
@@ -128,41 +157,41 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
             </div>
               </div>
           </div>
-
-            <div class="form-field full-width">
-              <label for="temperatureCoefficient">Temp. Coefficient (%/degC)</label>
-              <p-inputNumber
-                inputId="temperatureCoefficient"
-                formControlName="temperatureCoefficient"
-                mode="decimal"
-                [minFractionDigits]="2"
-                [maxFractionDigits]="2"
-                [useGrouping]="false"
-              />
-              <small class="field-hint">Use manufacturer coefficient. Negative values are supported.</small>
-            </div>
           </div>
         </section>
-
-        <div class="actions">
-          <button pButton type="button" label="Cancel" severity="secondary" [outlined]="true" (click)="onCancel()"></button>
-          <button
-            pButton
-            type="submit"
-            [label]="isSubmitting() ? 'Saving...' : (isEditMode() ? 'Update Panel' : 'Create Panel')"
-            icon="pi pi-check"
-            [disabled]="panelForm.invalid || isSubmitting()"
-          ></button>
-        </div>
       </form>
     </p-dialog>
   `,
   styles: [
     `
+      .dialog-header-content {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .dialog-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .dialog-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
       .panel-form {
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
+        min-width: 0;
+        width: 100%;
       }
 
       .step-card {
@@ -171,6 +200,10 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         border-radius: 1.5rem;
         padding: 1.25rem;
         box-shadow: 0 0.0625rem 0.1875rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
       }
 
       .step-card-header {
@@ -179,6 +212,7 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         align-items: center;
         gap: 1rem;
         margin-bottom: 1rem;
+        min-width: 0;
       }
 
       .step-card-header h2 {
@@ -213,6 +247,8 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
+        min-width: 0;
+        width: 100%;
       }
 
       .nested-grid {
@@ -223,6 +259,7 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
+        min-width: 0;
       }
 
       .form-field label {
@@ -240,6 +277,9 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         border-radius: 1rem;
         padding: 1rem;
         background: color-mix(in srgb, var(--p-surface-0) 92%, var(--p-primary-50));
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
       }
 
       .field-group h3 {
@@ -258,20 +298,35 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         font-size: 0.8rem;
       }
 
-      .actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        margin-top: 0.5rem;
+      :host ::ng-deep .p-dialog .p-dialog-content {
+        overflow-x: hidden;
       }
 
       :host ::ng-deep .panel-form .p-inputtext,
       :host ::ng-deep .panel-form .p-inputnumber,
       :host ::ng-deep .panel-form .p-select {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      :host ::ng-deep .panel-form .p-inputnumber-input,
+      :host ::ng-deep .panel-form .p-select-label {
+        width: 100%;
+        min-width: 0;
       }
 
       @media (max-width: 768px) {
+        .dialog-header-content {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .dialog-header-actions {
+          width: 100%;
+        }
+
         .form-grid,
         .step-card-header {
           grid-template-columns: 1fr;
