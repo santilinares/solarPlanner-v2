@@ -5,6 +5,10 @@
    Sizing only — colors are handled by PrimeNG design tokens
    ===================================================== */
 
+.icon-primary {
+  color: var(--p-primary-500);
+}
+
 .icon-sm  { font-size: $icon-sm; }
 .icon-md  { font-size: $icon-md; }
 .icon-lg  { font-size: $icon-lg; }

@@ -223,9 +223,9 @@ interface DockItem {
       }
 
       &.active {
-        background: linear-gradient(120deg, color-mix(in srgb, var(--p-yellow-500) 85%, #fff) 0%, color-mix(in srgb, var(--p-yellow-400) 75%, #fff) 100%);
+        background: var(--p-primary-300);
         color: #000;
-        box-shadow: 0 0 0.875rem rgba(255, 214, 0, 0.25);
+        box-shadow: 0 0 0.875rem rgba(0, 255, 128, 0.25);
       }
     }
 
@@ -335,7 +335,7 @@ export class UserLayoutComponent {
     },
     {
       label: 'Project List',
-      icon: 'pi pi-folder-open',
+      icon: 'pi pi-bolt',
       path: '/projects/all',
       matchPrefixes: ['/projects/all'],
     },

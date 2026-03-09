@@ -16,7 +16,7 @@ import { Panel } from '@core/models/panel.model';
       <div class="page-header">
         <div>
           <h1>
-            <i class="pi pi-th-large icon-primary"></i>
+            <i class="pi pi-th-large icon-lg icon-primary"></i>
             Solar Panels
           </h1>
           <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
@@ -79,10 +79,6 @@ import { Panel } from '@core/models/panel.model';
       .panel-list {
         padding: 1rem;
 
-        .icon-primary {
-          color: var(--p-primary-500);
-        }
-
         .page-header {
           margin-bottom: 2rem;
 
@@ -118,12 +114,11 @@ import { Panel } from '@core/models/panel.model';
               .panel-icon {
                 width: 3.5rem;
                 height: 3.5rem;
-                border-radius: 0.75rem;
+                border-radius: 2.5rem;
                 background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                animation: solarPulse 3s ease-in-out infinite;
               }
 
               .panel-bolt-icon {
@@ -176,6 +171,7 @@ import { Panel } from '@core/models/panel.model';
                 }
               }
             }
+
           }
         }
 

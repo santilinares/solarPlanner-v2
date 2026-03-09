@@ -52,11 +52,8 @@ import { AuthService } from '@core/services';
       display: flex;
       align-items: center;
       gap: 1rem;
-      background: linear-gradient(145deg, color-mix(in srgb, var(--p-primary-100) 65%, #fff) 0%, color-mix(in srgb, var(--p-yellow-100) 45%, #fff) 100%);
-      border: 1px solid var(--p-content-border-color);
-      border-radius: 1.25rem;
       padding: 1.25rem;
-      box-shadow: var(--p-shadow-2);
+      margin-bottom: 2rem;
 
       .avatar {
         width: 3.5rem;
@@ -64,7 +61,7 @@ import { AuthService } from '@core/services';
         border-radius: 50%;
         display: grid;
         place-items: center;
-        background: linear-gradient(140deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
+        background: var(--p-primary-700);
         color: var(--p-primary-contrast-color);
       }
 
@@ -78,8 +75,13 @@ import { AuthService } from '@core/services';
       }
 
       h1 {
-        margin: 0.25rem 0;
-        font-size: 1.75rem;
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: var(--p-text-color);
+          margin: 0 0 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
       }
 
       p {
@@ -92,12 +94,6 @@ import { AuthService } from '@core/services';
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
       gap: 1rem;
-    }
-
-    :host ::ng-deep .profile-card {
-      border-radius: 1.25rem;
-      border: 1px solid var(--p-content-border-color);
-      box-shadow: var(--p-shadow-1);
     }
 
     .profile-actions {

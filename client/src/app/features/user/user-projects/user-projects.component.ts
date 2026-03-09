@@ -2,6 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe, TitleCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { SkeletonModule } from 'primeng/skeleton';
 import { ProjectService } from '@core/services/project.service';
 import { Project } from '@core/models';
 
@@ -24,12 +26,15 @@ interface ProjectCardView {
 
 @Component({
   selector: 'app-user-projects',
-  imports: [CommonModule, RouterLink, ButtonModule, DatePipe, TitleCasePipe],
+  imports: [CommonModule, RouterLink, ButtonModule, DatePipe, TitleCasePipe, CardModule, SkeletonModule],
   template: `
     <section class="projects-page animate-fade-in-up">
       <header class="projects-header">
         <div>
-          <h1>My Projects</h1>
+          <h1>
+            <i class="pi pi-bolt icon-lg icon-primary"></i>
+            My Projects
+          </h1>
           <p>Manage your solar panel installations</p>
         </div>
         <p-button
@@ -41,8 +46,15 @@ interface ProjectCardView {
       </header>
 
       @if (isLoading()) {
-        <div class="loading-state" animate.enter="animate-fade-in" animate.leave="animate-fade-out">
-          <span class="spinner" aria-label="Loading projects"></span>
+        <div class="projects-grid stagger-children" animate.enter="animate-fade-in" animate.leave="animate-fade-out">
+          @for (item of [1,2,3,4,5,6]; track item) {
+            <p-card class="project-card">
+              <p-skeleton height="15rem" class="mb-3"></p-skeleton>
+              <p-skeleton height="1rem" class="mb-2"></p-skeleton>
+              <p-skeleton height="1rem" class="mb-2"></p-skeleton>
+              <p-skeleton height="2rem" width="70%"></p-skeleton>
+            </p-card>
+          }
         </div>
       } @else if (errorMessage()) {
         <div class="error-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
@@ -63,7 +75,7 @@ interface ProjectCardView {
       } @else {
         <div class="projects-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           @for (project of projects(); track project.id) {
-            <article class="project-card" [routerLink]="['/projects', project.id]">
+            <article class="project-card hover-lift" [routerLink]="['/projects', project.id]">
               <div class="card-thumbnail">
                 <i class="pi pi-bolt thumb-icon"></i>
               </div>
@@ -101,9 +113,7 @@ interface ProjectCardView {
   styles: [
     `
       .projects-page {
-        padding: 1.5rem;
-        max-width: 80rem;
-        margin: 0 auto;
+        padding: 1.25rem;
       }
 
       .projects-header {
@@ -115,10 +125,13 @@ interface ProjectCardView {
         flex-wrap: wrap;
 
         h1 {
-          margin: 0;
-          font-size: clamp(2rem, 3vw, 2.5rem);
+          font-size: 2.5rem;
+          font-weight: 700;
           color: var(--p-text-color);
-          font-weight: 800;
+          margin: 0 0 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
         }
 
         p {
@@ -190,8 +203,7 @@ interface ProjectCardView {
       }
 
       .project-card {
-        background: var(--p-surface-0);
-        border: 2px solid var(--p-content-border-color);
+        background: var(--p-content-hover-background);
         border-radius: 1.5rem;
         box-shadow: var(--p-shadow-sm);
         transition: all 0.3s ease;
@@ -199,9 +211,6 @@ interface ProjectCardView {
         cursor: pointer;
 
         &:hover {
-          transform: translateY(-0.25rem);
-          box-shadow: var(--p-shadow-lg);
-
           h3 {
             color: var(--p-primary-600);
           }
@@ -293,7 +302,7 @@ interface ProjectCardView {
 
       @media (min-width: 1024px) {
         .projects-grid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
         }
       }
     `,
