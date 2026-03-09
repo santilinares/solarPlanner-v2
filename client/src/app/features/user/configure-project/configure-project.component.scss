@@ -216,8 +216,8 @@
     box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
     }
     .step-nav-bar {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 0.75rem;
     padding: 0.1rem var(--configure-gutter);
@@ -227,6 +227,22 @@
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+    }
+    .step-nav-right {
+    display: flex;
+    justify-content: flex-end;
+    }
+    .step-nav-mode-label {
+    justify-self: center;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--p-primary-color);
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--p-primary-color) 35%, transparent);
+    background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+    white-space: nowrap;
     }
     .step-nav-indicator {
     font-size: 0.9rem;
@@ -723,13 +739,19 @@
         gap: 0.5rem;
     }
     .step-nav-bar {
-        flex-wrap: wrap;
+        grid-template-columns: 1fr;
         gap: 0.5rem;
-        justify-content: space-between;
         padding-inline: 0;
     }
     .step-nav-left {
         width: 100%;
+    }
+    .step-nav-right {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .step-nav-mode-label {
+        justify-self: center;
     }
     .step-nav-indicator {
         order: -1;
