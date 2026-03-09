@@ -4,6 +4,343 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 9, 2026 - Disable Editable Name Hover/Focus in View Mode
+
+### Topic
+Removed visual hover/focus underline feedback from the project name input while it is read-only in view mode.
+
+### Summary of Request
+User asked whether the effects could simply be disabled when read-only and then requested applying that change.
+
+### What Was Achieved
+- Added read-only specific CSS override for the project name input:
+  - `.editable-name:read-only:hover, .editable-name:read-only:focus { border-bottom-color: transparent; }`
+- Left editable/configure mode behavior untouched.
+
+### Full Prompt
+"Cant we just disable these when read-only?"
+
+"apply"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The template already toggles read-only with `[readonly]="isViewMode()"`, so targeting `:read-only` is the smallest and safest way to disable only view-mode effects.
+
+---
+
+## 📅 March 9, 2026 - Configure Mode Exit Button with Unsaved-Changes Confirmation
+
+### Topic
+Replaced configure-mode header navigation behavior by adding an `Exit Edit Mode` action in `step-nav-bar` and warning users about unsaved edits using PrimeNG ConfirmDialog.
+
+### Summary of Request
+User requested that in configure mode the `Back to Projects` button/link be removed, and a new `Exit Edit Mode` button be added in the step navigation bar alongside `Back`, with an alert if there are unsaved changes. User asked to use PrimeNG as much as possible.
+
+### What Was Achieved
+- Added a new `Exit Edit Mode` button next to `Back` inside `.step-nav-bar`.
+- Added PrimeNG confirmation dialog flow before exiting when there are unsaved changes:
+  - Uses `ConfirmationService` + `ConfirmDialogModule` + `<p-confirmDialog />`.
+  - Shows warning dialog when `hasUnsavedChanges()` is true.
+  - Navigates to the project view route on accept.
+- Implemented `onExitEditMode()` in component logic.
+- Removed the top "Back to Projects/Back to Project" link in configure mode by rendering it only in view mode.
+- Updated step-nav styles to support the new left action group and responsive wrapping.
+
+### Full Prompt
+"Now, when in configure mode, remove the back to projects button and include a exit edit mode button that alerts you if you have unsaved changes. use primeng as much as possible for making the process easy. Add this button in the step-nav-bar div alongside with the back button."
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Reusing PrimeNG's native confirmation API avoids custom modal logic and reduces maintenance risk.
+- Keeping exit controls in `step-nav-bar` centralizes configure-mode actions in a single sticky control area.
+- Conditional rendering of the back link by mode prevents redundant or conflicting navigation affordances in edit flow.
+
+---
+
+## 📅 March 9, 2026 - Responsive Configure Page Gutter + Step Nav Alignment
+
+### Topic
+Replaced fixed horizontal margins in `configure-project` with a shared responsive gutter and aligned step navigation controls to the same spacing system.
+
+### Summary of Request
+User wanted the configure-project view to use almost all available screen width while keeping an approximate 5rem edge spacing on large displays, but without a rigid solution that could generate tech debt. User also requested the same spacing behavior for the buttons inside `step-nav-bar`.
+
+### What Was Achieved
+- Introduced a single responsive spacing token on the component host:
+  - `--configure-gutter: clamp(1rem, 4vw, 5rem);`
+- Replaced fixed page margin (`margin: 0 5rem`) with fluid width + centered layout:
+  - `width: min(100%, calc(100% - (var(--configure-gutter) * 2)))`
+  - `margin-inline: auto`
+- Applied the same gutter to the sticky navigation control row:
+  - `.step-nav-bar { padding: 0.1rem var(--configure-gutter); }`
+- Adjusted mobile breakpoint behavior to avoid spacing conflicts by resetting nav inline padding and preserving compact layout.
+
+### Full Prompt
+"I want the configure-project component to use almost all of the space in the screen available but leaving something like 5rem of margin. Help me set up in the best way that can adapt to different screens and cause less conflicts (so maybe adding 5rem of margin is not the solution). Apply the same config to the buttons in the step-nav-bar div"
+
+"If this is a good practice for what i want, then yes, I dont want solutions that will generate me tech debt"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A shared `clamp()` gutter centralizes horizontal spacing logic and scales across viewport sizes without relying on brittle fixed margins.
+- Using one spacing token for both page content and top step navigation keeps visual alignment consistent and reduces future style drift.
+
+---
+
+## 📅 March 9, 2026 - Full-Width Sticky Configure Header
+
+### Topic
+Made the configure-mode sticky header break out of parent container constraints to span the full available width.
+
+### Summary of Request
+User wanted `.configure-sticky-header` to bypass the `max-width` and padding of both `.configure-page` and `.user-content`, sitting flush at the top of the viewport when scrolling.
+
+### What Was Achieved
+- Moved `.configure-sticky-header` outside `<section class="configure-page">` in the template so it's no longer constrained by max-width or inner padding.
+- Applied negative margins (`-1.5rem` matching `.user-content` padding) to make the header extend edge-to-edge within the content area.
+- Added `:host { display: block; }` to ensure the component host participates correctly in block layout for negative margins.
+- Used bottom-only border-radius (`0 0 1rem 1rem`) and removed top border for a flush top-edge look.
+- Adjusted the responsive `768px` breakpoint to match `.user-content`'s reduced padding (`1rem`) at that size.
+- Verified diagnostics on edited files: no errors.
+
+### Full Prompt
+"I have modified the file myself. Basically the thing is I want the configure-sticky-header to use the whole available width and bypass the overall restriction of the configure-page div and the user-content div because I want the configure-sticky-header to be right at the vertical beginning of the page. How can we do that?"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Moving the sticky header outside `.configure-page` avoids fighting `max-width: 80rem` and `margin: 0 auto`.
+- Negative margins (`-1.5rem`) cancel out the `.user-content` padding, making the header span the full content column.
+- `:host { display: block }` ensures the component host behaves as a block container so negative margins on children work correctly.
+
+---
+
+## 📅 March 9, 2026 - Sticky Configure Header + Stepper Placement
+
+### Topic
+Moved configure-mode navigation controls and step indicator into a sticky top header, with the stepper row immediately below it.
+
+### Summary of Request
+User requested that, in configure mode, `Back`/`Next` buttons and current-step indicator appear at the top like a header, with the stepper right below, and that this section remains visible while vertically scrolling.
+
+### What Was Achieved
+- Reworked configure-mode template structure:
+  - Added a single sticky wrapper (`.configure-sticky-header`) containing:
+    - Top navigation row (`Back`, step indicator, `Next`/`Save`).
+    - Stepper row directly below using step buttons.
+- Kept step panels in normal document flow while binding step changes to the same `activeStep` signal.
+- Updated styles for sticky behavior and responsive layout of the new two-row header.
+- Verified diagnostics on edited files: no errors.
+
+### Full Prompt
+"I want to modify in this component the location of the stepper and the back and next buttons when the configure mode is on. I want the back and next buttons, and the indicator of the current step to be on the top of the screen, like a header, and right below it the stepper. I want the header to move with the screen if there is vertical scroll"
+
+"approve. There is no header on this user layout, so the first con wont appear"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Grouping navigation and step controls in one sticky container ensures both remain visible during scrolling and matches the requested header-first layout.
+
+---
+
+## 📅 March 9, 2026 - Panel & Installation Card Structure Alignment
+
+### Topic
+Aligned `Panel & Installation` card structure with the other cards by replacing PrimeNG `p-card` with a single `div.step-card` wrapper.
+
+### Summary of Request
+User asked to match the card to the rest of the layout, avoiding `p-card` and using one main `div` container before its internal elements.
+
+### What Was Achieved
+- Replaced the container of `Panel & Installation`:
+  - From: `<p-card class="step-card panel-installation-card"> ... </p-card>`
+  - To: `<div class="step-card panel-installation-card"> ... </div>`
+- Kept all inner content unchanged (`header`, `divider`, `form`).
+- Verified HTML diagnostics: no errors.
+
+### Full Prompt
+"Great, now for some reason the Panel & Installation card has a different configuration than the other cards. Can you match it to how the other cards are designed? Not using the p-card and using only one div before indicating the elements held inside the card?"
+
+"aplicalo"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Using the same structural pattern as the sibling cards improves visual consistency and avoids component-specific internal behavior.
+
+---
+
+## 📅 March 9, 2026 - Panel Name Info Icon
+
+### Topic
+Added an informational icon to the left of the selected panel name in the panel details header.
+
+### Summary of Request
+User requested adding PrimeIcons `pi-info-circle` to the left of `selectedPanelName()`.
+
+### What Was Achieved
+- Updated panel details header markup to include `pi pi-info-circle` before the panel name.
+- Added minimal styles for proper icon-text alignment and spacing.
+- Verified diagnostics on modified HTML/SCSS: no errors.
+
+### Full Prompt
+"On the left of the selectedPanelName I want to add this icon: pi-info-circle from primeng icons"
+
+"aplicalo"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- An inline-flex title wrapper keeps the icon aligned with the panel name and does not affect the subtitle layout below.
+
+---
+
+## 📅 March 9, 2026 - Wrapper Fix for Panel Info Card Sizing
+
+### Topic
+Replaced the nested PrimeNG card with a local wrapper to prevent width shrinkage after removing deep styling.
+
+### Summary of Request
+User reported the previous fix did not work and suggested adding a wrapper for the element that had relied on `ng-deep`.
+
+### What Was Achieved
+- Replaced nested `p-card` in panel details section with a plain wrapper `<div class="panel-info-card">`.
+- Preserved existing content structure and styling intent (title, subtitle, tags).
+- Reinforced wrapper sizing rules in SCSS:
+  - `.panel-info-card { display: block; width: 100%; }`
+  - `.panel-info-surface { width: 100%; display: block; box-sizing: border-box; }`
+- Verified diagnostics on modified HTML/SCSS: no errors.
+
+### Full Prompt
+"Eso no está funcionando, quizás necesitamos hacer un wrapper para el elemento para el que antes usabamos ng-deep"
+
+"ok"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A local wrapper removes dependence on PrimeNG internal structure, making width and spacing deterministic without `ng-deep`.
+
+---
+
+## 📅 March 9, 2026 - Panel Info Card Visual Polish (No ng-deep)
+
+### Topic
+Refined the panel detail card and tags visual style in the unified project screen and removed `ng-deep` usage from the component stylesheet.
+
+### Summary of Request
+User requested better styling for the new panel card/tags, required no `ng-deep`, asked to replace generic title with panel name, show `technology - dimensions` as paragraph, use value-only labels with `aria-label`, add PrimeNG icons/colors, and use a lighter gray card background with no shadow.
+
+### What Was Achieved
+- Updated panel detail card content:
+  - Title now uses selected panel name.
+  - Subtitle now uses `technology - dimensions`.
+- Updated tags:
+  - Value-only rendering (no label prefix text).
+  - Added `aria-label` and tooltip with each label.
+  - Added PrimeIcons and PrimeNG severities for colored chips.
+- Updated card visuals:
+  - Lighter gray surface (`var(--p-surface-100)`).
+  - No box shadow.
+- Removed all `ng-deep` selectors from `configure-project.component.scss`.
+- Verified diagnostics on edited files: no errors.
+
+### Full Prompt
+"Ok, but lets add a bit of style to that card and the labels, they look awful. And DO NOT use ng-deep!!!
+
+Instead of adding the Selected Panel Details title, directly use then name of the panel. Then add the technology and dimensions as a paragraph: technology - dimensions
+
+For the labels, do not include their name, use the values directly and use aria-label for showing their name when hovering. Also add primeng icons to them and give them some colors based always based on what is defined with primeng. For the background of the card, use a ligher gray and remove the box-shadow"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Kept the card as PrimeNG-based while moving visual control to a local surface wrapper to avoid deep selectors.
+- Used PrimeNG `severity` + PrimeIcons to provide visual differentiation without custom token violations.
+
+---
+
+## 📅 March 9, 2026 - Unified Project View/Configure Mode
+
+### Topic
+Unified `view-project` and `configure-project` into a single route-driven component with `view` and `configure` modes.
+
+### Summary of Request
+User requested reusing the configure view for project viewing, hiding stepper/navigation in view mode, adding a panel detail sub-card using PrimeNG tags, and adding total project area in Live Capacity Preview for both modes.
+
+### What Was Achieved
+- Routed both `/projects/:id` and `/projects/:id/configure` to `ConfigureProjectComponent`.
+- Added dual mode behavior inside `ConfigureProjectComponent`:
+  - `configure` mode: full stepper + sticky step navigation + save flow.
+  - `view` mode: no stepper header/navigation and read-only inputs.
+- Updated header behavior by mode:
+  - View mode shows `Back to Projects` and a `Configure` action button.
+  - Configure mode preserves unsaved/saved status tag.
+- Converted the Panel & Installation container to a PrimeNG `p-card`.
+- Added nested panel information card under selected panel, using `p-tag` for:
+  - Name, dimensions, efficiency, peak, technology, bifacial.
+- Added `Project Total Area` to Live Capacity Preview for both modes.
+- Verified diagnostics on changed files: no errors.
+
+### Full Prompt
+"I want to reuse the view I have created in the configure-project component for the view-project component. Basically I want it to look pretty much like the configure-project component but with a few tweaks:
+1. The stepper and the navigation header (back and next and current step) wont show
+2. For the panel and installation card (use primeng cards), we could add inside it a card just below the solar panel chosen that shows information about the panel like:
++ Name, dimensions, efficiency, peak, technology, if its bifacial. For these use primeng tags: p-tag.
+3. In the live capacity preview add the total area of the project.
+
+The thing is what I want to do is to unify the view-project component and the configure-component into one and add a configure mode and a view mode. When configure mode is toggled, the things I told you about on indication 1 will show. Therefore, what I told you on indications 2 and 3 should be part of both views.
+
+Is this possible to do?"
+
+"Ok, lets do it"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `client/src/app/app.routes.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A route-driven mode avoids duplicating two nearly identical UIs and keeps future maintenance in one place.
+- Conditional rendering around stepper/nav satisfies view-mode requirements while preserving configure workflow.
+- Derived signals were added for panel tag data and project area to keep template logic simple.
+
+---
+
 ## 📅 March 8, 2026 - Dock Style Reuse (Brand + Toggle)
 
 ### Topic

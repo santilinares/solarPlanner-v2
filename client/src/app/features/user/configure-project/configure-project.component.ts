@@ -9,11 +9,12 @@ import {
 } from '@angular/core';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { ConfirmationService } from 'primeng/api';
 
 import { StepperModule } from 'primeng/stepper';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -27,6 +28,7 @@ import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
@@ -57,6 +59,8 @@ interface CurrencyOption {
   value: string;
 }
 
+type ProjectScreenMode = 'configure' | 'view';
+
 @Component({
   selector: 'app-configure-project',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,15 +80,19 @@ interface CurrencyOption {
     MessageModule,
     SkeletonModule,
     TooltipModule,
+    ConfirmDialogModule,
     LocationMapComponent,
   ],
+  providers: [ConfirmationService],
   templateUrl: './configure-project.component.html',
   styleUrls: ['./configure-project.component.scss'],
 })
 export class ConfigureProjectComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
+  private readonly confirmationService = inject(ConfirmationService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
   private readonly destroyRef = inject(DestroyRef);
@@ -99,6 +107,7 @@ export class ConfigureProjectComponent implements OnInit {
   readonly projectData = signal<ProjectResponse | null>(null);
   readonly panels = signal<Panel[]>([]);
   readonly projectId = signal('');
+  readonly mode = signal<ProjectScreenMode>('configure');
   activeStep = signal(1);
 
   // ─── Map / Location State ───
@@ -302,8 +311,61 @@ export class ConfigureProjectComponent implements OnInit {
     return this.activeStep() === 1 ? 'Panel Setup' : 'Review & Save';
   });
 
+  readonly isConfigureMode = computed(() => this.mode() === 'configure');
+  readonly isViewMode = computed(() => this.mode() === 'view');
+
+  readonly projectTotalArea = computed(() => {
+    const fromProject = this.projectData()?.surface;
+    if (typeof fromProject === 'number' && Number.isFinite(fromProject)) {
+      return fromProject;
+    }
+
+    const fromOptimal = this.optimalConfig()?.surfaceArea;
+    if (typeof fromOptimal === 'number' && Number.isFinite(fromOptimal)) {
+      return fromOptimal;
+    }
+
+    return 0;
+  });
+
+  readonly panelTagEntries = computed(() => {
+    const panel = this.selectedPanelData();
+    if (!panel) return [];
+
+    const maybeBifacial = panel as Panel & { bifacial?: boolean };
+    const isBifacial =
+      typeof maybeBifacial.bifacial === 'boolean'
+        ? maybeBifacial.bifacial
+          ? 'Yes'
+          : 'No'
+        : 'N/A';
+
+    return [
+      { label: 'Efficiency', value: `${panel.efficiency}%`, icon: 'pi pi-gauge', severity: 'success' as const },
+      { label: 'Peak', value: `${panel.wattPeak}W`, icon: 'pi pi-bolt', severity: 'warn' as const },
+      { label: 'Technology', value: panel.technology ?? 'N/A', icon: 'pi pi-cog', severity: 'info' as const },
+      { label: 'Bifacial', value: isBifacial, icon: 'pi pi-sparkles', severity: 'secondary' as const },
+    ];
+  });
+
+  readonly selectedPanelName = computed(() => {
+    const panel = this.selectedPanelData();
+    if (!panel) return 'Panel details';
+    return `${panel.brand} ${panel.model}`;
+  });
+
+  readonly selectedPanelTechDimensions = computed(() => {
+    const panel = this.selectedPanelData();
+    if (!panel) return 'N/A - N/A';
+    const technology = panel.technology ?? 'N/A';
+    const dimensions = `${panel.dimensions.width}m x ${panel.dimensions.height}m`;
+    return `${technology} - ${dimensions}`;
+  });
+
   // ─── Lifecycle ───
   ngOnInit(): void {
+    this.detectModeFromRoute();
+
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.errorMessage.set('Invalid project ID.');
@@ -312,6 +374,12 @@ export class ConfigureProjectComponent implements OnInit {
     }
     this.projectId.set(id);
     this.loadData(id);
+  }
+
+  private detectModeFromRoute(): void {
+    const isConfigureRoute = this.route.snapshot.url.some((segment) => segment.path === 'configure');
+    this.mode.set(isConfigureRoute ? 'configure' : 'view');
+    this.activeStep.set(1);
   }
 
   // ─── Data Loading ───
@@ -491,6 +559,25 @@ export class ConfigureProjectComponent implements OnInit {
   }
 
   // ─── Save ───
+  onExitEditMode(): void {
+    const targetUrl = ['/projects', this.projectId()];
+
+    if (!this.hasUnsavedChanges()) {
+      void this.router.navigate(targetUrl);
+      return;
+    }
+
+    this.confirmationService.confirm({
+      header: 'Discard unsaved changes?',
+      message: 'You have unsaved changes. If you exit edit mode now, those changes will be lost.',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Discard and Exit',
+      rejectLabel: 'Stay Editing',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => void this.router.navigate(targetUrl),
+    });
+  }
+
   onSave(): void {
     if (!this.canSave()) return;
 

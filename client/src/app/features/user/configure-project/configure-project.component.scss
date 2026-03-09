@@ -1,8 +1,12 @@
+    :host {
+    display: block;
+    --configure-gutter: clamp(1rem, 4vw, 5rem);
+    }
 
     /* ─── Page Layout ─── */
     .configure-page {
-    max-width: 80rem;
-    margin: 0 auto;
+    width: min(100%, calc(100% - (var(--configure-gutter) * 2)));
+    margin-inline: auto;
     padding: 1.5rem;
     }
 
@@ -21,7 +25,7 @@
     justify-content: center;
     padding: 4rem 1rem;
     }
-    :host ::ng-deep .error-card {
+    .error-card {
     max-width: 30rem;
     text-align: center;
     border-radius: 1.5rem !important;
@@ -115,6 +119,10 @@
     .editable-name:hover {
     border-bottom-color: var(--p-primary-200);
     }
+    .editable-name:read-only:hover,
+    .editable-name:read-only:focus {
+    border-bottom-color: transparent;
+    }
     .editable-name:focus {
     border-bottom-color: var(--p-primary-color);
     }
@@ -137,7 +145,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 0;
     background: transparent;
     flex-wrap: wrap;
     }
@@ -190,21 +198,35 @@
     box-shadow: none;
     }
 
-    /* ─── Sticky Navigation Bar ─── */
-    .step-nav-bar {
+    /* ─── Sticky Configure Header ─── */
+    .configure-sticky-header {
     position: sticky;
     top: 0;
     z-index: 100;
     display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: -1.5rem -1.5rem 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0 0 1rem 1rem;
+    border: 1px solid var(--p-content-border-color);
+    border-top: none;
+    background: color-mix(in srgb, var(--p-surface-0) 94%, transparent);
+    backdrop-filter: blur(0.75rem);
+    box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
+    }
+    .step-nav-bar {
+    display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.65rem 1.25rem;
-    margin-bottom: 1rem;
-    background: color-mix(in srgb, var(--p-surface-0) 92%, transparent);
-    backdrop-filter: blur(0.75rem);
-    border: 1px solid var(--p-content-border-color);
-    border-radius: 1rem;
-    box-shadow: 0 0.125rem 0.5rem color-mix(in srgb, var(--p-text-color) 8%, transparent);
+    gap: 0.75rem;
+    padding: 0.1rem var(--configure-gutter);
+    }
+    .step-nav-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     }
     .step-nav-indicator {
     font-size: 0.9rem;
@@ -213,6 +235,21 @@
     }
     .step-nav-indicator strong {
     color: var(--p-text-color);
+    }
+
+    .sticky-stepper-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.85rem;
+    border: 1px solid var(--p-content-border-color);
+    background: color-mix(in srgb, var(--p-surface-0) 96%, var(--p-primary-100) 4%);
+    }
+
+    .configure-stepper {
+    margin-top: 0.25rem;
     }
 
     /* ─── Stepper Custom Steps ─── */
@@ -414,6 +451,46 @@
     font-weight: 700;
     color: var(--p-primary-color);
     white-space: nowrap;
+    }
+
+    .panel-info-card {
+    display: block;
+    width: 100%;
+    border-radius: 1rem;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    }
+    .panel-info-surface {
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
+    border-radius: 1rem;
+    border: 1px solid var(--p-content-border-color);
+    background: var(--p-surface-100);
+    padding: 0.9rem;
+    }
+    .panel-info-header {
+    margin-bottom: 0.6rem;
+    color: var(--p-text-color);
+    }
+    .panel-info-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    }
+    .panel-info-title i {
+    font-size: 0.95rem;
+    }
+    .panel-info-header p {
+    margin: 0.2rem 0 0;
+    color: var(--p-text-muted-color);
+    font-size: 0.82rem;
+    }
+    .panel-info-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     }
 
     /* ─── 3D Placeholder ─── */
@@ -640,15 +717,32 @@
     .capacity-info strong {
         font-size: 1.5rem;
     }
+    .configure-sticky-header {
+        margin: -1rem -1rem 1rem;
+        padding: 0.5rem 1rem;
+        gap: 0.5rem;
+    }
     .step-nav-bar {
         flex-wrap: wrap;
         gap: 0.5rem;
-        justify-content: center;
+        justify-content: space-between;
+        padding-inline: 0;
+    }
+    .step-nav-left {
+        width: 100%;
     }
     .step-nav-indicator {
         order: -1;
         width: 100%;
         text-align: center;
+    }
+    .sticky-stepper-row {
+        gap: 0.5rem;
+        justify-content: space-between;
+    }
+    .sticky-stepper-row .step-btn {
+        flex: 1;
+        min-width: 0;
     }
     }
 
