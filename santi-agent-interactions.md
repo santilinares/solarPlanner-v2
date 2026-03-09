@@ -4,6 +4,82 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 10, 2026 - Remove Obsolete Admin Panels Component + PrimeNG Modal Modernization
+
+### Topic
+Removed the obsolete admin-only panels page component and modernized the panel create/edit popup to PrimeNG while preserving unified role-based panel management.
+
+### Summary of Request
+User requested deleting the old admin panel component before continuing, then modernizing the create/edit panel modal using PrimeNG.
+
+### What Was Achieved
+- Removed obsolete admin panels page component files:
+  - `features/admin/panels/panels.component.ts`
+  - `features/admin/panels/panels.component.html`
+  - `features/admin/panels/panels.component.scss`
+- Modernized `PanelFormComponent` popup UI with PrimeNG:
+  - Replaced custom overlay markup with `p-dialog`.
+  - Replaced native inputs/select with PrimeNG `pInputText`, `p-inputNumber`, and `p-select`.
+  - Replaced custom buttons with PrimeNG `pButton`.
+- Improved form behavior:
+  - Added signal `effect` to reset/patch form whenever the selected panel changes (fixes stale edit values across modal opens).
+  - Added explicit validation helper methods and `markAllAsTouched()` on invalid submit.
+  - Kept the same `save`/`cancel` output contract so parent integration remains unchanged.
+
+### Full Prompt
+"Yes, but before, remove the admin panel component. Then modernize the modal"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panels.component.ts` (deleted)
+- `client/src/app/features/admin/panels/panels.component.html` (deleted)
+- `client/src/app/features/admin/panels/panels.component.scss` (deleted)
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- With unified panel routes already in place, the separate admin panels page became dead code and safe to remove.
+- PrimeNG form/dialog components align this modal with the rest of the app UI and simplify consistent theming/accessibility behavior.
+
+---
+
+## 📅 March 9, 2026 - Unified Panels View with Role-Based CRUD Visibility
+
+### Topic
+Merged admin panel management into the standard panel listing screen and made create/edit/delete controls visible only for admin role/type users.
+
+### Summary of Request
+User requested unifying panel view and admin panel view into one screen and showing management actions (add/modify/delete) conditionally based on user role/type.
+
+### What Was Achieved
+- Unified management route to the user panel list view:
+  - `/projects/management/panels` now loads `PanelListComponent`.
+- Extended `PanelListComponent` with role-based behavior:
+  - Added `isAdmin` computed signal from authenticated user role/JWT.
+  - Added admin-only UI actions:
+    - `Add Panel` button in header
+    - `Add First Panel` in empty state
+    - Per-panel `Edit` and `Delete` buttons
+- Reused existing panel form modal for create/update from unified screen:
+  - Integrated `PanelFormComponent` in `PanelListComponent`.
+  - Added modal state/handlers for add/edit/save/delete flows.
+- Preserved read-only browse experience for non-admin users.
+
+### Full Prompt
+"Ok, I think the next step is to unify the panel view and the admin panel view into one (the panel view). And then add the visibility of adding a panel/modifying panels/deleting panels, based on the user type/role"
+
+"Ok. The second phase can include a modernization of the edit/create panel pop-up using primeng"
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Reusing one panel screen removes duplicated panel logic and keeps permissions centralized in role-derived UI state.
+- Admin route protection is still maintained by `adminGuard` while visibility in shared UI is role-driven.
+
+---
+
 ## 📅 March 9, 2026 - Unified Role-Driven Authenticated Layout (No `/admin` Endpoints)
 
 ### Topic

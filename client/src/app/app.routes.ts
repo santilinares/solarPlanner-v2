@@ -64,8 +64,8 @@ export const routes: Routes = [
       {
         path: 'management/panels',
         canActivate: [adminGuard],
-        loadComponent: () => import('./features/admin/panels/panels.component')
-          .then(m => m.PanelsComponent)
+        loadComponent: () => import('./features/user/panel-list/panel-list.component')
+          .then(m => m.PanelListComponent)
       },
       {
         path: ':id',

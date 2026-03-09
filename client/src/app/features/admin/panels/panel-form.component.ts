@@ -1,241 +1,212 @@
-import { Component, inject, signal, input, output, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
 import { Panel, PanelCreateRequest } from '@core/models/panel.model';
 
 @Component({
   selector: 'app-panel-form',
-  imports: [CommonModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DialogModule,
+    ButtonModule,
+    InputTextModule,
+    InputNumberModule,
+    SelectModule,
+  ],
   template: `
-    <div class="modal-overlay">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>{{ isEditMode() ? 'Edit Panel' : 'Add New Panel' }}</h2>
-          <button class="close-btn" (click)="onCancel()">×</button>
-        </div>
-
-        <form [formGroup]="panelForm" (ngSubmit)="onSubmit()">
-          <div class="form-group">
+    <p-dialog
+      [visible]="true"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{ width: 'min(95vw, 48rem)' }"
+      [contentStyle]="{ overflow: 'visible' }"
+      [closable]="true"
+      [header]="isEditMode() ? 'Edit Panel' : 'Add New Panel'"
+      (onHide)="onCancel()"
+    >
+      <form [formGroup]="panelForm" (ngSubmit)="onSubmit()" class="panel-form">
+        <div class="grid grid-2">
+          <div class="field">
             <label for="brand">Brand</label>
-            <input id="brand" type="text" formControlName="brand" placeholder="e.g. SunPower" />
-            @if (panelForm.get('brand')?.touched && panelForm.get('brand')?.errors?.['required']) {
+            <input pInputText id="brand" type="text" formControlName="brand" placeholder="e.g. SunPower" />
+            @if (hasError('brand', 'required')) {
               <small class="error">Brand is required</small>
             }
           </div>
 
-          <div class="form-group">
+          <div class="field">
             <label for="model">Model</label>
-            <input id="model" type="text" formControlName="model" placeholder="e.g. Maxeon 6" />
-            @if (panelForm.get('model')?.touched && panelForm.get('model')?.errors?.['required']) {
+            <input pInputText id="model" type="text" formControlName="model" placeholder="e.g. Maxeon 6" />
+            @if (hasError('model', 'required')) {
               <small class="error">Model is required</small>
             }
           </div>
+        </div>
 
-          <div class="form-group">
+        <div class="grid grid-2">
+          <div class="field">
             <label for="technology">Technology</label>
-            <select id="technology" formControlName="technology">
-              <option value="">Select Technology</option>
-              <option value="Monocrystalline">Monocrystalline</option>
-              <option value="Polycrystalline">Polycrystalline</option>
-              <option value="Thin film">Thin film</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <div class="form-group">
-              <label for="wattPeak">Power (W)</label>
-              <input id="wattPeak" type="number" formControlName="wattPeak" placeholder="400" />
-              @if (
-                panelForm.get('wattPeak')?.touched && panelForm.get('wattPeak')?.errors?.['min']
-              ) {
-                <small class="error">Must be positive</small>
-              }
-            </div>
-
-            <div class="form-group">
-              <label for="efficiency">Efficiency (%)</label>
-              <input
-                id="efficiency"
-                type="number"
-                formControlName="efficiency"
-                placeholder="22.5"
-              />
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="form-group">
-              <label for="price">Price ($)</label>
-              <input id="price" type="number" formControlName="price" placeholder="300" />
-            </div>
-
-            <div class="form-group">
-              <label for="warranty">Warranty (Years)</label>
-              <input id="warranty" type="number" formControlName="warranty" placeholder="25" />
-            </div>
-          </div>
-
-          <div class="form-group" formGroupName="dimensions">
-            <label>Dimensions (mm)</label>
-            <div class="row">
-              <input type="number" formControlName="width" placeholder="Width" />
-              <input type="number" formControlName="height" placeholder="Height" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="temperatureCoefficient">Temp. Coefficient (%/°C)</label>
-            <input
-              id="temperatureCoefficient"
-              type="number"
-              formControlName="temperatureCoefficient"
-              placeholder="-0.29"
-              step="0.01"
+            <p-select
+              inputId="technology"
+              [options]="technologyOptions"
+              optionLabel="label"
+              optionValue="value"
+              formControlName="technology"
+              placeholder="Select technology"
+              [showClear]="true"
+              appendTo="body"
             />
           </div>
 
-          <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              [disabled]="panelForm.invalid || isSubmitting()"
-            >
-              {{ isSubmitting() ? 'Saving...' : isEditMode() ? 'Update' : 'Create' }}
-            </button>
+          <div class="field">
+            <label for="wattPeak">Power (W)</label>
+            <p-inputNumber inputId="wattPeak" formControlName="wattPeak" [min]="1" [useGrouping]="false" />
+            @if (hasError('wattPeak', 'required')) {
+              <small class="error">Power is required</small>
+            }
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div class="grid grid-3">
+          <div class="field">
+            <label for="efficiency">Efficiency (%)</label>
+            <p-inputNumber inputId="efficiency" formControlName="efficiency" [min]="0" [max]="100" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" />
+          </div>
+
+          <div class="field">
+            <label for="price">Price ($)</label>
+            <p-inputNumber inputId="price" formControlName="price" mode="currency" currency="USD" locale="en-US" [min]="0" />
+          </div>
+
+          <div class="field">
+            <label for="warranty">Warranty (Years)</label>
+            <p-inputNumber inputId="warranty" formControlName="warranty" [min]="0" [useGrouping]="false" />
+          </div>
+        </div>
+
+        <div class="field-group" formGroupName="dimensions">
+          <h3>Dimensions (mm)</h3>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="width">Width</label>
+              <p-inputNumber inputId="width" formControlName="width" [min]="1" [useGrouping]="false" />
+              @if (hasDimensionError('width', 'required')) {
+                <small class="error">Width is required</small>
+              }
+            </div>
+
+            <div class="field">
+              <label for="height">Height</label>
+              <p-inputNumber inputId="height" formControlName="height" [min]="1" [useGrouping]="false" />
+              @if (hasDimensionError('height', 'required')) {
+                <small class="error">Height is required</small>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="temperatureCoefficient">Temp. Coefficient (%/degC)</label>
+          <p-inputNumber
+            inputId="temperatureCoefficient"
+            formControlName="temperatureCoefficient"
+            mode="decimal"
+            [minFractionDigits]="2"
+            [maxFractionDigits]="2"
+            [useGrouping]="false"
+          />
+        </div>
+
+        <div class="actions">
+          <button pButton type="button" label="Cancel" severity="secondary" [outlined]="true" (click)="onCancel()"></button>
+          <button
+            pButton
+            type="submit"
+            [label]="isSubmitting() ? 'Saving...' : (isEditMode() ? 'Update Panel' : 'Create Panel')"
+            icon="pi pi-check"
+            [disabled]="panelForm.invalid || isSubmitting()"
+          ></button>
+        </div>
+      </form>
+    </p-dialog>
   `,
   styles: [
     `
-      .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: color-mix(in srgb, var(--p-surface-900) 55%, transparent);
+      .panel-form {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
+        flex-direction: column;
+        gap: 1rem;
       }
 
-      .modal-content {
-        background: var(--p-surface-0);
-        border-radius: 8px;
-        padding: 1.5rem;
-        width: 100%;
-        max-width: 500px;
-        max-height: 90vh;
-        overflow-y: auto;
-        box-shadow: var(--p-shadow-lg);
+      .grid {
+        display: grid;
+        gap: 0.75rem;
       }
 
-      .modal-header {
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .field {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-
-        h2 {
-          margin: 0;
-          font-size: 1.5rem;
-          color: var(--p-text-color);
-        }
-
-        .close-btn {
-          background: none;
-          border: none;
-          font-size: 1.5rem;
-          color: var(--p-text-muted-color);
-          cursor: pointer;
-          padding: 0;
-          line-height: 1;
-        }
-      }
-
-      .form-group {
-        margin-bottom: 1rem;
+        flex-direction: column;
+        gap: 0.35rem;
 
         label {
-          display: block;
-          margin-bottom: 0.5rem;
-          font-weight: 500;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
+          font-weight: 600;
           color: var(--p-text-color);
-        }
-
-        input,
-        select {
-          width: 100%;
-          padding: 0.5rem;
-          border: 1px solid var(--p-content-border-color);
-          border-radius: 4px;
-          font-size: 1rem;
-          color: var(--p-text-color);
-          background: var(--p-surface-0);
-
-          &:focus {
-            outline: none;
-            border-color: var(--p-primary-500);
-          }
-        }
-
-        .error {
-          color: var(--p-red-500);
-          font-size: 0.8rem;
-          margin-top: 0.25rem;
-          display: block;
         }
       }
 
-      .row {
-        display: flex;
-        gap: 1rem;
+      .field-group {
+        border: 1px solid var(--p-content-border-color);
+        border-radius: 0.75rem;
+        padding: 0.85rem;
 
-        .form-group,
-        input,
-        select {
-          flex: 1;
+        h3 {
+          margin: 0 0 0.6rem;
+          font-size: 0.95rem;
         }
       }
 
-      .modal-actions {
+      .error {
+        color: var(--p-red-500);
+        font-size: 0.75rem;
+      }
+
+      .actions {
         display: flex;
         justify-content: flex-end;
-        gap: 1rem;
-        margin-top: 2rem;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
 
-        .btn {
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          border: none;
-          cursor: pointer;
-          font-weight: 500;
-
-          &:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-          }
-        }
-
-        .btn-secondary {
-          background: var(--p-surface-200);
-          color: var(--p-text-color);
-          &:hover {
-            background: var(--p-surface-300);
-          }
-        }
-
-        .btn-primary {
-          background: var(--p-primary-500);
-          color: var(--p-primary-contrast-color);
-          &:hover {
-            background: var(--p-primary-600);
-          }
+      @media (max-width: 768px) {
+        .grid-2,
+        .grid-3 {
+          grid-template-columns: 1fr;
         }
       }
     `,
@@ -252,71 +223,78 @@ export class PanelFormComponent {
   // State
   protected isSubmitting = signal(false);
   protected isEditMode = computed(() => !!this.panel());
+  protected readonly technologyOptions: Array<{
+    label: string;
+    value: NonNullable<PanelCreateRequest['technology']>;
+  }> = [
+    { label: 'Monocrystalline', value: 'Monocrystalline' },
+    { label: 'Polycrystalline', value: 'Polycrystalline' },
+    { label: 'Thin film', value: 'Thin film' },
+  ];
 
   protected panelForm = this.fb.group({
     brand: ['', [Validators.required]],
     model: ['', [Validators.required]],
-    wattPeak: [0, [Validators.required, Validators.min(1)]],
-    efficiency: [0, [Validators.min(0), Validators.max(100)]],
-    price: [0, [Validators.min(0)]],
-    warranty: [0, [Validators.min(0)]],
+    wattPeak: [null as number | null, [Validators.required, Validators.min(1)]],
+    efficiency: [null as number | null, [Validators.min(0), Validators.max(100)]],
+    price: [null as number | null, [Validators.min(0)]],
+    warranty: [null as number | null, [Validators.min(0)]],
     dimensions: this.fb.group({
-      width: [0, [Validators.min(0)]],
-      height: [0, [Validators.min(0)]],
+      width: [null as number | null, [Validators.required, Validators.min(1)]],
+      height: [null as number | null, [Validators.required, Validators.min(1)]],
     }),
-    temperatureCoefficient: [0],
-    technology: [''],
+    temperatureCoefficient: [null as number | null],
+    technology: [null as PanelCreateRequest['technology'] | null],
   });
 
   constructor() {
-    // Initialize form if panel is provided (using standard effect/constructor logic since input is signal)
-    // We can't use effect() in constructor to set form values easily without allowing signal writes,
-    // but we can use a simpler approach or just check in templates.
-    // Actually, Angular 17+ `input` signals are available.
-    // Let's use `effect` to patch value when input changes.
+    effect(() => {
+      const currentPanel = this.panel();
+
+      this.panelForm.reset({
+        brand: '',
+        model: '',
+        wattPeak: null,
+        efficiency: null,
+        price: null,
+        warranty: null,
+        dimensions: {
+          width: null,
+          height: null,
+        },
+        temperatureCoefficient: null,
+        technology: null,
+      });
+
+      if (!currentPanel) {
+        return;
+      }
+
+      this.panelForm.patchValue({
+        brand: currentPanel.brand,
+        model: currentPanel.model,
+        wattPeak: currentPanel.wattPeak,
+        efficiency: currentPanel.efficiency,
+        price: currentPanel.price,
+        warranty: currentPanel.warranty,
+        dimensions: {
+          width: currentPanel.dimensions?.width ?? null,
+          height: currentPanel.dimensions?.height ?? null,
+        },
+        temperatureCoefficient: currentPanel.temperatureCoefficient,
+        technology: currentPanel.technology ?? null,
+      });
+    });
   }
 
-  // Using effect to update form when input changes
-  // Note: effects run after render, so it's safe.
-  /* 
-  private panelEffect = effect(() => {
-    const p = this.panel();
-    if (p) {
-      this.panelForm.patchValue({
-        brand: p.brand,
-        model: p.model,
-        wattPeak: p.wattPeak,
-        efficiency: p.efficiency,
-        price: p.price,
-        warranty: p.warranty,
-        dimensions: p.dimensions,
-        temperatureCoefficient: p.temperatureCoefficient
-      });
-    }
-  });
-  */
-  // Since I cannot use `effect` easily without `constructor` injection context and imports,
-  // I'll stick to `ngOnChanges` or just assume it's passed initially if I don't use effect.
-  // Actually, I can use `ngOnInit` or `ngOnChanges`. Inputs are signals, so reading them in `ngOnInit` is fine for initial value.
+  hasError(field: string, code: string): boolean {
+    const control = this.panelForm.get(field);
+    return !!control && control.touched && control.hasError(code);
+  }
 
-  ngOnInit() {
-    const p = this.panel();
-    if (p) {
-      this.panelForm.patchValue({
-        brand: p.brand,
-        model: p.model,
-        wattPeak: p.wattPeak,
-        efficiency: p.efficiency,
-        price: p.price,
-        warranty: p.warranty,
-        dimensions: {
-          width: p.dimensions?.width,
-          height: p.dimensions?.height,
-        },
-        temperatureCoefficient: p.temperatureCoefficient,
-        technology: p.technology,
-      });
-    }
+  hasDimensionError(field: 'width' | 'height', code: string): boolean {
+    const control = this.panelForm.get(['dimensions', field]);
+    return !!control && control.touched && control.hasError(code);
   }
 
   onCancel() {
@@ -324,12 +302,29 @@ export class PanelFormComponent {
   }
 
   onSubmit() {
-    if (this.panelForm.valid) {
-      this.isSubmitting.set(true);
-      // Cast to correct type - dimensions might need partial handling if form structure differs lightly
-      const formData = this.panelForm.value as unknown as PanelCreateRequest;
-      this.save.emit(formData);
-      // Parent component handles the async operation and setting isSubmitting back to false or closing
+    if (this.panelForm.invalid) {
+      this.panelForm.markAllAsTouched();
+      return;
     }
+
+    this.isSubmitting.set(true);
+
+    const raw = this.panelForm.getRawValue();
+    const request: PanelCreateRequest = {
+      brand: raw.brand ?? '',
+      model: raw.model ?? '',
+      wattPeak: raw.wattPeak ?? 0,
+      efficiency: raw.efficiency ?? 0,
+      price: raw.price ?? 0,
+      warranty: raw.warranty ?? 0,
+      dimensions: {
+        width: raw.dimensions?.width ?? 0,
+        height: raw.dimensions?.height ?? 0,
+      },
+      temperatureCoefficient: raw.temperatureCoefficient ?? 0,
+      technology: raw.technology ?? undefined,
+    };
+
+    this.save.emit(request);
   }
 }

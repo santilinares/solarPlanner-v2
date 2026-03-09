@@ -8,7 +8,7 @@
 
 ### Puede esperar
 
-- Mordernizar la vista de un proyecto (view-project)
+- [DONE] Mordernizar la vista de un proyecto (view-project). PD: Además unifiqué las vistas de configure project con view project.
 
 ### Importantes para la proxima reunión
 
@@ -20,5 +20,5 @@
   - Y que en función del tipo de usuario se muestren/oculten pantallas
 - Ver si en ciertas pantallas que son esencialmente las mismas, puedo también mostrar botones, información sólo si eres admin.
 
-- Esto de mostrar y ocultar me vendría bien para la vista de view-project, podría reutilizar lo que tengo en configure project y que la vista de view-project sea una especie de read-only de configure project.
-  - Obviamente haría falta añadir algunos datos más para la vista de view-project, pero creo que la idea es buena y me evito crear mil pantallas y diseños diferentes.
+- [DONE] Esto de mostrar y ocultar me vendría bien para la vista de view-project, podría reutilizar lo que tengo en configure project y que la vista de view-project sea una especie de read-only de configure project.
+  - [DONE] Obviamente haría falta añadir algunos datos más para la vista de view-project, pero creo que la idea es buena y me evito crear mil pantallas y diseños diferentes.

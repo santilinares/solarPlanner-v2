@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DataViewModule } from 'primeng/dataview';
 import { CardModule } from 'primeng/card';
@@ -6,11 +6,14 @@ import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
 import { PanelService } from '@core/services/panel.service';
-import { Panel } from '@core/models/panel.model';
+import { Panel, PanelCreateRequest } from '@core/models/panel.model';
+import { AuthService } from '@core/services';
+import { PanelFormComponent } from '@features/admin/panels/panel-form.component';
 
 @Component({
   selector: 'app-panel-list',
-  imports: [CommonModule, DataViewModule, CardModule, TagModule, SkeletonModule, ButtonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, DataViewModule, CardModule, TagModule, SkeletonModule, ButtonModule, PanelFormComponent],
   template: `
     <div class="panel-list animate-fade-in-up">
       <div class="page-header">
@@ -21,7 +24,23 @@ import { Panel } from '@core/models/panel.model';
           </h1>
           <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
         </div>
+        @if (isAdmin()) {
+          <p-button
+            label="Add Panel"
+            icon="pi pi-plus"
+            (onClick)="openAddModal()"
+            class="add-btn"
+          />
+        }
       </div>
+
+      @if (showModal() && isAdmin()) {
+        <app-panel-form
+          [panel]="selectedPanel()"
+          (save)="onSavePanel($event)"
+          (cancel)="closeModal()"
+        />
+      }
 
       @if (isLoading()) {
         <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
@@ -40,6 +59,9 @@ import { Panel } from '@core/models/panel.model';
             <i class="pi pi-inbox empty-icon"></i>
             <h3>No Panels Available</h3>
             <p>No solar panels found in the database.</p>
+            @if (isAdmin()) {
+              <p-button label="Add First Panel" icon="pi pi-plus" (onClick)="openAddModal()" />
+            }
           </div>
         </p-card>
       } @else {
@@ -68,6 +90,26 @@ import { Panel } from '@core/models/panel.model';
                   <span class="spec-value">{{ panel.price }}</span>
                 </div>
               </div>
+              @if (isAdmin()) {
+                <div class="panel-actions">
+                  <p-button
+                    icon="pi pi-pencil"
+                    label="Edit"
+                    severity="secondary"
+                    [outlined]="true"
+                    class="action-btn"
+                    (onClick)="openEditModal(panel)"
+                  />
+                  <p-button
+                    icon="pi pi-trash"
+                    label="Delete"
+                    severity="danger"
+                    [outlined]="true"
+                    class="action-btn"
+                    (onClick)="deletePanel(panel)"
+                  />
+                </div>
+              }
             </p-card>
           }
         </div>
@@ -80,6 +122,10 @@ import { Panel } from '@core/models/panel.model';
         padding: 1rem;
 
         .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
           margin-bottom: 2rem;
 
           h1 {
@@ -96,6 +142,10 @@ import { Panel } from '@core/models/panel.model';
             color: var(--p-text-muted-color);
             margin: 0;
             font-size: 1.1rem;
+          }
+
+          .add-btn {
+            flex-shrink: 0;
           }
         }
 
@@ -172,6 +222,13 @@ import { Panel } from '@core/models/panel.model';
               }
             }
 
+            .panel-actions {
+              margin-top: 1rem;
+              display: flex;
+              gap: 0.75rem;
+              flex-wrap: wrap;
+            }
+
           }
         }
 
@@ -212,8 +269,13 @@ import { Panel } from '@core/models/panel.model';
         @media (max-width: 768px) {
           padding: 0.5rem;
 
-          .page-header h1 {
-            font-size: 2rem;
+          .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+
+            h1 {
+              font-size: 2rem;
+            }
           }
 
           .panels-grid {
@@ -226,11 +288,23 @@ import { Panel } from '@core/models/panel.model';
 })
 export class PanelListComponent implements OnInit {
   private readonly panelService = inject(PanelService);
+  private readonly authService = inject(AuthService);
 
   protected readonly panels = signal<Panel[]>([]);
   protected readonly isLoading = signal(true);
+  protected readonly showModal = signal(false);
+  protected readonly selectedPanel = signal<Panel | null>(null);
+  protected readonly isAdmin = computed(() => {
+    const role = this.authService.currentUser()?.role;
+    return role === 'admin' || this.authService.isAdmin();
+  });
 
   ngOnInit() {
+    this.loadPanels();
+  }
+
+  loadPanels() {
+    this.isLoading.set(true);
     this.panelService.getPanels().subscribe({
       next: (data) => {
         this.panels.set(data);
@@ -240,6 +314,65 @@ export class PanelListComponent implements OnInit {
         console.error('Error fetching panels:', error);
         this.isLoading.set(false);
       },
+    });
+  }
+
+  openAddModal() {
+    this.selectedPanel.set(null);
+    this.showModal.set(true);
+  }
+
+  openEditModal(panel: Panel) {
+    this.selectedPanel.set(panel);
+    this.showModal.set(true);
+  }
+
+  closeModal() {
+    this.showModal.set(false);
+    this.selectedPanel.set(null);
+  }
+
+  onSavePanel(data: PanelCreateRequest) {
+    const currentPanel = this.selectedPanel();
+
+    if (currentPanel) {
+      const id = currentPanel.id || currentPanel._id;
+      if (!id) {
+        return;
+      }
+
+      this.panelService.updatePanel(id, data).subscribe({
+        next: () => {
+          this.loadPanels();
+          this.closeModal();
+        },
+        error: (err) => console.error('Error updating panel', err),
+      });
+      return;
+    }
+
+    this.panelService.createPanel(data).subscribe({
+      next: () => {
+        this.loadPanels();
+        this.closeModal();
+      },
+      error: (err) => console.error('Error creating panel', err),
+    });
+  }
+
+  deletePanel(panel: Panel) {
+    if (!confirm(`Are you sure you want to delete ${panel.brand} ${panel.model}?`)) {
+      return;
+    }
+
+    const id = panel.id || panel._id;
+    if (!id) {
+      return;
+    }
+
+    this.panelService.deletePanel(id).subscribe({
+      next: () => this.loadPanels(),
+      error: (err) => console.error('Error deleting panel', err),
     });
   }
 }
