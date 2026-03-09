@@ -42,26 +42,35 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
       (onHide)="onCancel()"
     >
       <form [formGroup]="panelForm" (ngSubmit)="onSubmit()" class="panel-form">
-        <div class="grid grid-2">
-          <div class="field">
+        <section class="step-card">
+          <header class="step-card-header">
+            <div class="step-card-icon panel-icon">
+              <i class="pi pi-bolt"></i>
+            </div>
+            <div>
+              <h2>{{ isEditMode() ? 'Update Panel Specifications' : 'Create Panel Specifications' }}</h2>
+              <p>Use the same data structure and visual language as project configuration forms.</p>
+            </div>
+          </header>
+
+          <div class="form-grid">
+            <div class="form-field">
             <label for="brand">Brand</label>
             <input pInputText id="brand" type="text" formControlName="brand" placeholder="e.g. SunPower" />
             @if (hasError('brand', 'required')) {
-              <small class="error">Brand is required</small>
+              <small class="field-error">Brand is required</small>
             }
           </div>
 
-          <div class="field">
+            <div class="form-field">
             <label for="model">Model</label>
             <input pInputText id="model" type="text" formControlName="model" placeholder="e.g. Maxeon 6" />
             @if (hasError('model', 'required')) {
-              <small class="error">Model is required</small>
+              <small class="field-error">Model is required</small>
             }
           </div>
-        </div>
 
-        <div class="grid grid-2">
-          <div class="field">
+            <div class="form-field">
             <label for="technology">Technology</label>
             <p-select
               inputId="technology"
@@ -73,66 +82,67 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
               [showClear]="true"
               appendTo="body"
             />
+            <small class="field-hint">Choose panel technology family.</small>
           </div>
 
-          <div class="field">
+            <div class="form-field">
             <label for="wattPeak">Power (W)</label>
             <p-inputNumber inputId="wattPeak" formControlName="wattPeak" [min]="1" [useGrouping]="false" />
             @if (hasError('wattPeak', 'required')) {
-              <small class="error">Power is required</small>
+              <small class="field-error">Power is required</small>
             }
           </div>
-        </div>
 
-        <div class="grid grid-3">
-          <div class="field">
+            <div class="form-field">
             <label for="efficiency">Efficiency (%)</label>
             <p-inputNumber inputId="efficiency" formControlName="efficiency" [min]="0" [max]="100" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" />
           </div>
 
-          <div class="field">
+            <div class="form-field">
             <label for="price">Price ($)</label>
             <p-inputNumber inputId="price" formControlName="price" mode="currency" currency="USD" locale="en-US" [min]="0" />
           </div>
 
-          <div class="field">
+            <div class="form-field">
             <label for="warranty">Warranty (Years)</label>
             <p-inputNumber inputId="warranty" formControlName="warranty" [min]="0" [useGrouping]="false" />
           </div>
-        </div>
 
-        <div class="field-group" formGroupName="dimensions">
-          <h3>Dimensions (mm)</h3>
-          <div class="grid grid-2">
-            <div class="field">
+            <div class="form-field full-width field-group" formGroupName="dimensions">
+              <h3>Dimensions (mm)</h3>
+              <div class="form-grid nested-grid">
+                <div class="form-field">
               <label for="width">Width</label>
               <p-inputNumber inputId="width" formControlName="width" [min]="1" [useGrouping]="false" />
               @if (hasDimensionError('width', 'required')) {
-                <small class="error">Width is required</small>
+                <small class="field-error">Width is required</small>
               }
             </div>
 
-            <div class="field">
+                <div class="form-field">
               <label for="height">Height</label>
               <p-inputNumber inputId="height" formControlName="height" [min]="1" [useGrouping]="false" />
               @if (hasDimensionError('height', 'required')) {
-                <small class="error">Height is required</small>
+                <small class="field-error">Height is required</small>
               }
             </div>
+              </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label for="temperatureCoefficient">Temp. Coefficient (%/degC)</label>
-          <p-inputNumber
-            inputId="temperatureCoefficient"
-            formControlName="temperatureCoefficient"
-            mode="decimal"
-            [minFractionDigits]="2"
-            [maxFractionDigits]="2"
-            [useGrouping]="false"
-          />
-        </div>
+            <div class="form-field full-width">
+              <label for="temperatureCoefficient">Temp. Coefficient (%/degC)</label>
+              <p-inputNumber
+                inputId="temperatureCoefficient"
+                formControlName="temperatureCoefficient"
+                mode="decimal"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                [useGrouping]="false"
+              />
+              <small class="field-hint">Use manufacturer coefficient. Negative values are supported.</small>
+            </div>
+          </div>
+        </section>
 
         <div class="actions">
           <button pButton type="button" label="Cancel" severity="secondary" [outlined]="true" (click)="onCancel()"></button>
@@ -152,48 +162,100 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
       .panel-form {
         display: flex;
         flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .step-card {
+        background: var(--p-content-background);
+        border: 1px solid var(--p-content-border-color);
+        border-radius: 1.5rem;
+        padding: 1.25rem;
+        box-shadow: 0 0.0625rem 0.1875rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
+      }
+
+      .step-card-header {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .step-card-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--p-text-color);
+      }
+
+      .step-card-header p {
+        margin: 0.25rem 0 0;
+        color: var(--p-text-muted-color);
+        font-size: 0.85rem;
+      }
+
+      .step-card-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+      }
+
+      .panel-icon {
+        background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+        color: var(--p-amber-900);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
       }
 
-      .grid {
-        display: grid;
-        gap: 0.75rem;
+      .nested-grid {
+        margin-top: 0.75rem;
       }
 
-      .grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .grid-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .field {
+      .form-field {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.4rem;
+      }
 
-        label {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--p-text-color);
-        }
+      .form-field label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--p-text-color);
+      }
+
+      .form-field.full-width {
+        grid-column: 1 / -1;
       }
 
       .field-group {
         border: 1px solid var(--p-content-border-color);
-        border-radius: 0.75rem;
-        padding: 0.85rem;
-
-        h3 {
-          margin: 0 0 0.6rem;
-          font-size: 0.95rem;
-        }
+        border-radius: 1rem;
+        padding: 1rem;
+        background: color-mix(in srgb, var(--p-surface-0) 92%, var(--p-primary-50));
       }
 
-      .error {
+      .field-group h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+      }
+
+      .field-error {
         color: var(--p-red-500);
-        font-size: 0.75rem;
+        font-size: 0.8rem;
+      }
+
+      .field-hint {
+        color: var(--p-text-muted-color);
+        font-size: 0.8rem;
       }
 
       .actions {
@@ -203,10 +265,21 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
         margin-top: 0.5rem;
       }
 
+      :host ::ng-deep .panel-form .p-inputtext,
+      :host ::ng-deep .panel-form .p-inputnumber,
+      :host ::ng-deep .panel-form .p-select {
+        width: 100%;
+      }
+
       @media (max-width: 768px) {
-        .grid-2,
-        .grid-3 {
+        .form-grid,
+        .step-card-header {
           grid-template-columns: 1fr;
+        }
+
+        .step-card {
+          border-radius: 1rem;
+          padding: 1rem;
         }
       }
     `,

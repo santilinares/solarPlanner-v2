@@ -4,7 +4,7 @@ import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
 import { ButtonModule } from 'primeng/button';
-import { ProjectService } from '@core/services';
+import { AuthService, ProjectService } from '@core/services';
 
 interface DashboardData {
   totalProjects: number;
@@ -27,6 +27,10 @@ interface DashboardData {
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private readonly projectService = inject(ProjectService);
+  private readonly authService = inject(AuthService);
+
+  // Exposed for template greeting.
+  readonly user = this.authService.currentUser;
 
   stats = signal<DashboardData | null>(null);
   loading = signal<boolean>(true);
