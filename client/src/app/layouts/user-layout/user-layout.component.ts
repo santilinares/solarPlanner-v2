@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '@core/services';
+import { UserRole } from '@core/models';
 
 interface DockItem {
   readonly label: string;
@@ -322,7 +323,7 @@ export class UserLayoutComponent {
 
   readonly isAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
-    return role === 'admin' || this.authService.isAdmin();
+    return role === UserRole.ADMIN || this.authService.isAdmin();
   });
 
   readonly primaryNavItems: readonly DockItem[] = [

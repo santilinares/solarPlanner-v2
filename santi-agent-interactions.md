@@ -4,6 +4,36 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 10, 2026 - Enum-Safe Admin Role Check in User Layout
+
+### Topic
+Resolved TypeScript ESLint enum comparison error in the unified user layout.
+
+### Summary of Request
+User asked what the lint issue meant, then approved applying the fix.
+
+### What Was Achieved
+- Updated admin role comparison in `UserLayoutComponent` to use enum-safe comparison:
+  - From: `role === 'admin'`
+  - To: `role === UserRole.ADMIN`
+- Added `UserRole` import from `@core/models`.
+- Preserved fallback `this.authService.isAdmin()` behavior.
+
+### Full Prompt
+"What is this issue?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- `currentUser()?.role` is typed as `UserRole`; comparing it to a raw string literal triggers `@typescript-eslint/no-unsafe-enum-comparison`.
+- Comparing against `UserRole.ADMIN` keeps typing consistent and removes the lint error safely.
+
+---
+
 ## 📅 March 10, 2026 - Reposition Add Panel Button Under Header Subtitle
 
 ### Topic
