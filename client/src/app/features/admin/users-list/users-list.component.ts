@@ -45,7 +45,7 @@ import { ButtonModule } from 'primeng/button';
           <p-button 
             label="Back to Dashboard" 
             icon="pi pi-arrow-left"
-            routerLink="/admin"
+            routerLink="/projects/management"
             [outlined]="true"
             class="mt-4"
           ></p-button>

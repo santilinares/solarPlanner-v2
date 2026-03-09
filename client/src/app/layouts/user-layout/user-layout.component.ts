@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
@@ -42,7 +42,7 @@ interface DockItem {
           </a>
 
           <nav class="dock-nav" aria-label="Primary">
-            @for (item of primaryNavItems; track item.path) {
+            @for (item of visiblePrimaryNavItems(); track item.path) {
               <a
                 class="dock-item"
                 [routerLink]="item.path"
@@ -64,16 +64,16 @@ interface DockItem {
         <div class="dock-bottom">
           <a
             class="dock-item profile"
-            [routerLink]="'/projects/profile'"
-            [class.active]="isRouteActive(profileNavItem)"
-            aria-label="Profile"
-            pTooltip="Profile"
+            [routerLink]="profileNavItem().path"
+            [class.active]="isRouteActive(profileNavItem())"
+            [attr.aria-label]="profileNavItem().label"
+            [pTooltip]="profileNavItem().label"
             tooltipPosition="right"
             [tooltipDisabled]="isDockExpanded()"
           >
-            <i class="pi pi-user"></i>
+            <i [class]="profileNavItem().icon"></i>
             @if (isDockExpanded()) {
-              <span>Profile</span>
+              <span>{{ profileNavItem().label }}</span>
             }
           </a>
 
@@ -320,6 +320,11 @@ export class UserLayoutComponent {
 
   readonly isDockExpanded = signal(false);
 
+  readonly isAdmin = computed(() => {
+    const role = this.authService.currentUser()?.role;
+    return role === 'admin' || this.authService.isAdmin();
+  });
+
   readonly primaryNavItems: readonly DockItem[] = [
     {
       label: 'Dashboard',
@@ -353,12 +358,45 @@ export class UserLayoutComponent {
     },
   ];
 
-  readonly profileNavItem: DockItem = {
-    label: 'Profile',
-    icon: 'pi pi-user',
+  readonly adminNavItems: readonly DockItem[] = [
+    {
+      label: 'Admin Overview',
+      icon: 'pi pi-shield',
+      path: '/projects/management',
+      exact: true,
+    },
+    {
+      label: 'Manage Users',
+      icon: 'pi pi-users',
+      path: '/projects/management/users',
+      matchPrefixes: ['/projects/management/users'],
+    },
+    {
+      label: 'Manage Panels',
+      icon: 'pi pi-th-large',
+      path: '/projects/management/panels',
+      matchPrefixes: ['/projects/management/panels'],
+    },
+    {
+      label: 'Manage Projects',
+      icon: 'pi pi-folder',
+      path: '/projects/management/projects',
+      matchPrefixes: ['/projects/management/projects'],
+    },
+  ];
+
+  readonly visiblePrimaryNavItems = computed<readonly DockItem[]>(() =>
+    this.isAdmin()
+      ? [...this.primaryNavItems, ...this.adminNavItems]
+      : this.primaryNavItems
+  );
+
+  readonly profileNavItem = computed<DockItem>(() => ({
+    label: this.isAdmin() ? 'Admin Profile' : 'Profile',
+    icon: this.isAdmin() ? 'pi pi-user-plus' : 'pi pi-user',
     path: '/projects/profile',
     matchPrefixes: ['/projects/profile'],
-  };
+  }));
 
   toggleDock(): void {
     this.isDockExpanded.update((expanded) => !expanded);

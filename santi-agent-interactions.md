@@ -4,6 +4,49 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 9, 2026 - Unified Role-Driven Authenticated Layout (No `/admin` Endpoints)
+
+### Topic
+Merged admin and user navigation into a single authenticated layout (`UserLayoutComponent`) and moved admin screens under non-`/admin` routes with role-based dock visibility.
+
+### Summary of Request
+User requested using one layout for both user and admin, showing admin actions in the dock only for admin users, changing profile icon/label in admin mode, and activating admin mode based on user role/type.
+
+### What Was Achieved
+- Removed dedicated `/admin` route tree and `AdminLayoutComponent` usage.
+- Added admin-managed routes under user routes:
+  - `/projects/management`
+  - `/projects/management/projects`
+  - `/projects/management/users`
+  - `/projects/management/panels`
+- Kept `adminGuard` on management routes for role-based protection.
+- Updated `UserLayoutComponent` to use role-driven UI:
+  - Added `isAdmin` computed signal based on authenticated user role/JWT.
+  - Added admin-only dock buttons that render only for admins.
+  - Made profile entry dynamic in admin mode (`Admin Profile` + admin-style icon).
+- Remapped admin feature links to new non-`/admin` paths.
+- Removed obsolete file:
+  - `client/src/app/layouts/admin-layout/admin-layout.component.ts`
+
+### Full Prompt
+"Can we unify the user and admin layouts in one so that we only use the user layout adding visibility to buttons in the dock only if you are admin? And for example, modify the profile icon when in admin mode. The admin mode must activate based on the user type"
+
+"Ok, do it"
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.html`
+- `client/src/app/features/admin/users-list/users-list.component.ts`
+- `client/src/app/layouts/admin-layout/admin-layout.component.ts` (deleted)
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A single authenticated layout reduces navigation duplication and keeps role-based UX consistent.
+- Guarded admin routes remain protected server-side and client-side while avoiding `'/admin'` endpoint debt.
+
+---
+
 ## 📅 March 9, 2026 - Disable Editable Name Hover/Focus in View Mode
 
 ### Topic

@@ -44,6 +44,30 @@ export const routes: Routes = [
           .then(m => m.ProfileComponent)
       },
       {
+        path: 'management',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component')
+          .then(m => m.AdminDashboardComponent)
+      },
+      {
+        path: 'management/projects',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/projects-list/projects-list.component')
+          .then(m => m.ProjectsListComponent)
+      },
+      {
+        path: 'management/users',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/users-list/users-list.component')
+          .then(m => m.UsersListComponent)
+      },
+      {
+        path: 'management/panels',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/panels/panels.component')
+          .then(m => m.PanelsComponent)
+      },
+      {
         path: ':id',
         loadComponent: () => import('./features/user/configure-project/configure-project.component')
           .then(m => m.ConfigureProjectComponent)
@@ -67,37 +91,6 @@ export const routes: Routes = [
         path: 'all',
         loadComponent: () => import('./features/user/panel-list/panel-list.component')
           .then(m => m.PanelListComponent)
-      }
-    ]
-  },
-
-  // Admin routes (admin only)
-  {
-    path: 'admin',
-    loadComponent: () => import('./layouts/admin-layout/admin-layout.component')
-      .then(m => m.AdminLayoutComponent),
-    canActivate: [adminGuard],
-    children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component')
-          .then(m => m.AdminDashboardComponent)
-      },
-      {
-        path: 'projects',
-        loadComponent: () => import('./features/admin/projects-list/projects-list.component')
-          .then(m => m.ProjectsListComponent)
-      },
-      {
-        path: 'users',
-        loadComponent: () => import('./features/admin/users-list/users-list.component')
-          .then(m => m.UsersListComponent)
-      },
-      {
-        path: 'panels',
-        loadComponent: () => import('./features/admin/panels/panels.component')
-          .then(m => m.PanelsComponent)
       }
     ]
   },
