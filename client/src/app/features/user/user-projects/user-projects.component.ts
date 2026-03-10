@@ -199,7 +199,7 @@ interface ProjectCardView {
       .projects-grid {
         display: grid;
         gap: 1.5rem;
-        grid-template-columns: repeat(1, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
       }
 
       .project-card {
@@ -294,15 +294,9 @@ interface ProjectCardView {
         }
       }
 
-      @media (min-width: 768px) {
+      @media (max-width: 768px) {
         .projects-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      @media (min-width: 1024px) {
-        .projects-grid {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-columns: 1fr;
         }
       }
     `,

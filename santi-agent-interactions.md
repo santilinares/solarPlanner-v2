@@ -4,6 +4,35 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 10, 2026 - User Projects Grid Aligned with Panel List Auto-Fill Mechanism
+
+### Topic
+Updated the `My Projects` card grid to use the same responsive CSS grid mechanism as the panel list view.
+
+### Summary of Request
+User asked whether the projects page should use the same mechanism as panel list, then approved applying the change.
+
+### What Was Achieved
+- Replaced fixed breakpoint-based grid columns in `UserProjectsComponent`:
+  - From: `1` column base, `2` at `768px+`, `5` at `1024px+`
+  - To: `repeat(auto-fill, minmax(18.75rem, 1fr))`
+- Kept explicit mobile behavior at `max-width: 768px` with `grid-template-columns: 1fr`.
+- Result: smoother responsive scaling and consistency with panel list card behavior.
+
+### Full Prompt
+"Can we update the project list view so that it uses the same mechanism? Or the mechanism used in the project list view is better?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The auto-fill/minmax pattern adapts naturally to any available width, avoids abrupt breakpoint jumps, and keeps both list pages behaviorally consistent.
+
+---
+
 ## 📅 March 10, 2026 - Enum-Safe Admin Role Check in User Layout
 
 ### Topic
