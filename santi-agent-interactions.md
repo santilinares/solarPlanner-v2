@@ -504,6 +504,44 @@ User requested that, in configure mode, `Back`/`Next` buttons and current-step i
 
 ---
 
+## 📅 March 11, 2026 - Auto-Detected Location Flow + Current-Location Search Icon
+
+### Topic
+Improved the Add Project `Location & Area` step so the flow accepts browser auto-detected location (without requiring typed search), and added a current-location icon action inside the search field.
+
+### Summary of Request
+User requested that step progression should not require manually typing in the search bar if location is auto-detected, and asked to add a trailing Material Symbols icon (`location_searching`) inside the search input to set map center to current location. User also requested a visual style effect on the Search button when the search input is non-empty.
+
+### What Was Achieved
+- Extended `LocationMapComponent` with a new output event (`userLocationFound`) emitted from successful geolocation.
+- Wired `AddProjectComponent` to consume map geolocation events and treat them as a valid selected location.
+- Added `useCurrentLocation()` action in Add Project for explicit current-location selection from the input-end icon.
+- Added reverse geocoding fallback flow so auto/manual current location resolves to readable address text when possible.
+- Updated step validation for `Location & Area` to use resolved location data (`hasValidLocation`) instead of requiring typed search query.
+- Added trailing icon button in the search input using Material Symbols:
+  - `<span class="material-symbols-outlined">location_searching</span>`
+- Added active visual state on Search button when input contains text (`search-action-btn-active`).
+- Build verification completed successfully (no compile errors after changes).
+
+### Full Prompt
+"The location and area can step dont let me go to the next step if I dont put a location in the search bar. It should auto detect the location and use that as location as if it was the search bar location. Also I want to add an icon inside the search bar (end of the search bar) to set the map to the current location. Use this icon map: <span class=\"material-symbols-outlined\">location_searching</span>"
+
+"Also, add a styling effect to the search button when something is added to the search bar (when not empty)"
+
+### Affected Files
+- `client/src/app/shared/components/location-map/location-map.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Emitting geolocation from the shared map component keeps location acquisition reusable and avoids duplicate map-state assumptions.
+- Validating on resolved location data (not input text) matches real UX intent: any reliably selected location should unlock step progression.
+- A trailing location target icon in the search input keeps the geolocation affordance discoverable and contextually close to manual search.
+
+---
+
 ## 📅 March 9, 2026 - Panel & Installation Card Structure Alignment
 
 ### Topic

@@ -79,6 +79,8 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
   // --- Outputs ---
   /** Emits the drawn polygon coordinates whenever they change (create / edit / delete). */
   polygonChange = output<Coordinates[]>();
+  /** Emits the user's current coordinates when geolocation succeeds. */
+  userLocationFound = output<Coordinates>();
 
   private map?: L.Map;
   private drawnItems = new L.FeatureGroup();
@@ -229,6 +231,7 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
     this.map!.locate({ setView: true, maxZoom: 18 });
     this.map!.on('locationfound', (e: L.LocationEvent) => {
       L.marker(e.latlng).addTo(this.map!).bindPopup('You are here').openPopup();
+      this.userLocationFound.emit({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
     this.map!.on('locationerror', (e: L.ErrorEvent) => {
       console.warn('Location unavailable:', e.message);
