@@ -90,6 +90,11 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
     { label: 'Review', icon: 'pi pi-list-check' },
   ]);
 
+  stepNextLabel = computed(() => {
+    const nextStep = this.steps()[this.activeStep() + 1];
+    return nextStep ? `Next: ${nextStep.label}` : 'Next';
+  });
+
   // ── Step 1: Project Info ─────────────────────────
   projectName = signal('');
   projectDescription = signal('');

@@ -1,36 +1,51 @@
 <div class="add-project-page">
-  <!-- ═══ TOP HEADER BAR ═══ -->
-  <header class="top-header">
-    <!-- Row 1: Navigation -->
-    <div class="nav-row">
-      <p-button
-        label="Back"
-        icon="pi pi-chevron-left"
-        [text]="true"
-        [disabled]="activeStep() === 0"
-        (onClick)="onBack()"
-        size="small"
-      />
-      <h2 class="page-title">New Project</h2>
-      @if (activeStep() < 3) {
+  <!-- ═══ TOP STICKY HEADER BAR ═══ -->
+  <header class="configure-sticky-header">
+    <div class="step-nav-bar">
+      <div class="step-nav-left">
         <p-button
-          label="Next"
-          icon="pi pi-chevron-right"
-          iconPos="right"
-          [disabled]="!canProceed()"
-          (onClick)="onNext()"
+          label="Back"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          [rounded]="true"
+          [disabled]="activeStep() === 0"
+          (onClick)="onBack()"
           size="small"
         />
-      } @else {
         <p-button
-          label="Create Project"
-          icon="pi pi-check"
-          [loading]="isSubmitting()"
-          [disabled]="!canSubmit() || isSubmitting()"
-          (onClick)="onSubmit()"
+          label="Exit Create Mode"
+          icon="pi pi-times"
+          severity="secondary"
+          [outlined]="true"
+          [rounded]="true"
+          (onClick)="onExit()"
           size="small"
         />
-      }
+      </div>
+      <span class="step-nav-mode-label">Create Mode</span>
+      <div class="step-nav-right">
+        @if (activeStep() < 3) {
+          <p-button
+            [label]="stepNextLabel()"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            [rounded]="true"
+            [disabled]="!canProceed()"
+            (onClick)="onNext()"
+            size="small"
+          />
+        } @else {
+          <p-button
+            label="Create Project"
+            icon="pi pi-check"
+            [rounded]="true"
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit() || isSubmitting()"
+            (onClick)="onSubmit()"
+            size="small"
+          />
+        }
+      </div>
     </div>
 
     <!-- Row 2: Horizontal Stepper -->

@@ -2842,3 +2842,38 @@ Resolved Git line-ending warning in Windows working copy by enforcing repository
 ### AI Reasoning
 - A repo-level `.gitattributes` is the safest cross-platform fix because it makes line-ending behavior explicit and consistent for all contributors.
 - `--renormalize` applies the policy immediately so future Git operations stop producing this warning.
+
+---
+
+## March 14, 2026 - Add Project Sticky Header Parity with Configure Mode
+
+### Topic
+Introduced a configure-style sticky header in `add-project` with consistent navigation actions and mode labeling, while preserving the existing add-project stepper flow.
+
+### Summary of Request
+User requested adding an exit button to add-project and replicating the configure-project sticky-header look/feel and logic so both flows can later converge into a single shared source of truth.
+
+### What Was Achieved
+- Replaced add-project top header navigation with configure-style sticky header structure:
+  - Left actions: `Back` + `Exit Create Mode`
+  - Center badge: `Create Mode`
+  - Right action: dynamic `Next` / `Create Project`
+- Wired `Exit Create Mode` to existing `onExit()` confirmation logic (no behavior regression).
+- Added `stepNextLabel` computed signal to align CTA labeling logic with configure flow.
+- Kept the existing add-project horizontal stepper row and all step-specific content/validation logic intact.
+- Refactored add-project styles to use configure-style class names and responsive behavior for sticky header/nav groups.
+- Ran client build validation successfully (`npm run build`), with only pre-existing warnings unrelated to this change.
+
+### Full Prompt
+"I want to include an exit button to the add-project component. And replicate what we did for the configure-project component (in terms of look and feel and all of that. I want the same thing, but including the stepper that we currently have on the add-project component). How would you do that?"
+
+"Good. The idea is also to copy the look and feel + logic so that we can later create only one source of truth for this component (sticky-header). You can start implementing it"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+Using the same structural classes and interaction pattern as `configure-project` creates immediate visual/behavior parity and makes a later extraction to a shared sticky-header component straightforward. Reusing existing `onExit()` confirmation logic avoided introducing duplicate leave-flow logic while still matching expected UX.
