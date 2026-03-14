@@ -253,7 +253,7 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   canProceed = computed(() => {
     switch (this.activeStep()) {
       case 0: return this.projectName().trim().length > 0 && this.projectType() !== null;
-      case 1: return this.hasValidLocation();
+      case 1: return this.hasValidLocation() && this.hasDrawnArea();
       case 2:
         if (this.projectType() === 'agrivoltaic') {
           return !!this.selectedPanelId() && !!this.selectedCultivarId();
