@@ -41,7 +41,6 @@ interface ProjectCardView {
           label="New Project"
           icon="pi pi-plus"
           routerLink="/projects/add"
-          class="btn-primary"
         ></p-button>
       </header>
 
@@ -69,7 +68,6 @@ interface ProjectCardView {
             label="Create Project"
             icon="pi pi-plus"
             routerLink="/projects/add"
-            class="btn-primary"
           ></p-button>
         </div>
       } @else {

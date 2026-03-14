@@ -85,7 +85,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             icon="pi pi-sign-in"
             [disabled]="loading() || loginForm.invalid"
             [loading]="loading()"
-            class="w-full btn-primary"
+            class="w-full"
           ></p-button>
 
           <div class="form-links">

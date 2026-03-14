@@ -3,10 +3,11 @@ import {
   Component,
   computed,
   inject,
+  OnDestroy,
   OnInit,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, NavigationStart } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
@@ -21,6 +22,7 @@ import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { Subscription } from 'rxjs';
 
 import { ProjectService } from '@core/services/project.service';
 import { PanelService, PanelListResponse } from '@core/services/panel.service';
@@ -65,17 +67,17 @@ interface StepDef {
     LocationMapComponent,
   ],
   providers: [ConfirmationService],
-  host: {
-    '(window:beforeunload)': 'onBeforeUnload($event)',
-  },
 })
-export class AddProjectComponent implements OnInit, HasUnsavedWork {
+export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
   private readonly cultivarService = inject(CultivarService);
+
+  private navigationSubscription?: Subscription;
+  private pendingNavigationUrl?: string;
 
   // ── Step management ──────────────────────────────
   activeStep = signal(0);
@@ -279,6 +281,22 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
   ngOnInit(): void {
     this.loadPanels();
     this.loadCultivars();
+
+    // Intercept navigation to show confirmation dialog
+    this.navigationSubscription = this.router.events.subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        const url = event.url;
+        // Skip if navigating to same route or exit button handles it
+        if (url.startsWith('/projects/add') || url === '/projects') {
+          return;
+        }
+        this.checkUnsavedNavigation(url);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.navigationSubscription?.unsubscribe();
   }
 
   // ── HasUnsavedWork interface ─────────────────────
@@ -289,12 +307,6 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
       this.hasDrawnArea() ||
       !!this.selectedPanelId()
     );
-  }
-
-  onBeforeUnload(event: BeforeUnloadEvent): void {
-    if (this.hasUnsavedWork()) {
-      event.preventDefault();
-    }
   }
 
   // ── Navigation ───────────────────────────────────
@@ -318,18 +330,32 @@ export class AddProjectComponent implements OnInit, HasUnsavedWork {
 
   onExit(): void {
     if (this.hasUnsavedWork()) {
-      this.confirmationService.confirm({
-        header: 'Leave project creation?',
-        message: 'Your progress will not be saved. Are you sure you want to exit?',
-        icon: 'pi pi-exclamation-triangle',
-        acceptLabel: 'Leave',
-        rejectLabel: 'Cancel',
-        acceptButtonStyleClass: 'p-button-danger',
-        accept: () => void this.router.navigate(['/projects']),
-      });
+      this.showExitConfirmation(() => void this.router.navigate(['/projects']));
     } else {
       void this.router.navigate(['/projects']);
     }
+  }
+
+  private checkUnsavedNavigation(targetUrl: string): void {
+    if (this.hasUnsavedWork()) {
+      this.pendingNavigationUrl = targetUrl;
+      this.showExitConfirmation(() => {
+        this.pendingNavigationUrl = undefined;
+        void this.router.navigateByUrl(targetUrl);
+      });
+    }
+  }
+
+  private showExitConfirmation(onAccept: () => void): void {
+    this.confirmationService.confirm({
+      header: 'Leave project creation?',
+      message: 'Your progress will not be saved. Are you sure you want to exit?',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Leave',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: onAccept,
+    });
   }
 
   // ── Data loading ─────────────────────────────────

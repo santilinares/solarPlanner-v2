@@ -4,7 +4,6 @@
 :host {
   display: block;
   min-height: 100vh;
-  background: var(--p-surface-50);
 }
 
 // ── Page Layout ────────────────────────────────────
@@ -20,9 +19,11 @@
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid var(--p-content-border-color);
+  gap: 0.6rem;
+  margin: -1.5rem -1.5rem 1rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0 0 1rem 1rem;
+  border: 1px solid var(--p-content-border-color);
   background: color-mix(in srgb, var(--p-surface-0) 94%, transparent);
   backdrop-filter: blur(0.75rem);
   box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
