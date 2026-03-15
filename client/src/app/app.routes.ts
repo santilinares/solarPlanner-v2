@@ -63,6 +63,11 @@ export const routes: Routes = [
           .then(m => m.PanelListComponent)
       },
       {
+        path: 'panels',
+        loadComponent: () => import('./features/user/panel-list/panel-list.component')
+          .then(m => m.PanelListComponent)
+      },
+      {
         path: ':id',
         loadComponent: () => import('./features/user/configure-project/configure-project.component')
           .then(m => m.ConfigureProjectComponent)
@@ -75,19 +80,16 @@ export const routes: Routes = [
     ]
   },
 
-  // Panels routes (protected)
+  // Legacy panels routes
   {
     path: 'panels',
-    loadComponent: () => import('./layouts/user-layout/user-layout.component')
-      .then(m => m.UserLayoutComponent),
-    canActivate: [authGuard],
-    children: [
-      {
-        path: 'all',
-        loadComponent: () => import('./features/user/panel-list/panel-list.component')
-          .then(m => m.PanelListComponent)
-      }
-    ]
+    pathMatch: 'full',
+    redirectTo: '/projects/panels'
+  },
+  {
+    path: 'panels/all',
+    pathMatch: 'full',
+    redirectTo: '/projects/panels'
   },
 
   // Visitor routes (public)

@@ -2877,3 +2877,62 @@ User requested adding an exit button to add-project and replicating the configur
 
 ### AI Reasoning
 Using the same structural classes and interaction pattern as `configure-project` creates immediate visual/behavior parity and makes a later extraction to a shared sticky-header component straightforward. Reusing existing `onExit()` confirmation logic avoided introducing duplicate leave-flow logic while still matching expected UX.
+
+---
+
+## March 15, 2026 - Role-Switch Navigation Flicker Reduction in User Layout
+
+### Topic
+Reduced animation glitches when switching between user/admin-role-related tabs by narrowing route transition scope and removing broad `transition: all` usage in dock controls.
+
+### Summary of Request
+User reported a visual glitch while switching between role-management-related tabs and approved applying the minimal, targeted fix.
+
+### What Was Achieved
+- Scoped global route transition rule to routed page content containers instead of applying it to every element adjacent to a `router-outlet`.
+- Replaced broad `transition: all` in user dock controls with explicit property transitions:
+  - `.dock-toggle`: `background-color`, `color`, `transform`
+  - `.dock-item`: `background-color`, `color`, `box-shadow`
+- Preserved existing UX behavior while reducing unintended layout/paint transitions during navigation.
+
+### Full Prompt
+"I am having an issue with animations when switching in between tabs that have role management (admin/user)."
+
+"Okk, lets do that"
+
+### Affected Files
+- `client/src/styles.scss`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+The global selector `router-outlet + *` can animate layout host elements (including `app-user-layout`) during route swaps, which creates visible flicker when protected/admin views switch. Restricting animation to routed content containers and replacing `transition: all` with explicit properties removes most accidental animations without requiring a larger routing refactor.
+
+---
+
+## March 15, 2026 - Panels Route Unified Under Projects Shell
+
+### Topic
+Reduced navigation remount/jank by moving panel list navigation into the existing `projects` route tree and preserving legacy URL compatibility.
+
+### Summary of Request
+User approved the follow-up change to unify panel navigation under the same shell used for other protected user/admin pages.
+
+### What Was Achieved
+- Added `projects` child route `panels` that loads `PanelListComponent` under the same protected user layout shell.
+- Replaced the separate top-level protected `panels` route tree with compatibility redirects:
+  - `/panels` -> `/projects/panels`
+  - `/panels/all` -> `/projects/panels`
+- Updated dock navigation item path from `/panels/all` to `/projects/panels`.
+- Kept active matching compatible with both new and legacy path prefixes.
+
+### Full Prompt
+"Do that"
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+Using one protected route shell for dashboards, projects, settings, and panels avoids switching between separate top-level layout trees during tab navigation. That reduces visual remount effects and makes transitions between role-related sections feel stable while still honoring old links via redirects.

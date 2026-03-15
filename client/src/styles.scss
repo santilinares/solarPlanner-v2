@@ -206,7 +206,8 @@ a {
 // =====================================================
 // PAGE TRANSITIONS
 // =====================================================
-router-outlet + * {
+app-user-layout .content-inner > router-outlet + *,
+app-visitor-layout .visitor-content > router-outlet + * {
   animation: fadeInUp 0.5s ease-out;
 }
 

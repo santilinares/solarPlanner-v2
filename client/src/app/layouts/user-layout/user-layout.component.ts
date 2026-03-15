@@ -155,7 +155,7 @@ interface DockItem {
       width: 2.5rem;
       height: 2.5rem;
       border-radius: 999px;
-      transition: all 0.2s ease;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
       padding: 0.75rem;
       
       &:hover {
@@ -203,7 +203,7 @@ interface DockItem {
       padding: 0.75rem;
       border-radius: 1rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
       background: transparent;
       font-weight: 600;
       font-size: 0.95rem;
@@ -348,8 +348,8 @@ export class UserLayoutComponent {
     {
       label: 'Panels',
       icon: 'pi pi-th-large',
-      path: '/panels/all',
-      matchPrefixes: ['/panels'],
+      path: '/projects/panels',
+      matchPrefixes: ['/projects/panels', '/panels'],
     },
     {
       label: 'Settings',
