@@ -30,7 +30,7 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
         return handle401Error(req, next, authService);
       }
 
-      return throwError(() => error);
+      return throwError(() => error as unknown);
     })
   );
 };
@@ -39,10 +39,10 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
  * Handle 401 Unauthorized errors
  */
 function handle401Error(
-  req: HttpRequest<any>,
+  req: HttpRequest<unknown>,
   next: HttpHandlerFn,
   authService: AuthService
-): Observable<HttpEvent<any>> {
+): Observable<HttpEvent<unknown>> {
   if (!isRefreshing) {
     isRefreshing = true;
     refreshTokenSubject.next(null);
@@ -61,7 +61,7 @@ function handle401Error(
           })
         );
       }),
-      catchError((err) => {
+      catchError((err: unknown) => {
         isRefreshing = false;
         authService.logout();
         return throwError(() => err);
@@ -81,6 +81,6 @@ function handle401Error(
           })
         );
       })
-    ) as Observable<HttpEvent<any>>;
+    );
   }
 }

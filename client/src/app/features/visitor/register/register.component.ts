@@ -104,7 +104,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
                 animate.enter="animate-shake"
                 animate.leave="animate-fade-out"
               severity="error" 
-              Content="errorMessage()"
+              [textContent]="errorMessage()"
                 class="w-full"
             ></p-message>
           }
@@ -114,7 +114,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
                 animate.enter="animate-fade-in"
                 animate.leave="animate-fade-out"
               severity="success" 
-              Content="successMessage()"
+              [textContent]="successMessage()"
                 class="w-full"
             ></p-message>
           }

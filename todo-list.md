@@ -12,7 +12,7 @@
 
 ## TO-DO
 - [DONE] Revisar que cuando se expande el menú, o se contrae, se guarde esa configuracion al moverse entre pantallas. -> **hace como un refresh cuando cambio al de panels. En el resto no ocurre**
-- [IN-PROGRESS]REFACTOR de las tarjetas dentro de my projects (user-projects) para que usen el p-card de primeng y no un estilo custom.
+- [IN-PROGRESS] REFACTOR de las tarjetas dentro de my projects (user-projects) para que usen el p-card de primeng y no un estilo custom.
 - Unificar manage projects (admin) y user-projects
 
 ### Para las features de admin
