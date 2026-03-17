@@ -4,6 +4,36 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 March 15, 2026 - Logout Action Fix in User Dock
+
+### Topic
+Fixed the user dock logout action that appeared unresponsive.
+
+### Summary of Request
+User reported that clicking logout did nothing and asked why and how to fix it.
+
+### What Was Achieved
+- Identified incorrect event binding on logout button in user layout.
+- Updated the button binding:
+  - From: `(onClick)="logout()"`
+  - To: `(click)="logout()"`
+- Kept existing logout service behavior (token cleanup + redirect).
+
+### Full Prompt
+"When I try to log out nothing happens, why is that? How can we fix it?"
+
+"Aprrove"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- In this template, `pButton` is used as a directive on a native button element, so it must use native Angular click binding (`click`).
+- `onClick` did not trigger the component method, which made logout appear broken.
+
+---
+
 ## 📅 March 10, 2026 - User Projects Grid Aligned with Panel List Auto-Fill Mechanism
 
 ### Topic

@@ -86,7 +86,7 @@ interface DockItem {
             [text]="true"
             icon="pi pi-sign-out"
             [ariaLabel]="isDockExpanded() ? 'Logout' : 'Logout user'"
-            (onClick)="logout()"
+            (click)="logout()"
             pTooltip="Logout"
             tooltipPosition="right"
             [tooltipDisabled]="isDockExpanded()"

@@ -11,15 +11,17 @@
   - [DONE] NO SE ESTÁ BLOQUEANDO EL PASAR DE PANTALLA SI NO SE TIENE EL POLIGONO - REVISAR ESO
 
 ## TO-DO
-- [IN-PROGRESS] Revisar que cuando se expande el menú, o se contrae, se guarde esa configuracion al moverse entre pantallas. -> **hace como un refresh cuando cambio al de panels. En el resto no ocurre**
-- REFACTOR de las tarjetas dentro de my projects (user-projects) para que usen el p-card de primeng y no un estilo custom.
+- [DONE] Revisar que cuando se expande el menú, o se contrae, se guarde esa configuracion al moverse entre pantallas. -> **hace como un refresh cuando cambio al de panels. En el resto no ocurre**
+- [IN-PROGRESS]REFACTOR de las tarjetas dentro de my projects (user-projects) para que usen el p-card de primeng y no un estilo custom.
 - Unificar manage projects (admin) y user-projects
 
 ### Para las features de admin
-- *Hacer la prueba con un usuario normal, no admin.*
+- [IN-PROGRESS]*Hacer la prueba con un usuario normal, no admin.*
   
 ### Importantes para la proxima reunión
+- Revisar los datos que se muestran con el create projejct wizard a comparacion del configure project wizard.
 - Revisar los cálculos que se hacen y que se muestran y ver que estén todos completos (uno de los requisitos de la ultima reunion)
+
 
 
 
