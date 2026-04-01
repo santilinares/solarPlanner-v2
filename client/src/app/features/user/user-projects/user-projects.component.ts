@@ -4,7 +4,11 @@ import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { ProjectService } from '@core/services/project.service';
+import { AuthService } from '@core/services';
+import { UserRole } from '@core/models';
 import { Project } from '@core/models';
 
 interface ProjectCardView {
@@ -22,26 +26,29 @@ interface ProjectCardView {
   bifacial: boolean;
   estimatedOutput: number;
   efficiency: number;
+  ownerEmail?: string;
 }
 
 @Component({
   selector: 'app-user-projects',
-  imports: [CommonModule, RouterLink, ButtonModule, DatePipe, TitleCasePipe, CardModule, SkeletonModule],
+  imports: [CommonModule, RouterLink, ButtonModule, DatePipe, TitleCasePipe, CardModule, SkeletonModule, TagModule, TooltipModule],
   template: `
     <section class="projects-page animate-fade-in-up">
       <header class="projects-header">
         <div>
           <h1>
             <i class="pi pi-bolt icon-lg icon-primary"></i>
-            My Projects
+            {{ isAdmin() ? 'All Projects' : 'My Projects' }}
           </h1>
-          <p>Manage your solar panel installations</p>
+          <p>{{ isAdmin() ? 'Manage all user projects' : 'Manage your solar panel installations' }}</p>
         </div>
-        <p-button
-          label="New Project"
-          icon="pi pi-plus"
-          routerLink="/projects/add"
-        ></p-button>
+        @if (!isAdmin()) {
+          <p-button
+            label="New Project"
+            icon="pi pi-plus"
+            routerLink="/projects/add"
+          ></p-button>
+        }
       </header>
 
       @if (isLoading()) {
@@ -56,53 +63,86 @@ interface ProjectCardView {
           }
         </div>
       } @else if (errorMessage()) {
-        <div class="error-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-          {{ errorMessage() }}
-        </div>
+        <p-card class="error-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+          <div class="error-content">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        </p-card>
       } @else if (projects().length === 0) {
-        <div class="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-          <i class="pi pi-sun"></i>
-          <h2>No projects yet</h2>
-          <p>Create your first solar panel project to get started</p>
-          <p-button
-            label="Create Project"
-            icon="pi pi-plus"
-            routerLink="/projects/add"
-          ></p-button>
-        </div>
+        <p-card class="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+          <div class="empty-content">
+            <i class="pi pi-sun"></i>
+            <h2>{{ isAdmin() ? 'No projects found' : 'No projects yet' }}</h2>
+            <p>{{ isAdmin() ? 'There are no user projects to display yet.' : 'Create your first solar panel project to get started' }}</p>
+            @if (!isAdmin()) {
+              <p-button
+                label="Create Project"
+                icon="pi pi-plus"
+                routerLink="/projects/add"
+              ></p-button>
+            }
+          </div>
+        </p-card>
       } @else {
         <div class="projects-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
           @for (project of projects(); track project.id) {
-            <article class="project-card hover-lift" [routerLink]="['/projects', project.id]">
-              <div class="card-thumbnail">
-                <i class="pi pi-bolt thumb-icon"></i>
-              </div>
-
-              <div class="card-content">
-                <h3>{{ project.name }}</h3>
-
-                <div class="meta-item">
-                  <i class="pi pi-map-marker"></i>
-                  <span>{{ project.location }}</span>
+            <p-card class="project-card hover-lift" [routerLink]="['/projects', project.id]">
+              <div class="card-header">
+                <div class="project-icon">
+                  <i class="pi pi-bolt thumb-icon"></i>
                 </div>
-
-                <div class="meta-item">
-                  <i class="pi pi-calendar"></i>
-                  <span>{{ project.createdAt | date: 'MMM d, y' }}</span>
-                </div>
-
-                <div class="meta-item">
-                  <i class="pi pi-bolt"></i>
-                  <span>{{ project.panels }} panels • {{ project.power | number: '1.1-1' }}kW</span>
-                </div>
-
-                <div class="card-footer">
-                  <span class="status-badge" [class]="'status-' + project.status">
-                    {{ project.status | titlecase }}
-                  </span>
+                <div class="card-header-actions">
+                  <p-tag
+                    [value]="project.status | titlecase"
+                    [severity]="getStatusSeverity(project.status)"
+                  ></p-tag>
+                  @if (isAdmin()) {
+                    <p-button
+                      icon="pi pi-trash"
+                      severity="danger"
+                      [text]="true"
+                      [rounded]="true"
+                      [loading]="deletingProjectId() === project.id"
+                      ariaLabel="Delete project"
+                      pTooltip="Delete project"
+                      tooltipPosition="top"
+                      (click)="deleteProject($event, project)"
+                    ></p-button>
+                  }
                 </div>
               </div>
-            </article>
+
+              <h3>{{ project.name }}</h3>
+
+              <div class="meta-item">
+                <i class="pi pi-map-marker"></i>
+                <span>{{ project.location }}</span>
+              </div>
+
+              <div class="meta-item">
+                <i class="pi pi-calendar"></i>
+                <span>{{ project.createdAt | date: 'MMM d, y' }}</span>
+              </div>
+
+              @if (isAdmin() && project.ownerEmail) {
+                <div class="meta-item">
+                  <i class="pi pi-envelope"></i>
+                  <span>{{ project.ownerEmail }}</span>
+                </div>
+              }
+
+              <div class="project-specs">
+                <div class="spec-item">
+                  <span class="spec-label">Panels</span>
+                  <span class="spec-value">{{ project.panels }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">Power</span>
+                  <span class="spec-value">{{ project.power | number: '1.1-1' }}kW</span>
+                </div>
+              </div>
+            </p-card>
           }
         </div>
       }
@@ -139,58 +179,46 @@ interface ProjectCardView {
         }
       }
 
-      .loading-state {
-        min-height: 20rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .spinner {
-        width: 3rem;
-        height: 3rem;
-        border: 3px solid transparent;
-        border-top: 3px solid var(--p-primary-500);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
       .error-state {
-        background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
-        border: 1px solid color-mix(in srgb, var(--p-red-500) 35%, transparent);
-        color: var(--p-red-700, var(--p-red-500));
-        border-radius: 0.75rem;
-        padding: 1rem;
+        .error-content {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          color: var(--p-red-700, var(--p-red-500));
+
+          i {
+            color: var(--p-red-500);
+          }
+        }
       }
 
       .empty-state {
-        border: 2px dashed var(--p-content-border-color);
-        border-radius: 1.5rem;
-        background: var(--p-surface-0);
-        min-height: 20rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 2rem;
+        .empty-content {
+          min-height: 20rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 2rem;
 
-        i {
-          font-size: 4rem;
-          color: var(--p-text-muted-color);
-          margin-bottom: 1rem;
-        }
+          i {
+            font-size: 4rem;
+            color: var(--p-text-muted-color);
+            margin-bottom: 1rem;
+          }
 
-        h2 {
-          margin: 0;
-          color: var(--p-text-color);
-          font-size: 1.4rem;
-          font-weight: 700;
-        }
+          h2 {
+            margin: 0;
+            color: var(--p-text-color);
+            font-size: 1.4rem;
+            font-weight: 700;
+          }
 
-        p {
-          margin: 0.75rem 0 1.5rem;
-          color: var(--p-text-muted-color);
+          p {
+            margin: 0.75rem 0 1.5rem;
+            color: var(--p-text-muted-color);
+          }
         }
       }
 
@@ -201,12 +229,39 @@ interface ProjectCardView {
       }
 
       .project-card {
-        background: var(--p-content-hover-background);
-        border-radius: 1.5rem;
-        box-shadow: var(--p-shadow-sm);
         transition: all 0.3s ease;
-        overflow: hidden;
         cursor: pointer;
+
+        .card-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+
+        .card-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .project-icon {
+          width: 3rem;
+          height: 3rem;
+          border-radius: 50%;
+          background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        h3 {
+          margin: 0 0 1rem;
+          color: var(--p-text-color);
+          font-size: 1.25rem;
+          font-weight: 700;
+          transition: color 0.3s ease;
+        }
 
         &:hover {
           h3 {
@@ -219,35 +274,10 @@ interface ProjectCardView {
         }
       }
 
-      .card-thumbnail {
-        height: 12rem;
-        background: linear-gradient(
-          135deg,
-          color-mix(in srgb, var(--p-yellow-500) 18%, var(--p-surface-0)) 0%,
-          color-mix(in srgb, var(--p-primary-500) 16%, var(--p-surface-0)) 100%
-        );
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
       .thumb-icon {
-        font-size: 5rem;
+        font-size: 1.35rem;
         color: var(--p-yellow-500);
-        opacity: 0.2;
         transition: transform 0.3s ease;
-      }
-
-      .card-content {
-        padding: 1.5rem;
-
-        h3 {
-          margin: 0 0 1rem;
-          color: var(--p-text-color);
-          font-size: 1.25rem;
-          font-weight: 700;
-          transition: color 0.3s ease;
-        }
       }
 
       .meta-item {
@@ -263,32 +293,44 @@ interface ProjectCardView {
         }
       }
 
-      .card-footer {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--p-content-border-color);
+      .project-specs {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
       }
 
-      .status-badge {
-        display: inline-flex;
-        border-radius: 999rem;
-        padding: 0.25rem 0.75rem;
-        font-weight: 600;
-        font-size: 0.8rem;
+      .spec-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: var(--p-content-hover-background);
+        border-radius: 0.5rem;
+      }
 
-        &.status-active {
-          background: color-mix(in srgb, var(--p-green-500) 20%, transparent);
-          color: var(--p-green-700, var(--p-green-500));
+      .spec-label {
+        font-size: 0.875rem;
+        color: var(--p-text-muted-color);
+        font-weight: 500;
+      }
+
+      .spec-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--p-primary-500);
+      }
+
+      :host ::ng-deep {
+        .project-card .p-card-body {
+          padding: 1.5rem;
         }
 
-        &.status-planning {
-          background: color-mix(in srgb, var(--p-blue-500) 18%, transparent);
-          color: var(--p-blue-700, var(--p-blue-500));
+        .empty-state .p-card-body {
+          padding: 0;
         }
 
-        &.status-completed {
-          background: var(--p-surface-200);
-          color: var(--p-text-muted-color);
+        .error-state .p-card-body {
+          padding: 1rem;
         }
       }
 
@@ -302,24 +344,43 @@ interface ProjectCardView {
 })
 export class UserProjectsComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
+  private readonly authService = inject(AuthService);
 
   readonly projects = signal<ProjectCardView[]>([]);
   readonly isLoading = signal(true);
   readonly errorMessage = signal<string | null>(null);
+  readonly deletingProjectId = signal<string | null>(null);
+  readonly isAdmin = signal(false);
 
   ngOnInit(): void {
+    const role = this.authService.currentUser()?.role;
+    this.isAdmin.set(role === UserRole.ADMIN || this.authService.isAdmin());
     this.loadProjects();
+  }
+
+  protected getStatusSeverity(status: ProjectCardView['status']): 'success' | 'info' | 'contrast' {
+    if (status === 'active') {
+      return 'success';
+    }
+    if (status === 'completed') {
+      return 'contrast';
+    }
+    return 'info';
   }
 
   private loadProjects(): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
+    const request$ = this.isAdmin()
+      ? this.projectService.getAllProjects(1, 100)
+      : this.projectService.getMyProjects(1, 100);
 
-    this.projectService.getMyProjects(1, 100).subscribe({
+    request$.subscribe({
       next: (response) => {
         console.log('Projects response:', response);
         if (response && response.data) {
-          this.projects.set(response.data.map((project) => this.mapProject(project)));
+          const mappedProjects = response.data.map((project) => this.mapProject(project));
+          this.projects.set(mappedProjects);
         } else {
           console.warn('Unexpected response structure:', response);
           this.errorMessage.set('Invalid server response format.');
@@ -330,6 +391,32 @@ export class UserProjectsComponent implements OnInit {
         console.error('Error loading projects:', err);
         this.errorMessage.set('Could not load projects. Please try again in a moment.');
         this.isLoading.set(false);
+      },
+    });
+  }
+
+  protected deleteProject(event: Event, project: ProjectCardView): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (!this.isAdmin()) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete project "${project.name}"? This action cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.deletingProjectId.set(project.id);
+    this.projectService.deleteProjectAsAdmin(project.id).subscribe({
+      next: () => {
+        this.projects.update((projects) => projects.filter((item) => item.id !== project.id));
+        this.deletingProjectId.set(null);
+      },
+      error: () => {
+        this.errorMessage.set('Could not delete project. Please try again in a moment.');
+        this.deletingProjectId.set(null);
       },
     });
   }
@@ -347,6 +434,7 @@ export class UserProjectsComponent implements OnInit {
       estimatedOutput?: number;
       panelType?: string;
       panel?: unknown;
+      owner?: string | { _id?: string; fullName?: string; email?: string };
       lat?: number;
       lon?: number;
       prodToday?: unknown[];
@@ -374,7 +462,7 @@ export class UserProjectsComponent implements OnInit {
       status = 'completed';
     }
 
-    return {
+    const mapped = {
       id,
       name: source.name,
       location: source.country || source.address || this.formatCoordinates(source.lat, source.lon),
@@ -389,7 +477,13 @@ export class UserProjectsComponent implements OnInit {
       bifacial: false,
       estimatedOutput: source.estimatedOutput ?? 0,
       efficiency: source.efficiency ?? panelData?.efficiency ?? 0,
+      ownerEmail:
+        source.owner && typeof source.owner === 'object' && 'email' in source.owner
+          ? String((source.owner as { email?: string }).email ?? '')
+          : undefined,
     };
+
+    return mapped;
   }
 
   private formatCoordinates(lat?: number, lon?: number): string {

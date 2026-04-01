@@ -45,12 +45,6 @@ export const routes: Routes = [
           .then(m => m.AdminDashboardComponent)
       },
       {
-        path: 'management/projects',
-        canActivate: [adminGuard],
-        loadComponent: () => import('./features/admin/projects-list/projects-list.component')
-          .then(m => m.ProjectsListComponent)
-      },
-      {
         path: 'management/users',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/users-list/users-list.component')

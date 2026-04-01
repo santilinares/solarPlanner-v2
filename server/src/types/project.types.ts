@@ -25,7 +25,7 @@ export interface ProjectResponse {
   panelNumber: number;
   panel?: string | object; // Panel ID or populated panel object
   cultivar?: string | object; // Cultivar ID or populated cultivar object
-  owner?: string | object; // User ID or populated user object
+  owner?: string | { _id: string; fullName: string; email: string }; // User ID or populated user object
   prodToday?: IProductionPoint[];
   nextProd?: IProductionPoint[];
   previousProd?: IProductionPoint[];

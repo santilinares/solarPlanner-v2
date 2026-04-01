@@ -2,9 +2,9 @@ import { Component, ChangeDetectionStrategy, computed, inject, signal, OnInit } 
 import { CommonModule } from '@angular/common';
 import { DataViewModule } from 'primeng/dataview';
 import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { PanelService } from '@core/services/panel.service';
 import { Panel, PanelCreateRequest } from '@core/models/panel.model';
 import { UserRole } from '@core/models';
@@ -14,7 +14,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
 @Component({
   selector: 'app-panel-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DataViewModule, CardModule, TagModule, SkeletonModule, ButtonModule, PanelFormComponent],
+  imports: [CommonModule, DataViewModule, CardModule, SkeletonModule, ButtonModule, TooltipModule, PanelFormComponent],
   template: `
     <div class="panel-list animate-fade-in-up">
       <div class="page-header">
@@ -24,15 +24,14 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
             Solar Panels
           </h1>
           <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
-          @if (isAdmin()) {
-            <p-button
-              label="Add Panel"
-              icon="pi pi-plus"
-              (onClick)="openAddModal()"
-              class="add-btn"
-            />
-          }
         </div>
+        @if (isAdmin()) {
+          <p-button
+            label="Add Panel"
+            icon="pi pi-plus"
+            (onClick)="openAddModal()"
+          />
+        }
       </div>
 
       @if (showModal() && isAdmin()) {
@@ -73,7 +72,30 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
                 <div class="panel-icon">
                   <i class="pi pi-bolt panel-bolt-icon"></i>
                 </div>
-                <p-tag [value]="panel.efficiency + '%'" severity="success" class="efficiency-badge"></p-tag>
+                @if (isAdmin()) {
+                  <div class="panel-actions">
+                    <p-button
+                      icon="pi pi-pencil"
+                      severity="secondary"
+                      [text]="true"
+                      [rounded]="true"
+                      class="action-btn"
+                      pTooltip="Edit panel"
+                      tooltipPosition="top"
+                      (onClick)="openEditModal(panel)"
+                    />
+                    <p-button
+                      icon="pi pi-trash"
+                      severity="danger"
+                      [text]="true"
+                      [rounded]="true"
+                      class="action-btn"
+                      pTooltip="Delete panel"
+                      tooltipPosition="top"
+                      (onClick)="deletePanel(panel)"
+                    />
+                  </div>
+                }
               </div>
               <h3 class="panel-name">{{ panel.brand }}</h3>
               <p class="panel-model">{{ panel.model }}</p>
@@ -91,26 +113,6 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
                   <span class="spec-value">{{ panel.price }}</span>
                 </div>
               </div>
-              @if (isAdmin()) {
-                <div class="panel-actions">
-                  <p-button
-                    icon="pi pi-pencil"
-                    label="Edit"
-                    severity="secondary"
-                    [outlined]="true"
-                    class="action-btn"
-                    (onClick)="openEditModal(panel)"
-                  />
-                  <p-button
-                    icon="pi pi-trash"
-                    label="Delete"
-                    severity="danger"
-                    [outlined]="true"
-                    class="action-btn"
-                    (onClick)="deletePanel(panel)"
-                  />
-                </div>
-              }
             </p-card>
           }
         </div>
@@ -145,10 +147,6 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
             font-size: 1.1rem;
           }
 
-          .add-btn {
-            margin-top: 0.85rem;
-            display: inline-flex;
-          }
         }
 
         .panels-grid {
@@ -176,11 +174,6 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
               .panel-bolt-icon {
                 color: var(--p-yellow-500);
                 font-size: 1.5rem;
-              }
-
-              .efficiency-badge {
-                font-weight: 700;
-                font-size: 0.875rem;
               }
             }
 
@@ -225,10 +218,9 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
             }
 
             .panel-actions {
-              margin-top: 1rem;
               display: flex;
-              gap: 0.75rem;
-              flex-wrap: wrap;
+              align-items: flex-start;
+              gap: 0.25rem;
             }
 
           }
@@ -261,6 +253,11 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
         :host ::ng-deep {
           .panel-list .panel-card .p-card-body {
             padding: 1.5rem;
+          }
+
+          .panel-list .panel-card .panel-actions .action-btn .p-button {
+            width: 2.25rem;
+            height: 2.25rem;
           }
 
           .panel-list .empty-state .p-card-body {

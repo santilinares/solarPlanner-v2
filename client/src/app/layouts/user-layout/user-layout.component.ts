@@ -372,12 +372,6 @@ export class UserLayoutComponent {
       path: '/projects/management/users',
       matchPrefixes: ['/projects/management/users'],
     },
-    {
-      label: 'Manage Projects',
-      icon: 'pi pi-folder',
-      path: '/projects/management/projects',
-      matchPrefixes: ['/projects/management/projects'],
-    },
   ];
 
   readonly visiblePrimaryNavItems = computed<readonly DockItem[]>(() =>

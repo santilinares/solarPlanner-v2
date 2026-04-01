@@ -82,6 +82,40 @@ const calculateGeospatialFields = (area: GeoPointInput[]): { lat?: number; lon?:
 const transformProjectToResponse = (project: HydratedDocument<IProject>): ProjectResponse => {
   // Calculate geospatial fields from area polygon
   const geo = calculateGeospatialFields(project.area);
+  const ownerData = (() => {
+    if (!project.owner) {
+      return undefined;
+    }
+    if (typeof project.owner !== 'object') {
+      return String(project.owner);
+    }
+
+    // When populated, owner is a Mongoose doc-ish object; keep this runtime-safe and TS-friendly.
+    const owner = project.owner as unknown as {
+      _id?: { toString(): string };
+      email?: unknown;
+      local?: { email?: unknown };
+      google?: { email?: unknown };
+      fullName?: unknown;
+    };
+    const resolvedEmail =
+      typeof owner.email === 'string'
+        ? owner.email
+        : typeof owner.local?.email === 'string'
+          ? owner.local.email
+          : typeof owner.google?.email === 'string'
+            ? owner.google.email
+            : '';
+    if (resolvedEmail !== '' || owner.fullName !== undefined) {
+      return {
+        _id: owner._id?.toString?.() ?? '',
+        email: resolvedEmail,
+        fullName: typeof owner.fullName === 'string' ? owner.fullName : '',
+      };
+    }
+
+    return owner._id?.toString?.();
+  })();
 
   return {
     _id: project._id.toString(),
@@ -103,7 +137,7 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     panelNumber: project.panelNumber,
     panel: project.panel?._id.toString(),
     cultivar: project.cultivar?._id?.toString(),
-    owner: project.owner?._id.toString(),
+    owner: ownerData,
     prodToday: project.prodToday,
     nextProd: project.nextProd,
     previousProd: project.previousProd,
@@ -249,7 +283,7 @@ export class ProjectService {
     const [projects, total] = await Promise.all([
       ProjectModel.find(query)
         .populate('panel')
-        .populate('owner', 'fullName email')
+        .populate('owner', 'fullName email local.email google.email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),

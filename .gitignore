@@ -67,3 +67,4 @@ data/
 .server-requests/
 scripts/
 .agent/
+.cursor/settings.json

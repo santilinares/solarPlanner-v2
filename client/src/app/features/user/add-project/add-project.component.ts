@@ -324,7 +324,11 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
 
   onNext(): void {
     if (this.activeStep() < 3 && this.canProceed()) {
-      this.activeStep.set(this.activeStep() + 1);
+      const nextStep = this.activeStep() + 1;
+      this.activeStep.set(nextStep);
+      if (nextStep === 2) {
+        this.applyInitialConfigurationDefaults();
+      }
     }
   }
 
@@ -498,6 +502,27 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   }
 
   // ── Step 3 methods ───────────────────────────────
+  private applyInitialConfigurationDefaults(): void {
+    if (!this.selectedPanelId()) {
+      return;
+    }
+
+    if (this.canCalculate()) {
+      this.onCalculate();
+      return;
+    }
+
+    this.applyAutoSpacing();
+    this.applyAutoPanelCount();
+  }
+
+  private syncPanelCountWithCurrentSpacing(): void {
+    const max = this.maxPanels();
+    if (max > 0) {
+      this.panelCount.set(max);
+    }
+  }
+
   onPanelChange(): void {
     this.estimation.set(null);
     const panel = this.selectedPanelData();
@@ -519,6 +544,21 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
 
   applyAutoSpacing(): void {
     this.rowSpacing.set(this.optimalSpacing());
+    this.syncPanelCountWithCurrentSpacing();
+  }
+
+  applyAutoPanelCount(): void {
+    const est = this.estimation();
+    const max = this.maxPanels();
+
+    if (est?.recommendedPanels && est.recommendedPanels > 0) {
+      this.panelCount.set(max > 0 ? Math.min(est.recommendedPanels, max) : est.recommendedPanels);
+      return;
+    }
+
+    if (max > 0) {
+      this.panelCount.set(max);
+    }
   }
 
   onPanelCountChange(value: number): void {
@@ -532,10 +572,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
 
   onRowSpacingChange(value: number): void {
     this.rowSpacing.set(value);
-    const max = this.maxPanels();
-    if (max > 0) {
-      this.panelCount.set(Math.min(this.panelCount(), max));
-    }
+    this.syncPanelCountWithCurrentSpacing();
   }
 
   canCalculate = computed(

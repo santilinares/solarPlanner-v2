@@ -128,9 +128,6 @@
                 [class.selected]="projectType() === 'roof'"
                 (click)="projectType.set('roof')"
               >
-                @if (projectType() === 'roof') {
-                  <span class="type-check-badge"><i class="pi pi-check"></i></span>
-                }
                 <span class="type-icon-box" [class.active]="projectType() === 'roof'">
                   <span class="material-symbols-outlined">roofing</span>
                 </span>
@@ -143,9 +140,6 @@
                 [class.selected]="projectType() === 'agrivoltaic'"
                 (click)="projectType.set('agrivoltaic')"
               >
-                @if (projectType() === 'agrivoltaic') {
-                  <span class="type-check-badge"><i class="pi pi-check"></i></span>
-                }
                 <span class="type-icon-box" [class.active]="projectType() === 'agrivoltaic'">
                    <span class="material-symbols-outlined">psychiatry</span>
                 </span>

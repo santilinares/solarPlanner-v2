@@ -59,6 +59,13 @@ export class ProjectService {
   }
 
   /**
+   * Delete project as admin
+   */
+  deleteProjectAsAdmin(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}/admin`);
+  }
+
+  /**
    * Get all projects (admin only)
    */
   getAllProjects(page = 1, limit = 10): Observable<PaginatedResponse<Project>> {
@@ -86,6 +93,13 @@ export class ProjectService {
    */
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard`);
+  }
+
+  /**
+   * Get admin dashboard statistics (all users' projects)
+   */
+  getAdminDashboardStats(): Observable<DashboardStats> {
+    return this.http.get<DashboardStats>(`${this.apiUrl}/admin/dashboard`);
   }
 
   /**
