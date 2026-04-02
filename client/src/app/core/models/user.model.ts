@@ -14,6 +14,21 @@ export enum UserRole {
   ADMIN = 'admin',
 }
 
+/** Matches the server UserResponse shape exactly */
+export interface UserResponse {
+  _id: string;
+  fullName: string;
+  email?: string;
+  role: 'user' | 'admin';
+  method: 'local' | 'google';
+  createdAt: string;
+}
+
+export interface UserListResponse {
+  users: UserResponse[];
+  total: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

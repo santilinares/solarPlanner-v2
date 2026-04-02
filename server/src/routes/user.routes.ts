@@ -5,6 +5,7 @@ import {
   getUserById,
   deleteUser,
   updateUserProfile,
+  updateUserRole,
   changePassword,
 } from '../controllers/user.controller';
 import {
@@ -16,6 +17,7 @@ import {
   UserUpdateProfileSchema,
   UserChangePasswordSchema,
   UserQuerySchema,
+  UserUpdateRoleSchema,
 } from '../schemas/user.schema';
 
 const router = Router();
@@ -84,5 +86,12 @@ router.get('/:id', verifyAdminJwtToken, getUserById);
  * @access  Private (Admin)
  */
 router.delete('/:id', verifyAdminJwtToken, deleteUser);
+
+/**
+ * @route   PATCH /api/users/:id/role
+ * @desc    Update user role (admin only)
+ * @access  Private (Admin)
+ */
+router.patch('/:id/role', verifyAdminJwtToken, validateBody(UserUpdateRoleSchema), updateUserRole);
 
 export default router;

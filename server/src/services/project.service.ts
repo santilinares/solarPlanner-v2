@@ -279,6 +279,11 @@ export class ProjectService {
       query.$text = { $search: filters.search };
     }
 
+    // Project type filter
+    if (filters.projectType) {
+      query.projectType = filters.projectType;
+    }
+
     // Execute query with pagination
     const [projects, total] = await Promise.all([
       ProjectModel.find(query)

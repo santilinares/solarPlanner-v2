@@ -144,6 +144,16 @@ export const UserQuerySchema = z.object({
 export type UserQueryInput = z.infer<typeof UserQuerySchema>;
 
 /**
+ * User role update schema (admin only)
+ */
+export const UserUpdateRoleSchema = z.object({
+  role: UserRoleEnum,
+});
+
+/** Type inferred from UserUpdateRoleSchema */
+export type UserUpdateRoleInput = z.infer<typeof UserUpdateRoleSchema>;
+
+/**
  * MongoDB ObjectId validation schema
  * 
  * Validates 24-character hexadecimal MongoDB ObjectId format

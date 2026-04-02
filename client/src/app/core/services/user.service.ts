@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
-import { User, PaginatedResponse } from '../models';
+import { User, UserResponse, UserListResponse } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -38,10 +38,15 @@ export class UserService {
   /**
    * Get all users (admin only)
    */
-  getAllUsers(page = 1, limit = 10): Observable<PaginatedResponse<User>> {
-    return this.http.get<PaginatedResponse<User>>(`${this.apiUrl}`, {
-      params: { page: page.toString(), limit: limit.toString() }
-    });
+  getAllUsers(): Observable<UserListResponse> {
+    return this.http.get<UserListResponse>(`${this.apiUrl}`);
+  }
+
+  /**
+   * Update user role (admin only)
+   */
+  updateUserRole(id: string, role: 'user' | 'admin'): Observable<UserResponse> {
+    return this.http.patch<UserResponse>(`${this.apiUrl}/${id}/role`, { role });
   }
 
   /**

@@ -158,6 +158,22 @@ export class UserService {
   async getCurrentUser(userId: string): Promise<UserResponse> {
     return this.getUserById(userId);
   }
+
+  /**
+   * Update user role (admin only)
+   * @param userId User ID
+   * @param role New role
+   * @returns Updated user data
+   */
+  async updateUserRole(userId: string, role: 'user' | 'admin'): Promise<UserResponse> {
+    const user = await UserModel.findByIdAndUpdate(userId, { role }, { new: true });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return this.transformUserToResponse(user);
+  }
 }
 
 export const userService = new UserService();

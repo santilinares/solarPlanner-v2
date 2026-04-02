@@ -14,6 +14,15 @@ import {
   OptimalConfigFromPolygonRequest
 } from '../models';
 
+export interface ProjectFilters {
+  owner?: string;
+  search?: string;
+  country?: string;
+  projectType?: 'roof' | 'agrivoltaic';
+  from?: string;
+  to?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -31,10 +40,14 @@ export class ProjectService {
   /**
    * Get all projects for current user
    */
-  getMyProjects(page = 1, limit = 10): Observable<PaginatedResponse<Project>> {
-    return this.http.get<PaginatedResponse<Project>>(this.apiUrl, {
-      params: { page: page.toString(), limit: limit.toString() },
-    });
+  getMyProjects(page = 1, limit = 10, filters: ProjectFilters = {}): Observable<PaginatedResponse<Project>> {
+    const params: Record<string, string> = { page: page.toString(), limit: limit.toString() };
+    if (filters.search) params['search'] = filters.search;
+    if (filters.country) params['country'] = filters.country;
+    if (filters.projectType) params['projectType'] = filters.projectType;
+    if (filters.from) params['from'] = filters.from;
+    if (filters.to) params['to'] = filters.to;
+    return this.http.get<PaginatedResponse<Project>>(this.apiUrl, { params });
   }
 
   /**
@@ -68,10 +81,15 @@ export class ProjectService {
   /**
    * Get all projects (admin only)
    */
-  getAllProjects(page = 1, limit = 10): Observable<PaginatedResponse<Project>> {
-    return this.http.get<PaginatedResponse<Project>>(this.apiUrl, {
-      params: { page: page.toString(), limit: limit.toString() },
-    });
+  getAllProjects(page = 1, limit = 10, filters: ProjectFilters = {}): Observable<PaginatedResponse<Project>> {
+    const params: Record<string, string> = { page: page.toString(), limit: limit.toString() };
+    if (filters.owner) params['owner'] = filters.owner;
+    if (filters.search) params['search'] = filters.search;
+    if (filters.country) params['country'] = filters.country;
+    if (filters.projectType) params['projectType'] = filters.projectType;
+    if (filters.from) params['from'] = filters.from;
+    if (filters.to) params['to'] = filters.to;
+    return this.http.get<PaginatedResponse<Project>>(this.apiUrl, { params });
   }
 
   /**

@@ -2966,3 +2966,28 @@ User approved the follow-up change to unify panel navigation under the same shel
 
 ### AI Reasoning
 Using one protected route shell for dashboards, projects, settings, and panels avoids switching between separate top-level layout trees during tab navigation. That reduces visual remount effects and makes transitions between role-related sections feel stable while still honoring old links via redirects.
+
+---
+
+## April 1, 2026 - Add-Project Stepper Label Font Weight Increase
+
+### Topic
+Made add-project stepper step names bolder to improve readability and visual emphasis.
+
+### Summary of Request
+User requested modifying the stepper name steps so they use a bolder font.
+
+### What Was Achieved
+- Updated the add-project stepper label style to use a stronger font weight.
+- Applied the change directly to `.step-label-wrap` so all step names render bolder consistently.
+- Validated edited stylesheet diagnostics: no errors in the changed file.
+
+### Full Prompt
+"Modify the stepper name steps so that they use a bolder version of the font"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+The step labels are rendered via `.step-label-wrap` in the add-project custom stepper. Setting `font-weight: 700` at that selector is the smallest safe change that increases emphasis without affecting step layout or interaction logic.

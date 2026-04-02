@@ -11,6 +11,7 @@ import {
   PasswordResetRequestInput,
   PasswordResetApplyInput,
   UserQueryInput,
+  UserUpdateRoleInput,
 } from '../schemas/user.schema';
 
 /**
@@ -77,6 +78,16 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   await userService.deleteUser(req.params.id);
   return success(res, null, 'User deleted successfully');
+});
+
+/**
+ * @route   PATCH /users/:id/role
+ * @desc    Update user role (admin only)
+ * @access  Private (Admin)
+ */
+export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+  const user = await userService.updateUserRole(req.params.id, (req.body as UserUpdateRoleInput).role);
+  return success(res, user, 'User role updated successfully');
 });
 
 /**

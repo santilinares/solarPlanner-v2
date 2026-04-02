@@ -119,6 +119,7 @@ export const ProjectQuerySchema = z.object({
   from: z.coerce.date().optional(), // Filter by install date range
   to: z.coerce.date().optional(),
   search: z.string().optional(), // Search by name
+  projectType: z.enum(['roof', 'agrivoltaic']).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
 });

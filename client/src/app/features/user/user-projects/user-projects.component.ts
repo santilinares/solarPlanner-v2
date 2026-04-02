@@ -1,14 +1,20 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe, TitleCasePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { ChipModule } from 'primeng/chip';
+import { DatePickerModule } from 'primeng/datepicker';
+import { InputTextModule } from 'primeng/inputtext';
+import { Popover, PopoverModule } from 'primeng/popover';
+import { SelectModule } from 'primeng/select';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProjectService } from '@core/services/project.service';
-import { AuthService } from '@core/services';
-import { UserRole } from '@core/models';
+import { AuthService, UserService } from '@core/services';
+import { UserRole, UserResponse } from '@core/models';
 import { Project } from '@core/models';
 
 interface ProjectCardView {
@@ -31,61 +37,177 @@ interface ProjectCardView {
 
 @Component({
   selector: 'app-user-projects',
-  imports: [CommonModule, RouterLink, ButtonModule, DatePipe, TitleCasePipe, CardModule, SkeletonModule, TagModule, TooltipModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    ButtonModule,
+    CardModule,
+    ChipModule,
+    DatePickerModule,
+    DatePipe,
+    InputTextModule,
+    PopoverModule,
+    SelectModule,
+    SkeletonModule,
+    TagModule,
+    TitleCasePipe,
+    TooltipModule,
+  ],
   template: `
     <section class="projects-page animate-fade-in-up">
       <header class="projects-header">
         <div>
           <h1>
             <i class="pi pi-bolt icon-lg icon-primary"></i>
-            {{ isAdmin() ? 'All Projects' : 'My Projects' }}
+            {{ isAdmin() ? (filterOwner() ? 'User Projects' : 'All Projects') : 'My Projects' }}
           </h1>
-          <p>{{ isAdmin() ? 'Manage all user projects' : 'Manage your solar panel installations' }}</p>
+          <p>{{ isAdmin() ? (filterOwner() ? 'Showing projects for a specific user' : 'Manage all user projects') : 'Manage your solar panel installations' }}</p>
         </div>
         @if (!isAdmin()) {
-          <p-button
-            label="New Project"
-            icon="pi pi-plus"
-            routerLink="/projects/add"
-          ></p-button>
+          <p-button label="New Project" icon="pi pi-plus" routerLink="/projects/add" />
         }
       </header>
 
+      <!-- Filter row -->
+      <div class="filter-row">
+        @for (chip of activeChips(); track chip.key) {
+          <p-chip
+            [label]="chip.label"
+            [removable]="true"
+            (onRemove)="removeFilter(chip.key)"
+            styleClass="filter-chip"
+          />
+        }
+        @if (availableFilterTypes().length > 0) {
+          <button class="add-filter-btn" (click)="openAddFilter($event)">
+            <i class="pi pi-plus"></i> Add filter
+          </button>
+        }
+        @if (activeChips().length > 0) {
+          <button class="clear-all-btn" (click)="clearAll()">Clear all</button>
+        }
+      </div>
+
+      <!-- Add filter popover -->
+      <p-popover #addFilterPopover (onHide)="onPopoverHide()">
+        <div class="filter-popover">
+          @if (!selectedFilterType()) {
+            <p class="popover-title">Filter by</p>
+            <ul class="filter-type-list">
+              @for (type of availableFilterTypes(); track type.key) {
+                <li class="filter-type-item" (click)="selectedFilterType.set(type.key)">
+                  <i [class]="type.icon"></i>
+                  <span>{{ type.label }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="popover-input-step">
+              <button class="back-btn" (click)="selectedFilterType.set(null)">
+                <i class="pi pi-arrow-left"></i> Back
+              </button>
+              <p class="popover-title">{{ currentFilterLabel() }}</p>
+
+              @switch (selectedFilterType()) {
+                @case ('search') {
+                  <input
+                    pInputText
+                    [(ngModel)]="pendingSearch"
+                    placeholder="Project name..."
+                    class="popover-input"
+                    (keyup.enter)="applyFilter()"
+                    autofocus
+                  />
+                }
+                @case ('country') {
+                  <input
+                    pInputText
+                    [(ngModel)]="pendingCountry"
+                    placeholder="e.g. Spain"
+                    class="popover-input"
+                    (keyup.enter)="applyFilter()"
+                    autofocus
+                  />
+                }
+                @case ('projectType') {
+                  <p-select
+                    [(ngModel)]="pendingType"
+                    [options]="projectTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select type"
+                    class="popover-input"
+                  />
+                }
+                @case ('from') {
+                  <p-datepicker
+                    [(ngModel)]="pendingFrom"
+                    [showIcon]="true"
+                    placeholder="Start date"
+                    class="popover-input"
+                  />
+                }
+                @case ('to') {
+                  <p-datepicker
+                    [(ngModel)]="pendingTo"
+                    [showIcon]="true"
+                    placeholder="End date"
+                    class="popover-input"
+                  />
+                }
+                @case ('owner') {
+                  <p-select
+                    [(ngModel)]="pendingOwner"
+                    [options]="userOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select user"
+                    [filter]="true"
+                    filterBy="label"
+                    class="popover-input"
+                  />
+                }
+              }
+
+              <p-button label="Apply" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
+            </div>
+          }
+        </div>
+      </p-popover>
+
       @if (isLoading()) {
-        <div class="projects-grid stagger-children" animate.enter="animate-fade-in" animate.leave="animate-fade-out">
+        <div class="projects-grid">
           @for (item of [1,2,3,4,5,6]; track item) {
             <p-card class="project-card">
-              <p-skeleton height="15rem" class="mb-3"></p-skeleton>
-              <p-skeleton height="1rem" class="mb-2"></p-skeleton>
-              <p-skeleton height="1rem" class="mb-2"></p-skeleton>
-              <p-skeleton height="2rem" width="70%"></p-skeleton>
+              <p-skeleton height="15rem" class="mb-3" />
+              <p-skeleton height="1rem" class="mb-2" />
+              <p-skeleton height="1rem" class="mb-2" />
+              <p-skeleton height="2rem" width="70%" />
             </p-card>
           }
         </div>
       } @else if (errorMessage()) {
-        <p-card class="error-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <p-card class="error-state">
           <div class="error-content">
             <i class="pi pi-exclamation-triangle"></i>
             <span>{{ errorMessage() }}</span>
           </div>
         </p-card>
       } @else if (projects().length === 0) {
-        <p-card class="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <p-card class="empty-state">
           <div class="empty-content">
             <i class="pi pi-sun"></i>
             <h2>{{ isAdmin() ? 'No projects found' : 'No projects yet' }}</h2>
-            <p>{{ isAdmin() ? 'There are no user projects to display yet.' : 'Create your first solar panel project to get started' }}</p>
+            <p>{{ activeChips().length > 0 ? 'No projects match the active filters.' : (isAdmin() ? 'There are no user projects to display yet.' : 'Create your first solar panel project to get started') }}</p>
             @if (!isAdmin()) {
-              <p-button
-                label="Create Project"
-                icon="pi pi-plus"
-                routerLink="/projects/add"
-              ></p-button>
+              <p-button label="Create Project" icon="pi pi-plus" routerLink="/projects/add" />
             }
           </div>
         </p-card>
       } @else {
-        <div class="projects-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <div class="projects-grid">
           @for (project of projects(); track project.id) {
             <p-card class="project-card hover-lift" [routerLink]="['/projects', project.id]">
               <div class="card-header">
@@ -96,7 +218,7 @@ interface ProjectCardView {
                   <p-tag
                     [value]="project.status | titlecase"
                     [severity]="getStatusSeverity(project.status)"
-                  ></p-tag>
+                  />
                   @if (isAdmin()) {
                     <p-button
                       icon="pi pi-trash"
@@ -108,7 +230,7 @@ interface ProjectCardView {
                       pTooltip="Delete project"
                       tooltipPosition="top"
                       (click)="deleteProject($event, project)"
-                    ></p-button>
+                    />
                   }
                 </div>
               </div>
@@ -148,247 +270,483 @@ interface ProjectCardView {
       }
     </section>
   `,
-  styles: [
-    `
-      .projects-page {
-        padding: 1.25rem;
-      }
+  styles: [`
+    .projects-page {
+      padding: 1.25rem;
+    }
 
-      .projects-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
+    .projects-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
 
-        h1 {
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--p-text-color);
-          margin: 0 0 0.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        p {
-          margin: 0.5rem 0 0;
-          color: var(--p-text-muted-color);
-          font-size: 1rem;
-        }
-      }
-
-      .error-state {
-        .error-content {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          color: var(--p-red-700, var(--p-red-500));
-
-          i {
-            color: var(--p-red-500);
-          }
-        }
-      }
-
-      .empty-state {
-        .empty-content {
-          min-height: 20rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          padding: 2rem;
-
-          i {
-            font-size: 4rem;
-            color: var(--p-text-muted-color);
-            margin-bottom: 1rem;
-          }
-
-          h2 {
-            margin: 0;
-            color: var(--p-text-color);
-            font-size: 1.4rem;
-            font-weight: 700;
-          }
-
-          p {
-            margin: 0.75rem 0 1.5rem;
-            color: var(--p-text-muted-color);
-          }
-        }
-      }
-
-      .projects-grid {
-        display: grid;
-        gap: 1.5rem;
-        grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
-      }
-
-      .project-card {
-        transition: all 0.3s ease;
-        cursor: pointer;
-
-        .card-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 1rem;
-        }
-
-        .card-header-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-        }
-
-        .project-icon {
-          width: 3rem;
-          height: 3rem;
-          border-radius: 50%;
-          background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        h3 {
-          margin: 0 0 1rem;
-          color: var(--p-text-color);
-          font-size: 1.25rem;
-          font-weight: 700;
-          transition: color 0.3s ease;
-        }
-
-        &:hover {
-          h3 {
-            color: var(--p-primary-600);
-          }
-
-          .thumb-icon {
-            transform: scale(1.1);
-          }
-        }
-      }
-
-      .thumb-icon {
-        font-size: 1.35rem;
-        color: var(--p-yellow-500);
-        transition: transform 0.3s ease;
-      }
-
-      .meta-item {
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--p-text-color);
+        margin: 0 0 0.5rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        color: var(--p-text-muted-color);
-        font-size: 0.875rem;
-        margin-bottom: 0.625rem;
-
-        i {
-          color: var(--p-primary-500);
-        }
-      }
-
-      .project-specs {
-        display: flex;
-        flex-direction: column;
         gap: 0.75rem;
       }
 
-      .spec-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        background: var(--p-content-hover-background);
-        border-radius: 0.5rem;
-      }
-
-      .spec-label {
-        font-size: 0.875rem;
+      p {
+        margin: 0.5rem 0 0;
         color: var(--p-text-muted-color);
-        font-weight: 500;
-      }
-
-      .spec-value {
         font-size: 1rem;
+      }
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      min-height: 2.25rem;
+    }
+
+    .add-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 1rem;
+      border: none;
+      border-radius: 1rem;
+      background: var(--p-primary-500);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+
+      &:hover {
+        background: var(--p-primary-600);
+        transform: translateY(-1px);
+      }
+
+      &:active { transform: translateY(0); }
+
+      i { font-size: 0.7rem; }
+    }
+
+    .clear-all-btn {
+      background: none;
+      border: none;
+      color: var(--p-text-muted-color);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0.25rem 0.375rem;
+      border-radius: 0.25rem;
+      transition: color 0.2s;
+      margin-left: 0.25rem;
+
+      &:hover { color: var(--p-red-500); }
+    }
+
+    /* Popover internals */
+    .filter-popover {
+      min-width: 14rem;
+      padding: 0.25rem 0;
+    }
+
+    .popover-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--p-text-muted-color);
+      margin: 0 0 0.5rem;
+      padding: 0 0.25rem;
+    }
+
+    .filter-type-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .filter-type-item {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--p-text-color);
+      transition: background 0.15s;
+
+      i { color: var(--p-primary-500); font-size: 0.85rem; }
+
+      &:hover { background: var(--p-content-hover-background); }
+    }
+
+    .popover-input-step {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      background: none;
+      border: none;
+      color: var(--p-text-muted-color);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 0.25rem;
+      transition: color 0.15s;
+
+      &:hover { color: var(--p-primary-500); }
+    }
+
+    .popover-input {
+      width: 100%;
+    }
+
+    /* Card grid */
+    .projects-grid {
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
+    }
+
+    .error-state {
+      .error-content {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--p-red-700, var(--p-red-500));
+
+        i { color: var(--p-red-500); }
+      }
+    }
+
+    .empty-state {
+      .empty-content {
+        min-height: 20rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+
+        i {
+          font-size: 4rem;
+          color: var(--p-text-muted-color);
+          margin-bottom: 1rem;
+        }
+
+        h2 {
+          margin: 0;
+          color: var(--p-text-color);
+          font-size: 1.4rem;
+          font-weight: 700;
+        }
+
+        p {
+          margin: 0.75rem 0 1.5rem;
+          color: var(--p-text-muted-color);
+        }
+      }
+    }
+
+    .project-card {
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .card-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .project-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      h3 {
+        margin: 0 0 1rem;
+        color: var(--p-text-color);
+        font-size: 1.25rem;
         font-weight: 700;
-        color: var(--p-primary-500);
+        transition: color 0.3s ease;
       }
 
-      :host ::ng-deep {
-        .project-card .p-card-body {
-          padding: 1.5rem;
-        }
+      &:hover {
+        h3 { color: var(--p-primary-600); }
+        .thumb-icon { transform: scale(1.1); }
+      }
+    }
 
-        .empty-state .p-card-body {
-          padding: 0;
-        }
+    .thumb-icon {
+      font-size: 1.35rem;
+      color: var(--p-yellow-500);
+      transition: transform 0.3s ease;
+    }
 
-        .error-state .p-card-body {
-          padding: 1rem;
-        }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--p-text-muted-color);
+      font-size: 0.875rem;
+      margin-bottom: 0.625rem;
+
+      i { color: var(--p-primary-500); }
+    }
+
+    .project-specs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .spec-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: var(--p-content-hover-background);
+      border-radius: 0.5rem;
+    }
+
+    .spec-label {
+      font-size: 0.875rem;
+      color: var(--p-text-muted-color);
+      font-weight: 500;
+    }
+
+    .spec-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--p-primary-500);
+    }
+
+    :host ::ng-deep {
+      .project-card .p-card-body { padding: 1.5rem; }
+      .empty-state .p-card-body { padding: 0; }
+      .error-state .p-card-body { padding: 1rem; }
+
+      .filter-chip {
+        font-size: 0.8rem;
+        background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
+        color: var(--p-primary-700, var(--p-primary-500));
+        border: 1px solid color-mix(in srgb, var(--p-primary-500) 30%, transparent);
       }
 
-      @media (max-width: 768px) {
-        .projects-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+      .apply-btn { width: 100%; justify-content: center; }
+    }
+
+    @media (max-width: 768px) {
+      .projects-grid { grid-template-columns: 1fr; }
+    }
+  `],
 })
 export class UserProjectsComponent implements OnInit {
+  @ViewChild('addFilterPopover') private addFilterPopover!: Popover;
+
   private readonly projectService = inject(ProjectService);
   private readonly authService = inject(AuthService);
+  private readonly userService = inject(UserService);
+  private readonly route = inject(ActivatedRoute);
 
+  // Core state
   readonly projects = signal<ProjectCardView[]>([]);
   readonly isLoading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly deletingProjectId = signal<string | null>(null);
   readonly isAdmin = signal(false);
 
+  // Filter signals
+  readonly filterSearch = signal<string | null>(null);
+  readonly filterCountry = signal<string | null>(null);
+  readonly filterProjectType = signal<'roof' | 'agrivoltaic' | null>(null);
+  readonly filterFrom = signal<Date | null>(null);
+  readonly filterTo = signal<Date | null>(null);
+  readonly filterOwner = signal<string | null>(null);
+
+  // Users for owner dropdown (admin only)
+  private readonly users = signal<UserResponse[]>([]);
+  readonly userOptions = computed(() =>
+    this.users().map((u) => ({ label: `${u.fullName} (${u.email ?? ''})`, value: u._id }))
+  );
+
+  // Popover state
+  readonly selectedFilterType = signal<string | null>(null);
+  pendingSearch = '';
+  pendingCountry = '';
+  pendingType: 'roof' | 'agrivoltaic' | null = null;
+  pendingFrom: Date | null = null;
+  pendingTo: Date | null = null;
+  pendingOwner: string | null = null;
+
+  protected readonly projectTypeOptions = [
+    { label: 'Roof', value: 'roof' },
+    { label: 'Agrivoltaic', value: 'agrivoltaic' },
+  ];
+
+  readonly activeChips = computed(() => {
+    const chips: { key: string; label: string }[] = [];
+    if (this.filterSearch())      chips.push({ key: 'search',      label: `Search: ${this.filterSearch()}` });
+    if (this.filterCountry())     chips.push({ key: 'country',     label: `Country: ${this.filterCountry()}` });
+    if (this.filterProjectType()) chips.push({ key: 'projectType', label: `Type: ${this.filterProjectType() === 'roof' ? 'Roof' : 'Agrivoltaic'}` });
+    if (this.filterFrom())        chips.push({ key: 'from',        label: `From: ${this.formatDate(this.filterFrom()!)}` });
+    if (this.filterTo())          chips.push({ key: 'to',          label: `To: ${this.formatDate(this.filterTo()!)}` });
+    if (this.filterOwner())       chips.push({ key: 'owner',       label: `Owner: ${this.ownerName()}` });
+    return chips;
+  });
+
+  readonly availableFilterTypes = computed(() => {
+    const all = [
+      { key: 'search',      label: 'Search by name',    icon: 'pi pi-search' },
+      { key: 'country',     label: 'Country',            icon: 'pi pi-map-marker' },
+      { key: 'projectType', label: 'Project type',       icon: 'pi pi-th-large' },
+      { key: 'from',        label: 'Install date from',  icon: 'pi pi-calendar' },
+      { key: 'to',          label: 'Install date to',    icon: 'pi pi-calendar' },
+      ...(this.isAdmin() ? [{ key: 'owner', label: 'Owner', icon: 'pi pi-user' }] : []),
+    ];
+    const active = new Set(this.activeChips().map((c) => c.key));
+    return all.filter((f) => !active.has(f.key));
+  });
+
+  readonly currentFilterLabel = computed(() => {
+    const type = this.selectedFilterType();
+    return this.availableFilterTypes().find((f) => f.key === type)?.label
+      ?? this.activeChips().find((c) => c.key === type)?.label.split(':')[0]
+      ?? '';
+  });
+
+  private readonly ownerName = computed(() => {
+    const id = this.filterOwner();
+    if (!id) return '';
+    return this.userOptions().find((u) => u.value === id)?.label ?? id;
+  });
+
   ngOnInit(): void {
     const role = this.authService.currentUser()?.role;
     this.isAdmin.set(role === UserRole.ADMIN || this.authService.isAdmin());
+
+    // Pre-apply owner filter from URL param (e.g. navigating from Users list)
+    const owner = this.route.snapshot.queryParamMap.get('owner');
+    if (owner) {
+      this.filterOwner.set(owner);
+    }
+
+    if (this.isAdmin()) {
+      this.userService.getAllUsers().subscribe({
+        next: (resp) => this.users.set(resp.users),
+        error: () => {},
+      });
+    }
+
+    this.loadProjects();
+  }
+
+  protected openAddFilter(event: Event): void {
+    this.selectedFilterType.set(null);
+    this.addFilterPopover.toggle(event);
+  }
+
+  protected onPopoverHide(): void {
+    this.selectedFilterType.set(null);
+    this.pendingSearch = '';
+    this.pendingCountry = '';
+    this.pendingType = null;
+    this.pendingFrom = null;
+    this.pendingTo = null;
+    this.pendingOwner = null;
+  }
+
+  protected applyFilter(): void {
+    const type = this.selectedFilterType();
+    switch (type) {
+      case 'search':      this.filterSearch.set(this.pendingSearch || null); break;
+      case 'country':     this.filterCountry.set(this.pendingCountry || null); break;
+      case 'projectType': this.filterProjectType.set(this.pendingType); break;
+      case 'from':        this.filterFrom.set(this.pendingFrom); break;
+      case 'to':          this.filterTo.set(this.pendingTo); break;
+      case 'owner':       this.filterOwner.set(this.pendingOwner); break;
+    }
+    this.addFilterPopover.hide();
+    this.loadProjects();
+  }
+
+  protected removeFilter(key: string): void {
+    switch (key) {
+      case 'search':      this.filterSearch.set(null); break;
+      case 'country':     this.filterCountry.set(null); break;
+      case 'projectType': this.filterProjectType.set(null); break;
+      case 'from':        this.filterFrom.set(null); break;
+      case 'to':          this.filterTo.set(null); break;
+      case 'owner':       this.filterOwner.set(null); break;
+    }
+    this.loadProjects();
+  }
+
+  protected clearAll(): void {
+    this.filterSearch.set(null);
+    this.filterCountry.set(null);
+    this.filterProjectType.set(null);
+    this.filterFrom.set(null);
+    this.filterTo.set(null);
+    this.filterOwner.set(null);
     this.loadProjects();
   }
 
   protected getStatusSeverity(status: ProjectCardView['status']): 'success' | 'info' | 'contrast' {
-    if (status === 'active') {
-      return 'success';
-    }
-    if (status === 'completed') {
-      return 'contrast';
-    }
+    if (status === 'active') return 'success';
+    if (status === 'completed') return 'contrast';
     return 'info';
   }
 
   private loadProjects(): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
+
+    const filters = {
+      search: this.filterSearch() ?? undefined,
+      country: this.filterCountry() ?? undefined,
+      projectType: this.filterProjectType() ?? undefined,
+      from: this.filterFrom() ? this.filterFrom()!.toISOString() : undefined,
+      to: this.filterTo() ? this.filterTo()!.toISOString() : undefined,
+    };
+
     const request$ = this.isAdmin()
-      ? this.projectService.getAllProjects(1, 100)
-      : this.projectService.getMyProjects(1, 100);
+      ? this.projectService.getAllProjects(1, 100, { ...filters, owner: this.filterOwner() ?? undefined })
+      : this.projectService.getMyProjects(1, 100, filters);
 
     request$.subscribe({
       next: (response) => {
-        console.log('Projects response:', response);
         if (response && response.data) {
-          const mappedProjects = response.data.map((project) => this.mapProject(project));
-          this.projects.set(mappedProjects);
+          this.projects.set(response.data.map((p) => this.mapProject(p)));
         } else {
-          console.warn('Unexpected response structure:', response);
           this.errorMessage.set('Invalid server response format.');
         }
         this.isLoading.set(false);
       },
-      error: (err) => {
-        console.error('Error loading projects:', err);
+      error: () => {
         this.errorMessage.set('Could not load projects. Please try again in a moment.');
         this.isLoading.set(false);
       },
@@ -399,19 +757,15 @@ export class UserProjectsComponent implements OnInit {
     event.stopPropagation();
     event.preventDefault();
 
-    if (!this.isAdmin()) {
-      return;
-    }
+    if (!this.isAdmin()) return;
 
     const confirmed = window.confirm(`Delete project "${project.name}"? This action cannot be undone.`);
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     this.deletingProjectId.set(project.id);
     this.projectService.deleteProjectAsAdmin(project.id).subscribe({
       next: () => {
-        this.projects.update((projects) => projects.filter((item) => item.id !== project.id));
+        this.projects.update((list) => list.filter((item) => item.id !== project.id));
         this.deletingProjectId.set(null);
       },
       error: () => {
@@ -442,11 +796,7 @@ export class UserProjectsComponent implements OnInit {
 
     const panelData =
       typeof source.panel === 'object' && source.panel !== null
-        ? (source.panel as {
-            wattPeak?: number;
-            technology?: string;
-            efficiency?: number;
-          })
+        ? (source.panel as { wattPeak?: number; technology?: string; efficiency?: number })
         : undefined;
 
     const id = source.id || source._id || '';
@@ -462,7 +812,7 @@ export class UserProjectsComponent implements OnInit {
       status = 'completed';
     }
 
-    const mapped = {
+    return {
       id,
       name: source.name,
       location: source.country || source.address || this.formatCoordinates(source.lat, source.lon),
@@ -482,14 +832,14 @@ export class UserProjectsComponent implements OnInit {
           ? String((source.owner as { email?: string }).email ?? '')
           : undefined,
     };
+  }
 
-    return mapped;
+  private formatDate(date: Date): string {
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   private formatCoordinates(lat?: number, lon?: number): string {
-    if (typeof lat !== 'number' || typeof lon !== 'number') {
-      return 'Unknown location';
-    }
+    if (typeof lat !== 'number' || typeof lon !== 'number') return 'Unknown location';
     return `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
   }
 }

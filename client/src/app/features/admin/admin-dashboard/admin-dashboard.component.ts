@@ -399,7 +399,7 @@ export class AdminDashboardComponent {
 
   constructor() {
     forkJoin([
-      this.userService.getAllUsers(1, 1),
+      this.userService.getAllUsers(),
       this.projectService.getAdminDashboardStats(),
       this.panelService.getAllPanels(1, 1),
     ])

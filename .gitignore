@@ -68,3 +68,4 @@ data/
 scripts/
 .agent/
 .cursor/settings.json
+todo-list.md
