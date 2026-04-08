@@ -6,7 +6,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { PanelService } from '@core/services/panel.service';
-import { Panel, PanelCreateRequest } from '@core/models/panel.model';
+import { Panel, PanelCreateRequest, PanelUpdateRequest } from '@core/models/panel.model';
 import { UserRole } from '@core/models';
 import { AuthService } from '@core/services';
 import { PanelFormComponent } from '@features/admin/panels/panel-form.component';
@@ -340,7 +340,7 @@ export class PanelListComponent implements OnInit {
         return;
       }
 
-      this.panelService.updatePanel(id, data).subscribe({
+      this.panelService.updatePanel(id, data as PanelUpdateRequest).subscribe({
         next: () => {
           this.loadPanels();
           this.closeModal();

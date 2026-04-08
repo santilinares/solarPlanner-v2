@@ -9,6 +9,7 @@ import {
   RegisterRequest,
   AuthResponse,
   ForgotPasswordRequest,
+  ResetPasswordRequest,
 } from '../models';
 
 /**
@@ -87,10 +88,10 @@ export class AuthService {
   /**
    * Reset password with token
    */
-  resetPassword(token: string, newPassword: string): Observable<{ message?: string }> {
+  resetPassword(token: string, data: ResetPasswordRequest): Observable<{ message?: string }> {
     return this.http.post<{ message?: string }>(`${this.authUrl}/password/reset`, {
       token,
-      newPassword,
+      newPassword: data.password,
     });
   }
 

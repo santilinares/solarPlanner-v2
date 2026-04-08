@@ -57,6 +57,11 @@ export class AuthService {
       role: 'user',
     });
 
+    // Send welcome email (fire-and-forget)
+    emailService.sendWelcomeEmail(data.email, data.fullName).catch((err: unknown) => {
+      console.error('Failed to send welcome email:', err);
+    });
+
     // Generate JWT token
     const token = user.generateJwt();
     const refreshToken = user.generateRefreshToken();

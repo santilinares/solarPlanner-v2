@@ -52,8 +52,3 @@ export const validateBody = (schema: ZodSchema) => zValidate(schema, 'body');
  */
 export const validateQuery = (schema: ZodSchema) => zValidate(schema, 'query');
 
-/**
- * Validate request path parameters
- * @param schema Zod schema
- */
-export const validateParams = (schema: ZodSchema) => zValidate(schema, 'params');

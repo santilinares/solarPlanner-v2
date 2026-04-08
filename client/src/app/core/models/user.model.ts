@@ -47,11 +47,6 @@ export interface AuthResponse {
   user: User;
 }
 
-export interface RefreshTokenRequest {
-  token: string;
-  refreshToken: string;
-}
-
 export interface ForgotPasswordRequest {
   email: string;
 }

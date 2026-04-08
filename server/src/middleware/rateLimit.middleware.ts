@@ -7,18 +7,6 @@ import slowDown from 'express-slow-down';
  */
 
 /**
- * General API rate limiter
- * Limits to 100 requests per 15 minutes per IP
- */
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Max 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later',
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
-});
-
-/**
  * Strict rate limiter for authentication endpoints
  * Limits to 5 requests per 15 minutes per IP
  */

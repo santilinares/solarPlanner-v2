@@ -166,15 +166,3 @@ export const adminDeleteProject = asyncHandler(async (req: Request, res: Respons
   return success(res, null, 'Project deleted successfully');
 });
 
-/**
- * @route   GET /projects/admin/summary
- * @desc    Get admin project summary
- * @access  Private (Admin)
- */
-export const getAdminSummary = asyncHandler(async (_req: Request, res: Response) => {
-  // TODO: Implement admin summary endpoint
-  // This could return aggregated stats, counts by country, etc.
-  // Async placeholder for future database operations
-  // TODO: remove Promise.resolve when implemented
-  return Promise.resolve(success(res, { message: 'Admin summary endpoint - to be implemented' }));
-});

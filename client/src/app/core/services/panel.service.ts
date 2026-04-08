@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '@environments/environment';
-import { Panel, PanelCreateRequest, PanelUpdateRequest, PaginatedResponse } from '../models';
+import { Panel, PanelCreateRequest, PanelUpdateRequest } from '../models';
 
 export interface PanelListResponse {
   panels: Panel[];

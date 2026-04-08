@@ -11,7 +11,6 @@ import {
   calculateOptimalConfig,
   deleteProject,
   adminDeleteProject,
-  getAdminSummary,
   calculateFromPolygon,
 } from '../controllers/project.controller';
 import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
@@ -49,11 +48,6 @@ router.post(
 router.get('/dashboard', verifyUserJwtToken, getUserDashboard);
 
 router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
-
-/**
- * Admin routes (must come before /:id route)
- */
-router.get('/admin/summary', verifyAdminJwtToken, getAdminSummary);
 
 router.get('/:id', verifyUserJwtToken, getProjectById);
 

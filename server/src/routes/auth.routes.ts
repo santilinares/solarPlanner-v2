@@ -18,6 +18,7 @@ import {
   authSpeedLimiter,
   passwordResetLimiter,
 } from '../middleware/rateLimit.middleware';
+import { verifyPasswordResetJwtToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -62,7 +63,7 @@ router.post(
  * @desc    Reset password using token
  * @access  Public
  */
-router.post('/password/reset', validateBody(PasswordResetApplySchema), resetPassword);
+router.post('/password/reset', verifyPasswordResetJwtToken, validateBody(PasswordResetApplySchema), resetPassword);
 
 /**
  * @route   POST /api/auth/refresh

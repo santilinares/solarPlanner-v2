@@ -1,18 +1,31 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-visitor-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="visitor-layout">
       <header class="visitor-header">
         <div class="container">
-          <h1>Solar Planner v2.0</h1>
+          <div class="brand">
+            <i class="pi pi-sun brand-icon"></i>
+            <h1>Solar Planner</h1>
+          </div>
           <nav>
-            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
-            <a routerLink="/login" routerLinkActive="active">Login</a>
-            <a routerLink="/registration" routerLinkActive="active">Register</a>
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+              <i class="pi pi-home"></i>
+              <span>Home</span>
+            </a>
+            <a routerLink="/login" routerLinkActive="active">
+              <i class="pi pi-sign-in"></i>
+              <span>Login</span>
+            </a>
+            <a routerLink="/registration" routerLinkActive="active">
+              <i class="pi pi-user-plus"></i>
+              <span>Register</span>
+            </a>
           </nav>
         </div>
       </header>
@@ -40,10 +53,10 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .visitor-header {
-      background-color: var(--p-primary-600);
+      background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
       color: white;
-      padding: 1rem 0;
-      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.1);
+      padding: 0.875rem 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
       .container {
         display: flex;
@@ -51,28 +64,55 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
         align-items: center;
       }
 
-      h1 {
-        margin: 0;
-        font-size: 1.5rem;
-        color: var(--p-amber-50);
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+
+        .brand-icon {
+          font-size: 1.5rem;
+          color: var(--p-yellow-400);
+          filter: drop-shadow(0 0 6px rgba(255, 214, 0, 0.5));
+        }
+
+        h1 {
+          margin: 0;
+          font-size: 1.375rem;
+          font-weight: 700;
+          color: white;
+          letter-spacing: -0.01em;
+        }
       }
 
       nav {
         display: flex;
-        gap: 1.5rem;
+        gap: 0.375rem;
 
         a {
-          color: white;
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          color: rgba(255, 255, 255, 0.85);
           text-decoration: none;
           font-weight: 500;
-          transition: opacity 0.2s;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.875rem;
+          border-radius: 9999px;
+          transition: all 0.2s ease;
+
+          i {
+            font-size: 0.85rem;
+          }
 
           &:hover {
-            opacity: 0.8;
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
           }
 
           &.active {
-            border-bottom: 2px solid white;
+            color: white;
+            background: rgba(255, 255, 255, 0.22);
+            font-weight: 600;
           }
         }
       }
@@ -87,7 +127,8 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
       background-color: var(--p-surface-100);
       padding: 1.5rem 0;
       text-align: center;
-      color: #666;
+      color: var(--p-text-muted-color);
+      font-size: 0.875rem;
     }
   `]
 })

@@ -1,64 +1,87 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { ButtonModule } from 'primeng/button';
+import { PasswordModule } from 'primeng/password';
+import { CardModule } from 'primeng/card';
+import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { getErrorMessage } from '@core/models';
 
 @Component({
   selector: 'app-reset-password',
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule, RouterLink, ButtonModule, PasswordModule, CardModule, MessageModule],
   template: `
-    <div class="reset-password-page">
-      <div class="reset-password-card">
-        <h2>Set New Password</h2>
-        
+    <div class="reset-password-page animate-fade-in-up">
+      <p-card class="reset-password-card">
+        <ng-template pTemplate="header">
+          <div class="card-header">
+            <i class="pi pi-key solar-icon"></i>
+            <h2>Set New Password</h2>
+            <p class="subtitle">Choose a strong password for your account</p>
+          </div>
+        </ng-template>
+
         <form [formGroup]="resetPasswordForm" (ngSubmit)="onSubmit()">
-          <div class="form-group">
+          <div class="form-field">
             <label for="password">New Password</label>
-            <input
-              id="password"
-              type="password"
+            <p-password
               formControlName="password"
-              placeholder="••••••••"
-              [class.error]="resetPasswordForm.get('password')?.invalid && resetPasswordForm.get('password')?.touched"
-            />
+              placeholder="Minimum 8 characters"
+              [toggleMask]="true"
+              [feedback]="false"
+              class="w-full"
+              inputclass="w-full"
+            ></p-password>
             @if (resetPasswordForm.get('password')?.invalid && resetPasswordForm.get('password')?.touched) {
-              <span class="error-message">Password must be at least 8 characters</span>
+              <small class="error-text">
+                <i class="pi pi-exclamation-circle"></i> Password must be at least 8 characters
+              </small>
             }
           </div>
 
-          <div class="form-group">
+          <div class="form-field">
             <label for="confirmPassword">Confirm Password</label>
-            <input
-              id="confirmPassword"
-              type="password"
+            <p-password
               formControlName="confirmPassword"
-              placeholder="••••••••"
-              [class.error]="resetPasswordForm.get('confirmPassword')?.invalid && resetPasswordForm.get('confirmPassword')?.touched"
-            />
+              placeholder="Repeat your password"
+              [toggleMask]="true"
+              [feedback]="false"
+              class="w-full"
+              inputclass="w-full"
+            ></p-password>
             @if (resetPasswordForm.hasError('passwordMismatch') && resetPasswordForm.get('confirmPassword')?.touched) {
-              <span class="error-message">Passwords do not match</span>
+              <small class="error-text">
+                <i class="pi pi-exclamation-circle"></i> Passwords do not match
+              </small>
             }
           </div>
 
           @if (errorMessage()) {
-            <div class="alert alert-error">{{ errorMessage() }}</div>
+            <p-message severity="error" [textContent]="errorMessage()" class="w-full"></p-message>
           }
 
           @if (successMessage()) {
-            <div class="alert alert-success">{{ successMessage() }}</div>
+            <p-message severity="success" [textContent]="successMessage()" class="w-full"></p-message>
           }
 
-          <button type="submit" [disabled]="loading() || resetPasswordForm.invalid" class="btn btn-primary">
-            {{ loading() ? 'Resetting...' : 'Reset Password' }}
-          </button>
+          <p-button
+            type="submit"
+            label="Reset Password"
+            icon="pi pi-check"
+            [disabled]="loading() || resetPasswordForm.invalid"
+            [loading]="loading()"
+            class="w-full"
+          ></p-button>
 
           <div class="form-links">
-            <a routerLink="/login">Back to sign in</a>
+            <a routerLink="/login" class="link">
+              <i class="pi pi-arrow-left"></i> Back to sign in
+            </a>
           </div>
         </form>
-      </div>
+      </p-card>
     </div>
   `,
   styles: [`
@@ -66,114 +89,120 @@ import { getErrorMessage } from '@core/models';
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 60vh;
+      min-height: 70vh;
+      padding: 2rem 1rem;
 
-      .reset-password-card {
-        background: var(--p-surface-0);
-        padding: 2rem;
-        border-radius: 0.5rem;
-        box-shadow: var(--p-shadow-md);
-        width: 100%;
-        max-width: 25rem;
+      .form-field {
+        margin-bottom: 1.5rem;
 
-        h2 {
-          text-align: center;
-          margin-bottom: 2rem;
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 600;
           color: var(--p-text-color);
+          font-size: 0.95rem;
         }
 
-        .form-group {
-          margin-bottom: 1.5rem;
+        .error-text {
+          display: block;
+          color: var(--p-red-500);
+          font-size: 0.875rem;
+          margin-top: 0.5rem;
 
-          label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--p-text-color);
-          }
-
-          input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--p-content-border-color);
-            border-radius: 0.25rem;
-            font-size: 1rem;
-            color: var(--p-text-color);
-            background: var(--p-surface-0);
-
-            &.error {
-              border-color: var(--p-red-500);
-            }
-
-            &:focus {
-              outline: none;
-              border-color: var(--p-primary-500);
-            }
-          }
-
-          .error-message {
-            display: block;
-            color: var(--p-red-500);
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
+          i {
+            margin-right: 0.25rem;
           }
         }
+      }
 
-        .alert {
-          padding: 0.75rem;
-          border-radius: 0.25rem;
-          margin-bottom: 1rem;
+      .form-links {
+        text-align: center;
+        margin-top: 1.5rem;
 
-          &.alert-error {
-            background-color: color-mix(in srgb, var(--p-red-500) 12%, transparent);
-            color: var(--p-red-700, var(--p-red-500));
-          }
-
-          &.alert-success {
-            background-color: color-mix(in srgb, var(--p-green-500) 12%, transparent);
-            color: var(--p-green-700, var(--p-green-500));
-          }
-        }
-
-        .btn {
-          width: 100%;
-          padding: 0.75rem;
-          border: none;
-          border-radius: 0.25rem;
-          font-size: 1rem;
+        .link {
+          color: var(--p-primary-500);
+          text-decoration: none;
+          font-size: 0.9rem;
           font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
+          transition: all 0.2s ease;
 
-          &.btn-primary {
-            background-color: var(--p-primary-500);
-            color: var(--p-primary-contrast-color);
+          i {
+            margin-right: 0.25rem;
+            font-size: 0.85rem;
+          }
 
-            &:hover:not(:disabled) {
-              background-color: var(--p-primary-600);
-            }
-
-            &:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
+          &:hover {
+            color: var(--p-primary-600);
+            text-decoration: underline;
           }
         }
+      }
+    }
 
-        .form-links {
-          text-align: center;
-          margin-top: 1rem;
+    .reset-password-card {
+      width: 100%;
+      max-width: 28rem;
+      box-shadow: var(--shadow-xl);
+    }
 
-          a {
-            color: var(--p-primary-500);
-            text-decoration: none;
-            font-size: 0.875rem;
+    .card-header {
+      text-align: center;
 
-            &:hover {
-              text-decoration: underline;
-            }
-          }
+      .solar-icon {
+        font-size: 3rem;
+        color: var(--p-primary-contrast-color);
+        margin-bottom: 1rem;
+        display: block;
+      }
+
+      h2 {
+        color: var(--p-primary-contrast-color);
+        margin: 0 0 0.5rem;
+        font-size: 2rem;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        color: color-mix(in srgb, var(--p-primary-contrast-color) 90%, transparent);
+        font-size: 0.95rem;
+        margin: 0;
+      }
+    }
+
+    :host ::ng-deep {
+      .reset-password-card .p-card-header {
+        padding: 2.5rem 2rem 1rem;
+        background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
+        color: var(--p-primary-contrast-color);
+        border-top-left-radius: var(--p-card-border-radius);
+        border-top-right-radius: var(--p-card-border-radius);
+      }
+
+      .reset-password-card .p-card-body {
+        padding: 2rem;
+      }
+
+      .reset-password-page .p-password,
+      .reset-password-page .p-password .p-password-input {
+        width: 100%;
+      }
+
+      .reset-password-page .p-password .p-password-input {
+        transition: all 0.2s ease;
+
+        &:focus {
+          border-color: var(--p-primary-500);
+          box-shadow: var(--focus-ring);
         }
+
+        &.ng-invalid.ng-touched {
+          border-color: var(--p-red-500);
+          animation: shake 0.5s ease-in-out;
+        }
+      }
+
+      .reset-password-page .p-message {
+        margin-bottom: 1.5rem;
       }
     }
   `]
@@ -207,7 +236,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
   passwordMatchValidator(form: FormGroup) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
-    
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       return { passwordMismatch: true };
     }
@@ -222,13 +251,12 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
 
       const password = this.resetPasswordForm.get('password')?.value as string;
 
-      this.authService.resetPassword(this.token, password).subscribe({
+      this.authService.resetPassword(this.token, { password }).subscribe({
         next: () => {
           this.loading.set(false);
           this.successMessage.set('Password reset successful! Redirecting to login...');
           this.redirectTimeout = setTimeout(() => {
             this.router.navigate(['/login']).catch(() => {
-              // Fallback to hard navigation if Angular routing fails
               window.location.href = '/login';
             });
           }, 2000);

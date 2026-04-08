@@ -3,6 +3,8 @@ import { getCenter, getAreaOfPolygon } from 'geolib';
 import { ProjectModel, IProject } from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
 import { CultivarModel } from '../models/cultivar.model';
+import { UserModel } from '../models/user.model';
+import { emailService } from './email.service';
 import {
   ProjectCreateInput,
   ProjectQueryInput,
@@ -177,6 +179,20 @@ export class ProjectService {
       panel: data.panelId,
       cultivar: data.projectType === 'agrivoltaic' ? data.cultivarId : undefined,
       owner: userId,
+    });
+
+    // Send project created notification (fire-and-forget)
+    UserModel.findById(userId).then((user) => {
+      if (user) {
+        const email = user.method === 'local' ? user.local?.email : user.google?.email;
+        if (email) {
+          emailService.sendProjectCreatedEmail(email, data.name).catch((err: unknown) => {
+            console.error('Failed to send project created email:', err);
+          });
+        }
+      }
+    }).catch((err: unknown) => {
+      console.error('Failed to fetch user for project created email:', err);
     });
 
     return transformProjectToResponse(project);

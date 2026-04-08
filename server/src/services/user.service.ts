@@ -2,6 +2,7 @@ import { UserModel, IUser } from '../models/user.model';
 import { UserUpdateProfileInput, UserQueryInput } from '../schemas/user.schema';
 import { UserResponse, UserListResponse } from '../types/user.types';
 import { FilterQuery, HydratedDocument } from 'mongoose';
+import { emailService } from './email.service';
 
 /**
  * User Service
@@ -93,6 +94,14 @@ export class UserService {
       user.local.password = newPassword;
     }
     await user.save();
+
+    // Send password changed notification (fire-and-forget)
+    const email = user.local?.email;
+    if (email) {
+      emailService.sendPasswordChangedEmail(email, user.fullName).catch((err: unknown) => {
+        console.error('Failed to send password changed email:', err);
+      });
+    }
   }
 
   /**

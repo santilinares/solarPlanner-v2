@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -12,6 +12,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
 @Component({
   selector: 'app-login',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, 
     ReactiveFormsModule,
@@ -214,7 +215,6 @@ import { LoginRequest, getErrorMessage } from '@core/models';
 
           &.ng-invalid.ng-touched {
             border-color: var(--p-red-500);
-            animation: shake 0.5s ease-in-out;
           }
         }
 
