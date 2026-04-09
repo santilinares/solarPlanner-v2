@@ -63,11 +63,12 @@ export class PanelService {
   }
 
   /**
-   * Search panels by criteria
-   * TODO: Server doesn't have search endpoint, use query params on GET /panels
+   * Search/filter panels via GET query params
    */
-  searchPanels(criteria: Partial<Panel>): Observable<Panel[]> {
-    console.warn('Panel search not implemented on server, use getAllPanels with filters');
-    return this.http.post<Panel[]>(`${this.apiUrl}/search`, criteria);
+  searchPanels(filters: { search?: string; technology?: string } = {}): Observable<PanelListResponse> {
+    const params: Record<string, string> = {};
+    if (filters.search) params['search'] = filters.search;
+    if (filters.technology) params['technology'] = filters.technology;
+    return this.http.get<PanelListResponse>(this.apiUrl, { params });
   }
 }

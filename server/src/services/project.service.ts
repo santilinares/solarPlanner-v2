@@ -213,9 +213,16 @@ export class ProjectService {
       throw new Error('Project not found');
     }
 
-    // Check ownership if userId provided (non-admin access)
-    if (userId && project.owner && project.owner.toString() !== userId) {
-      throw new Error('Not authorized to view this project');
+    // Check ownership if userId provided (non-admin access).
+    // owner is populated, so compare against its _id, not the document itself.
+    if (userId && project.owner) {
+      const ownerId =
+        typeof project.owner === 'object' && project.owner !== null && '_id' in project.owner
+          ? (project.owner as { _id: { toString(): string } })._id.toString()
+          : (project.owner as unknown as { toString(): string }).toString();
+      if (ownerId !== userId) {
+        throw new Error('Not authorized to view this project');
+      }
     }
 
     return transformProjectToResponse(project);

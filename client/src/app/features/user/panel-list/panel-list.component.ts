@@ -1,10 +1,14 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, signal, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataViewModule } from 'primeng/dataview';
+import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
+import { ChipModule } from 'primeng/chip';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
+import { Popover, PopoverModule } from 'primeng/popover';
 import { PanelService } from '@core/services/panel.service';
 import { Panel, PanelCreateRequest, PanelUpdateRequest } from '@core/models/panel.model';
 import { UserRole } from '@core/models';
@@ -14,7 +18,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
 @Component({
   selector: 'app-panel-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DataViewModule, CardModule, SkeletonModule, ButtonModule, TooltipModule, PanelFormComponent],
+  imports: [CommonModule, FormsModule, CardModule, ChipModule, SkeletonModule, ButtonModule, TooltipModule, InputTextModule, SelectModule, PopoverModule, PanelFormComponent],
   template: `
     <div class="panel-list animate-fade-in-up">
       <div class="page-header">
@@ -34,6 +38,75 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
         }
       </div>
 
+      <!-- Filter row -->
+      <div class="filter-row">
+        @for (chip of activeChips(); track chip.key) {
+          <p-chip
+            [label]="chip.label"
+            [removable]="true"
+            (onRemove)="removeFilter(chip.key)"
+            class="filter-chip"
+          />
+        }
+        @if (availableFilterTypes().length > 0) {
+          <button class="add-filter-btn" (click)="openAddFilter($event)">
+            <i class="pi pi-plus"></i> Add filter
+          </button>
+        }
+        @if (activeChips().length > 0) {
+          <button class="clear-all-btn" (click)="clearAll()">Clear all</button>
+        }
+      </div>
+
+      <!-- Add filter popover -->
+      <p-popover #addFilterPopover (onHide)="onPopoverHide()">
+        <div class="filter-popover">
+          @if (!selectedFilterType()) {
+            <p class="popover-title">Filter by</p>
+            <ul class="filter-type-list">
+              @for (type of availableFilterTypes(); track type.key) {
+                <li class="filter-type-item" (click)="selectedFilterType.set(type.key)">
+                  <i [class]="type.icon"></i>
+                  <span>{{ type.label }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="popover-input-step">
+              <button class="back-btn" (click)="selectedFilterType.set(null)">
+                <i class="pi pi-arrow-left"></i> Back
+              </button>
+              <p class="popover-title">{{ currentFilterLabel() }}</p>
+
+              @switch (selectedFilterType()) {
+                @case ('search') {
+                  <input
+                    pInputText
+                    [(ngModel)]="pendingSearch"
+                    placeholder="Brand or model..."
+                    class="popover-input"
+                    (keyup.enter)="applyFilter()"
+                    autofocus
+                  />
+                }
+                @case ('technology') {
+                  <p-select
+                    [(ngModel)]="pendingTechnology"
+                    [options]="technologyOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select technology"
+                    class="popover-input"
+                  />
+                }
+              }
+
+              <p-button label="Apply" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
+            </div>
+          }
+        </div>
+      </p-popover>
+
       @if (showModal() && isAdmin()) {
         <app-panel-form
           [panel]="selectedPanel()"
@@ -43,7 +116,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
       }
 
       @if (isLoading()) {
-        <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <div class="panels-grid">
           @for (item of [1,2,3,4,5,6]; track item) {
             <p-card class="panel-card">
               <p-skeleton height="2rem" class="mb-3"></p-skeleton>
@@ -54,7 +127,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           }
         </div>
       } @else if (panels().length === 0) {
-        <p-card class="empty-state" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <p-card class="empty-state">
           <div class="empty-content">
             <i class="pi pi-inbox empty-icon"></i>
             <h3>No Panels Available</h3>
@@ -65,7 +138,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           </div>
         </p-card>
       } @else {
-        <div class="panels-grid stagger-children" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+        <div class="panels-grid">
           @for (panel of panels(); track panel.id || panel._id) {
             <p-card class="panel-card hover-lift">
               <div class="panel-header">
@@ -129,7 +202,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           justify-content: space-between;
           align-items: center;
           gap: 1rem;
-          margin-bottom: 2rem;
+          margin-bottom: 1.25rem;
 
           h1 {
             font-size: 2.5rem;
@@ -146,7 +219,15 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
             margin: 0;
             font-size: 1.1rem;
           }
+        }
 
+        .filter-row {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          min-height: 2.25rem;
         }
 
         .panels-grid {
@@ -222,7 +303,6 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
               align-items: flex-start;
               gap: 0.25rem;
             }
-
           }
         }
 
@@ -263,6 +343,15 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           .panel-list .empty-state .p-card-body {
             padding: 4rem 2rem;
           }
+
+          .filter-chip {
+            font-size: 0.8rem;
+            background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
+            color: var(--p-primary-700, var(--p-primary-500));
+            border: 1px solid color-mix(in srgb, var(--p-primary-500) 30%, transparent);
+          }
+
+          .apply-btn { width: 100%; justify-content: center; }
         }
 
         @media (max-width: 768px) {
@@ -282,10 +371,114 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           }
         }
       }
+
+      .add-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 1rem;
+        border: none;
+        border-radius: 1rem;
+        background: var(--p-primary-500);
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.15s;
+
+        &:hover {
+          background: var(--p-primary-600);
+          transform: translateY(-1px);
+        }
+
+        &:active { transform: translateY(0); }
+
+        i { font-size: 0.7rem; }
+      }
+
+      .clear-all-btn {
+        background: none;
+        border: none;
+        color: var(--p-text-muted-color);
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 0.25rem 0.375rem;
+        border-radius: 0.25rem;
+        transition: color 0.2s;
+        margin-left: 0.25rem;
+
+        &:hover { color: var(--p-red-500); }
+      }
+
+      /* Popover internals */
+      .filter-popover {
+        min-width: 14rem;
+        padding: 0.25rem 0;
+      }
+
+      .popover-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--p-text-muted-color);
+        margin: 0 0 0.5rem;
+        padding: 0 0.25rem;
+      }
+
+      .filter-type-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .filter-type-item {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: var(--p-text-color);
+        transition: background 0.15s;
+
+        i { color: var(--p-primary-500); font-size: 0.85rem; }
+
+        &:hover { background: var(--p-content-hover-background); }
+      }
+
+      .popover-input-step {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+      }
+
+      .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        background: none;
+        border: none;
+        color: var(--p-text-muted-color);
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 0;
+        margin-bottom: 0.25rem;
+        transition: color 0.15s;
+
+        &:hover { color: var(--p-primary-500); }
+      }
+
+      .popover-input {
+        width: 100%;
+      }
     `,
   ],
 })
 export class PanelListComponent implements OnInit {
+  @ViewChild('addFilterPopover') private addFilterPopover!: Popover;
+
   private readonly panelService = inject(PanelService);
   private readonly authService = inject(AuthService);
 
@@ -298,15 +491,92 @@ export class PanelListComponent implements OnInit {
     return role === UserRole.ADMIN || this.authService.isAdmin();
   });
 
+  // Filter signals
+  readonly filterSearch = signal<string | null>(null);
+  readonly filterTechnology = signal<string | null>(null);
+
+  // Popover state
+  readonly selectedFilterType = signal<string | null>(null);
+  pendingSearch = '';
+  pendingTechnology: string | null = null;
+
+  readonly technologyOptions = [
+    { label: 'Monocrystalline', value: 'Monocrystalline' },
+    { label: 'Polycrystalline', value: 'Polycrystalline' },
+    { label: 'Thin film', value: 'Thin film' },
+  ];
+
+  readonly activeChips = computed(() => {
+    const chips: { key: string; label: string }[] = [];
+    if (this.filterSearch())     chips.push({ key: 'search',     label: `Search: ${this.filterSearch()}` });
+    if (this.filterTechnology()) chips.push({ key: 'technology', label: `Technology: ${this.filterTechnology()}` });
+    return chips;
+  });
+
+  readonly availableFilterTypes = computed(() => {
+    const all = [
+      { key: 'search',     label: 'Search by brand or model', icon: 'pi pi-search' },
+      { key: 'technology', label: 'Technology',               icon: 'pi pi-bolt' },
+    ];
+    const active = new Set(this.activeChips().map((c) => c.key));
+    return all.filter((f) => !active.has(f.key));
+  });
+
+  readonly currentFilterLabel = computed(() => {
+    const type = this.selectedFilterType();
+    return this.availableFilterTypes().find((f) => f.key === type)?.label
+      ?? this.activeChips().find((c) => c.key === type)?.label.split(':')[0]
+      ?? '';
+  });
+
   ngOnInit() {
+    this.loadPanels();
+  }
+
+  protected openAddFilter(event: Event): void {
+    this.selectedFilterType.set(null);
+    this.addFilterPopover.toggle(event);
+  }
+
+  protected onPopoverHide(): void {
+    this.selectedFilterType.set(null);
+    this.pendingSearch = '';
+    this.pendingTechnology = null;
+  }
+
+  protected applyFilter(): void {
+    const type = this.selectedFilterType();
+    switch (type) {
+      case 'search':     this.filterSearch.set(this.pendingSearch || null); break;
+      case 'technology': this.filterTechnology.set(this.pendingTechnology); break;
+    }
+    this.addFilterPopover.hide();
+    this.loadPanels();
+  }
+
+  protected removeFilter(key: string): void {
+    switch (key) {
+      case 'search':     this.filterSearch.set(null); break;
+      case 'technology': this.filterTechnology.set(null); break;
+    }
+    this.loadPanels();
+  }
+
+  protected clearAll(): void {
+    this.filterSearch.set(null);
+    this.filterTechnology.set(null);
     this.loadPanels();
   }
 
   loadPanels() {
     this.isLoading.set(true);
-    this.panelService.getPanels().subscribe({
+    const filters: { search?: string; technology?: string } = {};
+    if (this.filterSearch()) filters['search'] = this.filterSearch()!;
+    if (this.filterTechnology()) filters['technology'] = this.filterTechnology()!;
+
+    this.panelService.searchPanels(filters).subscribe({
       next: (data) => {
-        this.panels.set(data);
+        this.panels.set(data.panels);
         this.isLoading.set(false);
       },
       error: (error) => {

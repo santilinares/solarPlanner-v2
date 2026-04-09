@@ -14,7 +14,7 @@ import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 import { StepperModule } from 'primeng/stepper';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -29,6 +29,7 @@ import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
 
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
@@ -40,7 +41,10 @@ import {
   ProjectUpdateRequest,
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
+  SunPathData,
+  PlanData,
 } from '@core/models';
+import { FileService } from '@core/services/file.service';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
 
 interface OrientationOption {
@@ -81,9 +85,10 @@ type ProjectScreenMode = 'configure' | 'view';
     SkeletonModule,
     TooltipModule,
     ConfirmDialogModule,
+    ToastModule,
     LocationMapComponent,
   ],
-  providers: [ConfirmationService],
+  providers: [ConfirmationService, MessageService],
   templateUrl: './configure-project.component.html',
   styleUrls: ['./configure-project.component.scss'],
 })
@@ -93,18 +98,23 @@ export class ConfigureProjectComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly messageService = inject(MessageService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
+  private readonly fileService = inject(FileService);
   private readonly destroyRef = inject(DestroyRef);
 
   // ─── State ───
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   readonly isCalculating = signal(false);
+  readonly isDownloadingPlan = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly saveError = signal<string | null>(null);
   readonly saveSuccess = signal(false);
   readonly projectData = signal<ProjectResponse | null>(null);
+  readonly sunPathData = signal<SunPathData | null>(null);
+  readonly isSunPathLoading = signal(false);
   readonly panels = signal<Panel[]>([]);
   readonly projectId = signal('');
   readonly mode = signal<ProjectScreenMode>('configure');
@@ -405,6 +415,9 @@ export class ConfigureProjectComponent implements OnInit {
         // Calculate initial optimal baseline without auto-applying
         this.fetchOptimalConfig(false);
 
+        // Load sun path data independently (non-blocking)
+        this.loadSunPath(id);
+
         // Set up form watchers AFTER initial population
         this.setupFormWatchers();
       },
@@ -619,6 +632,46 @@ export class ConfigureProjectComponent implements OnInit {
         console.error('Update failed', err);
         this.saveError.set('Failed to save. Please check your inputs and try again.');
         this.isSaving.set(false);
+      },
+    });
+  }
+
+  // ─── Sun Path ───
+  private loadSunPath(id: string): void {
+    this.isSunPathLoading.set(true);
+    this.projectService.getSunPath(id).subscribe({
+      next: (data) => {
+        this.sunPathData.set(data);
+        this.isSunPathLoading.set(false);
+      },
+      error: () => {
+        this.isSunPathLoading.set(false);
+      },
+    });
+  }
+
+  formatDecimalHours(h: number): string {
+    const totalMinutes = Math.round(h * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+
+  // ─── Download Plan PDF ───
+  downloadPlan(): void {
+    this.isDownloadingPlan.set(true);
+    this.projectService.getPlanData(this.projectId()).subscribe({
+      next: (planData: PlanData) => {
+        this.fileService.generateProjectPDF(planData);
+        this.isDownloadingPlan.set(false);
+      },
+      error: () => {
+        this.isDownloadingPlan.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Download Failed',
+          detail: 'Could not generate the project plan. Please try again.',
+        });
       },
     });
   }
