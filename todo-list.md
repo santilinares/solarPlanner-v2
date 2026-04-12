@@ -15,19 +15,25 @@
 - [DONE] Revisar que cuando se expande el menú, o se contrae, se guarde esa configuracion al moverse entre pantallas. -> **hace como un refresh cuando cambio al de panels. En el resto no ocurre**
 - [DONE] REFACTOR de las tarjetas dentro de my projects (user-projects) para que usen el p-card de primeng y no un estilo custom.
 - [DONE] Unificar manage projects (admin) y user-projects
+- [DONE]Modificar la forma en la que se filtran los panels, reemplazarla por la que se usa para los proyectos.
+- [DISMISSED] User activation / deactivation — requires adding `isActive: boolean` to the Mongoose `UserModel` schema + a `PATCH /api/users/:id/status` endpoint. UI: toggle switch in the actions column of the user management table.
 
 ## TO-DO
+- [PLANNED]Cuando se acaba la creación del project, no se rellenan automáticamente los valores de country, currency, region (cosa que si ocurre cuando se edita el proyecto mediant configure-project)
+- [PLANNED]Figure out que hacer con eso de sunPath data (como afecta el sol a esa ubicación a lo largo de un año). Esto podría mostrarlo simplemente y además usarlo para mejorar mis cálculos.
+- [TO-DO]Vamos a añadir algo para ver si se generan sombras por obstáculos de gran altura?
+- 
 
 ### ADMIN FEATURES
-- [ ] User activation / deactivation — requires adding `isActive: boolean` to the Mongoose `UserModel` schema + a `PATCH /api/users/:id/status` endpoint. UI: toggle switch in the actions column of the user management table.
-
-
 
 ----
 
 # POSSIBLE TFG FEATURES
 - Inclination Algorithm to assess if area selected has good inclination propperties -> do we have to compensate? Is it feasible? Find a tool to calculate the inclination. What about solar panels with movement?
-- 
+- Comparador de Estructuras (Fijo vs. 1 Eje vs. 2 Ejes) -> supuestamente 3 días de desarrollo
+- Módulo de Autoconsumo Real (Demanda vs. Generación). Determinar si se tendría una un exceso de energía (para almacenar o devolver a la red) o se necesita consumo de la red. -> supuestamente 5 dias de desarrollo
+-  Simulador de Almacenamiento (Baterías y Sales) -> supuestamente 7 días de desarrollo
+-   Implementación del Modelo Sandia (Rendimiento Realista) -> supuestamente 12 días de desarrollo.
 
 
 
