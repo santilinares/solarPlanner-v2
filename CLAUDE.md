@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Solar Planner v2 — A thesis project that helps homeowners, farmers, and small businesses evaluate investing in solar panels. Prioritize agility and working solutions over over-engineering.
 
 ## Interactions
-For all of the prompts that result in adding new code successfully, fill in a markdown file [santi-agent-interactions.md](../santi-agent-interactions.md) that serves as registry of all of the progress made using an AI agent. Treat is as a blog, stating the date, topic, a summary of the prompt a summary of what was achieved, the full prompt, affected files and part of the reasoning made by the AI agent to fulfill the need requested.
+For all of the prompts that result in adding new code successfully, fill in a markdown file [santi-agent-interactions.md](./santi-agent-interactions.md) that serves as registry of all of the progress made using an AI agent. Treat is as a blog, stating the date, topic, a summary of the prompt a summary of what was achieved, the full prompt, affected files and part of the reasoning made by the AI agent to fulfill the need requested. Add this the final step of every development
 
 ## Commands
 

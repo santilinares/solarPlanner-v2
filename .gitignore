@@ -68,9 +68,5 @@ data/
 scripts/
 .agent/
 .cursor/settings.json
-todo-list.md
-CLAUDE.md
-v2-feature-audit.md
-solar-planner-1.0-features.md
-IMPL_PLAN_DEFERRED_FEATURES.md
+.other-readme/
 CLAUDE.md
