@@ -1,6 +1,5 @@
 import { HydratedDocument, FilterQuery } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
-import crg from 'country-reverse-geocoding';
 import { find } from 'geo-tz';
 import { ProjectModel, IProject, IProductionPoint } from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
@@ -187,14 +186,33 @@ export class ProjectService {
     const geo = calculateGeospatialFields(data.area);
     const { lat, lon } = geo;
 
+    console.info(`[Project Creation] Starting API integrations for (${lat}, ${lon})`);
+
     // Priority 1 API Integrations
     // Run synchronous operations inline and async operations in parallel
-    const resolvedCountry = this.resolveCountry(lat, lon, undefined);
-    const resolvedTimezone = this.resolveTimezone(lat, lon, undefined);
+    let resolvedCountry: string | undefined;
+    let resolvedTimezone: string | undefined;
+
+    try {
+      resolvedCountry = this.resolveCountry(lat, lon, undefined);
+      console.info(`[Project Creation] Country resolved: ${resolvedCountry}`);
+    } catch (error) {
+      console.warn('[Project Creation] Country resolution error:', error);
+    }
+
+    try {
+      resolvedTimezone = this.resolveTimezone(lat, lon, undefined);
+      console.info(`[Project Creation] Timezone resolved: ${resolvedTimezone}`);
+    } catch (error) {
+      console.warn('[Project Creation] Timezone resolution error:', error);
+    }
 
     const [priceData, productionData] = await Promise.all([
       // 1.3 Electricity price lookup
-      this.fetchElectricityPrice('', undefined, undefined),
+      this.fetchElectricityPrice('', undefined, undefined).catch((error) => {
+        console.warn('[Project Creation] Price lookup error:', error);
+        return { price: undefined, currency: undefined };
+      }),
 
       // 1.4 Solcast integration (fetch production data)
       lat && lon && data.panelId
@@ -203,11 +221,12 @@ export class ProjectService {
               const panel = await PanelModel.findById(data.panelId);
               if (panel) {
                 const capacityKw = (panel.wattPeak * data.panelNumber) / 1000;
+                console.info(`[Project Creation] Fetching Solcast data for capacity ${capacityKw}kW`);
                 return await this.fetchSolcastData(lat, lon, capacityKw);
               }
               return { prodToday: [], nextProd: [], previousProd: [] };
             } catch (error) {
-              console.warn('[Solcast Integration] Failed to fetch production data:', error);
+              console.warn('[Project Creation] Solcast integration error:', error);
               return { prodToday: [], nextProd: [], previousProd: [] };
             }
           })()
@@ -215,6 +234,16 @@ export class ProjectService {
     ]);
 
     // Update project with resolved data
+    console.info('[Project Creation] Updating project with resolved data:', {
+      country: resolvedCountry,
+      timezone: resolvedTimezone,
+      currency: priceData.currency,
+      price: priceData.price,
+      prodTodayCount: productionData.prodToday.length,
+      nextProdCount: productionData.nextProd.length,
+      previousProdCount: productionData.previousProd.length,
+    });
+
     const updatedProject = await ProjectModel.findByIdAndUpdate(
       project._id,
       {
@@ -232,6 +261,8 @@ export class ProjectService {
     if (!updatedProject) {
       throw new Error('Failed to update project with external data');
     }
+
+    console.info(`[Project Creation] ✅ Successfully created project ${updatedProject._id.toString()} with all integrations`);
 
     // Send project created notification (fire-and-forget)
     UserModel.findById(userId)
@@ -711,9 +742,14 @@ export class ProjectService {
     }
 
     try {
-      const result = crg.get_country(lat, lon);
-      if (result && typeof result === 'object' && 'name' in result) {
-        return (result as { name: string }).name;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+      const CRG = require('country-reverse-geocoding').country_reverse_geocoding;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+      const crg = CRG();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const result = crg.get_country(lat, lon) as { code: string; name: string } | null;
+      if (result && result.name) {
+        return result.name;
       }
     } catch (error) {
       console.warn(`[Country Resolution] Failed to resolve country for (${lat}, ${lon}):`, error);
