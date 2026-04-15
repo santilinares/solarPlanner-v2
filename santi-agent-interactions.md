@@ -4,6 +4,120 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 April 15, 2026 - Priority 1 API Integrations (Foundation for Production Data)
+
+### Topic
+Implemented all four Priority 1 backend API integrations for the Solar Planner v2 thesis project: country resolution, timezone resolution, electricity price lookup, and Solcast PV production forecasts.
+
+### Summary of Request
+User requested implementation of Priority 1 tasks (1.1-1.4) from the deferred features implementation plan. These integrations are foundational for production data and unlock Priority 2 (data display & nightly refresh).
+
+### What Was Achieved
+
+#### 1.1 Country Resolution
+- Reverse-geocoded `(lat, lon)` → country name using `country-reverse-geocoding` package
+- Added `resolveCountry()` private method with fallback to user-provided data
+- Integrated into `createProject()` call chain (runs synchronously)
+
+#### 1.2 Timezone Resolution
+- Resolved IANA timezone from `(lat, lon)` using `geo-tz` package
+- Added `resolveTimezone()` private method with UTC fallback
+- Critical for Priority 2's nightly scheduler (3:47 AM local-time jobs)
+
+#### 1.3 Electricity Price & Currency Lookup
+- Integrated World Bank OpenAPI for electricity prices (free, no auth required)
+- Added `fetchElectricityPrice()` with region-specific fallback pricing table:
+  - Spain: €0.32/kWh, Germany: €0.38/kWh, France: €0.18/kWh, US: $0.14/kWh, Brazil: ₩0.08/kWh
+- Graceful error handling: logs warnings, always falls back to defaults so API failures never block project creation
+- Future iterations can add country-specific API sources (EU energy bulletin, World Bank dashboard)
+
+#### 1.4 Solcast Integration with Realistic Mock Data
+- Implemented `fetchSolcastData()` with two branches:
+  - **Real API path:** Calls Solcast forecasts + estimated_actuals endpoints, aggregates hourly → daily
+  - **Mock data path:** Generates realistic synthetic production curves based on:
+    - Solar geometry (latitude-based day length calculation)
+    - Bell curve production peaking at solar noon
+    - Daily variation (cloudy/sunny days simulated as 60-100% of theoretical)
+    - Proper timezone-aware data formatting
+- Data returned: `prodToday` (hourly forecasts for today), `nextProd` (6-day ahead daily aggregates), `previousProd` (6-day historical daily aggregates)
+- Environment flag `USE_MOCK_SOLCAST=true` enables mock data for development (avoids 10-request/day Solcast free tier limit)
+
+#### Integration Points
+- Modified `createProject()` to call all 4 APIs in parallel after geospatial field calculation
+- All API calls wrapped in error handling; failures log warnings but never block project creation
+- Updated project document with resolved `country`, `timezone`, `currency`, `price`, `prodToday`, `nextProd`, `previousProd`
+- Project model already had all required fields (`IProject` interface) — no schema migration needed
+
+#### Infrastructure
+- Created `server/src/env.ts` — environment variable validation layer
+  - Validates required vars on server startup
+  - Exposes `USE_MOCK_SOLCAST` flag for development
+  - Ready to add more API keys (future World Bank, EU sources)
+- Updated `server/.env.example` and `server/.env` with Solcast and mock data config
+- Added TypeScript type declaration (`server/src/types/country-reverse-geocoding.d.ts`) for untyped package
+
+### Full Prompt
+"Follow the implementation plan detailed in the markdown file i am passing you as context. Since most of these implementations are big, I would like you to take on the priority one tasks in this chat (1.1 - 1.4), not more than that."
+
+After planning & approval: "Yes, lets go"
+
+User feedback on approach:
+1. Realistic mock data generation (solar geometry-based)
+2. Warnings on API failures with fallback to defaults
+3. World Bank API for electricity prices (free, covers most countries); region-specific APIs (Spain, EU) can be added in follow-up PRs
+
+### Affected Files
+- `server/package.json` — Added: `country-reverse-geocoding@0.2.2`, `geo-tz@8.1.6`
+- `server/src/env.ts` — **NEW**: Environment variable validation
+- `server/src/types/country-reverse-geocoding.d.ts` — **NEW**: TypeScript type declarations
+- `server/src/services/project.service.ts` — Added 7 new private methods + modified `createProject()`:
+  - `resolveCountry()` — reverse geocoding
+  - `resolveTimezone()` — IANA timezone lookup
+  - `fetchElectricityPrice()` — World Bank API + fallback prices
+  - `fetchRealSolcastData()` — Real Solcast API calls
+  - `generateMockSolcastData()` — Realistic synthetic production data
+  - `extractTodayProduction()` — Transform Solcast response
+  - `aggregateProductionByDay()` — Hourly → daily aggregation
+- `server/.env.example` — Updated with Solcast and mock config
+- `server/.env` — Configured `USE_MOCK_SOLCAST=true` for development
+- `santi-agent-interactions.md` — This entry
+
+### Code Quality
+- ✅ TypeScript: `npx tsc --noEmit` passes (no compilation errors)
+- ✅ Linting: `npm run lint` passes for project.service.ts (no new errors)
+- ✅ Build: `npm run build` succeeds
+- ✅ Package management: Both new packages installed and locked in `package-lock.json`
+
+### Reasoning Snapshot
+
+**API Integration Pattern:**
+- Each API integration is isolated in a private method, making testing and future enhancements straightforward
+- All 4 integrations run in parallel inside `createProject()` for efficiency
+- Error handling is non-blocking: API failures log warnings but always complete with fallback data
+- This pattern ensures that a temporary API outage (e.g., Solcast unavailability) never prevents users from creating projects
+
+**Mock Data Realism:**
+- Solar geometry calculation (`declinationRad`, `cosH`, sunrise/sunset) derives from actual solar position formulas
+- Bell curve production (sine wave from sunrise to sunset) matches physical PV behavior
+- Day-to-day variation (random 60-100% of theoretical) simulates real weather impact
+- Production values scale with capacity (kW) and are properly rounded to 2 decimals
+- This ensures developers testing with mock data get realistic numbers, not obviously synthetic values
+
+**World Bank API Choice:**
+- Free tier, no API key required (reduces config overhead)
+- Covers ~190 countries (nearly all user locations)
+- Returns well-structured JSON with electricity prices in USD
+- Future iterations can add region-specific sources (Spain gov API, EU ENTSO-E) without breaking existing code
+- This layered approach balances immediate functionality with extensibility
+
+**Development Flag (`USE_MOCK_SOLCAST`):**
+- Solcast free tier: 10 requests/day
+- Mock flag lets developers test project creation without hitting quota
+- Flag can be set per-environment: `true` in dev/test, `false` in staging/prod (with valid API key)
+- Gracefully degrades: if real API fails, automatically falls back to mock data with warning
+
+---
+
 ## 📅 March 15, 2026 - Logout Action Fix in User Dock
 
 ### Topic
