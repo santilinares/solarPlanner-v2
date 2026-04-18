@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
@@ -19,27 +19,10 @@ interface DockItem {
   imports: [RouterOutlet, RouterLink, ButtonModule, TooltipModule],
   template: `
     <div class="user-shell">
-      <aside class="user-dock" [class.expanded]="isDockExpanded()" aria-label="User Navigation Dock">
+      <aside class="user-dock" aria-label="User Navigation Dock">
         <div class="dock-top">
-          <button
-            pButton
-            type="button"
-            class="dock-toggle"
-            [icon]="isDockExpanded() ? 'pi pi-angle-left' : 'pi pi-angle-right'"
-            [text]="true"
-            [rounded]="true"
-            [ariaLabel]="isDockExpanded() ? 'Collapse dock' : 'Expand dock'"
-            (click)="toggleDock()"
-            pTooltip="Toggle menu"
-            tooltipPosition="right"
-            [tooltipDisabled]="isDockExpanded()"
-          ></button>
-
           <a class="dock-brand" routerLink="/projects" aria-label="Solar Planner Dashboard">
             <i class="pi pi-sun"></i>
-            @if (isDockExpanded()) {
-              <span>Solar Planner</span>
-            }
           </a>
 
           <nav class="dock-nav" aria-label="Primary">
@@ -51,12 +34,8 @@ interface DockItem {
                 [attr.aria-label]="item.label"
                 [pTooltip]="item.label"
                 tooltipPosition="right"
-                [tooltipDisabled]="isDockExpanded()"
               >
                 <i [class]="item.icon"></i>
-                @if (isDockExpanded()) {
-                  <span>{{ item.label }}</span>
-                }
               </a>
             }
           </nav>
@@ -70,30 +49,21 @@ interface DockItem {
             [attr.aria-label]="profileNavItem().label"
             [pTooltip]="profileNavItem().label"
             tooltipPosition="right"
-            [tooltipDisabled]="isDockExpanded()"
           >
             <i [class]="profileNavItem().icon"></i>
-            @if (isDockExpanded()) {
-              <span>{{ profileNavItem().label }}</span>
-            }
           </a>
 
           <button
             pButton
             type="button"
             class="dock-item logout"
-            [class.expanded]="isDockExpanded()"
             [text]="true"
             icon="pi pi-sign-out"
-            [ariaLabel]="isDockExpanded() ? 'Logout' : 'Logout user'"
+            [ariaLabel]="'Logout'"
             (click)="logout()"
             pTooltip="Logout"
             tooltipPosition="right"
-            [tooltipDisabled]="isDockExpanded()"
           >
-            @if (isDockExpanded()) {
-              <span>Logout</span>
-            }
           </button>
         </div>
       </aside>
@@ -135,10 +105,6 @@ interface DockItem {
       height: 100vh;
       transition: width 0.25s ease;
       box-shadow: var(--p-shadow-6);
-
-      &.expanded {
-        width: 16rem;
-      }
     }
 
     .dock-top,
@@ -230,7 +196,7 @@ interface DockItem {
       }
     }
 
-    .user-dock:not(.expanded) {
+    .user-dock {
       .dock-brand,
       .dock-toggle {
         justify-content: center;
@@ -285,10 +251,6 @@ interface DockItem {
         border-right: 0;
         border-bottom: 1px solid color-mix(in srgb, var(--p-primary-200) 30%, transparent);
         padding: 0.75rem;
-
-        &.expanded {
-          width: 100%;
-        }
       }
 
       .dock-top {
@@ -319,8 +281,6 @@ interface DockItem {
 export class UserLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-
-  readonly isDockExpanded = signal(false);
 
   readonly isAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
@@ -387,10 +347,6 @@ export class UserLayoutComponent {
     path: '/projects/profile',
     matchPrefixes: ['/projects/profile'],
   }));
-
-  toggleDock(): void {
-    this.isDockExpanded.update((expanded) => !expanded);
-  }
 
   isRouteActive(item: DockItem): boolean {
     const currentUrl = this.router.url;
