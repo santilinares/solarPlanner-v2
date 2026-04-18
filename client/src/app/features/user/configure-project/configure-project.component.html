@@ -615,31 +615,29 @@
               </div>
               }
 
-              <!-- Today's hourly production -->
-              @if ((projectData()?.prodToday?.length ?? 0) > 0) {
-              <div class="step-card chart-card">
-                <div class="step-card-header">
-                  <div class="step-card-icon chart-icon-today">
-                    <i class="pi pi-sun"></i>
-                  </div>
-                  <div>
-                    <h2>Today's Hourly Production</h2>
-                    <p>Forecasted PV output for today, hour by hour.</p>
-                  </div>
-                </div>
-                <p-divider />
-                <highcharts-chart
-                  [Highcharts]="Highcharts"
-                  [options]="todayChartOptions()"
-                  [oneToOne]="true"
-                  style="width: 100%; max-width: 100%; height: 280px; display: block; overflow: hidden;"
-                ></highcharts-chart>
-              </div>
-              }
-
+              
               <!-- Next 6 days forecast + Past 6 days side by side -->
               <div class="charts-pair-grid">
-                @if ((projectData()?.nextProd?.length ?? 0) > 0) {
+                  <!-- Today's hourly production -->
+                  @if ((projectData()?.nextProd?.length ?? 0) > 0) {
+                <div class="step-card chart-card">
+                    <div class="step-card-header">
+                    <div class="step-card-icon chart-icon-today">
+                        <i class="pi pi-sun"></i>
+                    </div>
+                    <div>
+                        <h2>Today's Hourly Production</h2>
+                        <p>Forecasted PV output for today, hour by hour.</p>
+                    </div>
+                    </div>
+                    <p-divider />
+                    <highcharts-chart
+                    [Highcharts]="Highcharts"
+                    [options]="todayChartOptions()"
+                    [oneToOne]="true"
+                    style="width: 100%; max-width: 100%; height: 280px; display: block; overflow: hidden;"
+                    ></highcharts-chart>
+                </div>
                 <div class="step-card chart-card">
                   <div class="step-card-header">
                     <div class="step-card-icon chart-icon-forecast">
