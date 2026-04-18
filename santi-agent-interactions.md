@@ -3105,3 +3105,64 @@ User requested modifying the stepper name steps so they use a bolder font.
 
 ### AI Reasoning
 The step labels are rendered via `.step-label-wrap` in the add-project custom stepper. Setting `font-weight: 700` at that selector is the smallest safe change that increases emphasis without affecting step layout or interaction logic.
+
+---
+
+## 📅 April 15, 2026 - Priority 2 Data Display & Nightly Refresh Scheduler (2.1, 2.2, 2.3)
+
+### Topic
+Implemented Priority 2 tasks: production charts in the project detail view, production breakdown on the user dashboard, and the nightly Solcast refresh scheduler.
+
+### Summary of Request
+User requested implementation of tasks 2.1 through 2.3 from the deferred features implementation plan (`IMPL_PLAN_DEFERRED_FEATURES.md`). These tasks depend on Priority 1 data already being present in the database.
+
+### What Was Achieved
+
+#### 2.1 Project Detail View — Production Charts & Solar Data
+- Added three Highcharts charts (using the pre-installed `highcharts` + `highcharts-angular` packages) to the project view mode (`configure-project` component):
+  - **Today's hourly production** — column chart from `prodToday`, amber-colored, showing hour-by-hour kWh
+  - **Next 6 days forecast** — bar chart from `nextProd`, green-colored, showing daily kWh forecasts
+  - **Past 6 days estimates** — bar chart from `previousProd`, indigo-colored, showing daily estimated actuals
+- Added **economic value card** computed from `sum(prodToday.pv + previousProd.pv) × project.price`, displayed with local currency symbol
+- All charts are guarded behind `hasProductionData()` and only visible in view mode
+- Added `HighchartsChartModule` to component imports; `Highcharts` exposed as a class property for the template binding
+
+#### 2.2 User Dashboard — Production Breakdown
+- Extended `DashboardStats` interface on both server (`project.types.ts`) and client (`project.model.ts`) with three new fields: `todayProduction`, `next6DaysTotal`, `past6DaysTotal`
+- Updated `getUserDashboard()` and `getAdminDashboard()` in `project.service.ts` to aggregate production arrays across all user projects
+- Added three new stat cards to `dashboard.component.html` in a "Production Overview" section, only rendered when at least one value is > 0
+
+#### 2.3 Nightly Production Refresh Scheduler
+- Added `totalProd?: number` field to `IProject` and `ProjectSchema` (server-side accumulator for lifetime kWh)
+- Installed `node-schedule` + `@types/node-schedule` in the server
+- Created `server/src/services/scheduler.service.ts` with:
+  - `initializeScheduler()` — loads all projects and registers jobs on startup
+  - `scheduleProjectJob(project)` — registers a cron job at 03:47 AM in the project's local timezone
+  - `cancelProjectJob(projectId)` — cancels a job (to call on project deletion)
+- Added `refreshProductionData(projectId)` public method to `ProjectService` that re-fetches Solcast data, overwrites the prod arrays, and increments `totalProd` via `$inc`
+- Wired `initializeScheduler()` into `server.ts` after DB connection is established
+- Updated `transformProjectToResponse` to include `totalProd` in the API response
+
+### Full Prompt
+"Follow the implementation plan detailed in the markdown file I am passing you as context. Since most of these implementations are big, I would like you to take on the priority two tasks in this chat (2.1 - 2.3), not more than that. We have already implemented the priority one features in another chat."
+
+### Affected Files
+- `server/src/models/project.model.ts` — added `totalProd` field
+- `server/src/types/project.types.ts` — added `totalProd` to `ProjectResponse`, added 3 production fields to `DashboardStats`
+- `server/src/services/project.service.ts` — updated `transformProjectToResponse`, `getUserDashboard`, `getAdminDashboard`; added `refreshProductionData()` public method
+- `server/src/services/scheduler.service.ts` — new file, nightly scheduler
+- `server/src/server.ts` — registered `initializeScheduler()` on startup
+- `client/src/app/core/models/project.model.ts` — added `ProductionPoint` interface, typed prod arrays in `ProjectResponse`, extended `DashboardStats`
+- `client/src/app/core/models/index.ts` — exported `ProductionPoint`
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — added `HighchartsChartModule`, chart computed signals, `economicValue` signal
+- `client/src/app/features/user/configure-project/configure-project.component.html` — added charts section (view mode only) and economic value card
+- `client/src/app/features/user/configure-project/configure-project.component.scss` — added chart and economic card styles
+- `client/src/app/features/user/dashboard/dashboard.component.ts` — extended `DashboardData` interface
+- `client/src/app/features/user/dashboard/dashboard.component.html` — added Production Overview section with 3 stat cards
+
+### AI Reasoning
+**2.1:** `highcharts-angular` was already installed, so no new packages were needed on the frontend. Charts are computed signals using `projectData()` directly — no extra HTTP calls. The charts section is conditional on `hasProductionData()` and `isViewMode()` to avoid cluttering the edit flow.
+
+**2.2:** The dashboard service method already loads all projects with populated panels; extending it with `.reduce()` over the `prodToday/nextProd/previousProd` arrays is O(n) with no additional DB queries. The 3 new stat cards are conditionally rendered so they don't appear as empty zeros for projects without Solcast data yet.
+
+**2.3:** The scheduler uses `node-schedule` (as specified in the plan, matching v1.0). The timezone-aware cron (`{ hour: 3, minute: 47, tz }`) ensures each project fires at 3:47 AM local time regardless of the server's timezone. `refreshProductionData` is a public method on the existing `ProjectService` singleton — no new class instantiation needed. The `$inc: { totalProd: todaySum }` is an atomic MongoDB operation that safely accumulates production even under concurrent conditions.

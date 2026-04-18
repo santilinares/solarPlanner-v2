@@ -22,13 +22,6 @@ import { PanelService } from '@core/services/panel.service';
           </h1>
           <p class="welcome-text">Operations center for users, projects, and panel management.</p>
         </div>
-        <p-button
-          label="View All Projects"
-          icon="pi pi-folder-open"
-          routerLink="/projects/all"
-          severity="secondary"
-          [outlined]="true"
-        />
       </header>
 
       <div class="dashboard-grid stagger-children">
@@ -70,40 +63,6 @@ import { PanelService } from '@core/services/panel.service';
             Manage panels
           </a>
         </p-card>
-      </div>
-
-      <div class="quick-actions">
-        <div class="section-header">
-          <h2>
-            <i class="pi pi-bolt icon-lg icon-primary"></i>
-            Quick Actions
-          </h2>
-        </div>
-        <div class="actions-grid stagger-children">
-          <p-card class="action-card hover-lift" routerLink="/projects/management/users">
-            <div class="action-icon action-icon-danger">
-              <i class="pi pi-user-edit"></i>
-            </div>
-            <h3>User Management</h3>
-            <p>Search, edit, and manage user accounts.</p>
-          </p-card>
-
-          <p-card class="action-card hover-lift" routerLink="/projects/management/panels">
-            <div class="action-icon action-icon-solar">
-              <i class="pi pi-cog"></i>
-            </div>
-            <h3>Panel Catalog</h3>
-            <p>Update panel specs, performance, and technologies.</p>
-          </p-card>
-
-          <p-card class="action-card hover-lift" routerLink="/projects/all">
-            <div class="action-icon action-icon-primary">
-              <i class="pi pi-chart-line"></i>
-            </div>
-            <h3>Project Oversight</h3>
-            <p>Review project setup quality across the platform.</p>
-          </p-card>
-        </div>
       </div>
 
       <p-card class="info-card">

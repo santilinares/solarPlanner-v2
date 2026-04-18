@@ -19,6 +19,7 @@ export {
   SunPathData,
   PanelDetails,
   PlanData,
+  ProductionPoint,
   DashboardStats,
   ProjectResponse,
   OptimalConfigResponse,

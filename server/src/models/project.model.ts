@@ -52,6 +52,7 @@ export interface IProject {
   prodToday?: IProductionPoint[]; // Today's production data
   nextProd?: IProductionPoint[]; // Forecast production data
   previousProd?: IProductionPoint[]; // Historical production data
+  totalProd?: number; // Accumulated total production since install (kWh)
   installDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -129,6 +130,11 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
     prodToday: [ProductionPointSchema],
     nextProd: [ProductionPointSchema],
     previousProd: [ProductionPointSchema],
+    totalProd: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     installDate: {
       type: Date,
       default: Date.now,

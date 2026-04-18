@@ -7,6 +7,8 @@ import {
   computed,
   DestroyRef,
 } from '@angular/core';
+import * as Highcharts from 'highcharts';
+import { HighchartsChartModule } from 'highcharts-angular';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -87,6 +89,7 @@ type ProjectScreenMode = 'configure' | 'view';
     ConfirmDialogModule,
     ToastModule,
     LocationMapComponent,
+    HighchartsChartModule,
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './configure-project.component.html',
@@ -119,6 +122,9 @@ export class ConfigureProjectComponent implements OnInit {
   readonly projectId = signal('');
   readonly mode = signal<ProjectScreenMode>('configure');
   activeStep = signal(1);
+
+  // ─── Highcharts ───
+  readonly Highcharts: typeof Highcharts = Highcharts;
 
   // ─── Map / Location State ───
   readonly mapLat = signal<number | null>(null);
@@ -371,6 +377,112 @@ export class ConfigureProjectComponent implements OnInit {
     const dimensions = `${panel.dimensions.width}m x ${panel.dimensions.height}m`;
     return `${technology} - ${dimensions}`;
   });
+
+  // ─── Production Charts (view mode) ───
+
+  private readonly CHART_THEME: Highcharts.Options = {
+    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' }, width: undefined },
+    credits: { enabled: false },
+    title: { text: undefined },
+    legend: { enabled: false },
+    tooltip: { valueDecimals: 2, valueSuffix: ' kWh' },
+  };
+
+  readonly todayChartOptions = computed((): Highcharts.Options => {
+    const prodToday = (this.projectData()?.prodToday ?? []);
+    return {
+      ...this.CHART_THEME,
+      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
+      xAxis: {
+        categories: prodToday.map((p) => {
+          const d = new Date(p.dateTime);
+          return `${d.getHours().toString().padStart(2, '0')}:00`;
+        }),
+        title: { text: 'Hour' },
+      },
+      yAxis: { title: { text: 'kWh' }, min: 0 },
+      series: [{
+        type: 'column',
+        name: 'Production',
+        data: prodToday.map((p) => p.pv),
+        color: '#f59e0b',
+        borderRadius: 4,
+      }],
+    };
+  });
+
+  readonly nextProdChartOptions = computed((): Highcharts.Options => {
+    const nextProd = (this.projectData()?.nextProd ?? []);
+    return {
+      ...this.CHART_THEME,
+      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
+      xAxis: {
+        categories: nextProd.map((p) =>
+          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
+        ),
+      },
+      yAxis: { title: { text: 'kWh/day' }, min: 0 },
+      series: [{
+        type: 'bar',
+        name: 'Forecast',
+        data: nextProd.map((p) => p.pv),
+        color: '#22c55e',
+        borderRadius: 4,
+      }],
+    };
+  });
+
+  readonly previousProdChartOptions = computed((): Highcharts.Options => {
+    const previousProd = (this.projectData()?.previousProd ?? []);
+    return {
+      ...this.CHART_THEME,
+      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
+      xAxis: {
+        categories: previousProd.map((p) =>
+          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
+        ),
+      },
+      yAxis: { title: { text: 'kWh/day' }, min: 0 },
+      series: [{
+        type: 'bar',
+        name: 'Actual',
+        data: previousProd.map((p) => p.pv),
+        color: '#6366f1',
+        borderRadius: 4,
+      }],
+    };
+  });
+
+  readonly hasProductionData = computed(() => {
+    const data = this.projectData();
+    return (
+      (data?.prodToday?.length ?? 0) > 0 ||
+      (data?.nextProd?.length ?? 0) > 0 ||
+      (data?.previousProd?.length ?? 0) > 0
+    );
+  });
+
+  readonly economicValue = computed(() => {
+    const data = this.projectData();
+    if (!data?.price) return null;
+
+    const todaySum = (data.prodToday ?? []).reduce((s, p) => s + (p).pv, 0);
+    const previousSum = (data.previousProd ?? []).reduce((s, p) => s + (p).pv, 0);
+    const totalKwh = todaySum + previousSum;
+    const value = totalKwh * data.price;
+    const symbol = this.getCurrencySymbol(data.currency ?? 'EUR');
+
+    return { value, totalKwh, currency: data.currency ?? 'EUR', symbol };
+  });
+
+  private getCurrencySymbol(currency: string): string {
+    const symbols: Record<string, string> = {
+      EUR: '€', USD: '$', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹',
+      AUD: 'A$', CAD: 'C$', CHF: 'Fr', ARS: '$', BRL: 'R$',
+      CLP: '$', MXN: '$', COP: '$',
+    };
+    return symbols[currency] ?? currency;
+  }
 
   // ─── Lifecycle ───
   ngOnInit(): void {

@@ -144,6 +144,7 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     prodToday: project.prodToday,
     nextProd: project.nextProd,
     previousProd: project.previousProd,
+    totalProd: project.totalProd,
     installDate: project.installDate.toISOString(),
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -483,6 +484,19 @@ export class ProjectService {
       return sum;
     }, 0);
 
+    // Aggregate real production data across all user projects
+    const todayProduction = projects.reduce((sum, p) => {
+      return sum + (p.prodToday ?? []).reduce((s, point) => s + point.pv, 0);
+    }, 0);
+
+    const next6DaysTotal = projects.reduce((sum, p) => {
+      return sum + (p.nextProd ?? []).reduce((s, point) => s + point.pv, 0);
+    }, 0);
+
+    const past6DaysTotal = projects.reduce((sum, p) => {
+      return sum + (p.previousProd ?? []).reduce((s, point) => s + point.pv, 0);
+    }, 0);
+
     // Get recent projects (last 5)
     const recentProjects = projects.slice(0, 5).map(transformProjectToResponse);
 
@@ -492,6 +506,9 @@ export class ProjectService {
       totalCapacity,
       totalProduction,
       recentProjects,
+      todayProduction,
+      next6DaysTotal,
+      past6DaysTotal,
     };
   }
 
@@ -527,12 +544,27 @@ export class ProjectService {
 
     const recentProjects = projects.slice(0, 5).map(transformProjectToResponse);
 
+    const todayProduction = projects.reduce((sum, p) => {
+      return sum + (p.prodToday ?? []).reduce((s, point) => s + point.pv, 0);
+    }, 0);
+
+    const next6DaysTotal = projects.reduce((sum, p) => {
+      return sum + (p.nextProd ?? []).reduce((s, point) => s + point.pv, 0);
+    }, 0);
+
+    const past6DaysTotal = projects.reduce((sum, p) => {
+      return sum + (p.previousProd ?? []).reduce((s, point) => s + point.pv, 0);
+    }, 0);
+
     return {
       totalProjects,
       totalPanels,
       totalCapacity,
       totalProduction,
       recentProjects,
+      todayProduction,
+      next6DaysTotal,
+      past6DaysTotal,
     };
   }
 
@@ -730,6 +762,36 @@ export class ProjectService {
       estimatedAnnualProduction,
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * 2.3 Refresh a project's production data (called by the nightly scheduler)
+   * Re-fetches Solcast data and accumulates totalProd
+   */
+  async refreshProductionData(projectId: string): Promise<void> {
+    const project = await ProjectModel.findById(projectId).populate('panel');
+    if (!project || !project.lat || !project.lon) {
+      console.warn(`[Scheduler] Skipping project ${projectId}: missing location or not found`);
+      return;
+    }
+
+    let capacityKw = 1;
+    if (project.panel && typeof project.panel !== 'string' && 'wattPeak' in project.panel) {
+      const panel = project.panel as unknown as { wattPeak: number };
+      capacityKw = (panel.wattPeak * project.panelNumber) / 1000;
+    }
+
+    const production = await this.fetchSolcastData(project.lat, project.lon, capacityKw);
+    const todaySum = production.prodToday.reduce((sum, p) => sum + p.pv, 0);
+
+    await ProjectModel.findByIdAndUpdate(projectId, {
+      prodToday: production.prodToday,
+      nextProd: production.nextProd,
+      previousProd: production.previousProd,
+      $inc: { totalProd: todaySum },
+    });
+
+    console.info(`[Scheduler] Refreshed production for project ${projectId} (+${todaySum.toFixed(2)} kWh)`);
   }
 
   /**

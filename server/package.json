@@ -29,6 +29,7 @@
   "author": "Solar Planner Team",
   "license": "MIT",
   "dependencies": {
+    "@types/node-schedule": "^2.1.8",
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -43,6 +44,7 @@
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.5.45",
     "mongoose": "^8.1.1",
+    "node-schedule": "^2.1.1",
     "nodemailer": "^7.0.12",
     "pino": "^8.19.0",
     "prom-client": "^15.1.0",

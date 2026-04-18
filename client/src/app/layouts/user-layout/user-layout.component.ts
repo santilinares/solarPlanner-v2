@@ -263,6 +263,7 @@ interface DockItem {
 
     .user-content {
       min-width: 0;
+      overflow-x: clip;
       padding: 1.5rem;
     }
 

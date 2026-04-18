@@ -17,6 +17,9 @@ interface DashboardData {
     country?: string;
     surface?: number;
   }>;
+  todayProduction: number;
+  next6DaysTotal: number;
+  past6DaysTotal: number;
 }
 
 @Component({

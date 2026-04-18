@@ -29,6 +29,7 @@ export interface ProjectResponse {
   prodToday?: IProductionPoint[];
   nextProd?: IProductionPoint[];
   previousProd?: IProductionPoint[];
+  totalProd?: number;
   installDate: string;
   createdAt: string;
   updatedAt: string;
@@ -48,6 +49,9 @@ export interface DashboardStats {
   totalCapacity: number; // kW
   totalProduction: number; // kWh
   recentProjects: ProjectResponse[];
+  todayProduction: number; // sum of all prodToday.pv across user projects (kWh)
+  next6DaysTotal: number; // sum of all nextProd.pv across user projects (kWh)
+  past6DaysTotal: number; // sum of all previousProd.pv across user projects (kWh)
 }
 
 export interface OptimalConfigResponse {

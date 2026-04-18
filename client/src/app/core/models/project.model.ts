@@ -144,6 +144,14 @@ export interface PlanData {
 }
 
 /**
+ * Production data point from Solcast (serialized from server)
+ */
+export interface ProductionPoint {
+  dateTime: string; // ISO string
+  pv: number; // kWh
+}
+
+/**
  * Dashboard statistics
  */
 export interface DashboardStats {
@@ -152,6 +160,9 @@ export interface DashboardStats {
   totalCapacity: number; // kW
   totalProduction: number; // kWh
   recentProjects: ProjectResponse[];
+  todayProduction: number; // kWh today across all projects
+  next6DaysTotal: number; // kWh forecast next 6 days across all projects
+  past6DaysTotal: number; // kWh estimated actuals past 6 days across all projects
 }
 
 /**
@@ -178,9 +189,10 @@ export interface ProjectResponse {
   panel?: string;
   cultivar?: string;
   owner?: string;
-  prodToday?: unknown[];
-  nextProd?: unknown[];
-  previousProd?: unknown[];
+  prodToday?: ProductionPoint[];
+  nextProd?: ProductionPoint[];
+  previousProd?: ProductionPoint[];
+  totalProd?: number;
   installDate: string;
   createdAt: string;
   updatedAt: string;

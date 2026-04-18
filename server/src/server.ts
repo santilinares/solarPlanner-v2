@@ -3,6 +3,7 @@ import { createApp } from './app';
 import { connectDatabase } from './config/database.config';
 import { initializeEmailTransporter } from './config/email.config';
 import { loadEnv } from './env';
+import { initializeScheduler } from './services/scheduler.service';
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +18,9 @@ async function bootstrap(): Promise<void> {
 
     // Connect to MongoDB
     await connectDatabase(env.MONGODB_URI);
+
+    // Initialize nightly production refresh scheduler
+    await initializeScheduler();
 
     // Initialize email transporter
     initializeEmailTransporter({
