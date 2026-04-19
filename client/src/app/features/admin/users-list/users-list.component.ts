@@ -154,6 +154,9 @@ import { UserResponse } from '@core/models';
                 <th pSortableColumn="role">
                   Role <p-sortIcon field="role" />
                 </th>
+                <th pSortableColumn="projectCount">
+                  Projects <p-sortIcon field="projectCount" />
+                </th>
                 <th pSortableColumn="createdAt">
                   Joined <p-sortIcon field="createdAt" />
                 </th>
@@ -201,6 +204,11 @@ import { UserResponse } from '@core/models';
                   }
                 </td>
 
+                <!-- Projects -->
+                <td>
+                  <span class="project-count">{{ user.projectCount ?? 0 }}</span>
+                </td>
+
                 <!-- Joined -->
                 <td>
                   <span class="date-text">{{ user.createdAt | date: 'mediumDate' }}</span>
@@ -245,7 +253,7 @@ import { UserResponse } from '@core/models';
 
             <ng-template #empty>
               <tr>
-                <td colspan="7" class="empty-state">
+                <td colspan="8" class="empty-state">
                   <i class="pi pi-search empty-icon"></i>
                   <p>No users match your search.</p>
                 </td>
@@ -370,6 +378,11 @@ import { UserResponse } from '@core/models';
         .email-text {
           color: var(--p-text-muted-color);
           font-size: 0.9rem;
+        }
+
+        .project-count {
+          font-weight: 600;
+          color: var(--p-text-color);
         }
 
         .date-text {
@@ -523,12 +536,13 @@ export class UsersListComponent {
   }
 
   protected exportCsv(): void {
-    const headers = ['Name', 'Email', 'Role', 'Auth Method', 'Joined'];
+    const headers = ['Name', 'Email', 'Role', 'Auth Method', 'Projects', 'Joined'];
     const rows = this.filteredUsers().map(u => [
       `"${u.fullName}"`,
       u.email ?? '',
       u.role,
       u.method,
+      u.projectCount ?? 0,
       new Date(u.createdAt).toLocaleDateString(),
     ]);
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n');

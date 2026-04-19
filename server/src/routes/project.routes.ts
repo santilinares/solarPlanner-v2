@@ -12,6 +12,7 @@ import {
   deleteProject,
   adminDeleteProject,
   calculateFromPolygon,
+  estimateProject,
 } from '../controllers/project.controller';
 import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
@@ -21,9 +22,15 @@ import {
   ProjectUpdateSchema,
   OptimalConfigSchema,
   OptimalConfigFromPolygonSchema,
+  EstimateSchema,
 } from '../schemas/project.schema';
 
 const router = Router();
+
+/**
+ * Public routes (no auth)
+ */
+router.post('/estimate', validateBody(EstimateSchema), estimateProject);
 
 /**
  * Project CRUD routes (mounted at /api/projects)

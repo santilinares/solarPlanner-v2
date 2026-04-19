@@ -1,4 +1,6 @@
 import { UserModel, IUser } from '../models/user.model';
+import { ProjectModel } from '../models/project.model';
+import { PanelModel } from '../models/panel.model';
 import { UserUpdateProfileInput, UserQueryInput } from '../schemas/user.schema';
 import { UserResponse, UserListResponse } from '../types/user.types';
 import { FilterQuery, HydratedDocument } from 'mongoose';
@@ -135,12 +137,34 @@ export class UserService {
       ];
     }
 
-    const users = await UserModel.find(query).sort({ createdAt: -1 });
-    const total = await UserModel.countDocuments(query);
+    const aggregateResult = await UserModel.aggregate<
+      IUser & { _id: import('mongoose').Types.ObjectId; projectCount: number }
+    >([
+      { $match: query },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: '_id',
+          foreignField: 'owner',
+          as: '_projects',
+        },
+      },
+      { $addFields: { projectCount: { $size: '$_projects' } } },
+      { $project: { _projects: 0 } },
+    ]);
 
     return {
-      users: users.map((user) => this.transformUserToResponse(user)),
-      total,
+      users: aggregateResult.map((u) => ({
+        _id: u._id.toString(),
+        fullName: u.fullName,
+        email: u.method === 'local' ? u.local?.email : u.google?.email,
+        role: u.role,
+        method: u.method,
+        createdAt: (u.createdAt as Date).toISOString(),
+        projectCount: u.projectCount,
+      })),
+      total: aggregateResult.length,
     };
   }
 
@@ -155,8 +179,9 @@ export class UserService {
       throw new Error('User not found');
     }
 
+    await ProjectModel.deleteMany({ owner: userId });
+    await PanelModel.deleteMany({ owner: userId, type: 'personal' });
     await UserModel.findByIdAndDelete(userId);
-    // TODO: Consider cascading delete for associated projects and panels
   }
 
   /**

@@ -115,6 +115,11 @@ export const routes: Routes = [
         path: 'reset_password/:id/:token',
         loadComponent: () => import('./features/visitor/reset-password/reset-password.component')
           .then(m => m.ResetPasswordComponent)
+      },
+      {
+        path: 'estimate',
+        loadComponent: () => import('./features/visitor/estimate/estimate.component')
+          .then(m => m.EstimateComponent)
       }
     ]
   },

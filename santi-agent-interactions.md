@@ -4,6 +4,42 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## 📅 April 19, 2026 - Priority 3.3: Visitor Quick Panel Estimate
+
+### Topic
+Implemented the visitor quick estimate feature (3.3 from the deferred features plan): an unauthenticated visitor draws a polygon on a map and gets an instant panel count estimate without registering.
+
+### Prompt Summary
+The user requested implementing feature 3.3, asking to reuse the `add-project` design language. After a design discussion, the agreed layout was: two-column (map left, controls right), no duplicate sticky header (visitor layout already provides one), result section with stat cards and a locked production block that blurs the annual data behind a CTA.
+
+### Full Prompt
+> "Quiero que implementemos la funcionalidad 3.3, pero me gustaría reutilizar el componente de add-project, ¿sería posible?"
+> (follow-up) "Me propones un diseño que vaya con el resto de diseños de la aplicación"
+> (follow-up) "Ok, me parece bien, lo único que el sticky header creo que es mejor que tenga a la izquierda el back to home y a la derecha un register"
+> (follow-up) "De donde te sacaste los datos de kwh/year, annual savings, CO2 avoided"
+> (follow-up) "Pero es que una aproximación burda es inutil, quizás dejaría esos 3 valores ocultos con un mensaje de que puede verse únicamente si inicias sesión"
+
+### What Was Achieved
+- **Backend**: Added `POST /api/projects/estimate` public endpoint (no auth). Uses fixed 2m × 4m panels, 2m row spacing, 85% utilisation. Returns `{ panelCount, areaSqm, estimatedKwp }`.
+- **Frontend**: New `EstimateComponent` at `/estimate` under the visitor layout. Two-column layout — map+search on the left, controls+result on the right. Result shows `panelCount`, `areaSqm`, `estimatedKwp`; annual production/savings/CO₂ are hidden behind a blur+lock overlay with a `min-height: 14rem` card that drives the user to register.
+- **Landing page**: Added "Try for Free" button linking to `/estimate`.
+
+### Affected Files
+- `server/src/schemas/project.schema.ts` — added `EstimateSchema` / `EstimateInput`
+- `server/src/services/project.service.ts` — added `estimateFromPolygon()` method
+- `server/src/controllers/project.controller.ts` — added `estimateProject` handler
+- `server/src/routes/project.routes.ts` — registered `POST /estimate` without auth middleware
+- `client/src/app/features/visitor/estimate/estimate.component.ts` — new component
+- `client/src/app/features/visitor/estimate/estimate.component.html` — template
+- `client/src/app/features/visitor/estimate/estimate.component.scss` — styles
+- `client/src/app/app.routes.ts` — added `/estimate` lazy route under visitor layout
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts` — added "Try for Free" CTA
+
+### Reasoning
+The annual production data (kWh, savings, CO₂) requires accurate location-based solar forecasts (Solcast) and local electricity prices — data only available after project creation by an authenticated user. Showing hardcoded approximations would be misleading. Instead, the values are visually blurred behind a lock overlay with a clear CTA, which is honest about the limitation and creates a natural incentive to register.
+
+---
+
 ## 📅 April 15, 2026 - Priority 1 API Integrations (Foundation for Production Data)
 
 ### Topic
@@ -3166,3 +3202,76 @@ User requested implementation of tasks 2.1 through 2.3 from the deferred feature
 **2.2:** The dashboard service method already loads all projects with populated panels; extending it with `.reduce()` over the `prodToday/nextProd/previousProd` arrays is O(n) with no additional DB queries. The 3 new stat cards are conditionally rendered so they don't appear as empty zeros for projects without Solcast data yet.
 
 **2.3:** The scheduler uses `node-schedule` (as specified in the plan, matching v1.0). The timezone-aware cron (`{ hour: 3, minute: 47, tz }`) ensures each project fires at 3:47 AM local time regardless of the server's timezone. `refreshProductionData` is a public method on the existing `ProjectService` singleton — no new class instantiation needed. The `$inc: { totalProd: todaySum }` is an atomic MongoDB operation that safely accumulates production even under concurrent conditions.
+
+---
+
+## 📅 April 18, 2026 - Priority 3 Standalone Improvements (3.1, 3.4, 3.5)
+
+### Topic
+Implemented three independent Priority 3 improvements: cascade delete on user removal, project count column in the admin users list, and a fully functional profile management page.
+
+### Summary of Request
+User requested implementing features 3.1, 3.4, and 3.5 from the deferred features plan in that order, with approval of the implementation plan before proceeding.
+
+### What Was Achieved
+
+#### 3.1 — Cascade Delete (user → projects + panels)
+- Resolved the `// TODO: Consider cascading delete for associated projects and panels` comment in `deleteUser()`.
+- Added `ProjectModel.deleteMany({ owner: userId })` and `PanelModel.deleteMany({ owner: userId, type: 'personal' })` before `UserModel.findByIdAndDelete(userId)`.
+- Added the missing `ProjectModel` and `PanelModel` imports to `user.service.ts`.
+- No schema changes needed — this was a 3-line fix as outlined in the plan.
+
+#### 3.4 — Admin Users List: Project Count per User
+**Backend:**
+- Replaced `UserModel.find()` + `countDocuments()` in `listUsers()` with a single MongoDB aggregation pipeline:
+  - `$match` — same role/email/search filters as before.
+  - `$sort { createdAt: -1 }` — preserves existing ordering.
+  - `$lookup` — joins `projects` collection on `projects.owner === user._id`, producing a temporary `_projects` array.
+  - `$addFields { projectCount: { $size: '$_projects' } }` — counts projects per user.
+  - `$project { _projects: 0 }` — removes full project docs from output (count only).
+- Added `projectCount` field to `UserResponse` in `server/src/types/user.types.ts` (optional, `number`).
+
+**Frontend:**
+- Added `projectCount?: number` to `UserResponse` interface in `client/src/app/core/models/user.model.ts`.
+- Added a sortable "Projects" `<th>` column to the `p-table` header (with `pSortableColumn="projectCount"`).
+- Added corresponding `<td>` cell displaying `user.projectCount ?? 0` with a `project-count` style class.
+- Updated `empty` template `colspan` from 7 → 8 to account for the new column.
+- Updated CSV export to include the "Projects" column.
+
+#### 3.5 — Profile Management Frontend
+- Replaced the profile page stub with a fully functional reactive form component.
+- **Profile form:** `fullName` field pre-filled by calling `userService.getMe()` on init; "Save changes" wired to `userService.updateProfile()` → `PATCH /api/users/:id/profile`; button disabled when pristine or invalid.
+- **Password form:** `currentPassword`, `newPassword` (min 8 chars), `confirmPassword`; cross-field validator `passwordsMatchValidator` checks equality; wired to `userService.changePassword()` → `PATCH /api/users/:id/password`; resets on success.
+- PrimeNG `Toast` (via `MessageService`) shows success/error feedback for both forms.
+- Avatar initial and display name update reactively after a successful profile save.
+- No backend changes needed — both endpoints were already implemented.
+
+### Full Prompt
+"Quiero que implementes las funcionalidades de prioridad 3 en este orden: 3.1, 3.4, 3.5. Primero esos 3 y luego irémos con los demás"
+
+After plan approval: "Yes"  
+After aggregation explanation: "Okk"
+
+### Affected Files
+- `server/src/services/user.service.ts` — Cascade delete + `listUsers()` aggregation refactor
+- `server/src/types/user.types.ts` — Added `projectCount?: number` to `UserResponse`
+- `client/src/app/core/models/user.model.ts` — Added `projectCount?: number` to `UserResponse`
+- `client/src/app/features/admin/users-list/users-list.component.ts` — Projects column, updated colspan and CSV export
+- `client/src/app/features/user/profile/profile.component.ts` — Full rewrite with reactive forms + Toast
+- `santi-agent-interactions.md` — This entry
+
+### Reasoning Snapshot
+
+**3.1 Cascade Delete:**
+- The correct approach is to delete dependents before the owner to avoid orphaned documents. Deleting projects first, then personal panels (filtering by `type: 'personal'` to leave global panels intact), then the user ensures referential consistency.
+- The `// TODO` comment made the location unambiguous — no search was needed.
+
+**3.4 Aggregation vs. N+1:**
+- The alternative (looping `countDocuments` per user) would be N+1 queries. The single `$lookup` + `$addFields` aggregation does it in one DB round-trip regardless of how many users exist.
+- `$project { _projects: 0 }` is critical to avoid sending full project documents over the wire — only the count is needed.
+- `projectCount` is optional (`?`) on both server and client types so existing single-user responses (`getUserById`, `updateProfile`, etc.) remain compatible without changes.
+
+**3.5 Profile Forms:**
+- `getMe()` is used on `ngOnInit` instead of reading from the `AuthService.currentUser()` signal because the signal holds the legacy `User` model (with `firstName`/`lastName`), while the server returns `fullName`. Loading from the API guarantees the correct field.
+- The cross-field `passwordsMatchValidator` is applied at the group level so it re-runs on every value change, allowing the error to clear as soon as both passwords match.
+- `markAsPristine()` after a successful profile save disables the Save button again — preventing users from accidentally re-submitting the same data.

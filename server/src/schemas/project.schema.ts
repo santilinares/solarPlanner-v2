@@ -182,3 +182,19 @@ export const OptimalConfigFromPolygonSchema = z.object({
 
 /** Type inferred from OptimalConfigFromPolygonSchema */
 export type OptimalConfigFromPolygonInput = z.infer<typeof OptimalConfigFromPolygonSchema>;
+
+/**
+ * Visitor quick estimate schema
+ *
+ * Unauthenticated polygon-based panel count estimate.
+ * Uses fixed panel size (2m × 4m) and 2m row spacing.
+ */
+export const EstimateSchema = z.object({
+  area: z
+    .array(GeoPointSchema)
+    .min(3, 'Area polygon requires at least 3 points')
+    .max(1000, 'Area polygon cannot exceed 1000 points'),
+});
+
+/** Type inferred from EstimateSchema */
+export type EstimateInput = z.infer<typeof EstimateSchema>;

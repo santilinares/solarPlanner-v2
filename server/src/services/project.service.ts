@@ -671,6 +671,28 @@ export class ProjectService {
   }
 
   /**
+   * Quick visitor estimate from polygon — no auth, fixed panel size
+   * Panel: 2m × 4m, row spacing: 2m, tilt: 30°, utilisation: 85%
+   */
+  async estimateFromPolygon(area: GeoPointInput[]): Promise<{ panelCount: number; areaSqm: number; estimatedKwp: number }> {
+    const geoPoints = area.map((p) => ({ latitude: p.lat, longitude: p.lon }));
+    const areaSqm = getAreaOfPolygon(geoPoints);
+
+    // Fixed panel dimensions: 2m wide × 4m tall, 2m row spacing
+    const panelW = 2;
+    const panelH = 4;
+    const rowSpacing = 2;
+    const footprint = panelW * (panelH + rowSpacing);
+    const usableArea = areaSqm * 0.85;
+    const panelCount = footprint > 0 ? Math.max(0, Math.floor(usableArea / footprint)) : 0;
+
+    // Assume 400 W per panel (typical standard panel)
+    const estimatedKwp = (panelCount * 400) / 1000;
+
+    return { panelCount, areaSqm, estimatedKwp };
+  }
+
+  /**
    * Get sun path data for project location
    * @param projectId Project ID
    * @returns Sun path calculations

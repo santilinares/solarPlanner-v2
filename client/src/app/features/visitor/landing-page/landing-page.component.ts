@@ -20,18 +20,26 @@ import { CardModule } from 'primeng/card';
             <span class="solar-highlight">Sustainable • Profitable • Future-Ready</span>
           </p>
           <div class="cta-buttons">
-            <p-button 
-              label="Get Started" 
-              icon="pi pi-arrow-right" 
+            <p-button
+              label="Get Started"
+              icon="pi pi-arrow-right"
               iconPos="right"
               routerLink="/registration"
               class="btn-solar"
               [raised]="true"
             ></p-button>
-            <p-button 
-              label="Sign In" 
+            <p-button
+              label="Sign In"
               icon="pi pi-sign-in"
               routerLink="/login"
+              [outlined]="true"
+              class="btn-outline"
+            ></p-button>
+            <p-button
+              label="Try for Free"
+              icon="pi pi-calculator"
+              routerLink="/estimate"
+              severity="secondary"
               [outlined]="true"
               class="btn-outline"
             ></p-button>

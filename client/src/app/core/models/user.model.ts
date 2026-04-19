@@ -22,6 +22,7 @@ export interface UserResponse {
   role: 'user' | 'admin';
   method: 'local' | 'google';
   createdAt: string;
+  projectCount?: number;
 }
 
 export interface UserListResponse {

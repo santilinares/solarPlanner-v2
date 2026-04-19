@@ -1,0 +1,212 @@
+<div class="estimate-page">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="estimate-header">
+    <div class="estimate-header-inner">
+      <div class="estimate-header-text">
+        <h1 class="estimate-title">Quick Panel Estimate</h1>
+        <p class="estimate-subtitle">Draw your area on the map to get an instant panel count — no sign-up needed.</p>
+      </div>
+      <div class="estimate-header-badge">
+        <i class="pi pi-calculator"></i>
+        <span>Free Tool</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN LAYOUT: map left | controls right ═══ -->
+  <div class="estimate-body">
+
+    <!-- ── LEFT: Map column ── -->
+    <div class="map-column">
+      <div class="map-card">
+        <!-- Search bar -->
+        <div class="map-search-row">
+          <p-iconfield class="search-field">
+            <p-inputicon class="pi pi-search" />
+            <input
+              pInputText
+              type="text"
+              [value]="addressQuery()"
+              (input)="addressQuery.set($any($event.target).value)"
+              (keydown.enter)="searchAddress()"
+              placeholder="Search address or city..."
+              class="w-full location-input"
+            />
+            <button
+              type="button"
+              class="location-target-btn"
+              [disabled]="isLocating()"
+              (click)="useCurrentLocation()"
+              aria-label="Use current location"
+              title="Use current location"
+            >
+              <span class="material-symbols-outlined">location_searching</span>
+            </button>
+          </p-iconfield>
+          <p-button
+            label="Search"
+            [outlined]="true"
+            [loading]="isSearching()"
+            [disabled]="isSearching() || !addressQuery().trim()"
+            (onClick)="searchAddress()"
+            size="small"
+          />
+        </div>
+
+        @if (searchError()) {
+          <p class="search-error">{{ searchError() }}</p>
+        }
+
+        @if (addressResult()) {
+          <div class="address-feedback">
+            <i class="pi pi-map-marker"></i>
+            <span>{{ addressResult() }}</span>
+          </div>
+        }
+
+        <!-- Map -->
+        <div class="map-container">
+          <app-location-map
+            [editable]="true"
+            [centerOnUser]="true"
+            [center]="mapCenter()"
+            (polygonChange)="onPolygonChange($event)"
+            (userLocationFound)="onUserLocationFound($event)"
+          />
+        </div>
+
+        <!-- Draw hint -->
+        @if (hasDrawnArea()) {
+          <div class="feedback-banner feedback-success">
+            <i class="pi pi-check-circle"></i>
+            <span>Area defined — <strong>{{ drawnPolygonPoints().length }}</strong> vertices</span>
+          </div>
+        } @else {
+          <div class="feedback-banner feedback-neutral">
+            <i class="pi pi-info-circle"></i>
+            <span>Use the polygon tool on the map to draw your installation area</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Controls + Result column ── -->
+    <div class="controls-column">
+
+      <!-- How it works -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <i class="pi pi-info-circle"></i>
+          <span>How it works</span>
+        </div>
+        <ol class="how-it-works">
+          <li>Search for your location or use the map</li>
+          <li>Draw a polygon over your roof or land area</li>
+          <li>Click <strong>Calculate</strong> to get your estimate</li>
+        </ol>
+        <div class="assumptions-note">
+          <small>Uses standard 2 m × 4 m panels · 30° tilt · 85% utilisation</small>
+        </div>
+      </div>
+
+      <!-- Calculate button -->
+      <p-button
+        label="Calculate Estimate"
+        icon="pi pi-calculator"
+        iconPos="left"
+        [rounded]="true"
+        [loading]="isCalculating()"
+        [disabled]="!hasDrawnArea() || isCalculating()"
+        (onClick)="onCalculate()"
+        styleClass="w-full"
+      />
+
+      @if (estimateError()) {
+        <div class="feedback-banner feedback-error">
+          <i class="pi pi-times-circle"></i>
+          <span>{{ estimateError() }}</span>
+        </div>
+      }
+
+      <!-- ── Result ── -->
+      @if (result(); as r) {
+        <div class="result-block animate-fade-in-up">
+          <div class="result-header">
+            <i class="pi pi-check-circle" style="color: var(--p-green-500)"></i>
+            <span>Your Estimate</span>
+          </div>
+
+          <!-- Stat cards -->
+          <div class="stat-grid">
+            <div class="stat-card stat-card-primary">
+              <span class="material-symbols-outlined stat-icon-mat">solar_power</span>
+              <span class="stat-value">{{ r.panelCount }}</span>
+              <span class="stat-label">Panels</span>
+            </div>
+            <div class="stat-card">
+              <span class="material-symbols-outlined stat-icon-mat">straighten</span>
+              <span class="stat-value">{{ r.areaSqm | number: '1.0-0' }} m²</span>
+              <span class="stat-label">Area</span>
+            </div>
+            <div class="stat-card">
+              <i class="pi pi-bolt" style="color: var(--p-yellow-500); font-size: 1.3rem;"></i>
+              <span class="stat-value">{{ r.estimatedKwp.toFixed(1) }} kWp</span>
+              <span class="stat-label">Peak Power</span>
+            </div>
+          </div>
+
+          <!-- Locked production block -->
+          <div class="locked-card">
+            <!-- Blurred preview behind -->
+            <div class="locked-preview" aria-hidden="true">
+              <div class="locked-preview-label-row">
+                <i class="pi pi-chart-bar"></i>
+                <span>Estimated Annual Production</span>
+              </div>
+              <div class="production-items">
+                <div class="production-item">
+                  <span class="production-value">— — —</span>
+                  <small>kWh / year</small>
+                </div>
+                <div class="production-divider"></div>
+                <div class="production-item">
+                  <span class="production-value">€ — —</span>
+                  <small>annual savings</small>
+                </div>
+                <div class="production-divider"></div>
+                <div class="production-item">
+                  <span class="production-value">— —</span>
+                  <small>t CO₂ avoided</small>
+                </div>
+              </div>
+            </div>
+            <!-- Lock overlay on top -->
+            <div class="locked-overlay">
+              <i class="pi pi-lock locked-icon"></i>
+              <span class="locked-title">Sign in for the full analysis</span>
+              <small class="locked-sub">Annual production, savings, and CO₂ data are calculated with real Solcast solar forecasts and local electricity prices.</small>
+              <div class="locked-cta-row">
+                <p-button
+                  label="Get Started — it's free"
+                  icon="pi pi-user-plus"
+                  iconPos="right"
+                  [rounded]="true"
+                  (onClick)="onGetStarted()"
+                />
+                <p-button
+                  label="Sign In"
+                  icon="pi pi-sign-in"
+                  [rounded]="true"
+                  [outlined]="true"
+                  routerLink="/login"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+  </div>
+</div>
