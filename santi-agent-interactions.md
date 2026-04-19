@@ -3347,3 +3347,26 @@ The user requested that the Google auth button match the visual style of the "Si
 ### Reasoning
 The Google SDK's `renderButton` renders its own iframe-based button that cannot be styled to match PrimeNG components. The solution is to use `google.accounts.id.prompt()` triggered from a custom `<p-button>`, which opens the same Google One Tap / popup flow. This gives full control over button appearance while keeping the same OAuth callback intact. The `flex-1` class on each button inside a `display: flex` row ensures equal width distribution without hardcoding pixel values.
 - `markAsPristine()` after a successful profile save disables the Save button again — preventing users from accidentally re-submitting the same data.
+
+---
+
+## April 19, 2026 - Dashboard Dynamic Greeting + User Model Fix
+
+### Topic
+Render the authenticated user's name in the dashboard welcome heading — and fix a model mismatch that caused the name to be blank for Google-authenticated users.
+
+### Summary of Prompt
+"Quiero que en el dashboard component, se renderice el nombre del usuario en el saludo. No se está renderizando ningún firstName con el usuario que tengo registrado con google."
+
+### What Was Achieved
+Dashboard greeting now displays the logged-in user's full name correctly for both local and Google-authenticated users.
+
+### Full Prompt
+"Quiero que en el dashboard component, se renderize el nombre del usuario `Welcome to Solar Planner, Santiago!`. Puedes revisar como se rellenan los datos del usuario cuando se inicia sesion desde google? No se está renderizando ningnun firstName con el usuario que tengo que he registrado con google."
+
+### Affected Files
+- `client/src/app/core/models/user.model.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+
+### Reasoning
+Root cause: The server stores and returns the user's name as a single `fullName` field (`{ fullName: "Santiago Linares" }`). The client `User` interface modeled it as split `firstName` / `lastName` fields, which the server never sends. So `user()?.firstName` was always `undefined` at runtime — the field simply didn't exist on the object. The fix was to align the `User` interface with the server contract by replacing `firstName`/`lastName` with `fullName`, then updating the template binding from `user()?.firstName` to `user()?.fullName`.
