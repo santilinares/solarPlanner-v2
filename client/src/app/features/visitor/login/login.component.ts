@@ -7,7 +7,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
-import { DividerModule } from 'primeng/divider';
 import { AuthService } from '@core/services';
 import { LoginRequest, getErrorMessage } from '@core/models';
 import { environment } from '@environments/environment';
@@ -24,7 +23,6 @@ import { environment } from '@environments/environment';
     PasswordModule,
     CardModule,
     MessageModule,
-    DividerModule,
   ],
   template: `
     <div class="login-page animate-fade-in-up">
@@ -83,20 +81,28 @@ import { environment } from '@environments/environment';
             ></p-message>
           }
 
-          <p-button
-            type="submit"
-            label="Sign In"
-            icon="pi pi-sign-in"
-            [disabled]="loading() || loginForm.invalid"
-            [loading]="loading()"
-            class="w-full"
-          ></p-button>
+          <div class="auth-btn-row">
+            <p-button
+              type="submit"
+              label="Sign In"
+              icon="pi pi-sign-in"
+              [disabled]="loading() || loginForm.invalid"
+              [loading]="loading()"
+            ></p-button>
 
-          <p-divider align="center">
-            <span class="divider-text">or</span>
-          </p-divider>
-
-          <div id="google-btn-login" class="google-btn-container"></div>
+            <p-button
+              type="button"
+              label="Continue with Google"
+              [disabled]="loading()"
+              [loading]="googleLoading()"
+              severity="secondary"
+              (onClick)="signInWithGoogle()"
+            >
+              <ng-template pTemplate="icon">
+                <img src="assets/google-icon.svg" alt="Google" class="google-icon" />
+              </ng-template>
+            </p-button>
+          </div>
 
           <div class="form-links">
             <a routerLink="/forgot_password" class="link">
@@ -168,10 +174,20 @@ import { environment } from '@environments/environment';
           }
         }
 
-        .google-btn-container {
+        .auth-btn-row {
           display: flex;
-          justify-content: center;
+          gap: 0.75rem;
           width: 100%;
+
+          @media (max-width: 480px) {
+            flex-direction: column;
+          }
+        }
+
+        .google-icon {
+          width: 1.1rem;
+          height: 1.1rem;
+          margin-right: 0.4rem;
         }
       }
 
@@ -204,12 +220,6 @@ import { environment } from '@environments/environment';
           font-size: 0.95rem;
           margin: 0;
         }
-      }
-
-      .divider-text {
-        color: var(--p-text-muted-color);
-        font-size: 0.85rem;
-        padding: 0 0.5rem;
       }
 
       :host ::ng-deep {
@@ -247,6 +257,16 @@ import { environment } from '@environments/environment';
         .login-page .p-message {
           margin-bottom: 1.5rem;
         }
+
+        .auth-btn-row > p-button {
+          flex: 1 1 auto;
+          min-width: 0;
+
+          .p-button {
+            width: 100%;
+            white-space: nowrap;
+          }
+        }
       }
     `,
   ],
@@ -258,6 +278,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
 
   loading = signal(false);
+  googleLoading = signal(false);
   errorMessage = signal('');
   private returnUrl = '/projects';
 
@@ -279,7 +300,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
       accounts: {
         id: {
           initialize: (cfg: object) => void;
-          renderButton: (el: HTMLElement, cfg: object) => void;
+          prompt: () => void;
         };
       };
     };
@@ -289,6 +310,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     google.accounts.id.initialize({
       client_id: environment.googleClientId,
       callback: (response: { credential: string }) => {
+        this.googleLoading.set(false);
         this.loading.set(true);
         this.errorMessage.set('');
         this.authService.loginWithGoogle(response.credential).subscribe({
@@ -307,17 +329,21 @@ export class LoginComponent implements OnInit, AfterViewInit {
         });
       },
     });
+  }
 
-    const container = document.getElementById('google-btn-login');
-    if (container) {
-      google.accounts.id.renderButton(container, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        width: 380,
-      });
-    }
+  signInWithGoogle(): void {
+    type GoogleAccounts = {
+      accounts: {
+        id: {
+          initialize: (cfg: object) => void;
+          prompt: () => void;
+        };
+      };
+    };
+    const google = (window as unknown as { google?: GoogleAccounts }).google;
+    if (!google) return;
+    this.googleLoading.set(true);
+    google.accounts.id.prompt();
   }
 
   onSubmit(): void {

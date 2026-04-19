@@ -7,7 +7,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
-import { DividerModule } from 'primeng/divider';
 import { AuthService } from '@core/services';
 import { RegisterRequest, getErrorMessage } from '@core/models';
 import { environment } from '@environments/environment';
@@ -24,7 +23,6 @@ import { environment } from '@environments/environment';
     PasswordModule,
     CardModule,
     MessageModule,
-    DividerModule,
   ],
   template: `
     <div class="register-page animate-fade-in-up">
@@ -123,20 +121,28 @@ import { environment } from '@environments/environment';
             ></p-message>
           }
 
-          <p-button
-            type="submit"
-            label="Create Account"
-            icon="pi pi-user-plus"
-            [disabled]="loading() || registerForm.invalid"
-            [loading]="loading()"
-            class="w-full btn-solar"
-          ></p-button>
+          <div class="auth-btn-row">
+            <p-button
+              type="submit"
+              label="Create Account"
+              icon="pi pi-user-plus"
+              [disabled]="loading() || registerForm.invalid"
+              [loading]="loading()"
+            ></p-button>
 
-          <p-divider align="center">
-            <span class="divider-text">or</span>
-          </p-divider>
-
-          <div id="google-btn-register" class="google-btn-container"></div>
+            <p-button
+              type="button"
+              label="Continue with Google"
+              [disabled]="loading()"
+              [loading]="googleLoading()"
+              severity="secondary"
+              (onClick)="signInWithGoogle()"
+            >
+              <ng-template pTemplate="icon">
+                <img src="assets/google-icon.svg" alt="Google" class="google-icon" />
+              </ng-template>
+            </p-button>
+          </div>
 
           <div class="form-links">
             <a routerLink="/login" class="link">
@@ -211,16 +217,20 @@ import { environment } from '@environments/environment';
         }
       }
 
-      .divider-text {
-        color: var(--p-text-muted-color);
-        font-size: 0.85rem;
-        padding: 0 0.5rem;
+      .auth-btn-row {
+        display: flex;
+        gap: 0.75rem;
+        width: 100%;
+
+        @media (max-width: 480px) {
+          flex-direction: column;
+        }
       }
 
-      .google-btn-container {
-        display: flex;
-        justify-content: center;
-        width: 100%;
+      .google-icon {
+        width: 1.1rem;
+        height: 1.1rem;
+        margin-right: 0.4rem;
       }
     }
 
@@ -294,6 +304,16 @@ import { environment } from '@environments/environment';
       .register-page .p-message {
         margin-bottom: 1.5rem;
       }
+
+      .auth-btn-row > p-button {
+        flex: 1 1 auto;
+        min-width: 0;
+
+        .p-button {
+          width: 100%;
+          white-space: nowrap;
+        }
+      }
     }
   `]
 })
@@ -303,6 +323,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
   private readonly router = inject(Router);
 
   loading = signal(false);
+  googleLoading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
   private redirectTimeout?: ReturnType<typeof setTimeout>;
@@ -323,7 +344,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
       accounts: {
         id: {
           initialize: (cfg: object) => void;
-          renderButton: (el: HTMLElement, cfg: object) => void;
+          prompt: () => void;
         };
       };
     };
@@ -333,6 +354,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
     google.accounts.id.initialize({
       client_id: environment.googleClientId,
       callback: (response: { credential: string }) => {
+        this.googleLoading.set(false);
         this.loading.set(true);
         this.errorMessage.set('');
         this.authService.loginWithGoogle(response.credential).subscribe({
@@ -351,17 +373,21 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
         });
       },
     });
+  }
 
-    const container = document.getElementById('google-btn-register');
-    if (container) {
-      google.accounts.id.renderButton(container, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        width: 430,
-      });
-    }
+  signInWithGoogle(): void {
+    type GoogleAccounts = {
+      accounts: {
+        id: {
+          initialize: (cfg: object) => void;
+          prompt: () => void;
+        };
+      };
+    };
+    const google = (window as unknown as { google?: GoogleAccounts }).google;
+    if (!google) return;
+    this.googleLoading.set(true);
+    google.accounts.id.prompt();
   }
 
   onSubmit(): void {

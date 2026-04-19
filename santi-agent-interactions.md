@@ -3317,4 +3317,33 @@ After aggregation explanation: "Okk"
 **3.5 Profile Forms:**
 - `getMe()` is used on `ngOnInit` instead of reading from the `AuthService.currentUser()` signal because the signal holds the legacy `User` model (with `firstName`/`lastName`), while the server returns `fullName`. Loading from the API guarantees the correct field.
 - The cross-field `passwordsMatchValidator` is applied at the group level so it re-runs on every value change, allowing the error to clear as soon as both passwords match.
+
+---
+
+## April 19, 2026 - Google Button Style Unification
+
+### Topic
+Unifying the "Continue with Google" button style with the primary login/register buttons, placing both in a shared row and removing the OR divider.
+
+### Summary of Prompt
+The user requested that the Google auth button match the visual style of the "Sign In" / "Create Account" buttons, and that both buttons share equal space side-by-side inside a container, eliminating the `<p-divider>` and the "OR" text between them.
+
+### What Was Achieved
+- Replaced the Google Identity Services rendered button (`google.accounts.id.renderButton`) with a standard PrimeNG `<p-button severity="secondary">` that calls `google.accounts.id.prompt()` on click.
+- Created `client/src/assets/google-icon.svg` with the official Google multi-color logo SVG.
+- Both buttons now sit inside a `.auth-btn-row` flex container that splits the space equally (`flex-1`). On mobile (< 480px) they stack vertically.
+- Added `googleLoading` signal to track the Google auth loading state independently from the main form loading state.
+- Removed `DividerModule` import from both components as it is no longer used.
+- Applied to both `/login` and `/registration` pages.
+
+### Full Prompt
+"Me gustaría modificar el estilo del boton de 'Continue with google' para que sea del mismo estilo de los botones de login y register. Ademas me gustaría que ambos botones estuvieran en un contenedor y que se repartieran el espacio, por lo tanto eliminar el OR y el divisor que los separa"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/assets/google-icon.svg` *(new)*
+
+### Reasoning
+The Google SDK's `renderButton` renders its own iframe-based button that cannot be styled to match PrimeNG components. The solution is to use `google.accounts.id.prompt()` triggered from a custom `<p-button>`, which opens the same Google One Tap / popup flow. This gives full control over button appearance while keeping the same OAuth callback intact. The `flex-1` class on each button inside a `display: flex` row ensures equal width distribution without hardcoding pixel values.
 - `markAsPristine()` after a successful profile save disables the Save button again — preventing users from accidentally re-submitting the same data.
