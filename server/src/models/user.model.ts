@@ -15,6 +15,7 @@ export interface IUser {
     saltSecret?: string;
   };
   google?: {
+    googleId?: string;
     email?: string;
   };
   fullName: string;
@@ -52,6 +53,10 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
       saltSecret: String,
     },
     google: {
+      googleId: {
+        type: String,
+        sparse: true,
+      },
       email: {
         type: String,
         lowercase: true,

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, AfterViewInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -7,21 +7,24 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
+import { DividerModule } from 'primeng/divider';
 import { AuthService } from '@core/services';
 import { LoginRequest, getErrorMessage } from '@core/models';
+import { environment } from '@environments/environment';
 
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, 
+    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     ButtonModule,
     InputTextModule,
     PasswordModule,
     CardModule,
-    MessageModule
+    MessageModule,
+    DividerModule,
   ],
   template: `
     <div class="login-page animate-fade-in-up">
@@ -33,7 +36,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             <p class="subtitle">Sign in to access your solar planning dashboard</p>
           </div>
         </ng-template>
-        
+
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
             <label for="email">Email Address</label>
@@ -47,7 +50,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
               [class.ng-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
             />
             @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-                <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+              <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
                 <i class="pi pi-exclamation-circle"></i> Valid email is required
               </small>
             }
@@ -64,30 +67,36 @@ import { LoginRequest, getErrorMessage } from '@core/models';
               inputclass="w-full"
             ></p-password>
             @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-                <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+              <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
                 <i class="pi pi-exclamation-circle"></i> Password is required
               </small>
             }
           </div>
 
           @if (errorMessage()) {
-            <p-message 
-                animate.enter="animate-shake"
-                animate.leave="animate-fade-out"
-              severity="error" 
+            <p-message
+              animate.enter="animate-shake"
+              animate.leave="animate-fade-out"
+              severity="error"
               [textContent]="errorMessage()"
-                class="w-full"
+              class="w-full"
             ></p-message>
           }
 
-          <p-button 
-            type="submit" 
-            label="Sign In" 
+          <p-button
+            type="submit"
+            label="Sign In"
             icon="pi pi-sign-in"
             [disabled]="loading() || loginForm.invalid"
             [loading]="loading()"
             class="w-full"
           ></p-button>
+
+          <p-divider align="center">
+            <span class="divider-text">or</span>
+          </p-divider>
+
+          <div id="google-btn-login" class="google-btn-container"></div>
 
           <div class="form-links">
             <a routerLink="/forgot_password" class="link">
@@ -158,6 +167,12 @@ import { LoginRequest, getErrorMessage } from '@core/models';
             }
           }
         }
+
+        .google-btn-container {
+          display: flex;
+          justify-content: center;
+          width: 100%;
+        }
       }
 
 
@@ -189,6 +204,12 @@ import { LoginRequest, getErrorMessage } from '@core/models';
           font-size: 0.95rem;
           margin: 0;
         }
+      }
+
+      .divider-text {
+        color: var(--p-text-muted-color);
+        font-size: 0.85rem;
+        padding: 0 0.5rem;
       }
 
       :host ::ng-deep {
@@ -230,7 +251,7 @@ import { LoginRequest, getErrorMessage } from '@core/models';
     `,
   ],
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, AfterViewInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -238,7 +259,7 @@ export class LoginComponent implements OnInit {
 
   loading = signal(false);
   errorMessage = signal('');
-  private returnUrl = '/projects'; // Default return URL
+  private returnUrl = '/projects';
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -246,8 +267,57 @@ export class LoginComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // Get return URL from query params or default to /projects
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/projects';
+  }
+
+  ngAfterViewInit(): void {
+    this.initGoogleButton();
+  }
+
+  private initGoogleButton(): void {
+    type GoogleAccounts = {
+      accounts: {
+        id: {
+          initialize: (cfg: object) => void;
+          renderButton: (el: HTMLElement, cfg: object) => void;
+        };
+      };
+    };
+    const google = (window as unknown as { google?: GoogleAccounts }).google;
+    if (!google) return;
+
+    google.accounts.id.initialize({
+      client_id: environment.googleClientId,
+      callback: (response: { credential: string }) => {
+        this.loading.set(true);
+        this.errorMessage.set('');
+        this.authService.loginWithGoogle(response.credential).subscribe({
+          next: () => {
+            this.router.navigate([this.returnUrl]).catch(() => {
+              window.location.href = this.returnUrl;
+            });
+          },
+          error: (err: unknown) => {
+            this.loading.set(false);
+            this.errorMessage.set(getErrorMessage(err, 'Google sign-in failed. Please try again.'));
+          },
+          complete: () => {
+            this.loading.set(false);
+          },
+        });
+      },
+    });
+
+    const container = document.getElementById('google-btn-login');
+    if (container) {
+      google.accounts.id.renderButton(container, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        width: 380,
+      });
+    }
   }
 
   onSubmit(): void {
@@ -260,14 +330,12 @@ export class LoginComponent implements OnInit {
       this.authService.login(credentials).subscribe({
         next: () => {
           this.router.navigate([this.returnUrl]).catch(() => {
-            // Fallback to hard navigation if Angular routing fails
             window.location.href = this.returnUrl;
           });
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          const message: string = getErrorMessage(err, 'Login failed. Please try again.');
-          this.errorMessage.set(message);
+          this.errorMessage.set(getErrorMessage(err, 'Login failed. Please try again.'));
         },
         complete: () => {
           this.loading.set(false);

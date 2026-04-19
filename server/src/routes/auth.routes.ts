@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   registerUser,
   loginUser,
+  googleAuth,
   requestPasswordReset,
   resetPassword,
   refreshAccessToken,
@@ -10,6 +11,7 @@ import { validateBody } from '../middleware/validation.middleware';
 import {
   UserCreateSchema,
   UserLoginSchema,
+  GoogleAuthSchema,
   PasswordResetRequestSchema,
   PasswordResetApplySchema,
 } from '../schemas/user.schema';
@@ -25,6 +27,13 @@ const router = Router();
 /**
  * Authentication routes (mounted at /api/auth)
  */
+
+/**
+ * @route   POST /api/auth/google
+ * @desc    Login or register via Google OAuth
+ * @access  Public
+ */
+router.post('/google', authLimiter, validateBody(GoogleAuthSchema), googleAuth);
 
 /**
  * @route   POST /api/auth/register

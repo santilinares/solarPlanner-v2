@@ -154,6 +154,16 @@ export const UserUpdateRoleSchema = z.object({
 export type UserUpdateRoleInput = z.infer<typeof UserUpdateRoleSchema>;
 
 /**
+ * Google OAuth token schema
+ */
+export const GoogleAuthSchema = z.object({
+  idToken: z.string().min(1, 'Google ID token is required'),
+});
+
+/** Type inferred from GoogleAuthSchema */
+export type GoogleAuthInput = z.infer<typeof GoogleAuthSchema>;
+
+/**
  * MongoDB ObjectId validation schema
  * 
  * Validates 24-character hexadecimal MongoDB ObjectId format

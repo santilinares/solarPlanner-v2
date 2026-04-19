@@ -1,3 +1,4 @@
+import { OAuth2Client } from 'google-auth-library';
 import { UserModel, IUser } from '../models/user.model';
 import { UserCreateInput, UserLoginInput } from '../schemas/user.schema';
 import { AuthResponse, UserResponse } from '../types/user.types';
@@ -174,6 +175,60 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  /**
+   * Login or register a user via Google OAuth
+   * @param idToken Google ID token from frontend
+   * @returns Auth response with token and user
+   */
+  async loginWithGoogle(idToken: string): Promise<AuthResponse> {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('GOOGLE_CLIENT_ID not configured');
+    }
+
+    // Verify the Google ID token
+    const client = new OAuth2Client(clientId);
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+      payload = ticket.getPayload();
+    } catch {
+      throw new AppError(401, 'Invalid Google token');
+    }
+
+    if (!payload?.sub || !payload?.email) {
+      throw new AppError(401, 'Invalid Google token payload');
+    }
+
+    // Find existing Google user by stable googleId
+    let user = await UserModel.findOne({ 'google.googleId': payload.sub });
+
+    if (!user) {
+      // Guard: block if email is already registered as a local account
+      const localUser = await UserModel.findOne({ 'local.email': payload.email });
+      if (localUser) {
+        throw new AppError(
+          409,
+          'An account with this email already exists. Please sign in with email and password.'
+        );
+      }
+
+      // Create new Google-authenticated user
+      user = await UserModel.create({
+        method: 'google',
+        google: { googleId: payload.sub, email: payload.email },
+        fullName: payload.name ?? payload.email,
+        role: 'user',
+      });
+    }
+
+    return {
+      token: user.generateJwt(),
+      refreshToken: user.generateRefreshToken(),
+      user: this.transformUserToResponse(user),
+    };
   }
 
   /**

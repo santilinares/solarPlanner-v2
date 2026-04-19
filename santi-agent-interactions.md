@@ -4,6 +4,49 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## April 19, 2026 - Priority 3.2: Google OAuth Social Login
+
+### Topic
+Google OAuth social login — allows users to sign in or register using their Google account from both the login and registration pages.
+
+### Prompt Summary
+User requested implementation of Priority 3.2 (Google OAuth) from the deferred features plan. A plan and visual mockup of the button/flow were presented and approved before coding began.
+
+### What Was Achieved
+- Added `googleId` to the User model's `google` subdocument (stable identifier via Google's `sub` claim)
+- Installed `google-auth-library` on the server; added `loginWithGoogle(idToken)` to `AuthService` — verifies the token with Google's public keys, finds-or-creates the user, and blocks sign-in with 409 if a local account already exists with the same email
+- Added `GoogleAuthSchema` Zod validator, `googleAuth` controller, and `POST /api/auth/google` route (protected by `authLimiter`)
+- Added `GOOGLE_CLIENT_ID` to `server/.env` and `googleClientId` to both Angular environment files
+- Loaded Google Identity Services (GIS) SDK via `<script>` tag in `index.html`
+- Added `loginWithGoogle(idToken)` to the Angular `AuthService`
+- Both `LoginComponent` and `RegisterComponent` use `ngAfterViewInit` + `google.accounts.id.renderButton()` to render the official GIS button into a `div` container — this is the correct approach that opens a popup instead of doing a redirect (which was the root cause of the initial "route not found" bug)
+
+### Full Prompt
+> "Quiero que me implementes la funcionalidad de google auth, de prioridad 3, que corresponde a la 3.2. Dame primero una propuesta y los componentes que tienes que modificar, además de dependencias que tengas que añadir al proyecto (npm)"
+
+### Affected Files
+- `server/src/models/user.model.ts` — added `googleId` to `IUser.google` and schema
+- `server/src/services/auth.service.ts` — added `loginWithGoogle()`
+- `server/src/controllers/user.controller.ts` — added `googleAuth` controller
+- `server/src/routes/auth.routes.ts` — added `POST /api/auth/google`
+- `server/src/schemas/user.schema.ts` — added `GoogleAuthSchema` / `GoogleAuthInput`
+- `server/.env` — added `GOOGLE_CLIENT_ID`
+- `server/package.json` — added `google-auth-library`
+- `client/src/environments/environment.ts` — added `googleClientId`
+- `client/src/environments/environment.prod.ts` — added `googleClientId`
+- `client/src/index.html` — added GIS SDK script tag
+- `client/src/app/core/services/auth.service.ts` — added `loginWithGoogle()`
+- `client/src/app/features/visitor/login/login.component.ts` — `renderButton` in `ngAfterViewInit`, divider, container div
+- `client/src/app/features/visitor/register/register.component.ts` — same pattern
+
+### Key Reasoning
+- **`renderButton` over `prompt()`**: `google.accounts.id.prompt()` (One Tap) attempts a redirect flow on localhost, causing "route not found" in Angular. `renderButton()` renders Google's native button that always opens a popup, which is the correct UX for a custom sign-in page.
+- **`googleId` as stable key**: Google's `sub` claim is permanent; email can change. Lookup by `googleId` prevents duplicate accounts across sessions.
+- **Email conflict guard**: A Google sign-in attempt on an email already registered locally returns 409 with a clear message rather than silently merging accounts.
+- **No Passport.js**: The frontend-driven flow (frontend gets ID token → posts to backend) is lighter and consistent with the existing JWT-only auth pattern.
+
+---
+
 ## 📅 April 19, 2026 - Priority 3.3: Visitor Quick Panel Estimate
 
 ### Topic

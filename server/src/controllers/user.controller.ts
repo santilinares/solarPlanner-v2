@@ -12,6 +12,7 @@ import {
   PasswordResetApplyInput,
   UserQueryInput,
   UserUpdateRoleInput,
+  GoogleAuthInput,
 } from '../schemas/user.schema';
 
 /**
@@ -37,6 +38,16 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.login(req.body as UserLoginInput);
   return success(res, result, 'Login successful');
+});
+
+/**
+ * @route   POST /auth/google
+ * @desc    Login or register via Google OAuth
+ * @access  Public
+ */
+export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.loginWithGoogle((req.body as GoogleAuthInput).idToken);
+  return success(res, result, 'Google login successful');
 });
 
 /**

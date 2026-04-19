@@ -63,6 +63,15 @@ export class AuthService {
   }
 
   /**
+   * Login or register via Google OAuth
+   */
+  loginWithGoogle(idToken: string): Observable<AuthResponse> {
+    return this.http
+      .post<AuthResponse>(`${this.authUrl}/google`, { idToken })
+      .pipe(tap((response) => this.handleAuthSuccess(response)));
+  }
+
+  /**
    * Logout user
    */
   logout(): void {

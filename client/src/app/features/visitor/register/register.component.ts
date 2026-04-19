@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy, AfterViewInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -7,8 +7,10 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
+import { DividerModule } from 'primeng/divider';
 import { AuthService } from '@core/services';
 import { RegisterRequest, getErrorMessage } from '@core/models';
+import { environment } from '@environments/environment';
 
 @Component({
   selector: 'app-register',
@@ -21,7 +23,8 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
     InputTextModule,
     PasswordModule,
     CardModule,
-    MessageModule
+    MessageModule,
+    DividerModule,
   ],
   template: `
     <div class="register-page animate-fade-in-up">
@@ -120,14 +123,20 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
             ></p-message>
           }
 
-          <p-button 
-            type="submit" 
-            label="Create Account" 
+          <p-button
+            type="submit"
+            label="Create Account"
             icon="pi pi-user-plus"
             [disabled]="loading() || registerForm.invalid"
             [loading]="loading()"
             class="w-full btn-solar"
           ></p-button>
+
+          <p-divider align="center">
+            <span class="divider-text">or</span>
+          </p-divider>
+
+          <div id="google-btn-register" class="google-btn-container"></div>
 
           <div class="form-links">
             <a routerLink="/login" class="link">
@@ -200,6 +209,18 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
             text-decoration: underline;
           }
         }
+      }
+
+      .divider-text {
+        color: var(--p-text-muted-color);
+        font-size: 0.85rem;
+        padding: 0 0.5rem;
+      }
+
+      .google-btn-container {
+        display: flex;
+        justify-content: center;
+        width: 100%;
       }
     }
 
@@ -276,7 +297,7 @@ import { RegisterRequest, getErrorMessage } from '@core/models';
     }
   `]
 })
-export class RegisterComponent implements OnDestroy {
+export class RegisterComponent implements AfterViewInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -290,8 +311,58 @@ export class RegisterComponent implements OnDestroy {
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]]
+    password: ['', [Validators.required, Validators.minLength(8)]],
   });
+
+  ngAfterViewInit(): void {
+    this.initGoogleButton();
+  }
+
+  private initGoogleButton(): void {
+    type GoogleAccounts = {
+      accounts: {
+        id: {
+          initialize: (cfg: object) => void;
+          renderButton: (el: HTMLElement, cfg: object) => void;
+        };
+      };
+    };
+    const google = (window as unknown as { google?: GoogleAccounts }).google;
+    if (!google) return;
+
+    google.accounts.id.initialize({
+      client_id: environment.googleClientId,
+      callback: (response: { credential: string }) => {
+        this.loading.set(true);
+        this.errorMessage.set('');
+        this.authService.loginWithGoogle(response.credential).subscribe({
+          next: () => {
+            this.router.navigate(['/projects']).catch(() => {
+              window.location.href = '/projects';
+            });
+          },
+          error: (err: unknown) => {
+            this.loading.set(false);
+            this.errorMessage.set(getErrorMessage(err, 'Google sign-in failed. Please try again.'));
+          },
+          complete: () => {
+            this.loading.set(false);
+          },
+        });
+      },
+    });
+
+    const container = document.getElementById('google-btn-register');
+    if (container) {
+      google.accounts.id.renderButton(container, {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        width: 430,
+      });
+    }
+  }
 
   onSubmit(): void {
     if (this.registerForm.valid) {
@@ -306,16 +377,14 @@ export class RegisterComponent implements OnDestroy {
           this.successMessage.set('Account created successfully! Redirecting...');
           this.redirectTimeout = setTimeout(() => {
             this.router.navigate(['/projects']).catch(() => {
-              // Fallback to hard navigation if Angular routing fails
               window.location.href = '/projects';
             });
           }, 1500);
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          const message: string = getErrorMessage(err, 'Registration failed. Please try again.');
-          this.errorMessage.set(message);
-        }
+          this.errorMessage.set(getErrorMessage(err, 'Registration failed. Please try again.'));
+        },
       });
     }
   }
