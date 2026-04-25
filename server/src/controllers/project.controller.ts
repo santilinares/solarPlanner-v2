@@ -93,6 +93,9 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
   const projectId = req.params.id;
 
   // Admin can update any project, users only their own
+  // TODO - Fragilidad en autorización: effectiveUserId es undefined para admins, y se pasa con ! al servicio.
+  // En el servicio, la condición `userId && ...` cortocircuita si userId es undefined, evitando la verificación.
+  // Considerar manejar el caso admin explícitamente en el servicio en lugar de depender de undefined.
   const effectiveUserId = userRole === 'admin' ? undefined : userId;
 
   const updatedProject = await projectService.updateProject(
@@ -109,6 +112,8 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
  * @access  Private
  */
 export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
+  // TODO - Sin verificación de ownership: cualquier usuario autenticado puede consultar el sun path de un proyecto ajeno si conoce su ID.
+  // Añadir req.userId y req.userRole para restringir el acceso igual que en getProjectById.
   const sunPath = await projectService.getSunPath(req.params.id);
   return success(res, sunPath);
 });
@@ -119,6 +124,9 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private
  */
 export const generatePlan = asyncHandler(async (req: Request, res: Response) => {
+  // TODO - Sin verificación de ownership: cualquier usuario autenticado puede generar el PDF de un proyecto ajeno si conoce su ID.
+  // Añadir req.userId y req.userRole para restringir el acceso igual que en getProjectById.
+  // TODO - Revisar que se mete en el PDF. Hay que actualizar alguna cosa?
   const planData = await projectService.generatePlanData(req.params.id);
   return success(res, planData);
 });

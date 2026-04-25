@@ -172,6 +172,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   panelWidthM = computed(() => (this.selectedPanelData()?.dimensions.width ?? 0) / 1000);
   panelHeightM = computed(() => (this.selectedPanelData()?.dimensions.height ?? 0) / 1000);
 
+  //TODO - Get this value from calculateOptimalConfig from project.service
   optimalSpacing = computed(() => {
     const panel = this.selectedPanelData();
     if (!panel) return 0;
@@ -185,6 +186,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     return tiltBased;
   });
 
+  //TODO - Get this value from calculateOptimalConfig from project.service
   maxPanels = computed(() => {
     const est = this.estimation();
     const panel = this.selectedPanelData();
@@ -213,6 +215,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
 
   polygonArea = computed(() => this.estimation()?.surfaceArea ?? 0);
 
+  //TODO - Get this value from calculateOptimalConfig from project.service
   spacingWarning = computed<SpacingWarning>(() => {
     const panel = this.selectedPanelData();
     if (!panel) return { type: 'ok', message: '' };
@@ -236,6 +239,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     return { type: 'ok', message: 'Row spacing is adequate. No significant inter-row shading expected.' };
   });
 
+    //TODO - Get this value from calculateOptimalConfig from project.service for cultivar
   heightWarning = computed<{ type: 'ok' | 'warning'; message: string } | null>(() => {
     const cultivar = this.selectedCultivarData();
     if (!cultivar) return null;

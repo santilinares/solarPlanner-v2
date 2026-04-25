@@ -137,6 +137,8 @@ export class UserService {
       ];
     }
 
+    // TODO - Sin paginación: el aggregate devuelve todos los usuarios de golpe sin $limit ni $skip.
+    // Con muchos usuarios esto puede ser lento y consumir mucha memoria. Añadir paginación al pipeline.
     const aggregateResult = await UserModel.aggregate<
       IUser & { _id: import('mongoose').Types.ObjectId; projectCount: number }
     >([

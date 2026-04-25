@@ -107,6 +107,9 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response) =
  * @access  Private (Self or Admin)
  */
 export const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
+  // TODO - [SEVERIDAD ALTA] Sin verificación de ownership: cualquier usuario autenticado puede modificar
+  // el perfil de otro usuario si conoce su ID, ya que se usa req.params.id sin comparar con req.userId.
+  // Añadir: if (req.userRole !== 'admin' && req.userId !== req.params.id) return forbidden(res, ...)
   const user = await userService.updateProfile(req.params.id, req.body as UserUpdateProfileInput);
   return success(res, user, 'Profile updated successfully');
 });
@@ -117,6 +120,9 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
  * @access  Private (Self)
  */
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  // TODO - [SEVERIDAD ALTA] Sin verificación de ownership: cualquier usuario autenticado puede intentar
+  // cambiar la contraseña de otro usuario usando su ID. La ruta está marcada como "Self" pero no se enforce.
+  // Añadir: if (req.userId !== req.params.id) return forbidden(res, 'Not authorized')
   const { currentPassword, newPassword } = req.body as UserChangePasswordInput;
   await userService.changePassword(req.params.id, currentPassword, newPassword);
   return success(res, null, 'Password changed successfully');

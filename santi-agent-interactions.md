@@ -4,6 +4,30 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## April 19, 2026 - Bugfix: Sun Path Data 500 Error
+
+### Topic
+Fix: Sun path endpoint returning 500 Internal Server Error on the project view page.
+
+### Summary of Prompt
+User reported a 500 error on `GET /api/projects/:id/sun-path` when loading the configure-project component in view mode. Asked to investigate and propose a fix.
+
+### What Was Achieved
+Identified the root cause and applied a one-file fix that resolved the 500 error. The sun path table now loads correctly for any project that has an area polygon defined.
+
+### Full Prompt
+> "Muestra este fallo al cargar el view mode del configure-project component: http://127.0.0.1:1235/api/projects/.../sun-path 500 (Internal Server Error) [stack trace]"
+
+### Affected Files
+- `server/src/services/project.service.ts` — `getSunPath()` method (lines ~700-723)
+
+### Root Cause & Reasoning
+`getSunPath()` was checking `project.lat` and `project.lon` directly on the Mongoose document. However, `lat` and `lon` are **not persisted fields** in the DB schema — they are computed on-the-fly in `transformProjectToResponse()` via `calculateGeospatialFields(project.area)`. The raw document always returns `undefined` for these fields, causing the guard condition to throw unconditionally, which produced a 500.
+
+The fix: replace the `project.lat` / `project.lon` guard with a call to the existing `calculateGeospatialFields(project.area)` helper (already available in the same file), and derive the latitude from `geo.lat` instead.
+
+---
+
 ## April 19, 2026 - Priority 3.2: Google OAuth Social Login
 
 ### Topic
@@ -3370,3 +3394,25 @@ Dashboard greeting now displays the logged-in user's full name correctly for bot
 
 ### Reasoning
 Root cause: The server stores and returns the user's name as a single `fullName` field (`{ fullName: "Santiago Linares" }`). The client `User` interface modeled it as split `firstName` / `lastName` fields, which the server never sends. So `user()?.firstName` was always `undefined` at runtime — the field simply didn't exist on the object. The fix was to align the `User` interface with the server contract by replacing `firstName`/`lastName` with `fullName`, then updating the template binding from `user()?.firstName` to `user()?.fullName`.
+
+---
+
+## April 21, 2026 - Documentación: Feature Registry
+
+### Topic
+Documentación: Crear un archivo markdown con todas las features de la aplicación.
+
+### Summary of Prompt
+El usuario solicitó un markdown con todas las features de la aplicación, indicando con un tag `[~]` aquellas que pueden mejorar con mejores fuentes de datos o cálculos más precisos.
+
+### What Was Achieved
+Se creó `features.md` en la raíz del proyecto con un registro completo de todas las funcionalidades de Solar Planner v2, organizado por área funcional, con el tag `[~]` aplicado a 25+ features que tienen potencial de mejora.
+
+### Full Prompt
+"Creame un markdown file que contenga todas las features de esta aplicación. Añade un tag a aquellas que puedan ser mejoradas con mejores fuentes de datos o cálculos (no digas con qué tecnología, sino solo indica si tiene mejora)"
+
+### Affected Files
+- `features.md` — archivo nuevo creado en la raíz del proyecto
+
+### Reasoning
+Se exploró la base de código completa (frontend + backend) mediante un agente especializado para identificar todas las funcionalidades implementadas. Las features marcadas con `[~]` corresponden a cálculos con supuestos simplificados (factor de utilización fijo, horas pico promedio por latitud, fórmula de espaciado geométrica básica), datos externos con granularidad mejorable (Solcast, precios de electricidad), y especificaciones de paneles y cultivares que podrían enriquecerse con bases de datos más completas.

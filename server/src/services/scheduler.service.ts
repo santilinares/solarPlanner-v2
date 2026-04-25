@@ -27,6 +27,12 @@ export function scheduleProjectJob(project: {
   // Cancel any existing job for this project
   cancelProjectJob(projectId);
 
+  // TODO - Sin protección contra ejecuciones solapadas: si refreshProductionData tarda más de lo esperado
+  // (por ejemplo, por un timeout de Solcast colgado), el siguiente job nocturno podría lanzarse en paralelo
+  // para el mismo proyecto. Considerar añadir un flag de "en progreso" o un lock por proyecto.
+  // TODO - Jobs no se recuperan si el servidor se reinicia después de las 3:47: initializeScheduler registra
+  // los jobs al arrancar, pero si el servidor cae y vuelve a las 4:00, ese día no se refresca ningún proyecto.
+  // Considerar añadir un "catch-up" al arrancar: si el último refresh fue hace más de X horas, ejecutarlo inmediatamente.
   const job = schedule.scheduleJob({ hour: 3, minute: 47, tz }, async () => {
     try {
       await projectService.refreshProductionData(projectId);

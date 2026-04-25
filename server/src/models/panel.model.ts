@@ -14,6 +14,7 @@ export interface IPanel {
     height: number; // mm
   };
   cells?: number;
+  //TODO - Este dato no se está usando. Mantenerlo o eliminarlo? Puede ser un dato importante para corregir la produccion real en verano
   temperatureCoefficient: number;
   efficiency: number;
   warranty: number;

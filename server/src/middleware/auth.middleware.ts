@@ -90,20 +90,25 @@ export function verifyAdminJwtToken(req: Request, res: Response, next: NextFunct
  * Used for password reset endpoints
  */
 export function verifyPasswordResetJwtToken(req: Request, res: Response, next: NextFunction): void {
+  // TODO - [SEVERIDAD MEDIA] Este middleware no verifica el JWT en ningún momento.
+  // El try/catch no contiene código que pueda lanzar, por lo que siempre llama a next().
+  // Solo comprueba que el campo token existe en el body, dando una falsa sensación de seguridad.
+  // La verificación real ocurre en el servicio, pero debería hacerse aquí para rechazar tokens
+  // inválidos antes de llegar al handler. Usar verifyPasswordResetToken() de jwt.config.ts.
   const { token } = req.body;
-  
+
   if (!token) {
     unauthorized(res, 'Reset token required');
     return;
   }
-  
+
   try {
     const secret = process.env.JWT_SECRET;
-    
+
     if (!secret) {
       throw new Error('JWT_SECRET not configured');
     }
-    
+
     // Token verification happens in service layer for password reset
     // This middleware just ensures token is present
     next();

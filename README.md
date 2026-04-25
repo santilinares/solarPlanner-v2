@@ -147,8 +147,8 @@ client/src/
 │   │       ├── users-list/
 │   │       └── panels/
 │   └── shared/                     # Reusable components
-│       ├── components/             # TODO: Header, footer, sidebar
-│       └── widgets/                # TODO: Map, charts
+│       ├── components/             # Header, footer, sidebar
+│       └── widgets/                # Map, charts
 ├── environments/
 │   ├── environment.ts
 │   └── environment.prod.ts
@@ -191,32 +191,31 @@ client/src/
 
 ## 🚧 TODO / Not Yet Implemented
 
-### Server Side:
-1. **Business logic implementation** - All service methods have TODO markers
-2. **Email service** - Nodemailer integration for password reset
-3. **Logging** - Pino integration with correlation IDs
-4. **Production calculations** - Solar energy estimation algorithms
-5. **PDF generation** - Server-side plan data assembly
-6. **Rate limiting** - Express-rate-limit middleware
-7. **Security hardening** - Helmet middleware, input sanitization
-8. **Refresh tokens** - Token rotation flow
-9. **Testing** - Jest unit tests for services/controllers
-10. **Health check endpoint** - `/health` for monitoring
+Este resumen solo incluye comentarios TODO encontrados en el código de aplicación bajo `client/src/**` y `server/src/**`. Excluye la lista curada de tareas en `.other-readme/todo-list.md`, este propio README y `santi-agent-interactions.md`.
 
-### Client Side:
-1. **Shared components** - Header, footer, sidebar (reusable UI)
-2. **Map widget** - Leaflet integration with drawing tools
-3. **Chart widgets** - Highcharts spline, column, multi-axes charts
-4. **Project CRUD logic** - Actual API integration in feature pages
-5. **Panel management UI** - Admin CRUD forms
-6. **User management UI** - Admin user table with actions
-7. **PDF generation** - jsPDF client-side implementation
-8. **Dashboard stats** - Fetch and display real data
-9. **Error handling** - Global error interceptor
-10. **Loading states** - Spinners and skeletons
-11. **Form validation messages** - User-friendly error displays
-12. **Unit tests** - Jest tests for services/components
-13. **E2E tests** - Playwright/Cypress test suites
+### Temas principales
+- La lógica de cálculo y estimación solar todavía tiene varios puntos pendientes alrededor de fórmulas de producción, trayectorias solares, datos meteorológicos/irradiancia y consistencia de unidades.
+- Los flujos de proyectos y usuarios siguen teniendo huecos de autorización y ownership que necesitan una validación más estricta.
+- Siguen pendientes algunas piezas de infraestructura del backend, especialmente logging, apagado ordenado, métricas, rate limiting y el comportamiento de refresh tokens.
+- En el cliente aún quedan algunos placeholders para valores que deberían venir de la API, reutilización de UI y detalles de integración CRUD.
+
+### TODOs del cliente
+- En `client/src/app/features/user/add-project/add-project.component.ts`, varios valores siguen hardcodeados o duplicados y deberían venir de `project.service.calculateOptimalConfig`.
+- En `client/src/app/core/services/panel.service.ts`, el flujo de actualización está bloqueado porque el servidor aún no expone un endpoint de update.
+
+### TODOs del servidor
+- En `server/src/app.ts`, la app todavía necesita un límite para el tamaño del body JSON y un endpoint de métricas.
+- En `server/src/config/database.config.ts`, sigue pendiente el manejo de apagado ordenado.
+- En `server/src/controllers/project.controller.ts`, hay notas abiertas sobre autorización, comprobación de ownership y el contenido que se genera en los PDFs de proyecto.
+- En `server/src/controllers/user.controller.ts`, los flujos de actualización y borrado de usuario todavía necesitan verificación de ownership.
+- En `server/src/middleware/auth.middleware.ts`, la verificación JWT sigue faltando en la ruta del middleware.
+- En `server/src/models/project.model.ts` y `server/src/schemas/project.schema.ts`, quedan notas sobre unidades, validación de campos y consistencia de los updates.
+- En `server/src/models/panel.model.ts` y `server/src/models/user.model.ts`, hay comentarios sobre campos sin uso o poco claros que conviene revisar.
+- En `server/src/services/project.service.ts`, la mayoría de TODOs se concentran en estimaciones de producción, fórmulas solares, manejo de pronósticos y agregación/rendimiento del dashboard.
+- En `server/src/services/scheduler.service.ts`, el scheduler todavía necesita protección contra solapamientos y recuperación tras reinicios.
+- En `server/src/services/user.service.ts`, sigue faltando paginación en el flujo de aggregate de usuarios.
+- En `server/src/utils/logger.ts`, sigue pendiente el pretty-print en desarrollo.
+- En `server/src/env/index.ts`, hay un refresh-token secret definido que aún no se usa de forma consistente.
 
 ---
 

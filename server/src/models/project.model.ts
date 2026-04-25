@@ -6,6 +6,9 @@ import { GeoPointInput } from '../schemas/project.schema';
  */
 export interface IProductionPoint {
   dateTime: Date;
+  // TODO - Unidades ambiguas: el comentario dice "kWh or Wh" pero no está definido cuál usa cada campo.
+  // prodToday viene de Solcast en kW por período (pendiente conversión ×0.5), nextProd/previousProd son agregados diarios.
+  // Aclarar y unificar las unidades en todos los campos de producción.
   pv: number; // kWh or Wh
 }
 
@@ -34,6 +37,10 @@ export interface IProject {
   description?: string;
   projectType: 'roof' | 'agrivoltaic';
   area: GeoPointInput[]; // Polygon coordinates
+  // TODO - Inconsistencia entre comentario y uso real: el comentario del servicio dice que lat/lon/surface "no se guardan en BD",
+  // pero el schema los define como campos y el scheduler los lee directamente con project.lat / project.lon.
+  // Si el área del proyecto cambia y estos campos no se actualizan, el scheduler usará coordenadas obsoletas para Solcast.
+  // Decidir: o guardar siempre y mantener sincronizados con el área, o derivar siempre del polígono y eliminar los campos del schema.
   lat?: number; // Derived center latitude
   lon?: number; // Derived center longitude
   surface?: number; // Derived area in m²
@@ -85,7 +92,7 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
         lon: { type: Number, required: true, min: -180, max: 180 },
       },
     ],
-    // NOTE: lat, lon, and surface are calculated from area polygon (not stored)
+    // TODO NOTE: lat, lon, and surface are calculated from area polygon (not stored)
     // They are derived in the service layer when returning responses
     country: String,
     timezone: String,

@@ -61,9 +61,14 @@ export const ProjectCreateSchema = z.object({
     .min(3, 'Area polygon requires at least 3 points')
     .max(1000, 'Area polygon cannot exceed 1000 points'),
   tilt: z.number().min(0).max(90, 'Tilt must be between 0 and 90 degrees'),
+  // TODO - [SEVERIDAD BAJA] direction acepta cualquier string sin validar que sea una dirección cardinal válida.
+  // Considerar usar z.enum(['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'])
   direction: z.string().min(1, 'Direction is required (e.g., "south")'),
   rawSpacing: z.number().positive().optional(),
   panelNumber: z.number().int().positive('Panel number must be a positive integer'),
+  // TODO - [SEVERIDAD BAJA] panelId y cultivarId aceptan cualquier string sin validar formato ObjectId.
+  // Si se envía un valor inválido, Mongoose lanza un CastError. Hay un ObjectIdSchema definido en user.schema.ts
+  // que podría reutilizarse aquí: panelId: ObjectIdSchema.optional()
   panelId: z.string().optional(), // Reference to Panel document
   cultivarId: z.string().optional(), // Reference to Cultivar document (agrivoltaic only)
 });
@@ -83,6 +88,9 @@ export const ProjectUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().max(500).optional(),
   projectType: z.enum(['roof', 'agrivoltaic']).optional(),
+  // TODO - [SEVERIDAD MEDIA] area es obligatoria en el update aunque no debería: cualquier actualización parcial
+  // (cambiar solo nombre o inclinación) obliga a enviar todo el polígono. Añadir .optional() para consistencia
+  // con el resto de campos. El frontend ya envía el área siempre, pero es un contrato de API innecesariamente estricto.
   area: z.array(GeoPointSchema).min(3),
   tilt: z.number().min(0).max(90).optional(),
   direction: z.string().min(1).optional(),

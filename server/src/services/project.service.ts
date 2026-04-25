@@ -175,6 +175,11 @@ export class ProjectService {
       }
     }
 
+    // TODO - [SEVERIDAD MEDIA] El documento se crea en BD antes de completar las integraciones externas
+    // (Solcast, precio de electricidad). Si el update posterior falla, el proyecto queda en un estado
+    // inconsistente: creado pero sin datos de producción, país ni timezone.
+    // Considerar acumular todos los datos primero y crear el documento solo cuando todo esté listo,
+    // o usar una transacción de MongoDB para hacer el create + update atómicos.
     // Create project (lat, lon, surface are calculated on-demand in response)
     const project = await ProjectModel.create({
       ...data,
@@ -191,12 +196,12 @@ export class ProjectService {
 
     // Priority 1 API Integrations
     // Run synchronous operations inline and async operations in parallel
-    let resolvedCountry: string | undefined;
+    let resolvedCountry: { name: string; code: string } | undefined;
     let resolvedTimezone: string | undefined;
 
     try {
       resolvedCountry = this.resolveCountry(lat, lon, undefined);
-      console.info(`[Project Creation] Country resolved: ${resolvedCountry}`);
+      console.info(`[Project Creation] Country resolved: ${resolvedCountry?.name} (${resolvedCountry?.code})`);
     } catch (error) {
       console.warn('[Project Creation] Country resolution error:', error);
     }
@@ -210,7 +215,7 @@ export class ProjectService {
 
     const [priceData, productionData] = await Promise.all([
       // 1.3 Electricity price lookup
-      this.fetchElectricityPrice('', undefined, undefined).catch((error) => {
+      this.fetchElectricityPrice(resolvedCountry?.code ?? '', undefined, undefined).catch((error) => {
         console.warn('[Project Creation] Price lookup error:', error);
         return { price: undefined, currency: undefined };
       }),
@@ -236,7 +241,7 @@ export class ProjectService {
 
     // Update project with resolved data
     console.info('[Project Creation] Updating project with resolved data:', {
-      country: resolvedCountry,
+      country: resolvedCountry?.name,
       timezone: resolvedTimezone,
       currency: priceData.currency,
       price: priceData.price,
@@ -248,7 +253,7 @@ export class ProjectService {
     const updatedProject = await ProjectModel.findByIdAndUpdate(
       project._id,
       {
-        country: resolvedCountry,
+        country: resolvedCountry?.name,
         timezone: resolvedTimezone,
         currency: priceData.currency,
         price: priceData.price,
@@ -455,6 +460,9 @@ export class ProjectService {
    * @returns Dashboard stats
    */
   async getUserDashboard(userId: string): Promise<DashboardStats> {
+    // TODO - Sin límite de proyectos: si un usuario tiene cientos de proyectos, se cargan todos en memoria con populate('panel').
+    // Considerar añadir un límite o calcular los agregados con una query de aggregation en MongoDB en lugar de en JS.
+    // TODO - Duplicación: esta función y getAdminDashboard contienen la misma lógica de cálculo. Extraer a un método privado compartido.
     // Get user's projects
     const projects = await ProjectModel.find({ owner: userId })
       .populate('panel')
@@ -478,6 +486,7 @@ export class ProjectService {
       if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
         const panel = p.panel as unknown as IPanel;
         const capacityKw = (panel.wattPeak * p.panelNumber) / 1000;
+        //TODO - Como hacer este cálculo más robusto?
         const peakSunHours = p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4;
         return sum + capacityKw * peakSunHours * 365 * 0.85;
       }
@@ -517,6 +526,10 @@ export class ProjectService {
    * @returns Dashboard stats for all projects
    */
   async getAdminDashboard(): Promise<DashboardStats> {
+    // TODO - Peligro de rendimiento: carga TODOS los proyectos de todos los usuarios en memoria sin ningún límite.
+    // En producción con miles de proyectos esto puede agotar la memoria del servidor.
+    // Refactorizar usando aggregation pipeline de MongoDB para calcular los totales directamente en la BD.
+    // TODO - Duplicación: misma lógica que getUserDashboard. Extraer a un método privado compartido.
     // Get all projects
     const projects = await ProjectModel.find().populate('panel').sort({ createdAt: -1 });
 
@@ -582,6 +595,12 @@ export class ProjectService {
     const tiltRad = (tilt * Math.PI) / 180;
 
     // Calculate shadow-based optimal row spacing:
+    //TODO - Revisar que esta formula se aplica correctamente. Por que hay datos hardcoadeados? Explicaciónd de por qué revisarlo:
+    /**
+     * La fórmula de espaciado d = H × sin(α) / tan(β) asume implícitamente que los paneles están orientados al sur (azimut 180°). 
+     * Si un panel está orientado al este u oeste, las sombras caen de forma diferente y el espaciado necesario es distinto. 
+     * El azimut está guardado en el proyecto pero no se usa aquí.
+     */
     // d = H × sin(α) / tan(β)  where β = 90° − |lat| − 23.45°
     const betaDeg = 90 - Math.abs(latitude) - 23.45;
     let recommendedRowSpacing: number;
@@ -592,6 +611,7 @@ export class ProjectService {
       recommendedRowSpacing = (H * Math.sin(tiltRad)) / Math.tan(betaRad);
     }
     // Enforce a minimum of 0.6 m for maintenance access
+    //TODO - No sólo debería ser por acceso a manetimiento sino porque pueden generarse sombra entre los paneles si se acercan mucho y de la inclinación.
     recommendedRowSpacing = Math.max(recommendedRowSpacing, 0.6);
     // Round to 2 decimal places
     recommendedRowSpacing = Math.round(recommendedRowSpacing * 100) / 100;
@@ -600,6 +620,7 @@ export class ProjectService {
     const panelFootprint = W * (H * Math.cos(tiltRad) + recommendedRowSpacing);
 
     // Utilisation factor: 85% for roof (default)
+    //TODO - Hay alguna manera de no tener que asumir el porcentaje de area aprovechable?
     const utilisation = 0.85;
     const usableArea = surfaceArea * utilisation;
 
@@ -613,11 +634,21 @@ export class ProjectService {
 
     // Estimate annual production (simplified calculation)
     // Peak sun hours vary by latitude: equator ~5.5h, higher latitudes ~3-4h
+    //TODO - Usar API para calcular las horas de sol
     const peakSunHours = 5.5 - Math.abs(latitude) * 0.02; // Rough approximation
+    //TODO - Modificar para que tenga en cuenta factores reales, como sombras, orientacion, nubes, inversor, etc.
     const systemEfficiency = 0.85; // Account for losses
     const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency; // kWh/year
 
     // Coverage percentage based on raw panel area vs total surface
+    // TODO - Revisar este cálculo. Explicación:
+    /**
+     * coverage = (recommendedPanels × panelArea) / surfaceArea × 100
+     * El coverage se calcula como área física de los paneles vs área total, 
+     * pero ignora el espacio de los pasillos entre filas. 
+     * No es un error grave, pero da la impresión de que "solo se cubre un X% 
+     * de la superficie" cuando en realidad los paneles + sus pasillos ocupan mucho más.
+     */
     const panelArea = W * H;
     const coverage = ((recommendedPanels * panelArea) / surfaceArea) * 100;
 
@@ -700,13 +731,17 @@ export class ProjectService {
   async getSunPath(projectId: string): Promise<SunPathData> {
     const project = await ProjectModel.findById(projectId);
 
-    if (!project || !project.lat || !project.lon) {
-      throw new Error('Project not found or missing coordinates');
+    if (!project) {
+      throw new Error('Project not found');
     }
 
-    // Simplified sun path calculation
-    // In production, use a library like suncalc or call an external API
-    const latitude = project.lat;
+    // lat/lon are not stored in the DB — derive them from the area polygon
+    const geo = calculateGeospatialFields(project.area);
+    if (!geo.lat || !geo.lon) {
+      throw new Error('Project has no defined area polygon');
+    }
+
+    const latitude = geo.lat;
 
     // Calculate solar declination and hour angle for key times of year
     const sunPathData = {
@@ -727,6 +762,7 @@ export class ProjectService {
     const decRad = (declination * Math.PI) / 180;
 
     // Solar noon altitude
+    //TODO - Revisar que el cálculo. Se sugiere esto: noonAltitude = 90 - |latitude - declination|
     const noonAltitude = 90 - latitude + declination;
 
     // Sunrise/sunset hour angle
@@ -737,6 +773,16 @@ export class ProjectService {
     return {
       noonAltitude: Math.max(0, noonAltitude),
       daylightHours,
+      //TODO - Revisar cálculos de sunrise/sunset. Explicación:
+      /**
+       * sunrise = 12 - daylightHours / 2
+       * sunset = 12 + daylightHours / 2
+       * Se asume que el mediodía solar es a las 12:00 UTC, lo cual solo es 
+       * correcto en el meridiano 0°. Para cualquier otra longitud hay una desviación, 
+       * y la ecuación del tiempo añade hasta ±16 minutos adicionales. 
+       * No es crítico para los cálculos de producción, pero los horarios mostrados al 
+       * usuario pueden estar desfasados hasta 1-2 horas
+       */
       sunrise: 12 - daylightHours / 2,
       sunset: 12 + daylightHours / 2,
     };
@@ -797,6 +843,8 @@ export class ProjectService {
       return;
     }
 
+    // TODO - Fallback silencioso: si el proyecto no tiene panel asociado, se usa 1 kW por defecto sin ningún aviso.
+    // Esto hace que totalProd se acumule con datos de una capacidad ficticia. Considerar saltar el refresh o loguear un warning más visible.
     let capacityKw = 1;
     if (project.panel && typeof project.panel !== 'string' && 'wattPeak' in project.panel) {
       const panel = project.panel as unknown as { wattPeak: number };
@@ -820,7 +868,11 @@ export class ProjectService {
    * 1.1 Resolve country from latitude and longitude
    * Uses reverse geocoding to get country name and code
    */
-  private resolveCountry(lat: number | undefined, lon: number | undefined, fallback?: string): string | undefined {
+  private resolveCountry(
+    lat: number | undefined,
+    lon: number | undefined,
+    fallback?: { name: string; code: string }
+  ): { name: string; code: string } | undefined {
     if (!lat || !lon) {
       return fallback;
     }
@@ -833,7 +885,7 @@ export class ProjectService {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const result = crg.get_country(lat, lon) as { code: string; name: string } | null;
       if (result && result.name) {
-        return result.name;
+        return { name: result.name, code: result.code };
       }
     } catch (error) {
       console.warn(`[Country Resolution] Failed to resolve country for (${lat}, ${lon}):`, error);
@@ -863,63 +915,18 @@ export class ProjectService {
     return fallback ?? 'UTC';
   }
 
+  //TODO - Implementar usando entsoe.eu API para los precios de electricidad.
   /**
-   * 1.3 Fetch electricity price and currency from World Bank API
+   * 1.3 Fetch electricity price
    * Falls back to provided defaults if API call fails
    */
-  private async fetchElectricityPrice(
-    countryCode: string,
-    fallbackPrice?: number,
-    fallbackCurrency?: string
-  ): Promise<{ price: number | undefined; currency: string | undefined }> {
-    if (!countryCode) {
-      return { price: fallbackPrice, currency: fallbackCurrency };
-    }
+  // private async fetchElectricityPrice(
+  //   countryCode: string,
+  //   fallbackPrice?: number,
+  //   fallbackCurrency?: string
+  // ): Promise<{ price: number | undefined; currency: string | undefined }> {
 
-    try {
-      // World Bank API for electricity prices
-      // Returns price in USD per kWh
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(
-        `https://api.worldbank.org/v2/country/${countryCode.toLowerCase()}/indicator/EG.ELC.ACCS.RU.ZS?format=json&per_page=1`,
-        { signal: controller.signal }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`World Bank API returned ${response.status}`);
-      }
-
-      // World Bank API call succeeded (in future, parse specific data from response)
-      // For now, return fallback values and log that we're using World Bank API
-      // In future iterations, we can implement region-specific price lookups
-      console.info(`[Electricity Price] Using World Bank data lookup for country ${countryCode}`);
-
-      // Typical electricity prices by region (fallback if API doesn't have current data)
-      const defaultPrices: Record<string, { price: number; currency: string }> = {
-        ES: { price: 0.32, currency: 'EUR' }, // Spain
-        DE: { price: 0.38, currency: 'EUR' }, // Germany
-        FR: { price: 0.18, currency: 'EUR' }, // France
-        US: { price: 0.14, currency: 'USD' }, // USA
-        BR: { price: 0.08, currency: 'BRL' }, // Brazil
-      };
-
-      const countryUpper = countryCode.toUpperCase();
-      const defaultEntry = defaultPrices[countryUpper];
-
-      if (defaultEntry) {
-        return { price: defaultEntry.price, currency: defaultEntry.currency };
-      }
-
-      return { price: fallbackPrice, currency: fallbackCurrency };
-    } catch (error) {
-      console.warn(`[Electricity Price] Failed to fetch electricity price for ${countryCode}:`, error);
-      return { price: fallbackPrice, currency: fallbackCurrency };
-    }
-  }
+  // }
 
   /**
    * 1.4 Fetch production data from Solcast or generate realistic mock data
@@ -950,6 +957,7 @@ export class ProjectService {
   /**
    * Fetch real Solcast API data
    */
+  //TODO - Se esta haciendo un fetch de 168 horas = 7 días pero estamos mostrando 6. Ver esto
   private async fetchRealSolcastData(
     lat: number,
     lon: number,
@@ -988,6 +996,7 @@ export class ProjectService {
   /**
    * Generate realistic mock Solcast data based on solar geometry and latitude
    */
+  //TODO - Borrar y hacer pruebas reales con datos de Solcast
   private generateMockSolcastData(lat: number, capacityKw: number): {
     prodToday: IProductionPoint[];
     nextProd: IProductionPoint[];
@@ -1036,7 +1045,9 @@ export class ProjectService {
       futureDate.setDate(futureDate.getDate() + i);
 
       // Vary production by day (simulate cloudy/sunny days)
+      //TODO - Modificar para que esto no sea random, sino que pille datos históricos de nubosidad por día.
       const dayVariation = 0.7 + Math.random() * 0.3; // 70-100% of clear-sky production
+      //TODO - De donde sale ese system efficiency del 75%? Como puedo hacer que este valor sea calculado de unas variables?
       const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation; // 75% system efficiency
 
       nextProd.push({
@@ -1052,6 +1063,7 @@ export class ProjectService {
       pastDate.setDate(pastDate.getDate() - i);
 
       // Vary production by day
+      //TODO - Modificar para que esto no sea random, sino que pille datos históricos de nubosidad por día.
       const dayVariation = 0.6 + Math.random() * 0.35; // 60-95% of clear-sky production
       const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation;
 
@@ -1096,6 +1108,7 @@ export class ProjectService {
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     // Aggregate forecasts for next 6 days
+    //TODO - Por qué quedarme con 6 días? Si en teoría tengo acceso a más? Explorar añadir mas de forecast o sino de past data.
     const forecastsByDay: Record<string, number[]> = {};
     forecasts.forEach((f) => {
       const fDate = new Date(f.period_end);
@@ -1111,6 +1124,10 @@ export class ProjectService {
       }
     });
 
+    // TODO - Verificar unidades: Solcast devuelve pv_estimate en kW promedio por período (normalmente 30 min).
+    // Para convertir a kWh hay que multiplicar cada valor por 0.5 (duración del período en horas).
+    // Si los totales diarios son el doble de lo esperado, es este factor el que falta.
+    // Corrección: values.reduce((a, b) => a + b * 0.5, 0)
     const nextProd = Object.entries(forecastsByDay)
       .slice(0, 6)
       .map(([dateStr, values]) => ({
@@ -1134,6 +1151,8 @@ export class ProjectService {
       }
     });
 
+    // TODO - Mismo problema de unidades que en nextProd: pv_estimate está en kW por período, no en kWh.
+    // Aplicar el mismo factor × 0.5 si los períodos son de 30 min.
     const previousProd = Object.entries(actualsByDay)
       .slice(-6)
       .map(([dateStr, values]) => ({
