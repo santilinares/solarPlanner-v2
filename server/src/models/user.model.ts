@@ -12,9 +12,6 @@ export interface IUser {
   local?: {
     email?: string;
     password?: string;
-    // TODO - [SEVERIDAD BAJA] saltSecret es un campo muerto: bcrypt incluye el salt dentro del hash
-    // y nunca se lee ni guarda este campo. Puede eliminarse del schema sin ningún efecto.
-    saltSecret?: string;
   };
   google?: {
     googleId?: string;
@@ -52,7 +49,6 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
         unique: true,
       },
       password: String,
-      saltSecret: String,
     },
     google: {
       googleId: {
