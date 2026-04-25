@@ -18,11 +18,12 @@ export async function connectDatabase(uri: string): Promise<void> {
       console.warn('⚠️ MongoDB disconnected');
     });
 
-    // TODO: Add graceful shutdown handler
-    // process.on('SIGINT', async () => {
-    //   await mongoose.connection.close();
-    //   process.exit(0);
-    // });
+    // DONE: Add graceful shutdown handler
+    process.on('SIGINT', async () => {
+      await mongoose.connection.close();
+      process.exit(0);
+    });
+
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error);
     process.exit(1);

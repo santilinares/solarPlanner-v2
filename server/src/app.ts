@@ -16,12 +16,9 @@ export function createApp(): Application {
   // CORS middleware
   app.use(corsMiddleware);
 
-  // Body parsing middleware
-  // TODO - [SEVERIDAD BAJA] Sin límite de tamaño en el body JSON. Un atacante podría enviar payloads
-  // muy grandes (especialmente en /projects/estimate que acepta polígonos públicamente sin auth).
-  // Añadir: express.json({ limit: '100kb' }) y express.urlencoded({ extended: true, limit: '100kb' })
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
   // Health check endpoint
   app.get('/health', (_req: Request, res: Response) => {
