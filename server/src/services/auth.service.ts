@@ -237,15 +237,15 @@ export class AuthService {
    * @returns New tokens and user
    */
   async refreshTokens(refreshToken: string): Promise<AuthResponse> {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error('JWT_SECRET not configured');
+    const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!refreshSecret) {
+      throw new Error('REFRESH_TOKEN_SECRET not configured');
     }
 
     // Verify refresh token
     let decoded;
     try {
-      decoded = verifyRefreshToken(refreshToken, secret);
+      decoded = verifyRefreshToken(refreshToken, refreshSecret);
     } catch (error) {
       throw new AppError(401, 'Invalid or expired refresh token');
     }

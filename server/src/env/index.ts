@@ -29,12 +29,8 @@ const envSchema = z.object({
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   SOLCAST_API_KEY: z.string().optional(),
 
-  // Refresh tokens (deferred - optional)
-  // TODO - [SEVERIDAD BAJA] REFRESH_TOKEN_SECRET está definido aquí pero nunca se usa: tanto el access token
-  // como el refresh token se firman con JWT_SECRET. Si el secreto se compromete, ambos tokens quedan expuestos.
-  // Usar REFRESH_TOKEN_SECRET para firmar el refresh token de forma independiente.
-  REFRESH_TOKEN_SECRET: z.string().optional(),
-  REFRESH_TOKEN_EXP: z.string().optional(),
+  REFRESH_TOKEN_SECRET: z.string().min(32, 'Refresh token secret must be at least 32 characters'),
+  REFRESH_TOKEN_EXP: z.string().default('7d'),
 });
 
 export type Env = z.infer<typeof envSchema>;

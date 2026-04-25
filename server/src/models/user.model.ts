@@ -135,11 +135,11 @@ UserSchema.method('generateJwt', function (): string {
  * Generate refresh token for user
  */
 UserSchema.method('generateRefreshToken', function (): string {
-  const secret = process.env.JWT_SECRET;
-  const expiresIn = process.env.JWT_REFRESH_EXP || '7d';
+  const secret = process.env.REFRESH_TOKEN_SECRET;
+  const expiresIn = process.env.REFRESH_TOKEN_EXP || '7d';
 
   if (!secret) {
-    throw new Error('JWT_SECRET not configured');
+    throw new Error('REFRESH_TOKEN_SECRET not configured');
   }
 
   return generateRefreshToken(
