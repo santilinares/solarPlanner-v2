@@ -56,6 +56,7 @@ export interface IProject {
   nextProd?: IProductionPoint[]; // Forecast production data
   previousProd?: IProductionPoint[]; // Historical production data
   totalProd?: number; // Accumulated total production since install (kWh)
+  lastRefreshedAt?: Date; // Timestamp of the last successful nightly production refresh
   installDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -139,6 +140,7 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
       default: 0,
       min: 0,
     },
+    lastRefreshedAt: { type: Date },
     installDate: {
       type: Date,
       default: Date.now,

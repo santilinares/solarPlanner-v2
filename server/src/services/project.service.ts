@@ -869,6 +869,7 @@ export class ProjectService {
       prodToday: production.prodToday,
       nextProd: production.nextProd,
       previousProd: production.previousProd,
+      lastRefreshedAt: new Date(),
       $inc: { totalProd: todaySum },
     });
 
