@@ -10,7 +10,7 @@ import {
   UserChangePasswordInput,
   PasswordResetRequestInput,
   PasswordResetApplyInput,
-  UserQueryInput,
+  UserQuerySchema,
   UserUpdateRoleInput,
   GoogleAuthInput,
 } from '../schemas/user.schema';
@@ -67,7 +67,8 @@ export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Resp
  * @access  Private (Admin)
  */
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await userService.listUsers(req.query as UserQueryInput);
+  const filters = UserQuerySchema.parse(req.query);
+  const users = await userService.listUsers(filters);
   return success(res, users);
 });
 

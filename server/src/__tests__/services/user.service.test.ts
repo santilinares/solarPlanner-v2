@@ -175,18 +175,24 @@ describe('UserService', () => {
     };
 
     it('returns list with projectCount', async () => {
-      mockAggregate.mockResolvedValueOnce([aggregateRow]);
+      mockAggregate.mockResolvedValueOnce([
+        { data: [aggregateRow], totalCount: [{ count: 1 }] },
+      ]);
 
-      const result = await service.listUsers({});
+      const result = await service.listUsers({ page: 1, limit: 20 });
 
       expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
       expect(result.users[0].projectCount).toBe(3);
     });
 
     it('returns empty list when no users match', async () => {
-      mockAggregate.mockResolvedValueOnce([]);
+      mockAggregate.mockResolvedValueOnce([
+        { data: [], totalCount: [] },
+      ]);
 
-      const result = await service.listUsers({ role: 'admin' });
+      const result = await service.listUsers({ role: 'admin', page: 1, limit: 20 });
 
       expect(result.total).toBe(0);
       expect(result.users).toHaveLength(0);

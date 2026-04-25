@@ -137,11 +137,14 @@ export class UserService {
       ];
     }
 
-    // TODO - Sin paginación: el aggregate devuelve todos los usuarios de golpe sin $limit ni $skip.
-    // Con muchos usuarios esto puede ser lento y consumir mucha memoria. Añadir paginación al pipeline.
-    const aggregateResult = await UserModel.aggregate<
-      IUser & { _id: import('mongoose').Types.ObjectId; projectCount: number }
-    >([
+    const page: number = filters.page ?? 1;
+    const limit: number = filters.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    type UserWithCount = IUser & { _id: import('mongoose').Types.ObjectId; projectCount: number };
+    type FacetResult = { data: UserWithCount[]; totalCount: { count: number }[] };
+
+    const raw = await UserModel.aggregate([
       { $match: query },
       { $sort: { createdAt: -1 } },
       {
@@ -154,19 +157,30 @@ export class UserService {
       },
       { $addFields: { projectCount: { $size: '$_projects' } } },
       { $project: { _projects: 0 } },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
     ]);
 
+    const facet = raw[0] as FacetResult;
+    const total = facet.totalCount[0]?.count ?? 0;
+
     return {
-      users: aggregateResult.map((u) => ({
+      users: facet.data.map((u) => ({
         _id: u._id.toString(),
         fullName: u.fullName,
         email: u.method === 'local' ? u.local?.email : u.google?.email,
         role: u.role,
         method: u.method,
-        createdAt: (u.createdAt as Date).toISOString(),
+        createdAt: u.createdAt.toISOString(),
         projectCount: u.projectCount,
       })),
-      total: aggregateResult.length,
+      total,
+      page,
+      limit,
     };
   }
 
