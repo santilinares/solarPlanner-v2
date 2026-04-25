@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
-import { success, created } from '../utils/response';
+import { success, created, forbidden } from '../utils/response';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import {
@@ -107,9 +107,9 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response) =
  * @access  Private (Self or Admin)
  */
 export const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  // TODO - [SEVERIDAD ALTA] Sin verificación de ownership: cualquier usuario autenticado puede modificar
-  // el perfil de otro usuario si conoce su ID, ya que se usa req.params.id sin comparar con req.userId.
-  // Añadir: if (req.userRole !== 'admin' && req.userId !== req.params.id) return forbidden(res, ...)
+  if (req.userRole !== 'admin' && req.userId !== req.params.id) {
+    return forbidden(res, 'Not authorized to update this profile');
+  }
   const user = await userService.updateProfile(req.params.id, req.body as UserUpdateProfileInput);
   return success(res, user, 'Profile updated successfully');
 });
@@ -120,9 +120,9 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
  * @access  Private (Self)
  */
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
-  // TODO - [SEVERIDAD ALTA] Sin verificación de ownership: cualquier usuario autenticado puede intentar
-  // cambiar la contraseña de otro usuario usando su ID. La ruta está marcada como "Self" pero no se enforce.
-  // Añadir: if (req.userId !== req.params.id) return forbidden(res, 'Not authorized')
+  if (req.userId !== req.params.id) {
+    return forbidden(res, 'Not authorized to change this password');
+  }
   const { currentPassword, newPassword } = req.body as UserChangePasswordInput;
   await userService.changePassword(req.params.id, currentPassword, newPassword);
   return success(res, null, 'Password changed successfully');
