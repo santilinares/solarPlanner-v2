@@ -327,10 +327,10 @@ export class ProjectService {
       throw new Error('Not authorized');
     }
 
-    const geo = calculateGeospatialFields(data.area);
+    const geo = data.area ? calculateGeospatialFields(data.area) : {};
     const updated = await ProjectModel.findByIdAndUpdate(
       projectId,
-      { ...data, lat: geo.lat, lon: geo.lon, surface: geo.surface },
+      { ...data, ...geo },
       { new: true }
     );
     

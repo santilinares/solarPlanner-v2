@@ -88,10 +88,7 @@ export const ProjectUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().max(500).optional(),
   projectType: z.enum(['roof', 'agrivoltaic']).optional(),
-  // TODO - [SEVERIDAD MEDIA] area es obligatoria en el update aunque no debería: cualquier actualización parcial
-  // (cambiar solo nombre o inclinación) obliga a enviar todo el polígono. Añadir .optional() para consistencia
-  // con el resto de campos. El frontend ya envía el área siempre, pero es un contrato de API innecesariamente estricto.
-  area: z.array(GeoPointSchema).min(3),
+  area: z.array(GeoPointSchema).min(3).optional(),
   tilt: z.number().min(0).max(90).optional(),
   direction: z.string().min(1).optional(),
   azimuth: z.number().min(0).max(360).optional(),
