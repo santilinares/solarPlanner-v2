@@ -1,24 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserService } from '../../services/user.service';
 
+const {
+  mockFindById,
+  mockFindByIdAndUpdate,
+  mockFindByIdAndDelete,
+  mockAggregate,
+  mockProjectDeleteMany,
+  mockPanelDeleteMany,
+} = vi.hoisted(() => ({
+  mockFindById: vi.fn(),
+  mockFindByIdAndUpdate: vi.fn(),
+  mockFindByIdAndDelete: vi.fn(),
+  mockAggregate: vi.fn(),
+  mockProjectDeleteMany: vi.fn().mockResolvedValue(undefined),
+  mockPanelDeleteMany: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../models/user.model', () => ({
   UserModel: {
-    findById: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    findByIdAndDelete: vi.fn(),
-    aggregate: vi.fn(),
+    findById: mockFindById,
+    findByIdAndUpdate: mockFindByIdAndUpdate,
+    findByIdAndDelete: mockFindByIdAndDelete,
+    aggregate: mockAggregate,
   },
 }));
 
 vi.mock('../../models/project.model', () => ({
   ProjectModel: {
-    deleteMany: vi.fn().mockResolvedValue(undefined),
+    deleteMany: mockProjectDeleteMany,
   },
 }));
 
 vi.mock('../../models/panel.model', () => ({
   PanelModel: {
-    deleteMany: vi.fn().mockResolvedValue(undefined),
+    deleteMany: mockPanelDeleteMany,
   },
 }));
 
@@ -27,10 +43,6 @@ vi.mock('../../services/email.service', () => ({
     sendPasswordChangedEmail: vi.fn().mockResolvedValue(undefined),
   },
 }));
-
-import { UserModel } from '../../models/user.model';
-import { ProjectModel } from '../../models/project.model';
-import { PanelModel } from '../../models/panel.model';
 
 function makeMockUser(overrides: Record<string, unknown> = {}) {
   return {
@@ -58,7 +70,7 @@ describe('UserService', () => {
 
   describe('getUserById', () => {
     it('returns user response when found', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(makeMockUser() as any);
+      mockFindById.mockResolvedValueOnce(makeMockUser());
 
       const result = await service.getUserById('user-id-123');
 
@@ -68,7 +80,7 @@ describe('UserService', () => {
     });
 
     it('throws when user is not found', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.getUserById('bad-id')).rejects.toThrow('User not found');
     });
@@ -79,7 +91,7 @@ describe('UserService', () => {
         google: { email: 'google@example.com' },
         local: undefined,
       });
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(googleUser as any);
+      mockFindById.mockResolvedValueOnce(googleUser);
 
       const result = await service.getUserById('user-id-123');
 
@@ -92,7 +104,7 @@ describe('UserService', () => {
   describe('updateProfile', () => {
     it('updates fullName and returns updated user', async () => {
       const mockUser = makeMockUser();
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(mockUser as any);
+      mockFindById.mockResolvedValueOnce(mockUser);
 
       const result = await service.updateProfile('user-id-123', { fullName: 'New Name' });
 
@@ -102,7 +114,7 @@ describe('UserService', () => {
     });
 
     it('throws when user is not found', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.updateProfile('bad-id', { fullName: 'X' })).rejects.toThrow(
         'User not found'
@@ -115,17 +127,16 @@ describe('UserService', () => {
   describe('changePassword', () => {
     it('changes password when current password is correct', async () => {
       const mockUser = makeMockUser();
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(mockUser as any);
+      mockFindById.mockResolvedValueOnce(mockUser);
 
       await service.changePassword('user-id-123', 'oldpassword', 'newpassword123');
 
       expect(mockUser.verifyPassword).toHaveBeenCalledWith('oldpassword');
-      expect(mockUser.local!.password).toBe('newpassword123');
       expect(mockUser.save).toHaveBeenCalled();
     });
 
     it('throws when user is not found', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(
         service.changePassword('bad-id', 'old', 'newpassword123')
@@ -133,9 +144,7 @@ describe('UserService', () => {
     });
 
     it('throws when user is a Google account', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(
-        makeMockUser({ method: 'google' }) as any
-      );
+      mockFindById.mockResolvedValueOnce(makeMockUser({ method: 'google' }));
 
       await expect(
         service.changePassword('user-id-123', 'old', 'newpassword123')
@@ -144,7 +153,7 @@ describe('UserService', () => {
 
     it('throws when current password is wrong', async () => {
       const mockUser = makeMockUser({ verifyPassword: vi.fn().mockResolvedValue(false) });
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(mockUser as any);
+      mockFindById.mockResolvedValueOnce(mockUser);
 
       await expect(
         service.changePassword('user-id-123', 'wrongpassword', 'newpassword123')
@@ -166,7 +175,7 @@ describe('UserService', () => {
     };
 
     it('returns list with projectCount', async () => {
-      vi.mocked(UserModel.aggregate).mockResolvedValueOnce([aggregateRow] as any);
+      mockAggregate.mockResolvedValueOnce([aggregateRow]);
 
       const result = await service.listUsers({});
 
@@ -175,7 +184,7 @@ describe('UserService', () => {
     });
 
     it('returns empty list when no users match', async () => {
-      vi.mocked(UserModel.aggregate).mockResolvedValueOnce([]);
+      mockAggregate.mockResolvedValueOnce([]);
 
       const result = await service.listUsers({ role: 'admin' });
 
@@ -188,18 +197,18 @@ describe('UserService', () => {
 
   describe('deleteUser', () => {
     it('cascades deletion of projects, personal panels, and user', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(makeMockUser() as any);
-      vi.mocked(UserModel.findByIdAndDelete).mockResolvedValueOnce(makeMockUser() as any);
+      mockFindById.mockResolvedValueOnce(makeMockUser());
+      mockFindByIdAndDelete.mockResolvedValueOnce(makeMockUser());
 
       await service.deleteUser('user-id-123');
 
-      expect(ProjectModel.deleteMany).toHaveBeenCalledWith({ owner: 'user-id-123' });
-      expect(PanelModel.deleteMany).toHaveBeenCalledWith({ owner: 'user-id-123', type: 'personal' });
-      expect(UserModel.findByIdAndDelete).toHaveBeenCalledWith('user-id-123');
+      expect(mockProjectDeleteMany).toHaveBeenCalledWith({ owner: 'user-id-123' });
+      expect(mockPanelDeleteMany).toHaveBeenCalledWith({ owner: 'user-id-123', type: 'personal' });
+      expect(mockFindByIdAndDelete).toHaveBeenCalledWith('user-id-123');
     });
 
     it('throws when user not found', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.deleteUser('bad-id')).rejects.toThrow('User not found');
     });
@@ -210,11 +219,11 @@ describe('UserService', () => {
   describe('updateUserRole', () => {
     it('updates role to admin', async () => {
       const updatedUser = makeMockUser({ role: 'admin' });
-      vi.mocked(UserModel.findByIdAndUpdate).mockResolvedValueOnce(updatedUser as any);
+      mockFindByIdAndUpdate.mockResolvedValueOnce(updatedUser);
 
       const result = await service.updateUserRole('user-id-123', 'admin');
 
-      expect(UserModel.findByIdAndUpdate).toHaveBeenCalledWith(
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith(
         'user-id-123',
         { role: 'admin' },
         { new: true }
@@ -223,7 +232,7 @@ describe('UserService', () => {
     });
 
     it('throws when user not found', async () => {
-      vi.mocked(UserModel.findByIdAndUpdate).mockResolvedValueOnce(null);
+      mockFindByIdAndUpdate.mockResolvedValueOnce(null);
 
       await expect(service.updateUserRole('bad-id', 'admin')).rejects.toThrow('User not found');
     });

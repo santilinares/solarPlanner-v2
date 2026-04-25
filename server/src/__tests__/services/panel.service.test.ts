@@ -1,18 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PanelService } from '../../services/panel.service';
 
-vi.mock('../../models/panel.model', () => ({
-  PanelModel: {
-    create: vi.fn(),
-    findById: vi.fn(),
-    find: vi.fn(),
-    countDocuments: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    findByIdAndDelete: vi.fn(),
-  },
+const {
+  mockCreate,
+  mockFindById,
+  mockFind,
+  mockCountDocuments,
+  mockFindByIdAndUpdate,
+  mockFindByIdAndDelete,
+} = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  mockFindById: vi.fn(),
+  mockFind: vi.fn(),
+  mockCountDocuments: vi.fn(),
+  mockFindByIdAndUpdate: vi.fn(),
+  mockFindByIdAndDelete: vi.fn(),
 }));
 
-import { PanelModel } from '../../models/panel.model';
+vi.mock('../../models/panel.model', () => ({
+  PanelModel: {
+    create: mockCreate,
+    findById: mockFindById,
+    find: mockFind,
+    countDocuments: mockCountDocuments,
+    findByIdAndUpdate: mockFindByIdAndUpdate,
+    findByIdAndDelete: mockFindByIdAndDelete,
+  },
+}));
 
 function makeMockPanel(overrides: Record<string, unknown> = {}) {
   return {
@@ -38,11 +52,10 @@ function makeMockPanel(overrides: Record<string, unknown> = {}) {
 
 // PanelModel.find returns a chainable object ending with resolved panel array
 function mockFindChain(panels: ReturnType<typeof makeMockPanel>[]) {
-  const chain = {
+  return {
     populate: vi.fn().mockReturnThis(),
     sort: vi.fn().mockResolvedValue(panels),
   };
-  return chain;
 }
 
 describe('PanelService', () => {
@@ -58,7 +71,7 @@ describe('PanelService', () => {
   describe('createPanel', () => {
     it('creates a personal panel with owner set', async () => {
       const mockPanel = makeMockPanel({ type: 'personal', owner: { toString: () => 'user-id-123' } });
-      vi.mocked(PanelModel.create).mockResolvedValueOnce(mockPanel as any);
+      mockCreate.mockResolvedValueOnce(mockPanel);
 
       const result = await service.createPanel('user-id-123', {
         brand: 'SunPower',
@@ -72,7 +85,7 @@ describe('PanelService', () => {
         temperatureCoefficient: 0,
       });
 
-      expect(PanelModel.create).toHaveBeenCalledWith(
+      expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'personal', owner: 'user-id-123' })
       );
       expect(result.type).toBe('personal');
@@ -80,7 +93,7 @@ describe('PanelService', () => {
 
     it('creates a global panel without an owner', async () => {
       const mockPanel = makeMockPanel({ type: 'global', owner: undefined });
-      vi.mocked(PanelModel.create).mockResolvedValueOnce(mockPanel as any);
+      mockCreate.mockResolvedValueOnce(mockPanel);
 
       await service.createPanel('user-id-123', {
         brand: 'SunPower',
@@ -94,7 +107,7 @@ describe('PanelService', () => {
         temperatureCoefficient: 0,
       });
 
-      expect(PanelModel.create).toHaveBeenCalledWith(
+      expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'global', owner: undefined })
       );
     });
@@ -105,9 +118,9 @@ describe('PanelService', () => {
   describe('getPanelById', () => {
     it('returns panel when found', async () => {
       const mockPanel = makeMockPanel();
-      vi.mocked(PanelModel.findById).mockReturnValueOnce({
+      mockFindById.mockReturnValueOnce({
         populate: vi.fn().mockResolvedValue(mockPanel),
-      } as any);
+      });
 
       const result = await service.getPanelById('panel-id-123');
 
@@ -116,9 +129,9 @@ describe('PanelService', () => {
     });
 
     it('throws when panel not found', async () => {
-      vi.mocked(PanelModel.findById).mockReturnValueOnce({
+      mockFindById.mockReturnValueOnce({
         populate: vi.fn().mockResolvedValue(null),
-      } as any);
+      });
 
       await expect(service.getPanelById('bad-id')).rejects.toThrow('Panel not found');
     });
@@ -129,22 +142,22 @@ describe('PanelService', () => {
   describe('listPanels', () => {
     it('returns global + personal panels for a user when no owner filter', async () => {
       const panels = [makeMockPanel(), makeMockPanel({ type: 'personal' })];
-      vi.mocked(PanelModel.find).mockReturnValueOnce(mockFindChain(panels) as any);
-      vi.mocked(PanelModel.countDocuments).mockResolvedValueOnce(2);
+      mockFind.mockReturnValueOnce(mockFindChain(panels));
+      mockCountDocuments.mockResolvedValueOnce(2);
 
       const result = await service.listPanels({}, 'user-id-123');
 
-      expect(PanelModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ $or: expect.any(Array) })
-      );
+      expect(mockFind).toHaveBeenCalledWith({
+        $or: [{ type: 'global' }, { type: 'personal', owner: 'user-id-123' }],
+      });
       expect(result.total).toBe(2);
     });
 
     it('returns single panel when id filter is provided', async () => {
       const mockPanel = makeMockPanel();
-      vi.mocked(PanelModel.findById).mockReturnValueOnce({
+      mockFindById.mockReturnValueOnce({
         populate: vi.fn().mockResolvedValue(mockPanel),
-      } as any);
+      });
 
       const result = await service.listPanels({ id: 'panel-id-123' });
 
@@ -153,12 +166,12 @@ describe('PanelService', () => {
     });
 
     it('applies technology filter when provided', async () => {
-      vi.mocked(PanelModel.find).mockReturnValueOnce(mockFindChain([makeMockPanel()]) as any);
-      vi.mocked(PanelModel.countDocuments).mockResolvedValueOnce(1);
+      mockFind.mockReturnValueOnce(mockFindChain([makeMockPanel()]));
+      mockCountDocuments.mockResolvedValueOnce(1);
 
       await service.listPanels({ technology: 'Monocrystalline' });
 
-      expect(PanelModel.find).toHaveBeenCalledWith(
+      expect(mockFind).toHaveBeenCalledWith(
         expect.objectContaining({ technology: 'Monocrystalline' })
       );
     });
@@ -170,8 +183,8 @@ describe('PanelService', () => {
     it('allows admin to update a global panel', async () => {
       const globalPanel = makeMockPanel({ type: 'global' });
       const updatedPanel = makeMockPanel({ wattPeak: 400 });
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(globalPanel as any);
-      vi.mocked(PanelModel.findByIdAndUpdate).mockResolvedValueOnce(updatedPanel as any);
+      mockFindById.mockResolvedValueOnce(globalPanel);
+      mockFindByIdAndUpdate.mockResolvedValueOnce(updatedPanel);
 
       const result = await service.updatePanel('panel-id-123', { wattPeak: 400 }, 'admin-id', true);
 
@@ -179,7 +192,7 @@ describe('PanelService', () => {
     });
 
     it('throws when non-admin tries to update a global panel', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(makeMockPanel({ type: 'global' }) as any);
+      mockFindById.mockResolvedValueOnce(makeMockPanel({ type: 'global' }));
 
       await expect(
         service.updatePanel('panel-id-123', { wattPeak: 400 }, 'user-id-123', false)
@@ -192,8 +205,8 @@ describe('PanelService', () => {
         owner: { toString: () => 'user-id-123' },
       });
       const updatedPanel = makeMockPanel({ wattPeak: 400, type: 'personal' });
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(personalPanel as any);
-      vi.mocked(PanelModel.findByIdAndUpdate).mockResolvedValueOnce(updatedPanel as any);
+      mockFindById.mockResolvedValueOnce(personalPanel);
+      mockFindByIdAndUpdate.mockResolvedValueOnce(updatedPanel);
 
       await expect(
         service.updatePanel('panel-id-123', { wattPeak: 400 }, 'user-id-123', false)
@@ -205,7 +218,7 @@ describe('PanelService', () => {
         type: 'personal',
         owner: { toString: () => 'other-user-id' },
       });
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(personalPanel as any);
+      mockFindById.mockResolvedValueOnce(personalPanel);
 
       await expect(
         service.updatePanel('panel-id-123', { wattPeak: 400 }, 'user-id-123', false)
@@ -213,7 +226,7 @@ describe('PanelService', () => {
     });
 
     it('throws when panel not found', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(
         service.updatePanel('bad-id', {}, 'user-id-123', false)
@@ -225,15 +238,15 @@ describe('PanelService', () => {
 
   describe('deletePanel', () => {
     it('allows admin to delete a global panel', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(makeMockPanel({ type: 'global' }) as any);
-      vi.mocked(PanelModel.findByIdAndDelete).mockResolvedValueOnce({} as any);
+      mockFindById.mockResolvedValueOnce(makeMockPanel({ type: 'global' }));
+      mockFindByIdAndDelete.mockResolvedValueOnce({});
 
       await expect(service.deletePanel('panel-id-123', 'admin-id', true)).resolves.toBeUndefined();
-      expect(PanelModel.findByIdAndDelete).toHaveBeenCalledWith('panel-id-123');
+      expect(mockFindByIdAndDelete).toHaveBeenCalledWith('panel-id-123');
     });
 
     it('throws when non-admin tries to delete a global panel', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(makeMockPanel({ type: 'global' }) as any);
+      mockFindById.mockResolvedValueOnce(makeMockPanel({ type: 'global' }));
 
       await expect(service.deletePanel('panel-id-123', 'user-id-123', false)).rejects.toThrow(
         'Only admins can delete global panels'
@@ -241,17 +254,17 @@ describe('PanelService', () => {
     });
 
     it('allows owner to delete their personal panel', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(
-        makeMockPanel({ type: 'personal', owner: { toString: () => 'user-id-123' } }) as any
+      mockFindById.mockResolvedValueOnce(
+        makeMockPanel({ type: 'personal', owner: { toString: () => 'user-id-123' } })
       );
-      vi.mocked(PanelModel.findByIdAndDelete).mockResolvedValueOnce({} as any);
+      mockFindByIdAndDelete.mockResolvedValueOnce({});
 
       await expect(service.deletePanel('panel-id-123', 'user-id-123', false)).resolves.toBeUndefined();
     });
 
     it('throws when non-owner tries to delete a personal panel', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(
-        makeMockPanel({ type: 'personal', owner: { toString: () => 'other-user-id' } }) as any
+      mockFindById.mockResolvedValueOnce(
+        makeMockPanel({ type: 'personal', owner: { toString: () => 'other-user-id' } })
       );
 
       await expect(service.deletePanel('panel-id-123', 'user-id-123', false)).rejects.toThrow(
@@ -260,7 +273,7 @@ describe('PanelService', () => {
     });
 
     it('throws when panel not found', async () => {
-      vi.mocked(PanelModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.deletePanel('bad-id', 'user-id-123', false)).rejects.toThrow(
         'Panel not found'

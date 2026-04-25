@@ -1,18 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CultivarService } from '../../services/cultivar.service';
 
-vi.mock('../../models/cultivar.model', () => ({
-  CultivarModel: {
-    create: vi.fn(),
-    findById: vi.fn(),
-    find: vi.fn(),
-    countDocuments: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
-    findByIdAndDelete: vi.fn(),
-  },
+const {
+  mockCreate,
+  mockFindById,
+  mockFind,
+  mockCountDocuments,
+  mockFindByIdAndUpdate,
+  mockFindByIdAndDelete,
+} = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  mockFindById: vi.fn(),
+  mockFind: vi.fn(),
+  mockCountDocuments: vi.fn(),
+  mockFindByIdAndUpdate: vi.fn(),
+  mockFindByIdAndDelete: vi.fn(),
 }));
 
-import { CultivarModel } from '../../models/cultivar.model';
+vi.mock('../../models/cultivar.model', () => ({
+  CultivarModel: {
+    create: mockCreate,
+    findById: mockFindById,
+    find: mockFind,
+    countDocuments: mockCountDocuments,
+    findByIdAndUpdate: mockFindByIdAndUpdate,
+    findByIdAndDelete: mockFindByIdAndDelete,
+  },
+}));
 
 function makeMockCultivar(overrides: Record<string, unknown> = {}) {
   return {
@@ -31,7 +45,6 @@ function makeMockCultivar(overrides: Record<string, unknown> = {}) {
   };
 }
 
-// CultivarModel.find returns a chainable object
 function mockFindChain(cultivars: ReturnType<typeof makeMockCultivar>[]) {
   return {
     sort: vi.fn().mockReturnThis(),
@@ -52,8 +65,7 @@ describe('CultivarService', () => {
 
   describe('createCultivar', () => {
     it('creates and returns a cultivar', async () => {
-      const mockCultivar = makeMockCultivar();
-      vi.mocked(CultivarModel.create).mockResolvedValueOnce(mockCultivar as any);
+      mockCreate.mockResolvedValueOnce(makeMockCultivar());
 
       const result = await service.createCultivar({
         name: 'Wheat',
@@ -75,7 +87,7 @@ describe('CultivarService', () => {
 
   describe('getCultivarById', () => {
     it('returns cultivar when found', async () => {
-      vi.mocked(CultivarModel.findById).mockResolvedValueOnce(makeMockCultivar() as any);
+      mockFindById.mockResolvedValueOnce(makeMockCultivar());
 
       const result = await service.getCultivarById('cultivar-id-123');
 
@@ -84,7 +96,7 @@ describe('CultivarService', () => {
     });
 
     it('throws when cultivar not found', async () => {
-      vi.mocked(CultivarModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.getCultivarById('bad-id')).rejects.toThrow('Cultivar not found');
     });
@@ -95,8 +107,8 @@ describe('CultivarService', () => {
   describe('listCultivars', () => {
     it('returns paginated list with defaults (page 1, limit 20)', async () => {
       const cultivars = [makeMockCultivar()];
-      vi.mocked(CultivarModel.find).mockReturnValueOnce(mockFindChain(cultivars) as any);
-      vi.mocked(CultivarModel.countDocuments).mockResolvedValueOnce(1);
+      mockFind.mockReturnValueOnce(mockFindChain(cultivars));
+      mockCountDocuments.mockResolvedValueOnce(1);
 
       const result = await service.listCultivars({ page: 1, limit: 20 });
 
@@ -108,8 +120,8 @@ describe('CultivarService', () => {
     });
 
     it('calculates totalPages correctly', async () => {
-      vi.mocked(CultivarModel.find).mockReturnValueOnce(mockFindChain([]) as any);
-      vi.mocked(CultivarModel.countDocuments).mockResolvedValueOnce(45);
+      mockFind.mockReturnValueOnce(mockFindChain([]));
+      mockCountDocuments.mockResolvedValueOnce(45);
 
       const result = await service.listCultivars({ page: 1, limit: 20 });
 
@@ -117,31 +129,31 @@ describe('CultivarService', () => {
     });
 
     it('applies category filter', async () => {
-      vi.mocked(CultivarModel.find).mockReturnValueOnce(mockFindChain([]) as any);
-      vi.mocked(CultivarModel.countDocuments).mockResolvedValueOnce(0);
+      mockFind.mockReturnValueOnce(mockFindChain([]));
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await service.listCultivars({ category: 'vegetable', page: 1, limit: 20 });
 
-      expect(CultivarModel.find).toHaveBeenCalledWith(
+      expect(mockFind).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'vegetable' })
       );
     });
 
     it('applies text search filter', async () => {
-      vi.mocked(CultivarModel.find).mockReturnValueOnce(mockFindChain([]) as any);
-      vi.mocked(CultivarModel.countDocuments).mockResolvedValueOnce(0);
+      mockFind.mockReturnValueOnce(mockFindChain([]));
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await service.listCultivars({ search: 'wheat', page: 1, limit: 20 });
 
-      expect(CultivarModel.find).toHaveBeenCalledWith(
+      expect(mockFind).toHaveBeenCalledWith(
         expect.objectContaining({ $text: { $search: 'wheat' } })
       );
     });
 
     it('applies correct skip for page 2', async () => {
       const chain = mockFindChain([]);
-      vi.mocked(CultivarModel.find).mockReturnValueOnce(chain as any);
-      vi.mocked(CultivarModel.countDocuments).mockResolvedValueOnce(0);
+      mockFind.mockReturnValueOnce(chain);
+      mockCountDocuments.mockResolvedValueOnce(0);
 
       await service.listCultivars({ page: 2, limit: 10 });
 
@@ -154,11 +166,11 @@ describe('CultivarService', () => {
   describe('updateCultivar', () => {
     it('updates and returns the cultivar', async () => {
       const updatedCultivar = makeMockCultivar({ name: 'Barley' });
-      vi.mocked(CultivarModel.findByIdAndUpdate).mockResolvedValueOnce(updatedCultivar as any);
+      mockFindByIdAndUpdate.mockResolvedValueOnce(updatedCultivar);
 
       const result = await service.updateCultivar('cultivar-id-123', { name: 'Barley' });
 
-      expect(CultivarModel.findByIdAndUpdate).toHaveBeenCalledWith(
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith(
         'cultivar-id-123',
         { name: 'Barley' },
         { new: true }
@@ -167,7 +179,7 @@ describe('CultivarService', () => {
     });
 
     it('throws when cultivar not found', async () => {
-      vi.mocked(CultivarModel.findByIdAndUpdate).mockResolvedValueOnce(null);
+      mockFindByIdAndUpdate.mockResolvedValueOnce(null);
 
       await expect(service.updateCultivar('bad-id', { name: 'Barley' })).rejects.toThrow(
         'Cultivar not found'
@@ -179,14 +191,14 @@ describe('CultivarService', () => {
 
   describe('deleteCultivar', () => {
     it('deletes an existing cultivar', async () => {
-      vi.mocked(CultivarModel.findByIdAndDelete).mockResolvedValueOnce(makeMockCultivar() as any);
+      mockFindByIdAndDelete.mockResolvedValueOnce(makeMockCultivar());
 
       await expect(service.deleteCultivar('cultivar-id-123')).resolves.toBeUndefined();
-      expect(CultivarModel.findByIdAndDelete).toHaveBeenCalledWith('cultivar-id-123');
+      expect(mockFindByIdAndDelete).toHaveBeenCalledWith('cultivar-id-123');
     });
 
     it('throws when cultivar not found', async () => {
-      vi.mocked(CultivarModel.findByIdAndDelete).mockResolvedValueOnce(null);
+      mockFindByIdAndDelete.mockResolvedValueOnce(null);
 
       await expect(service.deleteCultivar('bad-id')).rejects.toThrow('Cultivar not found');
     });

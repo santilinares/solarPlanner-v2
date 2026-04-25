@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // vi.hoisted ensures these mocks are available inside the vi.mock factory (which is hoisted)
-const { mockJobCancel, mockScheduleJob } = vi.hoisted(() => {
+const { mockJobCancel, mockScheduleJob, mockRefreshProductionData, mockProjectFind } = vi.hoisted(() => {
   const mockJobCancel = vi.fn();
   const mockScheduleJob = vi.fn().mockReturnValue({ cancel: mockJobCancel });
-  return { mockJobCancel, mockScheduleJob };
+  const mockRefreshProductionData = vi.fn().mockResolvedValue(undefined);
+  const mockProjectFind = vi.fn();
+  return { mockJobCancel, mockScheduleJob, mockRefreshProductionData, mockProjectFind };
 });
 
 vi.mock('node-schedule', () => ({
@@ -15,19 +17,24 @@ vi.mock('node-schedule', () => ({
 
 vi.mock('../../models/project.model', () => ({
   ProjectModel: {
-    find: vi.fn(),
+    find: mockProjectFind,
   },
 }));
 
 vi.mock('../../services/project.service', () => ({
   projectService: {
-    refreshProductionData: vi.fn().mockResolvedValue(undefined),
+    refreshProductionData: mockRefreshProductionData,
   },
 }));
 
-import { ProjectModel } from '../../models/project.model';
-import { projectService } from '../../services/project.service';
 import mongoose from 'mongoose';
+import type { IProject } from '../../models/project.model';
+
+function mockFind(result: Partial<IProject>[]): void {
+  mockProjectFind.mockReturnValueOnce({
+    lean: vi.fn().mockResolvedValue(result),
+  });
+}
 
 import {
   scheduleProjectJob,
@@ -125,9 +132,7 @@ describe('initializeScheduler', () => {
       makeLeanProject({ lastRefreshedAt: new Date() }),
       makeLeanProject({ lastRefreshedAt: new Date() }),
     ];
-    vi.mocked(ProjectModel.find).mockReturnValueOnce({
-      lean: vi.fn().mockResolvedValue(projects),
-    } as any);
+    mockFind(projects);
 
     await initializeScheduler();
 
@@ -143,60 +148,52 @@ describe('initializeScheduler', () => {
       makeLeanProject({ lastRefreshedAt: yesterday }),        // stale → catch-up
       makeLeanProject({ lastRefreshedAt: todayUtcAt(4, 0) }), // refreshed at 04:00 → no catch-up
     ];
-    vi.mocked(ProjectModel.find).mockReturnValueOnce({
-      lean: vi.fn().mockResolvedValue(projects),
-    } as any);
+    mockFind(projects);
 
     await initializeScheduler();
 
     vi.useRealTimers();
 
-    expect(projectService.refreshProductionData).toHaveBeenCalledTimes(1);
+    expect(mockRefreshProductionData).toHaveBeenCalledTimes(1);
   });
 
   it('skips catch-up when server starts before 03:47 UTC today', async () => {
     vi.setSystemTime(todayUtcAt(2, 0));
 
     const projects = [makeLeanProject({ lastRefreshedAt: undefined })];
-    vi.mocked(ProjectModel.find).mockReturnValueOnce({
-      lean: vi.fn().mockResolvedValue(projects),
-    } as any);
+    mockFind(projects);
 
     await initializeScheduler();
 
     vi.useRealTimers();
 
-    expect(projectService.refreshProductionData).not.toHaveBeenCalled();
+    expect(mockRefreshProductionData).not.toHaveBeenCalled();
   });
 
   it('skips catch-up for projects already refreshed after today\'s 03:47', async () => {
     vi.setSystemTime(todayUtcAt(6, 0));
 
     const projects = [makeLeanProject({ lastRefreshedAt: todayUtcAt(4, 0) })];
-    vi.mocked(ProjectModel.find).mockReturnValueOnce({
-      lean: vi.fn().mockResolvedValue(projects),
-    } as any);
+    mockFind(projects);
 
     await initializeScheduler();
 
     vi.useRealTimers();
 
-    expect(projectService.refreshProductionData).not.toHaveBeenCalled();
+    expect(mockRefreshProductionData).not.toHaveBeenCalled();
   });
 
   it('runs catch-up for a project with no lastRefreshedAt after 03:47', async () => {
     vi.setSystemTime(todayUtcAt(5, 0));
 
     const projects = [makeLeanProject({ lastRefreshedAt: undefined })];
-    vi.mocked(ProjectModel.find).mockReturnValueOnce({
-      lean: vi.fn().mockResolvedValue(projects),
-    } as any);
+    mockFind(projects);
 
     await initializeScheduler();
 
     vi.useRealTimers();
 
-    expect(projectService.refreshProductionData).toHaveBeenCalledTimes(1);
+    expect(mockRefreshProductionData).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -211,7 +208,7 @@ describe('safeRefresh concurrent-lock (via scheduled job callback)', () => {
     const slowRefresh = new Promise<void>((res) => {
       resolveFirst = res;
     });
-    vi.mocked(projectService.refreshProductionData)
+    mockRefreshProductionData
       .mockReturnValueOnce(slowRefresh)
       .mockResolvedValue(undefined);
 
@@ -228,6 +225,6 @@ describe('safeRefresh concurrent-lock (via scheduled job callback)', () => {
     await first;
     await second;
 
-    expect(projectService.refreshProductionData).toHaveBeenCalledTimes(1);
+    expect(mockRefreshProductionData).toHaveBeenCalledTimes(1);
   });
 });

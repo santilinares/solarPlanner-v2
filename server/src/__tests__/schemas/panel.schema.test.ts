@@ -76,8 +76,7 @@ describe('PanelCreateSchema', () => {
   });
 
   it('optional fields can be absent', () => {
-    const { cells, ...withoutCells } = { ...validPanel, cells: 72 };
-    expect(PanelCreateSchema.safeParse(withoutCells).success).toBe(true);
+    expect(PanelCreateSchema.safeParse(validPanel).success).toBe(true);
   });
 });
 

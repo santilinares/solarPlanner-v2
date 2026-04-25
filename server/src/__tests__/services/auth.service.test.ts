@@ -4,28 +4,18 @@ import { AppError } from '../../middleware/error.middleware';
 
 // --- Mocks ---
 
-vi.mock('../../models/user.model', () => ({
-  UserModel: {
-    findOne: vi.fn(),
-    findById: vi.fn(),
-    create: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/email.service', () => ({
-  emailService: {
-    sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
-    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
-vi.mock('../../config/jwt.config', () => ({
-  generatePasswordResetToken: vi.fn().mockReturnValue('reset-token'),
-  verifyPasswordResetToken: vi.fn().mockReturnValue('user-id-123'),
-  verifyRefreshToken: vi.fn().mockReturnValue({ _id: 'user-id-123', role: 'user' }),
-}));
-
-const { mockVerifyIdToken, MockOAuth2Client } = vi.hoisted(() => {
+const {
+  mockFindOne,
+  mockFindById,
+  mockCreate,
+  mockSendWelcomeEmail,
+  mockSendPasswordResetEmail,
+  mockGeneratePasswordResetToken,
+  mockVerifyPasswordResetToken,
+  mockVerifyRefreshToken,
+  mockVerifyIdToken,
+  MockOAuth2Client,
+} = vi.hoisted(() => {
   const mockVerifyIdToken = vi.fn().mockResolvedValue({
     getPayload: () => ({
       sub: 'google-sub-123',
@@ -36,21 +26,44 @@ const { mockVerifyIdToken, MockOAuth2Client } = vi.hoisted(() => {
   const MockOAuth2Client = vi.fn(function (this: Record<string, unknown>) {
     this.verifyIdToken = mockVerifyIdToken;
   });
-  return { mockVerifyIdToken, MockOAuth2Client };
+  return {
+    mockFindOne: vi.fn(),
+    mockFindById: vi.fn(),
+    mockCreate: vi.fn(),
+    mockSendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
+    mockSendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+    mockGeneratePasswordResetToken: vi.fn().mockReturnValue('reset-token'),
+    mockVerifyPasswordResetToken: vi.fn().mockReturnValue('user-id-123'),
+    mockVerifyRefreshToken: vi.fn().mockReturnValue({ _id: 'user-id-123', role: 'user' }),
+    mockVerifyIdToken,
+    MockOAuth2Client,
+  };
 });
+
+vi.mock('../../models/user.model', () => ({
+  UserModel: {
+    findOne: mockFindOne,
+    findById: mockFindById,
+    create: mockCreate,
+  },
+}));
+
+vi.mock('../../services/email.service', () => ({
+  emailService: {
+    sendWelcomeEmail: mockSendWelcomeEmail,
+    sendPasswordResetEmail: mockSendPasswordResetEmail,
+  },
+}));
+
+vi.mock('../../config/jwt.config', () => ({
+  generatePasswordResetToken: mockGeneratePasswordResetToken,
+  verifyPasswordResetToken: mockVerifyPasswordResetToken,
+  verifyRefreshToken: mockVerifyRefreshToken,
+}));
 
 vi.mock('google-auth-library', () => ({
   OAuth2Client: MockOAuth2Client,
 }));
-
-import { UserModel } from '../../models/user.model';
-import { generatePasswordResetToken, verifyPasswordResetToken, verifyRefreshToken } from '../../config/jwt.config';
-import * as emailModule from '../../services/email.service';
-
-const mockedEmailService = emailModule.emailService as {
-  sendWelcomeEmail: ReturnType<typeof vi.fn>;
-  sendPasswordResetEmail: ReturnType<typeof vi.fn>;
-};
 
 function makeMockUser(overrides: Record<string, unknown> = {}) {
   return {
@@ -91,9 +104,9 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('creates a user and returns tokens', async () => {
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(null);
+      mockFindOne.mockResolvedValueOnce(null);
       const mockUser = makeMockUser();
-      vi.mocked(UserModel.create).mockResolvedValueOnce(mockUser as any);
+      mockCreate.mockResolvedValueOnce(mockUser);
 
       const result = await service.register({
         fullName: 'Test User',
@@ -107,9 +120,9 @@ describe('AuthService', () => {
     });
 
     it('throws 409 when email is already registered', async () => {
-      vi.mocked(UserModel.findOne)
-        .mockResolvedValueOnce(makeMockUser() as any)
-        .mockResolvedValueOnce(makeMockUser() as any);
+      mockFindOne
+        .mockResolvedValueOnce(makeMockUser())
+        .mockResolvedValueOnce(makeMockUser());
 
       await expect(
         service.register({ fullName: 'Test', email: 'test@example.com', password: 'password123' })
@@ -126,7 +139,7 @@ describe('AuthService', () => {
   describe('login', () => {
     it('returns tokens for valid credentials', async () => {
       const mockUser = makeMockUser();
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(mockUser as any);
+      mockFindOne.mockResolvedValueOnce(mockUser);
 
       const result = await service.login({ email: 'test@example.com', password: 'password123' });
 
@@ -135,7 +148,7 @@ describe('AuthService', () => {
     });
 
     it('throws 401 when user not found', async () => {
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(null);
+      mockFindOne.mockResolvedValueOnce(null);
 
       await expect(
         service.login({ email: 'unknown@example.com', password: 'password123' })
@@ -143,9 +156,7 @@ describe('AuthService', () => {
     });
 
     it('throws 401 when user method is google (not local)', async () => {
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(
-        makeMockUser({ method: 'google' }) as any
-      );
+      mockFindOne.mockResolvedValueOnce(makeMockUser({ method: 'google' }));
 
       await expect(
         service.login({ email: 'google@example.com', password: 'password123' })
@@ -154,7 +165,7 @@ describe('AuthService', () => {
 
     it('throws 401 when password is wrong', async () => {
       const mockUser = makeMockUser({ verifyPassword: vi.fn().mockResolvedValue(false) });
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(mockUser as any);
+      mockFindOne.mockResolvedValueOnce(mockUser);
 
       await expect(
         service.login({ email: 'test@example.com', password: 'wrongpassword' })
@@ -166,35 +177,35 @@ describe('AuthService', () => {
 
   describe('loginWithGoogle', () => {
     it('creates a new Google user when none exists', async () => {
-      vi.mocked(UserModel.findOne)
+      mockFindOne
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
       const mockUser = makeMockUser({
         method: 'google',
         google: { googleId: 'google-sub-123', email: 'google@example.com' },
       });
-      vi.mocked(UserModel.create).mockResolvedValueOnce(mockUser as any);
+      mockCreate.mockResolvedValueOnce(mockUser);
 
       const result = await service.loginWithGoogle('valid-google-id-token');
 
-      expect(UserModel.create).toHaveBeenCalled();
+      expect(mockCreate).toHaveBeenCalled();
       expect(result.token).toBe('access-token');
     });
 
     it('returns existing Google user without creating', async () => {
       const mockUser = makeMockUser({ method: 'google' });
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(mockUser as any);
+      mockFindOne.mockResolvedValueOnce(mockUser);
 
       const result = await service.loginWithGoogle('valid-google-id-token');
 
-      expect(UserModel.create).not.toHaveBeenCalled();
+      expect(mockCreate).not.toHaveBeenCalled();
       expect(result.token).toBe('access-token');
     });
 
     it('throws 409 when email is already registered locally', async () => {
-      vi.mocked(UserModel.findOne)
+      mockFindOne
         .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(makeMockUser() as any);
+        .mockResolvedValueOnce(makeMockUser());
 
       await expect(service.loginWithGoogle('valid-google-id-token')).rejects.toMatchObject({
         statusCode: 409,
@@ -214,24 +225,22 @@ describe('AuthService', () => {
 
   describe('requestPasswordReset', () => {
     it('sends reset email when user found', async () => {
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(makeMockUser() as any);
+      mockFindOne.mockResolvedValueOnce(makeMockUser());
 
       await service.requestPasswordReset('test@example.com');
 
-      expect(generatePasswordResetToken).toHaveBeenCalled();
-      expect(mockedEmailService.sendPasswordResetEmail).toHaveBeenCalled();
+      expect(mockGeneratePasswordResetToken).toHaveBeenCalled();
+      expect(mockSendPasswordResetEmail).toHaveBeenCalled();
     });
 
     it('returns silently when email is not found (no information leak)', async () => {
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(null);
+      mockFindOne.mockResolvedValueOnce(null);
 
       await expect(service.requestPasswordReset('unknown@example.com')).resolves.toBeUndefined();
     });
 
     it('returns silently when user is a Google account', async () => {
-      vi.mocked(UserModel.findOne).mockResolvedValueOnce(
-        makeMockUser({ method: 'google' }) as any
-      );
+      mockFindOne.mockResolvedValueOnce(makeMockUser({ method: 'google' }));
 
       await expect(service.requestPasswordReset('google@example.com')).resolves.toBeUndefined();
     });
@@ -242,7 +251,7 @@ describe('AuthService', () => {
   describe('resetPassword', () => {
     it('updates password for valid token', async () => {
       const mockUser = makeMockUser();
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(mockUser as any);
+      mockFindById.mockResolvedValueOnce(mockUser);
 
       await service.resetPassword('valid-token', 'newpassword123');
 
@@ -251,7 +260,7 @@ describe('AuthService', () => {
     });
 
     it('throws when token is invalid', async () => {
-      vi.mocked(verifyPasswordResetToken).mockImplementationOnce(() => {
+      mockVerifyPasswordResetToken.mockImplementationOnce(() => {
         throw new Error('jwt expired');
       });
 
@@ -261,7 +270,7 @@ describe('AuthService', () => {
     });
 
     it('throws when user is not found', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.resetPassword('valid-token', 'newpassword123')).rejects.toThrow(
         'User not found'
@@ -274,7 +283,7 @@ describe('AuthService', () => {
   describe('refreshTokens', () => {
     it('returns new tokens for a valid refresh token', async () => {
       const mockUser = makeMockUser();
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(mockUser as any);
+      mockFindById.mockResolvedValueOnce(mockUser);
 
       const result = await service.refreshTokens('valid-refresh-token');
 
@@ -283,7 +292,7 @@ describe('AuthService', () => {
     });
 
     it('throws 401 when refresh token is invalid', async () => {
-      vi.mocked(verifyRefreshToken).mockImplementationOnce(() => {
+      mockVerifyRefreshToken.mockImplementationOnce(() => {
         throw new Error('jwt malformed');
       });
 
@@ -291,7 +300,7 @@ describe('AuthService', () => {
     });
 
     it('throws 401 when user no longer exists', async () => {
-      vi.mocked(UserModel.findById).mockResolvedValueOnce(null);
+      mockFindById.mockResolvedValueOnce(null);
 
       await expect(service.refreshTokens('valid-refresh-token')).rejects.toMatchObject({
         statusCode: 401,
