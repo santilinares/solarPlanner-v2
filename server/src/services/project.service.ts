@@ -84,8 +84,6 @@ const calculateGeospatialFields = (area: GeoPointInput[]): { lat?: number; lon?:
  * Includes calculated geospatial fields (lat, lon, surface)
  */
 const transformProjectToResponse = (project: HydratedDocument<IProject>): ProjectResponse => {
-  // Calculate geospatial fields from area polygon
-  const geo = calculateGeospatialFields(project.area);
   const ownerData = (() => {
     if (!project.owner) {
       return undefined;
@@ -127,9 +125,9 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     description: project.description,
     projectType: project.projectType ?? 'roof',
     area: project.area,
-    lat: geo.lat,
-    lon: geo.lon,
-    surface: geo.surface,
+    lat: project.lat,
+    lon: project.lon,
+    surface: project.surface,
     country: project.country,
     timezone: project.timezone,
     currency: project.currency,
@@ -216,7 +214,7 @@ export class ProjectService {
 
     const [priceData, productionData] = await Promise.all([
       // 1.3 Electricity price lookup
-      this.fetchElectricityPrice(resolvedCountry?.code ?? '', undefined, undefined).catch((error) => {
+      this.fetchElectricityPrice(resolvedCountry?.code ?? '', undefined, undefined).catch((error: unknown) => {
         console.warn('[Project Creation] Price lookup error:', error);
         return { price: undefined, currency: undefined };
       }),
@@ -254,6 +252,9 @@ export class ProjectService {
     const updatedProject = await ProjectModel.findByIdAndUpdate(
       project._id,
       {
+        lat: geo.lat,
+        lon: geo.lon,
+        surface: geo.surface,
         country: resolvedCountry?.name,
         timezone: resolvedTimezone,
         currency: priceData.currency,
@@ -326,8 +327,12 @@ export class ProjectService {
       throw new Error('Not authorized');
     }
 
-    // Update project (lat, lon, surface are calculated on-demand in response)
-    const updated = await ProjectModel.findByIdAndUpdate(projectId, data, { new: true });
+    const geo = calculateGeospatialFields(data.area);
+    const updated = await ProjectModel.findByIdAndUpdate(
+      projectId,
+      { ...data, lat: geo.lat, lon: geo.lon, surface: geo.surface },
+      { new: true }
+    );
     
     if (!updated) throw new Error('Failed to update project');
     return transformProjectToResponse(updated);
@@ -921,18 +926,15 @@ export class ProjectService {
     return fallback ?? 'UTC';
   }
 
-  //TODO - Implementar usando entsoe.eu API para los precios de electricidad.
-  /**
-   * 1.3 Fetch electricity price
-   * Falls back to provided defaults if API call fails
-   */
-  // private async fetchElectricityPrice(
-  //   countryCode: string,
-  //   fallbackPrice?: number,
-  //   fallbackCurrency?: string
-  // ): Promise<{ price: number | undefined; currency: string | undefined }> {
-
-  // }
+  // TODO - Implementar usando entsoe.eu API para los precios de electricidad.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private fetchElectricityPrice(
+    _countryCode: string,
+    _fallbackPrice?: number,
+    _fallbackCurrency?: string,
+  ): Promise<{ price: number | undefined; currency: string | undefined }> {
+    return Promise.resolve({ price: undefined, currency: undefined });
+  }
 
   /**
    * 1.4 Fetch production data from Solcast or generate realistic mock data

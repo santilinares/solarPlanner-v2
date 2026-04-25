@@ -37,13 +37,9 @@ export interface IProject {
   description?: string;
   projectType: 'roof' | 'agrivoltaic';
   area: GeoPointInput[]; // Polygon coordinates
-  // TODO - Inconsistencia entre comentario y uso real: el comentario del servicio dice que lat/lon/surface "no se guardan en BD",
-  // pero el schema los define como campos y el scheduler los lee directamente con project.lat / project.lon.
-  // Si el área del proyecto cambia y estos campos no se actualizan, el scheduler usará coordenadas obsoletas para Solcast.
-  // Decidir: o guardar siempre y mantener sincronizados con el área, o derivar siempre del polígono y eliminar los campos del schema.
-  lat?: number; // Derived center latitude
-  lon?: number; // Derived center longitude
-  surface?: number; // Derived area in m²
+  lat?: number; // Stored center latitude (derived from area polygon)
+  lon?: number; // Stored center longitude (derived from area polygon)
+  surface?: number; // Stored area in m² (derived from area polygon)
   country?: string;
   timezone?: string;
   currency?: string;
@@ -92,8 +88,9 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
         lon: { type: Number, required: true, min: -180, max: 180 },
       },
     ],
-    // TODO NOTE: lat, lon, and surface are calculated from area polygon (not stored)
-    // They are derived in the service layer when returning responses
+    lat: { type: Number, min: -90, max: 90 },
+    lon: { type: Number, min: -180, max: 180 },
+    surface: { type: Number, min: 0 },
     country: String,
     timezone: String,
     currency: String,
