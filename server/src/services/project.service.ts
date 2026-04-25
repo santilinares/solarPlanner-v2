@@ -19,6 +19,7 @@ import {
   ProjectListResponse,
   DashboardStats,
   OptimalConfigResponse,
+  CallerContext,
 } from '../types/project.types';
 
 /**
@@ -295,7 +296,7 @@ export class ProjectService {
    * @param userId Requesting user ID (for ownership check)
    * @returns Project data
    */
-  async getProjectById(projectId: string, userId?: string): Promise<ProjectResponse> {
+  async getProjectById(projectId: string, caller: CallerContext): Promise<ProjectResponse> {
     const project = await ProjectModel.findById(projectId)
       .populate('panel')
       .populate('owner', 'fullName email');
@@ -304,14 +305,12 @@ export class ProjectService {
       throw new Error('Project not found');
     }
 
-    // Check ownership if userId provided (non-admin access).
-    // owner is populated, so compare against its _id, not the document itself.
-    if (userId && project.owner) {
+    if (caller.role !== 'admin' && project.owner) {
       const ownerId =
         typeof project.owner === 'object' && project.owner !== null && '_id' in project.owner
           ? (project.owner as { _id: { toString(): string } })._id.toString()
           : (project.owner as unknown as { toString(): string }).toString();
-      if (ownerId !== userId) {
+      if (ownerId !== caller.userId) {
         throw new Error('Not authorized to view this project');
       }
     }
@@ -319,13 +318,11 @@ export class ProjectService {
     return transformProjectToResponse(project);
   }
 
-  async updateProject(userId: string, projectId: string, data: ProjectUpdateInput): Promise<ProjectResponse> {
-    // Find existing project
+  async updateProject(caller: CallerContext, projectId: string, data: ProjectUpdateInput): Promise<ProjectResponse> {
     const project = await ProjectModel.findById(projectId);
     if (!project) throw new Error('Project not found');
-    
-    // Check ownership for non-admin
-    if (userId && project.owner?.toString() !== userId) {
+
+    if (caller.role !== 'admin' && project.owner?.toString() !== caller.userId) {
       throw new Error('Not authorized');
     }
 
@@ -342,17 +339,15 @@ export class ProjectService {
    * @param userId Requesting user ID (filter by owner if not admin)
    * @returns List of projects
    */
-  async listProjects(filters: ProjectQueryInput, userId?: string): Promise<ProjectListResponse> {
-    // Extract pagination params with defaults
+  async listProjects(filters: ProjectQueryInput, caller: CallerContext): Promise<ProjectListResponse> {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
     const skip = (page - 1) * limit;
 
-    // If single ID requested, return that project
     if (filters.id) {
-      const project = await this.getProjectById(filters.id, userId);
-      return { 
-        data: [project], 
+      const project = await this.getProjectById(filters.id, caller);
+      return {
+        data: [project],
         total: 1,
         page: 1,
         limit: 1,
@@ -360,15 +355,12 @@ export class ProjectService {
       };
     }
 
-    // Build query
     const query: FilterQuery<IProject> = {};
 
-    // Owner filter
     if (filters.owner) {
       query.owner = filters.owner;
-    } else if (userId) {
-      // If not admin and no specific owner filter, show only user's projects
-      query.owner = userId;
+    } else if (caller.role !== 'admin') {
+      query.owner = caller.userId;
     }
 
     // Country filter
@@ -728,11 +720,15 @@ export class ProjectService {
    * @param projectId Project ID
    * @returns Sun path calculations
    */
-  async getSunPath(projectId: string): Promise<SunPathData> {
+  async getSunPath(projectId: string, caller: CallerContext): Promise<SunPathData> {
     const project = await ProjectModel.findById(projectId);
 
     if (!project) {
       throw new Error('Project not found');
+    }
+
+    if (caller.role !== 'admin' && project.owner?.toString() !== caller.userId) {
+      throw new Error('Not authorized to view this project');
     }
 
     // lat/lon are not stored in the DB — derive them from the area polygon
@@ -793,13 +789,23 @@ export class ProjectService {
    * @param projectId Project ID
    * @returns Structured plan data
    */
-  async generatePlanData(projectId: string): Promise<PlanData> {
+  async generatePlanData(projectId: string, caller: CallerContext): Promise<PlanData> {
     const project = await ProjectModel.findById(projectId)
       .populate('panel')
       .populate('owner', 'fullName email');
 
     if (!project) {
       throw new Error('Project not found');
+    }
+
+    if (caller.role !== 'admin' && project.owner) {
+      const ownerId =
+        typeof project.owner === 'object' && project.owner !== null && '_id' in project.owner
+          ? (project.owner as { _id: { toString(): string } })._id.toString()
+          : (project.owner as unknown as { toString(): string }).toString();
+      if (ownerId !== caller.userId) {
+        throw new Error('Not authorized to view this project');
+      }
     }
 
     // Calculate additional metrics

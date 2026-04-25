@@ -9,6 +9,7 @@ import {
   OptimalConfigInput,
   OptimalConfigFromPolygonInput,
 } from '../schemas/project.schema';
+import { CallerContext } from '../types/project.types';
 
 /**
  * Project Controller
@@ -32,16 +33,8 @@ export const createProject = asyncHandler(async (req: Request, res: Response) =>
  * @access  Private
  */
 export const listProjects = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.userId!;
-  const userRole = req.userRole!;
-
-  // Admin can see all projects, users see only their own
-  const effectiveUserId = userRole === 'admin' ? undefined : userId;
-
-  const projects = await projectService.listProjects(
-    req.query as unknown as ProjectQueryInput,
-    effectiveUserId
-  );
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const projects = await projectService.listProjects(req.query as unknown as ProjectQueryInput, caller);
   return success(res, projects);
 });
 
@@ -72,13 +65,8 @@ export const getAdminDashboard = asyncHandler(async (_req: Request, res: Respons
  * @access  Private
  */
 export const getProjectById = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.userId!;
-  const userRole = req.userRole!;
-
-  // Admin can see any project, users only their own
-  const effectiveUserId = userRole === 'admin' ? undefined : userId;
-
-  const project = await projectService.getProjectById(req.params.id, effectiveUserId);
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const project = await projectService.getProjectById(req.params.id, caller);
   return success(res, project);
 });
 
@@ -88,21 +76,8 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
  * @access  Private
  */
 export const updateProject = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.userId!;
-  const userRole = req.userRole!;
-  const projectId = req.params.id;
-
-  // Admin can update any project, users only their own
-  // TODO - Fragilidad en autorización: effectiveUserId es undefined para admins, y se pasa con ! al servicio.
-  // En el servicio, la condición `userId && ...` cortocircuita si userId es undefined, evitando la verificación.
-  // Considerar manejar el caso admin explícitamente en el servicio en lugar de depender de undefined.
-  const effectiveUserId = userRole === 'admin' ? undefined : userId;
-
-  const updatedProject = await projectService.updateProject(
-    effectiveUserId!,
-    projectId,
-    req.body as ProjectUpdateInput
-  );
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const updatedProject = await projectService.updateProject(caller, req.params.id, req.body as ProjectUpdateInput);
   return success(res, updatedProject, 'Project updated successfully');
 });
 
@@ -111,10 +86,10 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
  * @desc    Get sun path calculations for project
  * @access  Private
  */
+
 export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
-  // TODO - Sin verificación de ownership: cualquier usuario autenticado puede consultar el sun path de un proyecto ajeno si conoce su ID.
-  // Añadir req.userId y req.userRole para restringir el acceso igual que en getProjectById.
-  const sunPath = await projectService.getSunPath(req.params.id);
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const sunPath = await projectService.getSunPath(req.params.id, caller);
   return success(res, sunPath);
 });
 
@@ -124,10 +99,9 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private
  */
 export const generatePlan = asyncHandler(async (req: Request, res: Response) => {
-  // TODO - Sin verificación de ownership: cualquier usuario autenticado puede generar el PDF de un proyecto ajeno si conoce su ID.
-  // Añadir req.userId y req.userRole para restringir el acceso igual que en getProjectById.
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   // TODO - Revisar que se mete en el PDF. Hay que actualizar alguna cosa?
-  const planData = await projectService.generatePlanData(req.params.id);
+  const planData = await projectService.generatePlanData(req.params.id, caller);
   return success(res, planData);
 });
 

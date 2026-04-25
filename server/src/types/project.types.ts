@@ -5,6 +5,10 @@
 import { IProductionPoint } from '../models/project.model';
 import { GeoPointInput } from '../schemas/project.schema';
 
+export type CallerContext =
+  | { role: 'user'; userId: string }
+  | { role: 'admin'; userId: string };
+
 export interface ProjectResponse {
   _id: string;
   name: string;
