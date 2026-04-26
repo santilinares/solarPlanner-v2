@@ -1,4 +1,4 @@
-import { HydratedDocument, FilterQuery } from 'mongoose';
+import { HydratedDocument, FilterQuery, Types } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
 import { ProjectModel, IProject, IProductionPoint } from '../models/project.model';
@@ -457,65 +457,7 @@ export class ProjectService {
    * @returns Dashboard stats
    */
   async getUserDashboard(userId: string): Promise<DashboardStats> {
-    // TODO - Sin límite de proyectos: si un usuario tiene cientos de proyectos, se cargan todos en memoria con populate('panel').
-    // Considerar añadir un límite o calcular los agregados con una query de aggregation en MongoDB en lugar de en JS.
-    // TODO - Duplicación: esta función y getAdminDashboard contienen la misma lógica de cálculo. Extraer a un método privado compartido.
-    // Get user's projects
-    const projects = await ProjectModel.find({ owner: userId })
-      .populate('panel')
-      .sort({ createdAt: -1 });
-
-    // Calculate statistics
-    const totalProjects = projects.length;
-    const totalPanels = projects.reduce((sum, p) => sum + p.panelNumber, 0);
-
-    // Calculate total capacity (requires populated panel data)
-    const totalCapacity = projects.reduce((sum, p) => {
-      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
-        const panel = p.panel as unknown as IPanel;
-        return sum + (panel.wattPeak * p.panelNumber) / 1000; // Convert W to kW
-      }
-      return sum;
-    }, 0);
-
-    // Calculate total estimated annual production (kWh/year) using capacity and location
-    const totalProduction = projects.reduce((sum, p) => {
-      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
-        const panel = p.panel as unknown as IPanel;
-        const capacityKw = (panel.wattPeak * p.panelNumber) / 1000;
-        //TODO - Como hacer este cálculo más robusto?
-        const peakSunHours = p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4;
-        return sum + capacityKw * peakSunHours * 365 * 0.85;
-      }
-      return sum;
-    }, 0);
-
-    // Aggregate real production data across all user projects
-    const todayProduction = projects.reduce((sum, p) => {
-      return sum + (p.prodToday ?? []).reduce((s, point) => s + point.pv, 0);
-    }, 0);
-
-    const next6DaysTotal = projects.reduce((sum, p) => {
-      return sum + (p.nextProd ?? []).reduce((s, point) => s + point.pv, 0);
-    }, 0);
-
-    const past6DaysTotal = projects.reduce((sum, p) => {
-      return sum + (p.previousProd ?? []).reduce((s, point) => s + point.pv, 0);
-    }, 0);
-
-    // Get recent projects (last 5)
-    const recentProjects = projects.slice(0, 5).map(transformProjectToResponse);
-
-    return {
-      totalProjects,
-      totalPanels,
-      totalCapacity,
-      totalProduction,
-      recentProjects,
-      todayProduction,
-      next6DaysTotal,
-      past6DaysTotal,
-    };
+    return this.computeDashboardStats({ owner: new Types.ObjectId(userId) });
   }
 
   /**
@@ -523,58 +465,108 @@ export class ProjectService {
    * @returns Dashboard stats for all projects
    */
   async getAdminDashboard(): Promise<DashboardStats> {
-    // TODO - Peligro de rendimiento: carga TODOS los proyectos de todos los usuarios en memoria sin ningún límite.
-    // En producción con miles de proyectos esto puede agotar la memoria del servidor.
-    // Refactorizar usando aggregation pipeline de MongoDB para calcular los totales directamente en la BD.
-    // TODO - Duplicación: misma lógica que getUserDashboard. Extraer a un método privado compartido.
-    // Get all projects
-    const projects = await ProjectModel.find().populate('panel').sort({ createdAt: -1 });
+    return this.computeDashboardStats({});
+  }
 
-    // Calculate statistics (same logic as user dashboard but for all projects)
-    const totalProjects = projects.length;
-    const totalPanels = projects.reduce((sum, p) => sum + p.panelNumber, 0);
+  private async computeDashboardStats(matchFilter: Record<string, unknown>): Promise<DashboardStats> {
+    interface DashboardAggregateResult {
+      projectStats: Array<{
+        totalProjects: number;
+        totalPanels: number;
+        totalCapacity: number;
+        totalProduction: number;
+      }>;
+      todayStats: Array<{ total: number }>;
+      nextStats: Array<{ total: number }>;
+      prevStats: Array<{ total: number }>;
+    }
 
-    const totalCapacity = projects.reduce((sum, p) => {
-      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
-        const panel = p.panel as unknown as IPanel;
-        return sum + (panel.wattPeak * p.panelNumber) / 1000; // Convert W to kW
-      }
-      return sum;
-    }, 0);
+    const pipeline = [
+      { $match: matchFilter },
+      {
+        $lookup: {
+          from: 'panels',
+          localField: 'panel',
+          foreignField: '_id',
+          as: '_panelDoc',
+        },
+      },
+      {
+        $addFields: {
+          _capacityKw: {
+            $divide: [
+              {
+                $multiply: [
+                  { $ifNull: [{ $arrayElemAt: ['$_panelDoc.wattPeak', 0] }, 0] },
+                  '$panelNumber',
+                ],
+              },
+              1000,
+            ],
+          },
+          // Replicates: p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4
+          _peakSunHours: {
+            $cond: {
+              if: { $gt: [{ $ifNull: ['$lat', null] }, null] },
+              then: {
+                $max: [2, { $subtract: [5.5, { $multiply: [{ $abs: '$lat' }, 0.02] }] }],
+              },
+              else: 4,
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          _productionKwh: { $multiply: ['$_capacityKw', '$_peakSunHours', 365, 0.85] },
+        },
+      },
+      {
+        $facet: {
+          projectStats: [
+            {
+              $group: {
+                _id: null,
+                totalProjects: { $sum: 1 },
+                totalPanels: { $sum: '$panelNumber' },
+                totalCapacity: { $sum: '$_capacityKw' },
+                totalProduction: { $sum: '$_productionKwh' },
+              },
+            },
+          ],
+          todayStats: [
+            { $unwind: { path: '$prodToday', preserveNullAndEmptyArrays: true } },
+            { $group: { _id: null, total: { $sum: { $ifNull: ['$prodToday.pv', 0] } } } },
+          ],
+          nextStats: [
+            { $unwind: { path: '$nextProd', preserveNullAndEmptyArrays: true } },
+            { $group: { _id: null, total: { $sum: { $ifNull: ['$nextProd.pv', 0] } } } },
+          ],
+          prevStats: [
+            { $unwind: { path: '$previousProd', preserveNullAndEmptyArrays: true } },
+            { $group: { _id: null, total: { $sum: { $ifNull: ['$previousProd.pv', 0] } } } },
+          ],
+        },
+      },
+    ];
 
-    const totalProduction = projects.reduce((sum, p) => {
-      if (p.panel && typeof p.panel !== 'string' && 'wattPeak' in p.panel) {
-        const panel = p.panel as unknown as IPanel;
-        const capacityKw = (panel.wattPeak * p.panelNumber) / 1000;
-        const peakSunHours = p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4;
-        return sum + capacityKw * peakSunHours * 365 * 0.85;
-      }
-      return sum;
-    }, 0);
+    const [raw, recentDocs] = await Promise.all([
+      ProjectModel.aggregate(pipeline),
+      ProjectModel.find(matchFilter).populate('panel').sort({ createdAt: -1 }).limit(5),
+    ]);
 
-    const recentProjects = projects.slice(0, 5).map(transformProjectToResponse);
-
-    const todayProduction = projects.reduce((sum, p) => {
-      return sum + (p.prodToday ?? []).reduce((s, point) => s + point.pv, 0);
-    }, 0);
-
-    const next6DaysTotal = projects.reduce((sum, p) => {
-      return sum + (p.nextProd ?? []).reduce((s, point) => s + point.pv, 0);
-    }, 0);
-
-    const past6DaysTotal = projects.reduce((sum, p) => {
-      return sum + (p.previousProd ?? []).reduce((s, point) => s + point.pv, 0);
-    }, 0);
+    const result = raw[0] as DashboardAggregateResult;
+    const ps = result.projectStats[0];
 
     return {
-      totalProjects,
-      totalPanels,
-      totalCapacity,
-      totalProduction,
-      recentProjects,
-      todayProduction,
-      next6DaysTotal,
-      past6DaysTotal,
+      totalProjects: ps?.totalProjects ?? 0,
+      totalPanels: ps?.totalPanels ?? 0,
+      totalCapacity: ps?.totalCapacity ?? 0,
+      totalProduction: ps?.totalProduction ?? 0,
+      recentProjects: recentDocs.map(transformProjectToResponse),
+      todayProduction: result.todayStats[0]?.total ?? 0,
+      next6DaysTotal: result.nextStats[0]?.total ?? 0,
+      past6DaysTotal: result.prevStats[0]?.total ?? 0,
     };
   }
 
@@ -1006,84 +998,84 @@ export class ProjectService {
    * Generate realistic mock Solcast data based on solar geometry and latitude
    */
   //TODO - Borrar y hacer pruebas reales con datos de Solcast
-  private generateMockSolcastData(lat: number, capacityKw: number): {
-    prodToday: IProductionPoint[];
-    nextProd: IProductionPoint[];
-    previousProd: IProductionPoint[];
-  } {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // private generateMockSolcastData(lat: number, capacityKw: number): {
+  //   prodToday: IProductionPoint[];
+  //   nextProd: IProductionPoint[];
+  //   previousProd: IProductionPoint[];
+  // } {
+  //   const now = new Date();
+  //   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // Calculate sunset/sunrise using simplified formula
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-    const B = (2 * Math.PI * (dayOfYear - 81)) / 364;
-    const declinationRad = 0.33645 * Math.sin(B) - 3.6396 * Math.cos(B);
-    const latRad = (lat * Math.PI) / 180;
+  //   // Calculate sunset/sunrise using simplified formula
+  //   const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+  //   const B = (2 * Math.PI * (dayOfYear - 81)) / 364;
+  //   const declinationRad = 0.33645 * Math.sin(B) - 3.6396 * Math.cos(B);
+  //   const latRad = (lat * Math.PI) / 180;
 
-    // Sunrise/Sunset angle (solar noon UTC = ~12:00)
-    const cosH = -Math.tan(latRad) * Math.tan(declinationRad);
-    const H = cosH >= -1 && cosH <= 1 ? Math.acos(cosH) : Math.PI / 2;
-    const dayLengthHours = (2 * H * 180) / Math.PI / 15; // Convert to hours
-    const sunriseHour = 12 - dayLengthHours / 2;
-    const sunsetHour = 12 + dayLengthHours / 2;
+  //   // Sunrise/Sunset angle (solar noon UTC = ~12:00)
+  //   const cosH = -Math.tan(latRad) * Math.tan(declinationRad);
+  //   const H = cosH >= -1 && cosH <= 1 ? Math.acos(cosH) : Math.PI / 2;
+  //   const dayLengthHours = (2 * H * 180) / Math.PI / 15; // Convert to hours
+  //   const sunriseHour = 12 - dayLengthHours / 2;
+  //   const sunsetHour = 12 + dayLengthHours / 2;
 
-    // Generate hourly data for today
-    const prodToday: IProductionPoint[] = [];
-    for (let hour = 6; hour <= 18; hour++) {
-      const dt = new Date(today);
-      dt.setHours(hour, 0, 0, 0);
+  //   // Generate hourly data for today
+  //   const prodToday: IProductionPoint[] = [];
+  //   for (let hour = 6; hour <= 18; hour++) {
+  //     const dt = new Date(today);
+  //     dt.setHours(hour, 0, 0, 0);
 
-      let pv = 0;
-      if (hour >= sunriseHour && hour <= sunsetHour) {
-        // Bell curve: peak at solar noon
-        const normalizedHour = (hour - sunriseHour) / (sunsetHour - sunriseHour);
-        const peakProduction = capacityKw * (0.8 + Math.random() * 0.1); // 80-90% of capacity
-        pv = peakProduction * Math.sin(normalizedHour * Math.PI);
-      }
+  //     let pv = 0;
+  //     if (hour >= sunriseHour && hour <= sunsetHour) {
+  //       // Bell curve: peak at solar noon
+  //       const normalizedHour = (hour - sunriseHour) / (sunsetHour - sunriseHour);
+  //       const peakProduction = capacityKw * (0.8 + Math.random() * 0.1); // 80-90% of capacity
+  //       pv = peakProduction * Math.sin(normalizedHour * Math.PI);
+  //     }
 
-      prodToday.push({
-        dateTime: dt,
-        pv: Math.max(0, Math.round(pv * 100) / 100),
-      });
-    }
+  //     prodToday.push({
+  //       dateTime: dt,
+  //       pv: Math.max(0, Math.round(pv * 100) / 100),
+  //     });
+  //   }
 
-    // Generate daily aggregates for next 6 days
-    const nextProd: IProductionPoint[] = [];
-    for (let i = 1; i <= 6; i++) {
-      const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + i);
+  //   // Generate daily aggregates for next 6 days
+  //   const nextProd: IProductionPoint[] = [];
+  //   for (let i = 1; i <= 6; i++) {
+  //     const futureDate = new Date(today);
+  //     futureDate.setDate(futureDate.getDate() + i);
 
-      // Vary production by day (simulate cloudy/sunny days)
-      //TODO - Modificar para que esto no sea random, sino que pille datos históricos de nubosidad por día.
-      const dayVariation = 0.7 + Math.random() * 0.3; // 70-100% of clear-sky production
-      //TODO - De donde sale ese system efficiency del 75%? Como puedo hacer que este valor sea calculado de unas variables?
-      const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation; // 75% system efficiency
+  //     // Vary production by day (simulate cloudy/sunny days)
+  //     //TODO - Modificar para que esto no sea random, sino que pille datos históricos de cantidad de dias nubosos o porcentaje
+  //     const dayVariation = 0.7 + Math.random() * 0.3; // 70-100% of clear-sky production
+  //     //TODO - De donde sale ese system efficiency del 75%? Como puedo hacer que este valor sea calculado de unas variables?
+  //     const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation; // 75% system efficiency
 
-      nextProd.push({
-        dateTime: futureDate,
-        pv: Math.max(0, Math.round(dailyProduction * 100) / 100),
-      });
-    }
+  //     nextProd.push({
+  //       dateTime: futureDate,
+  //       pv: Math.max(0, Math.round(dailyProduction * 100) / 100),
+  //     });
+  //   }
 
-    // Generate daily aggregates for previous 6 days
-    const previousProd: IProductionPoint[] = [];
-    for (let i = 6; i >= 1; i--) {
-      const pastDate = new Date(today);
-      pastDate.setDate(pastDate.getDate() - i);
+  //   // Generate daily aggregates for previous 6 days
+  //   const previousProd: IProductionPoint[] = [];
+  //   for (let i = 6; i >= 1; i--) {
+  //     const pastDate = new Date(today);
+  //     pastDate.setDate(pastDate.getDate() - i);
 
-      // Vary production by day
-      //TODO - Modificar para que esto no sea random, sino que pille datos históricos de nubosidad por día.
-      const dayVariation = 0.6 + Math.random() * 0.35; // 60-95% of clear-sky production
-      const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation;
+  //     // Vary production by day
+  //     //TODO - Modificar para que esto no sea random, sino que pille datos históricos de nubosidad por día.
+  //     const dayVariation = 0.6 + Math.random() * 0.35; // 60-95% of clear-sky production
+  //     const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation;
 
-      previousProd.push({
-        dateTime: pastDate,
-        pv: Math.max(0, Math.round(dailyProduction * 100) / 100),
-      });
-    }
+  //     previousProd.push({
+  //       dateTime: pastDate,
+  //       pv: Math.max(0, Math.round(dailyProduction * 100) / 100),
+  //     });
+  //   }
 
-    return { prodToday, nextProd, previousProd };
-  }
+  //   return { prodToday, nextProd, previousProd };
+  // }
 
   /**
    * Extract today's hourly production from forecasts
