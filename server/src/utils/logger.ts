@@ -13,7 +13,9 @@ const logger = pino({
     },
   },
   timestamp: pino.stdTimeFunctions.isoTime,
-  // TODO: Add pretty print for development
+  // TODO: Add pretty print for development. Is that really necessary? 
+  // I am currently using console.log and I see the logs just fine. 
+  // KEEP OR DELETE PINO-PRETTY?
   // transport: process.env.NODE_ENV !== 'production' ? {
   //   target: 'pino-pretty',
   //   options: {
