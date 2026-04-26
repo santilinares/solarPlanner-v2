@@ -547,8 +547,8 @@ describe('ProjectService', () => {
 
       await service.getAdminDashboard();
 
-      const pipeline = mockProjectAggregate.mock.calls[0][0];
-      expect(pipeline[0].$match).toEqual({});
+      const pipeline = mockProjectAggregate.mock.calls[0][0] as Array<Record<string, unknown>>;
+      expect((pipeline[0] as { $match: unknown }).$match).toEqual({});
     });
   });
 
@@ -584,9 +584,15 @@ describe('ProjectService', () => {
     });
 
     it('uses fallback wattage of 300 W when wattPeak is not provided', async () => {
-      const { wattPeak: _, ...inputWithoutWatt } = baseInput;
       const withWatt = await service.calculateOptimalConfig(baseInput);
-      const withoutWatt = await service.calculateOptimalConfig({ ...inputWithoutWatt, wattPeak: undefined });
+      const withoutWatt = await service.calculateOptimalConfig({
+        surfaceArea: baseInput.surfaceArea,
+        panelWidth: baseInput.panelWidth,
+        panelHeight: baseInput.panelHeight,
+        tilt: baseInput.tilt,
+        latitude: baseInput.latitude,
+        wattPeak: undefined,
+      });
 
       // Same number of panels but different capacity
       expect(withoutWatt.recommendedPanels).toBe(withWatt.recommendedPanels);
