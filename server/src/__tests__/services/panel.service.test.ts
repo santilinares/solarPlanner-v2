@@ -36,7 +36,7 @@ function makeMockPanel(overrides: Record<string, unknown> = {}) {
     wattPeak: 370,
     dimensions: { width: 1.0, height: 1.8 },
     cells: 72,
-    temperatureCoefficient: -0.29,
+    gammaPmp: -0.29,
     efficiency: 22.7,
     warranty: 25,
     price: 350,
@@ -82,7 +82,6 @@ describe('PanelService', () => {
         warranty: 25,
         price: 350,
         type: 'personal',
-        temperatureCoefficient: 0,
       });
 
       expect(mockCreate).toHaveBeenCalledWith(
@@ -104,7 +103,6 @@ describe('PanelService', () => {
         warranty: 25,
         price: 350,
         type: 'global',
-        temperatureCoefficient: 0,
       });
 
       expect(mockCreate).toHaveBeenCalledWith(

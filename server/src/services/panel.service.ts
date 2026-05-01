@@ -18,7 +18,7 @@ const transformPanelToResponse = (panel: HydratedDocument<IPanel>): PanelRespons
   wattPeak: panel.wattPeak,
   dimensions: panel.dimensions,
   cells: panel.cells,
-  temperatureCoefficient: panel.temperatureCoefficient,
+  gammaPmp: panel.gammaPmp,
   efficiency: panel.efficiency,
   warranty: panel.warranty,
   price: panel.price,

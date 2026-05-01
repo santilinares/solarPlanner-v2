@@ -12,7 +12,7 @@ export interface PanelResponse {
     height: number;
   };
   cells?: number;
-  temperatureCoefficient: number;
+  gammaPmp?: number;
   efficiency: number;
   warranty: number;
   price: number;

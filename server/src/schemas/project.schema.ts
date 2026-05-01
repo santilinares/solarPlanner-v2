@@ -25,6 +25,16 @@ export const GeoPointSchema = z.object({
 /** Type inferred from GeoPointSchema - geographic coordinate point */
 export type GeoPointInput = z.infer<typeof GeoPointSchema>;
 
+const SystemLossesZodSchema = z.object({
+  inverterEfficiency: z.number().min(0).max(1).optional(),
+  dcWiring:           z.number().min(0).max(100).optional(),
+  acWiring:           z.number().min(0).max(100).optional(),
+  mismatch:           z.number().min(0).max(100).optional(),
+  soiling:            z.number().min(0).max(100).optional(),
+  degradationExtra:   z.number().min(0).max(100).optional(),
+  shadingStatic:      z.number().min(0).max(100).optional(),
+}).optional();
+
 /**
  * Project creation schema
  *
@@ -71,6 +81,7 @@ export const ProjectCreateSchema = z.object({
   // que podría reutilizarse aquí: panelId: ObjectIdSchema.optional()
   panelId: z.string().optional(), // Reference to Panel document
   cultivarId: z.string().optional(), // Reference to Cultivar document (agrivoltaic only)
+  systemLosses: SystemLossesZodSchema,
 });
 
 /** Type inferred from ProjectCreateSchema - used for creating solar projects */
@@ -100,6 +111,7 @@ export const ProjectUpdateSchema = z.object({
   timezone: z.string().optional(),
   currency: z.string().optional(),
   price: z.number().nonnegative().optional(),
+  systemLosses: SystemLossesZodSchema,
 });
 
 /** Type inferred from ProjectUpdateSchema - used for updating solar projects */

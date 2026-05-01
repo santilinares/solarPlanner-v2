@@ -53,12 +53,21 @@ export const PanelCreateSchema = z.object({
     height: z.number().positive('Height must be positive'),
   }),
   cells: z.number().int().positive().optional(),
-  temperatureCoefficient: z.number().optional().default(0),
   efficiency: z.number().min(0).max(100),
   warranty: z.number().min(0),
   price: z.number().min(0),
   technology: PanelTechnologyEnum.optional(),
   type: PanelTypeEnum,
+  stcIsc:               z.number().positive().optional(),
+  stcVoc:               z.number().positive().optional(),
+  stcImp:               z.number().positive().optional(),
+  stcVmp:               z.number().positive().optional(),
+  gammaPmp:             z.number().optional(),
+  noct:                 z.number().positive().optional(),
+  bifacial:             z.boolean().optional(),
+  bifacialityFactor:    z.number().min(0).max(1).optional(),
+  degradationFirstYear: z.number().min(0).max(100).optional(),
+  degradationAnnual:    z.number().min(0).max(100).optional(),
 });
 
 /** Type inferred from PanelCreateSchema - used for creating solar panels */

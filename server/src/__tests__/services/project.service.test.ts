@@ -90,7 +90,7 @@ function makeMockPanel(overrides: Record<string, unknown> = {}) {
     wattPeak: 370,
     dimensions: { width: 1000, height: 1800 }, // mm
     cells: 72,
-    temperatureCoefficient: -0.29,
+    gammaPmp: -0.29,
     efficiency: 22.7,
     warranty: 25,
     price: 350,

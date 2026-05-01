@@ -125,10 +125,10 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
           </div>
 
             <div class="form-field">
-             <label for="temperatureCoefficient">Temp. Coefficient (%/degC)</label>
+             <label for="gammaPmp">Power Temp. Coefficient γPmp (%/°C)</label>
               <p-inputNumber
-                inputId="temperatureCoefficient"
-                formControlName="temperatureCoefficient"
+                inputId="gammaPmp"
+                formControlName="gammaPmp"
                 mode="decimal"
                 [minFractionDigits]="2"
                 [maxFractionDigits]="2"
@@ -371,7 +371,7 @@ export class PanelFormComponent {
       width: [null as number | null, [Validators.required, Validators.min(1)]],
       height: [null as number | null, [Validators.required, Validators.min(1)]],
     }),
-    temperatureCoefficient: [null as number | null],
+    gammaPmp: [null as number | null],
     technology: [null as PanelCreateRequest['technology'] | null],
   });
 
@@ -390,7 +390,7 @@ export class PanelFormComponent {
           width: null,
           height: null,
         },
-        temperatureCoefficient: null,
+        gammaPmp: null,
         technology: null,
       });
 
@@ -409,7 +409,7 @@ export class PanelFormComponent {
           width: currentPanel.dimensions?.width ?? null,
           height: currentPanel.dimensions?.height ?? null,
         },
-        temperatureCoefficient: currentPanel.temperatureCoefficient,
+        gammaPmp: currentPanel.gammaPmp,
         technology: currentPanel.technology ?? null,
       });
     });
@@ -449,7 +449,7 @@ export class PanelFormComponent {
         width: raw.dimensions?.width ?? 0,
         height: raw.dimensions?.height ?? 0,
       },
-      temperatureCoefficient: raw.temperatureCoefficient ?? 0,
+      gammaPmp: raw.gammaPmp ?? undefined,
       technology: raw.technology ?? undefined,
     };
 

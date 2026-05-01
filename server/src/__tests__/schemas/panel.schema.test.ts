@@ -25,11 +25,6 @@ describe('PanelCreateSchema', () => {
     expect(PanelCreateSchema.safeParse({ ...validPanel, type: 'personal' }).success).toBe(true);
   });
 
-  it('defaults temperatureCoefficient to 0 when omitted', () => {
-    const result = PanelCreateSchema.safeParse(validPanel);
-    expect(result.success && result.data.temperatureCoefficient).toBe(0);
-  });
-
   it('accepts all technology enum values', () => {
     for (const tech of ['Monocrystalline', 'Polycrystalline', 'Thin film'] as const) {
       expect(PanelCreateSchema.safeParse({ ...validPanel, technology: tech }).success).toBe(true);

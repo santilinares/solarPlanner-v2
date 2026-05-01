@@ -7,7 +7,7 @@ export interface Panel {
   wattPeak: number;
   dimensions: PanelDimensions;
   cells?: number;
-  temperatureCoefficient: number;
+  gammaPmp?: number;
   efficiency: number;
   warranty: number;
   price: number;
@@ -27,7 +27,7 @@ export interface PanelCreateRequest {
   wattPeak: number;
   dimensions: PanelDimensions;
   cells?: number;
-  temperatureCoefficient: number;
+  gammaPmp?: number;
   efficiency: number;
   warranty: number;
   price: number;
@@ -40,7 +40,7 @@ export interface PanelUpdateRequest {
   wattPeak?: number;
   dimensions?: PanelDimensions;
   cells?: number;
-  temperatureCoefficient?: number;
+  gammaPmp?: number;
   efficiency?: number;
   warranty?: number;
   price?: number;

@@ -14,14 +14,23 @@ export interface IPanel {
     height: number; // mm
   };
   cells?: number;
-  //TODO - Este dato no se está usando. Mantenerlo o eliminarlo? Puede ser un dato importante para corregir la produccion real en verano
-  temperatureCoefficient: number;
   efficiency: number;
   warranty: number;
   price: number;
   technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
   type: 'global' | 'personal';
   owner?: mongoose.Types.ObjectId; // Reference to User (for personal panels)
+  // STC electrical parameters
+  stcIsc?: number;               // Short-circuit current at STC (A)
+  stcVoc?: number;               // Open-circuit voltage at STC (V)
+  stcImp?: number;               // MPP current at STC (A)
+  stcVmp?: number;               // MPP voltage at STC (V)
+  gammaPmp?: number;             // Power temperature coefficient (%/°C), e.g. -0.35
+  noct?: number;                 // Nominal cell operating temperature (°C), e.g. 45
+  bifacial?: boolean;
+  bifacialityFactor?: number;    // Rear/front power ratio (0–1)
+  degradationFirstYear?: number; // % drop in year 1
+  degradationAnnual?: number;    // %/year from year 2 onwards
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,7 +60,6 @@ const PanelSchema = new Schema<IPanel, PanelModel, Record<string, never>>(
       height: { type: Number, required: true, min: 0 },
     },
     cells: { type: Number, min: 0 },
-    temperatureCoefficient: { type: Number, default: 0 },
     efficiency: { type: Number, required: true, min: 0, max: 100 },
     warranty: { type: Number, required: true, min: 0 },
     price: { type: Number, required: true, min: 0 },
@@ -60,6 +68,16 @@ const PanelSchema = new Schema<IPanel, PanelModel, Record<string, never>>(
       enum: ['Monocrystalline', 'Polycrystalline', 'Thin film'],
       required: false,
     },
+    stcIsc:               { type: Number },
+    stcVoc:               { type: Number },
+    stcImp:               { type: Number },
+    stcVmp:               { type: Number },
+    gammaPmp:             { type: Number },
+    noct:                 { type: Number },
+    bifacial:             { type: Boolean },
+    bifacialityFactor:    { type: Number, min: 0, max: 1 },
+    degradationFirstYear: { type: Number, min: 0, max: 100 },
+    degradationAnnual:    { type: Number, min: 0, max: 100 },
     type: {
       type: String,
       enum: ['global', 'personal'],

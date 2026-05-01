@@ -27,6 +27,29 @@ const ProductionPointSchema = new Schema<IProductionPoint>(
   { _id: false }
 );
 
+export interface ISystemLosses {
+  inverterEfficiency?: number;
+  dcWiring?: number;
+  acWiring?: number;
+  mismatch?: number;
+  soiling?: number;
+  degradationExtra?: number;
+  shadingStatic?: number;
+}
+
+const SystemLossesSchema = new Schema<ISystemLosses>(
+  {
+    inverterEfficiency: { type: Number, min: 0, max: 1 },
+    dcWiring:           { type: Number, min: 0, max: 100 },
+    acWiring:           { type: Number, min: 0, max: 100 },
+    mismatch:           { type: Number, min: 0, max: 100 },
+    soiling:            { type: Number, min: 0, max: 100 },
+    degradationExtra:   { type: Number, min: 0, max: 100 },
+    shadingStatic:      { type: Number, min: 0, max: 100 },
+  },
+  { _id: false }
+);
+
 /**
  * Solar project model
  */
@@ -57,6 +80,9 @@ export interface IProject {
   previousProd?: IProductionPoint[]; // Historical production data
   totalProd?: number; // Accumulated total production since install (kWh)
   lastRefreshedAt?: Date; // Timestamp of the last successful nightly production refresh
+  systemLosses?: ISystemLosses;
+  resourceModelVersion?: string;
+  pvModuleModelVersion?: string;
   installDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -140,7 +166,10 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
       default: 0,
       min: 0,
     },
-    lastRefreshedAt: { type: Date },
+    lastRefreshedAt:      { type: Date },
+    systemLosses:         { type: SystemLossesSchema, default: {} },
+    resourceModelVersion: { type: String },
+    pvModuleModelVersion: { type: String },
     installDate: {
       type: Date,
       default: Date.now,
