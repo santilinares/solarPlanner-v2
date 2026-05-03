@@ -1,12 +1,12 @@
 import { HydratedDocument, FilterQuery, Types } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
-import { ProjectModel, IProject, IProductionPoint, ISystemLosses } from '../models/project.model';
+import { ProjectModel, IProject, IProductionPoint} from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
 import { CultivarModel } from '../models/cultivar.model';
 import { UserModel } from '../models/user.model';
 import { emailService } from './email.service';
-import { productionService, ProjectProductionParams } from './production.service';
+import { productionService, ProjectProductionParams, TodayAndForecastData } from './production.service';
 import { entsoeService } from './entsoe.service';
 import {
   ProjectCreateInput,
@@ -105,7 +105,7 @@ const toProductionParams = (project: HydratedDocument<IProject>): ProjectProduct
     azimuth: project.azimuth,
     panelNumber: project.panelNumber,
     installDate: project.installDate,
-    systemLosses: project.systemLosses as ISystemLosses | undefined,
+    systemLosses: project.systemLosses
   };
 };
 
@@ -338,16 +338,10 @@ export class ProjectService {
 
     if (isStale && project.lat && project.lon) {
       const panel = resolvePopulatedPanel(project.panel);
-      const params = toProductionParams(project);
-      if (params && panel) {
+      if (panel) {
         try {
-          const production = await productionService.computeProductionData(params, panel);
-          const refreshedAt = new Date();
-          const updated = await ProjectModel.findByIdAndUpdate(
-            projectId,
-            { ...production, lastRefreshedAt: refreshedAt },
-            { new: true },
-          )
+          await this.refreshOnDemand(project, panel);
+          const updated = await ProjectModel.findById(projectId)
             .populate('panel')
             .populate('owner', 'fullName email');
           if (updated) project = updated;
@@ -565,11 +559,14 @@ export class ProjectService {
 
   /**
    * Explicit on-demand production refresh (§5.3 — forced via endpoint).
-   * Returns only the production fields and timestamp.
+   *
+   * Default: recalculates prodToday + nextProd only (previousProd untouched).
+   * forceFullRecalc=true: full recalculation of all three windows (e.g. for debugging).
    */
   async refreshProjectProductionOnDemand(
     projectId: string,
     caller: CallerContext,
+    forceFullRecalc = false,
   ): Promise<{
     prodToday: IProductionPoint[];
     previousProd: IProductionPoint[];
@@ -593,25 +590,43 @@ export class ProjectService {
     }
 
     const params = toProductionParams(project)!;
-    const production = await productionService.computeProductionData(params, panel);
     const refreshedAt = new Date();
 
-    await ProjectModel.findByIdAndUpdate(projectId, {
-      ...production,
-      lastRefreshedAt: refreshedAt,
-    });
+    if (forceFullRecalc) {
+      // Full recalc: rebuild all three windows from Open-Meteo history + forecast
+      const production = await productionService.computeProductionData(params, panel);
+      await ProjectModel.findByIdAndUpdate(projectId, {
+        ...production,
+        lastRefreshedAt: refreshedAt,
+      });
+      return {
+        prodToday: production.prodToday,
+        previousProd: production.previousProd,
+        nextProd: production.nextProd,
+        lastRefreshedAt: refreshedAt.toISOString(),
+      };
+    }
+
+    // On-demand: update only prodToday + nextProd; previousProd remains as stored
+    const { prodToday, nextProd } = await this.refreshOnDemand(project, panel);
 
     return {
-      prodToday: production.prodToday,
-      previousProd: production.previousProd,
-      nextProd: production.nextProd,
+      prodToday,
+      previousProd: project.previousProd ?? [],
+      nextProd,
       lastRefreshedAt: refreshedAt.toISOString(),
     };
   }
 
   /**
    * Nightly refresh called by the scheduler (§5.2).
-   * Accumulates today's production into totalProd before rolling over.
+   *
+   * Flow:
+   *   1. Accumulate stored prodToday into totalProd (day that just ended)
+   *   2. Roll prodToday → previousProd and trim to last PRODUCTION_HISTORY_DAYS
+   *   3. Clear prodToday
+   *   4. Fetch fresh nextProd forecast from Open-Meteo
+   *   5. Persist and update lastRefreshedAt
    */
   async refreshProductionData(projectId: string): Promise<void> {
     const project = await ProjectModel.findById(projectId).populate('panel');
@@ -629,18 +644,34 @@ export class ProjectService {
     const params = toProductionParams(project);
     if (!params) return;
 
-    const production = await productionService.computeProductionData(params, panel);
-    const todaySum = production.prodToday.reduce((sum, p) => sum + p.pv, 0);
+    // §5.2.5 — Accumulate the day that just ended before rolling over
+    const storedToday = project.prodToday ?? [];
+    const todayAccum = storedToday.reduce((sum, p) => sum + p.pv, 0);
 
+    // §5.2.1-2 — Roll prodToday into previousProd and trim to history window
+    const historyDays = parseInt(process.env.PRODUCTION_HISTORY_DAYS ?? '7', 10);
+    const cutoff = new Date(Date.now() - historyDays * 24 * 3_600_000);
+    const rolledPreviousProd: IProductionPoint[] = [
+      ...(project.previousProd ?? []).filter((p) => p.dateTime >= cutoff),
+      ...storedToday,
+    ];
+
+    // §5.2.4 — Fetch fresh forecast for nextProd (no history needed)
+    const { nextProd } = await productionService.computeTodayAndForecast(params, panel);
+
+    // §5.2.3 + §5.2.6-7 — Persist: clear today, save rolled history, new forecast
     await ProjectModel.findByIdAndUpdate(projectId, {
-      prodToday: production.prodToday,
-      nextProd: production.nextProd,
-      previousProd: production.previousProd,
+      prodToday: [],
+      previousProd: rolledPreviousProd,
+      nextProd,
       lastRefreshedAt: new Date(),
-      $inc: { totalProd: todaySum },
+      $inc: { totalProd: todayAccum },
     });
 
-    console.info(`[Scheduler] Refreshed ${projectId} (+${todaySum.toFixed(3)} kWh today)`);
+    console.info(
+      `[Scheduler] Refreshed ${projectId}: +${todayAccum.toFixed(3)} kWh accumulated, ` +
+      `${rolledPreviousProd.length} history pts, ${nextProd.length} forecast pts`,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -717,9 +748,9 @@ export class ProjectService {
     });
   }
 
-  async estimateFromPolygon(
+  estimateFromPolygon(
     area: GeoPointInput[],
-  ): Promise<{ panelCount: number; areaSqm: number; estimatedKwp: number }> {
+  ): { panelCount: number; areaSqm: number; estimatedKwp: number } {
     const geoPoints = area.map((p) => ({ latitude: p.lat, longitude: p.lon }));
     const areaSqm = getAreaOfPolygon(geoPoints);
 
@@ -821,8 +852,32 @@ export class ProjectService {
   // ---------------------------------------------------------------------------
 
   /**
+   * On-demand production refresh (§5.3).
+   * Updates only prodToday and nextProd — never touches previousProd.
+   * previousProd is only modified by the nightly cron (§5.2).
+   */
+  private async refreshOnDemand(
+    project: HydratedDocument<IProject>,
+    panel: IPanel,
+  ): Promise<TodayAndForecastData> {
+    const params = toProductionParams(project);
+    if (!params) return { prodToday: project.prodToday ?? [], nextProd: project.nextProd ?? [] };
+
+    const { prodToday, nextProd } = await productionService.computeTodayAndForecast(params, panel);
+
+    await ProjectModel.findByIdAndUpdate(project._id, {
+      prodToday,
+      nextProd,
+      lastRefreshedAt: new Date(),
+    });
+
+    return { prodToday, nextProd };
+  }
+
+  /**
    * Background production refresh for all stale projects of a user.
    * Called fire-and-forget from getUserDashboard.
+   * Uses on-demand logic (§5.3) — does NOT roll prodToday into previousProd.
    */
   private async refreshStaleProjectsForUser(userId: string): Promise<void> {
     const thresholdMs =
@@ -844,7 +899,9 @@ export class ProjectService {
 
     for (const project of staleProjects) {
       try {
-        await this.refreshProductionData(project._id.toString());
+        const panel = resolvePopulatedPanel(project.panel);
+        if (!panel) continue;
+        await this.refreshOnDemand(project, panel);
       } catch (err) {
         console.warn(`[Dashboard] Refresh failed for ${project._id.toString()}:`, err);
       }

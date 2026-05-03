@@ -4,6 +4,32 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 3, 2026 - Lint Fix: estimateFromPolygon Async Removal
+
+### Topic
+Remove unnecessary async usage on estimateFromPolygon to satisfy ESLint require-await.
+
+### Summary of Prompt
+User asked about the ESLint @typescript-eslint/require-await warning on estimateFromPolygon, requested the best solution, asked if it would impact call sites, then approved the fix.
+
+### What Was Achieved
+- Removed async from estimateFromPolygon and updated the return type to be synchronous.
+- Kept the calculation logic intact so outputs remain identical.
+
+### Full Prompt
+> "Que podemos hacer con esto: [eslint require-await warning] Dame opciones"
+> "Para ti cual es la mejor solucion?"
+> "Esto afectaria a algun otro punto en el que se use este method?"
+> "Ok"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The method does not perform I/O or await any async work, so async adds a redundant Promise and triggers require-await.
+- Removing async keeps behavior the same and avoids extra Promise allocation; existing await call sites still work because awaiting a non-Promise resolves immediately.
+
 ## April 19, 2026 - Bugfix: Sun Path Data 500 Error
 
 ### Topic

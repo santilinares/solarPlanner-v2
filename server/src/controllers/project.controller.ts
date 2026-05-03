@@ -162,12 +162,17 @@ export const estimateProject = asyncHandler(async (req: Request, res: Response) 
 
 /**
  * @route   POST /projects/:id/refresh-production
- * @desc    Force a full recalculation of production data for a project
+ * @desc    Refresh production data for a project (on-demand by default, full recalc if forceFullRecalc=true)
  * @access  Private (project owner or admin)
  */
 export const refreshProduction = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const result = await projectService.refreshProjectProductionOnDemand(req.params.id, caller);
+  const { forceFullRecalc } = req.body as { forceFullRecalc?: boolean };
+  const result = await projectService.refreshProjectProductionOnDemand(
+    req.params.id,
+    caller,
+    forceFullRecalc,
+  );
   return success(res, result, 'Production data refreshed successfully');
 });
 

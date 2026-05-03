@@ -81,9 +81,15 @@ export interface ProductionData {
   nextProd: IProductionPoint[];
 }
 
+export interface TodayAndForecastData {
+  prodToday: IProductionPoint[];
+  nextProd: IProductionPoint[];
+}
+
 class ProductionService {
   /**
    * Compute all three production windows for a project.
+   * Used for initial project creation and forced full recalculation.
    * Returns empty arrays if panel is null (no panel associated).
    */
   async computeProductionData(
@@ -150,6 +156,66 @@ class ProductionService {
     }
 
     return { prodToday, previousProd, nextProd };
+  }
+
+  /**
+   * Compute only prodToday and nextProd (§5.3 — on-demand refresh).
+   * Fetches from today midnight → +forecastDays. Does NOT fetch history.
+   * previousProd is never modified by this method.
+   */
+  async computeTodayAndForecast(
+    project: ProjectProductionParams,
+    panel: IPanel | null,
+  ): Promise<TodayAndForecastData> {
+    if (!panel) return { prodToday: [], nextProd: [] };
+
+    const forecastDays = parseInt(process.env.PRODUCTION_FORECAST_DAYS ?? '10', 10);
+
+    const weatherPoints = await openMeteoService.fetchProductionWeather(
+      project.lat,
+      project.lon,
+      project.tilt,
+      project.azimuth,
+      0, // no past days — only today + forecast
+      forecastDays,
+    );
+
+    const panelParams = this.resolvePanelParams(panel);
+    const lossParams = this.resolveLossParams(project.systemLosses);
+    const year = this.yearOfOperation(project.installDate);
+
+    const now = new Date();
+    const todayMidnightMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const tomorrowMidnightMs = todayMidnightMs + 86_400_000;
+    const currentHourMs = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      now.getUTCHours(),
+    );
+
+    const prodToday: IProductionPoint[] = [];
+    const nextProd: IProductionPoint[] = [];
+
+    for (const point of weatherPoints) {
+      const t = point.dateTime.getTime();
+      const pv = this.calculateHourlyOutputKwh(
+        point.gti,
+        point.temperature,
+        panelParams,
+        lossParams,
+        project.panelNumber,
+        year,
+      );
+
+      if (t >= todayMidnightMs && t <= currentHourMs) {
+        prodToday.push({ dateTime: point.dateTime, pv });
+      } else if (t >= tomorrowMidnightMs) {
+        nextProd.push({ dateTime: point.dateTime, pv });
+      }
+    }
+
+    return { prodToday, nextProd };
   }
 
   /**
