@@ -215,3 +215,17 @@ export const EstimateSchema = z.object({
 
 /** Type inferred from EstimateSchema */
 export type EstimateInput = z.infer<typeof EstimateSchema>;
+
+/**
+ * Refresh production endpoint schema
+ *
+ * Body for POST /api/projects/:id/refresh-production
+ * forceFullRecalc is accepted but currently ignored — the endpoint
+ * always triggers a full recalculation of the three time windows.
+ */
+export const RefreshProductionSchema = z.object({
+  forceFullRecalc: z.boolean().optional(),
+});
+
+/** Type inferred from RefreshProductionSchema */
+export type RefreshProductionInput = z.infer<typeof RefreshProductionSchema>;

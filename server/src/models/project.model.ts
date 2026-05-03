@@ -6,10 +6,7 @@ import { GeoPointInput } from '../schemas/project.schema';
  */
 export interface IProductionPoint {
   dateTime: Date;
-  // TODO - Unidades ambiguas: el comentario dice "kWh or Wh" pero no está definido cuál usa cada campo.
-  // prodToday viene de Solcast en kW por período (pendiente conversión ×0.5), nextProd/previousProd son agregados diarios.
-  // Aclarar y unificar las unidades en todos los campos de producción.
-  pv: number; // kWh or Wh
+  pv: number; // kWh — energy output for the 1-hour time step
 }
 
 const ProductionPointSchema = new Schema<IProductionPoint>(

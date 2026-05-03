@@ -9,6 +9,16 @@ export type CallerContext =
   | { role: 'user'; userId: string }
   | { role: 'admin'; userId: string };
 
+export interface SystemLossesResponse {
+  inverterEfficiency?: number;
+  dcWiring?: number;
+  acWiring?: number;
+  mismatch?: number;
+  soiling?: number;
+  degradationExtra?: number;
+  shadingStatic?: number;
+}
+
 export interface ProjectResponse {
   _id: string;
   name: string;
@@ -34,6 +44,8 @@ export interface ProjectResponse {
   nextProd?: IProductionPoint[];
   previousProd?: IProductionPoint[];
   totalProd?: number;
+  lastRefreshedAt?: string; // ISO timestamp of last production data refresh
+  systemLosses?: SystemLossesResponse;
   installDate: string;
   createdAt: string;
   updatedAt: string;

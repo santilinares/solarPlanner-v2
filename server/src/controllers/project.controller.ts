@@ -11,6 +11,7 @@ import {
 } from '../schemas/project.schema';
 import { CallerContext } from '../types/project.types';
 
+
 /**
  * Project Controller
  * Handles solar project HTTP requests
@@ -157,5 +158,16 @@ export const estimateProject = asyncHandler(async (req: Request, res: Response) 
   const { area } = req.body as { area: { lat: number; lon: number }[] };
   const result = await projectService.estimateFromPolygon(area);
   return success(res, result);
+});
+
+/**
+ * @route   POST /projects/:id/refresh-production
+ * @desc    Force a full recalculation of production data for a project
+ * @access  Private (project owner or admin)
+ */
+export const refreshProduction = asyncHandler(async (req: Request, res: Response) => {
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const result = await projectService.refreshProjectProductionOnDemand(req.params.id, caller);
+  return success(res, result, 'Production data refreshed successfully');
 });
 

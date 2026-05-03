@@ -16,18 +16,19 @@ interface AppConfig {
   EMAIL_PORT: number;
   EMAIL_USER: string;
   EMAIL_PASS: string;
-  SOLCAST_API_KEY: string;
-  USE_MOCK_SOLCAST: boolean;
+  ENTSOE_API_KEY: string;
+  PRODUCTION_REFRESH_THRESHOLD_H: number;
+  PRODUCTION_HISTORY_DAYS: number;
+  PRODUCTION_FORECAST_DAYS: number;
 }
 
 /**
- * Load and validate environment variables
- * Throws error if required variables are missing
+ * Load and validate environment variables.
+ * Throws on missing required variables.
  */
 export function loadEnv(): AppConfig {
   const env = process.env;
 
-  // Validate required variables
   const required = [
     'MONGODB_URI',
     'JWT_SECRET',
@@ -36,7 +37,10 @@ export function loadEnv(): AppConfig {
     'EMAIL_PORT',
     'EMAIL_USER',
     'EMAIL_PASS',
-    'SOLCAST_API_KEY',
+    'ENTSOE_API_KEY',
+    'PRODUCTION_REFRESH_THRESHOLD_H',
+    'PRODUCTION_HISTORY_DAYS',
+    'PRODUCTION_FORECAST_DAYS',
   ];
 
   const missing = required.filter((key) => !env[key]);
@@ -57,7 +61,9 @@ export function loadEnv(): AppConfig {
     EMAIL_PORT: parseInt(env.EMAIL_PORT!, 10),
     EMAIL_USER: env.EMAIL_USER!,
     EMAIL_PASS: env.EMAIL_PASS!,
-    SOLCAST_API_KEY: env.SOLCAST_API_KEY!,
-    USE_MOCK_SOLCAST: env.USE_MOCK_SOLCAST === 'true',
+    ENTSOE_API_KEY: env.ENTSOE_API_KEY!,
+    PRODUCTION_REFRESH_THRESHOLD_H: parseInt(env.PRODUCTION_REFRESH_THRESHOLD_H!, 10),
+    PRODUCTION_HISTORY_DAYS: parseInt(env.PRODUCTION_HISTORY_DAYS!, 10),
+    PRODUCTION_FORECAST_DAYS: parseInt(env.PRODUCTION_FORECAST_DAYS!, 10),
   };
 }

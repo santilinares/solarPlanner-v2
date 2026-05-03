@@ -13,6 +13,7 @@ import {
   adminDeleteProject,
   calculateFromPolygon,
   estimateProject,
+  refreshProduction,
 } from '../controllers/project.controller';
 import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
@@ -23,6 +24,7 @@ import {
   OptimalConfigSchema,
   OptimalConfigFromPolygonSchema,
   EstimateSchema,
+  RefreshProductionSchema,
 } from '../schemas/project.schema';
 
 const router = Router();
@@ -77,5 +79,12 @@ router.post(
 );
 
 router.delete('/:id/admin', verifyAdminJwtToken, adminDeleteProject);
+
+router.post(
+  '/:id/refresh-production',
+  verifyUserJwtToken,
+  validateBody(RefreshProductionSchema),
+  refreshProduction,
+);
 
 export default router;

@@ -1,11 +1,13 @@
 import { HydratedDocument, FilterQuery, Types } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
-import { ProjectModel, IProject, IProductionPoint } from '../models/project.model';
+import { ProjectModel, IProject, IProductionPoint, ISystemLosses } from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
 import { CultivarModel } from '../models/cultivar.model';
 import { UserModel } from '../models/user.model';
 import { emailService } from './email.service';
+import { productionService, ProjectProductionParams } from './production.service';
+import { entsoeService } from './entsoe.service';
 import {
   ProjectCreateInput,
   ProjectQueryInput,
@@ -24,7 +26,9 @@ import {
 
 /**
  * Project Service
- * Handles solar project management and calculations
+ * Handles solar project management and calculations.
+ *
+ * Production data units: all IProductionPoint.pv values are in kWh.
  */
 
 interface SunPathData {
@@ -55,16 +59,15 @@ interface PlanData {
   generatedAt: string;
 }
 
-/**
- * Calculate geospatial fields from polygon area
- */
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 const calculateGeospatialFields = (area: GeoPointInput[]): { lat?: number; lon?: number; surface?: number } => {
-  if (!area || area.length < 3) {
-    return {};
-  }
+  if (!area || area.length < 3) return {};
 
   try {
-    const geoPoints = area.map((point: GeoPointInput) => ({ latitude: point.lat, longitude: point.lon }));
+    const geoPoints = area.map((p: GeoPointInput) => ({ latitude: p.lat, longitude: p.lon }));
     const center = getCenter(geoPoints);
     const surface = getAreaOfPolygon(geoPoints);
 
@@ -80,19 +83,37 @@ const calculateGeospatialFields = (area: GeoPointInput[]): { lat?: number; lon?:
 };
 
 /**
- * Transform project document to response format
- * Includes calculated geospatial fields (lat, lon, surface)
+ * Extract a populated IPanel document from the panel field of a project.
+ * Returns null when the field is an ObjectId (not populated) or absent.
  */
+const resolvePopulatedPanel = (panelField: unknown): IPanel | null => {
+  if (!panelField || typeof panelField !== 'object') return null;
+  if ('wattPeak' in panelField) return panelField as IPanel;
+  return null;
+};
+
+/**
+ * Build the ProductionParams needed by ProductionService from a project document.
+ * Returns null if the project lacks lat/lon.
+ */
+const toProductionParams = (project: HydratedDocument<IProject>): ProjectProductionParams | null => {
+  if (!project.lat || !project.lon) return null;
+  return {
+    lat: project.lat,
+    lon: project.lon,
+    tilt: project.tilt,
+    azimuth: project.azimuth,
+    panelNumber: project.panelNumber,
+    installDate: project.installDate,
+    systemLosses: project.systemLosses as ISystemLosses | undefined,
+  };
+};
+
 const transformProjectToResponse = (project: HydratedDocument<IProject>): ProjectResponse => {
   const ownerData = (() => {
-    if (!project.owner) {
-      return undefined;
-    }
-    if (typeof project.owner !== 'object') {
-      return String(project.owner);
-    }
+    if (!project.owner) return undefined;
+    if (typeof project.owner !== 'object') return String(project.owner);
 
-    // When populated, owner is a Mongoose doc-ish object; keep this runtime-safe and TS-friendly.
     const owner = project.owner as unknown as {
       _id?: { toString(): string };
       email?: unknown;
@@ -115,7 +136,6 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
         fullName: typeof owner.fullName === 'string' ? owner.fullName : '',
       };
     }
-
     return owner._id?.toString?.();
   })();
 
@@ -144,42 +164,48 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     nextProd: project.nextProd,
     previousProd: project.previousProd,
     totalProd: project.totalProd,
+    lastRefreshedAt: project.lastRefreshedAt?.toISOString(),
+    systemLosses: project.systemLosses
+      ? {
+          inverterEfficiency: project.systemLosses.inverterEfficiency,
+          dcWiring: project.systemLosses.dcWiring,
+          acWiring: project.systemLosses.acWiring,
+          mismatch: project.systemLosses.mismatch,
+          soiling: project.systemLosses.soiling,
+          degradationExtra: project.systemLosses.degradationExtra,
+          shadingStatic: project.systemLosses.shadingStatic,
+        }
+      : undefined,
     installDate: project.installDate.toISOString(),
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
   };
 };
 
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
 export class ProjectService {
   /**
-   * Create a new solar project
-   * @param userId Owner user ID
-   * @param data Project creation data
-   * @returns Created project
+   * Create a new solar project.
+   * Resolves geospatial fields, country, timezone, electricity price, and
+   * fetches initial production data from Open-Meteo.
    */
   async createProject(userId: string, data: ProjectCreateInput): Promise<ProjectResponse> {
-    // Validate panel exists if provided
     if (data.panelId) {
       const panel = await PanelModel.findById(data.panelId);
-      if (!panel) {
-        throw new Error('Panel not found');
-      }
+      if (!panel) throw new Error('Panel not found');
     }
 
-    // Validate cultivar exists if agrivoltaic + cultivarId provided
     if (data.projectType === 'agrivoltaic' && data.cultivarId) {
       const cultivar = await CultivarModel.findById(data.cultivarId);
-      if (!cultivar) {
-        throw new Error('Cultivar not found');
-      }
+      if (!cultivar) throw new Error('Cultivar not found');
     }
 
-    // TODO - [SEVERIDAD MEDIA] El documento se crea en BD antes de completar las integraciones externas
-    // (Solcast, precio de electricidad). Si el update posterior falla, el proyecto queda en un estado
-    // inconsistente: creado pero sin datos de producción, país ni timezone.
-    // Considerar acumular todos los datos primero y crear el documento solo cuando todo esté listo,
-    // o usar una transacción de MongoDB para hacer el create + update atómicos.
-    // Create project (lat, lon, surface are calculated on-demand in response)
+    // TODO - [SEVERIDAD MEDIA] El documento se crea en BD antes de completar las integraciones externas.
+    // Si el update posterior falla, el proyecto queda creado pero sin datos de producción ni ubicación.
+    // Considerar una transacción MongoDB para hacer create + update atómicos.
     const project = await ProjectModel.create({
       ...data,
       panel: data.panelId,
@@ -187,67 +213,62 @@ export class ProjectService {
       owner: userId,
     });
 
-    // Calculate geospatial fields to get lat/lon for API calls
     const geo = calculateGeospatialFields(data.area);
     const { lat, lon } = geo;
 
     console.info(`[Project Creation] Starting API integrations for (${lat}, ${lon})`);
 
-    // Priority 1 API Integrations
-    // Run synchronous operations inline and async operations in parallel
     let resolvedCountry: { name: string; code: string } | undefined;
     let resolvedTimezone: string | undefined;
 
     try {
       resolvedCountry = this.resolveCountry(lat, lon, undefined);
-      console.info(`[Project Creation] Country resolved: ${resolvedCountry?.name} (${resolvedCountry?.code})`);
+      console.info(`[Project Creation] Country: ${resolvedCountry?.name} (${resolvedCountry?.code})`);
     } catch (error) {
       console.warn('[Project Creation] Country resolution error:', error);
     }
 
     try {
       resolvedTimezone = this.resolveTimezone(lat, lon, undefined);
-      console.info(`[Project Creation] Timezone resolved: ${resolvedTimezone}`);
+      console.info(`[Project Creation] Timezone: ${resolvedTimezone}`);
     } catch (error) {
       console.warn('[Project Creation] Timezone resolution error:', error);
     }
 
-    const [priceData, productionData] = await Promise.all([
-      // 1.3 Electricity price lookup
-      this.fetchElectricityPrice(resolvedCountry?.code ?? '', undefined, undefined).catch((error: unknown) => {
+    // Fetch electricity price (ENTSO-E if key is set, else undefined)
+    const priceData = await this.fetchElectricityPrice(resolvedCountry?.code ?? '').catch(
+      (error: unknown) => {
         console.warn('[Project Creation] Price lookup error:', error);
         return { price: undefined, currency: undefined };
-      }),
+      },
+    );
 
-      // 1.4 Solcast integration (fetch production data)
-      lat && lon && data.panelId
-        ? (async () => {
-            try {
-              const panel = await PanelModel.findById(data.panelId);
-              if (panel) {
-                const capacityKw = (panel.wattPeak * data.panelNumber) / 1000;
-                console.info(`[Project Creation] Fetching Solcast data for capacity ${capacityKw}kW`);
-                return await this.fetchSolcastData(lat, lon, capacityKw);
-              }
-              return { prodToday: [], nextProd: [], previousProd: [] };
-            } catch (error) {
-              console.warn('[Project Creation] Solcast integration error:', error);
-              return { prodToday: [], nextProd: [], previousProd: [] };
-            }
-          })()
-        : Promise.resolve({ prodToday: [], nextProd: [], previousProd: [] }),
-    ]);
+    // Fetch initial production data if the project has a panel and location
+    let productionData = { prodToday: [] as IProductionPoint[], nextProd: [] as IProductionPoint[], previousProd: [] as IProductionPoint[] };
+    if (lat && lon && data.panelId) {
+      try {
+        const panel = await PanelModel.findById(data.panelId);
+        if (panel) {
+          productionData = await productionService.computeProductionData(
+            {
+              lat,
+              lon,
+              tilt: data.tilt,
+              azimuth: undefined, // azimuth not in create schema, defaults to south
+              panelNumber: data.panelNumber,
+              installDate: new Date(),
+              systemLosses: data.systemLosses,
+            },
+            panel,
+          );
+          console.info(`[Project Creation] Production data: today=${productionData.prodToday.length}pts, prev=${productionData.previousProd.length}pts, next=${productionData.nextProd.length}pts`);
+        }
+      } catch (error) {
+        console.warn('[Project Creation] Production data error:', error);
+      }
+    }
 
-    // Update project with resolved data
-    console.info('[Project Creation] Updating project with resolved data:', {
-      country: resolvedCountry?.name,
-      timezone: resolvedTimezone,
-      currency: priceData.currency,
-      price: priceData.price,
-      prodTodayCount: productionData.prodToday.length,
-      nextProdCount: productionData.nextProd.length,
-      previousProdCount: productionData.previousProd.length,
-    });
+    const hasProduction = productionData.prodToday.length > 0 || productionData.previousProd.length > 0 || productionData.nextProd.length > 0;
 
     const updatedProject = await ProjectModel.findByIdAndUpdate(
       project._id,
@@ -262,17 +283,15 @@ export class ProjectService {
         prodToday: productionData.prodToday,
         nextProd: productionData.nextProd,
         previousProd: productionData.previousProd,
+        lastRefreshedAt: hasProduction ? new Date() : undefined,
       },
-      { new: true }
+      { new: true },
     );
 
-    if (!updatedProject) {
-      throw new Error('Failed to update project with external data');
-    }
+    if (!updatedProject) throw new Error('Failed to update project with external data');
 
-    console.info(`[Project Creation] ✅ Successfully created project ${updatedProject._id.toString()} with all integrations`);
+    console.info(`[Project Creation] ✅ Project ${updatedProject._id.toString()} created`);
 
-    // Send project created notification (fire-and-forget)
     UserModel.findById(userId)
       .then((user) => {
         if (user) {
@@ -292,34 +311,60 @@ export class ProjectService {
   }
 
   /**
-   * Get project by ID
-   * @param projectId Project ID
-   * @param userId Requesting user ID (for ownership check)
-   * @returns Project data
+   * Get project by ID.
+   * Triggers an on-demand production refresh if data is stale (§5.3).
    */
   async getProjectById(projectId: string, caller: CallerContext): Promise<ProjectResponse> {
-    const project = await ProjectModel.findById(projectId)
+    let project = await ProjectModel.findById(projectId)
       .populate('panel')
       .populate('owner', 'fullName email');
 
-    if (!project) {
-      throw new Error('Project not found');
-    }
+    if (!project) throw new Error('Project not found');
 
     if (caller.role !== 'admin' && project.owner) {
       const ownerId =
         typeof project.owner === 'object' && project.owner !== null && '_id' in project.owner
           ? (project.owner as { _id: { toString(): string } })._id.toString()
           : (project.owner as unknown as { toString(): string }).toString();
-      if (ownerId !== caller.userId) {
-        throw new Error('Not authorized to view this project');
+      if (ownerId !== caller.userId) throw new Error('Not authorized to view this project');
+    }
+
+    // On-demand refresh if production data is stale (§5.3)
+    const thresholdMs =
+      parseInt(process.env.PRODUCTION_REFRESH_THRESHOLD_H ?? '6', 10) * 3_600_000;
+    const isStale =
+      !project.lastRefreshedAt ||
+      Date.now() - project.lastRefreshedAt.getTime() >= thresholdMs;
+
+    if (isStale && project.lat && project.lon) {
+      const panel = resolvePopulatedPanel(project.panel);
+      const params = toProductionParams(project);
+      if (params && panel) {
+        try {
+          const production = await productionService.computeProductionData(params, panel);
+          const refreshedAt = new Date();
+          const updated = await ProjectModel.findByIdAndUpdate(
+            projectId,
+            { ...production, lastRefreshedAt: refreshedAt },
+            { new: true },
+          )
+            .populate('panel')
+            .populate('owner', 'fullName email');
+          if (updated) project = updated;
+        } catch (err) {
+          console.warn(`[Project] On-demand refresh failed for ${projectId}:`, err);
+        }
       }
     }
 
     return transformProjectToResponse(project);
   }
 
-  async updateProject(caller: CallerContext, projectId: string, data: ProjectUpdateInput): Promise<ProjectResponse> {
+  async updateProject(
+    caller: CallerContext,
+    projectId: string,
+    data: ProjectUpdateInput,
+  ): Promise<ProjectResponse> {
     const project = await ProjectModel.findById(projectId);
     if (!project) throw new Error('Project not found');
 
@@ -331,18 +376,15 @@ export class ProjectService {
     const updated = await ProjectModel.findByIdAndUpdate(
       projectId,
       { ...data, ...geo },
-      { new: true }
+      { new: true },
     );
-    
+
     if (!updated) throw new Error('Failed to update project');
     return transformProjectToResponse(updated);
   }
 
   /**
-   * List/filter projects
-   * @param filters Query filters
-   * @param userId Requesting user ID (filter by owner if not admin)
-   * @returns List of projects
+   * List/filter projects.
    */
   async listProjects(filters: ProjectQueryInput, caller: CallerContext): Promise<ProjectListResponse> {
     const page = filters.page || 1;
@@ -351,13 +393,7 @@ export class ProjectService {
 
     if (filters.id) {
       const project = await this.getProjectById(filters.id, caller);
-      return {
-        data: [project],
-        total: 1,
-        page: 1,
-        limit: 1,
-        totalPages: 1,
-      };
+      return { data: [project], total: 1, page: 1, limit: 1, totalPages: 1 };
     }
 
     const query: FilterQuery<IProject> = {};
@@ -368,34 +404,18 @@ export class ProjectService {
       query.owner = caller.userId;
     }
 
-    // Country filter
-    if (filters.country) {
-      query.country = filters.country;
-    }
+    if (filters.country) query.country = filters.country;
 
-    // Date range filter (installDate)
     if (filters.from || filters.to) {
       const dateQuery: Record<string, Date> = {};
-      if (filters.from) {
-        dateQuery.$gte = filters.from;
-      }
-      if (filters.to) {
-        dateQuery.$lte = filters.to;
-      }
+      if (filters.from) dateQuery.$gte = filters.from;
+      if (filters.to) dateQuery.$lte = filters.to;
       (query as Record<string, unknown>).installDate = dateQuery;
     }
 
-    // Search by name
-    if (filters.search) {
-      query.$text = { $search: filters.search };
-    }
+    if (filters.search) query.$text = { $search: filters.search };
+    if (filters.projectType) query.projectType = filters.projectType;
 
-    // Project type filter
-    if (filters.projectType) {
-      query.projectType = filters.projectType;
-    }
-
-    // Execute query with pagination
     const [projects, total] = await Promise.all([
       ProjectModel.find(query)
         .populate('panel')
@@ -407,63 +427,37 @@ export class ProjectService {
     ]);
 
     const totalPages = Math.ceil(total / limit);
-
-    return {
-      data: projects.map(transformProjectToResponse),
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+    return { data: projects.map(transformProjectToResponse), total, page, limit, totalPages };
   }
 
-  /**
-   * Delete project
-   * @param projectId Project ID
-   * @param userId Owner user ID
-   */
   async deleteProject(projectId: string, userId: string): Promise<void> {
     const project = await ProjectModel.findById(projectId);
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    // Verify ownership
-    if (project.owner?.toString() !== userId) {
-      throw new Error('Not authorized to delete this project');
-    }
-
+    if (!project) throw new Error('Project not found');
+    if (project.owner?.toString() !== userId) throw new Error('Not authorized to delete this project');
     await ProjectModel.findByIdAndDelete(projectId);
   }
 
-  /**
-   * Admin delete project (bypass ownership check)
-   * @param projectId Project ID
-   */
   async adminDeleteProject(projectId: string): Promise<void> {
     const project = await ProjectModel.findById(projectId);
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
+    if (!project) throw new Error('Project not found');
     await ProjectModel.findByIdAndDelete(projectId);
   }
 
   /**
-   * Get user dashboard statistics
-   * @param userId User ID
-   * @returns Dashboard stats
+   * User dashboard statistics.
+   * Fires a background refresh for stale projects without blocking the response.
    */
   async getUserDashboard(userId: string): Promise<DashboardStats> {
-    return this.computeDashboardStats({ owner: new Types.ObjectId(userId) });
+    const stats = await this.computeDashboardStats({ owner: new Types.ObjectId(userId) });
+
+    // Non-blocking: refresh stale projects in the background
+    this.refreshStaleProjectsForUser(userId).catch((err: unknown) => {
+      console.warn('[Dashboard] Background refresh error:', err);
+    });
+
+    return stats;
   }
 
-  /**
-   * Get admin dashboard statistics
-   * @returns Dashboard stats for all projects
-   */
   async getAdminDashboard(): Promise<DashboardStats> {
     return this.computeDashboardStats({});
   }
@@ -504,7 +498,6 @@ export class ProjectService {
               1000,
             ],
           },
-          // Replicates: p.lat ? Math.max(2, 5.5 - Math.abs(p.lat) * 0.02) : 4
           _peakSunHours: {
             $cond: {
               if: { $gt: [{ $ifNull: ['$lat', null] }, null] },
@@ -571,73 +564,122 @@ export class ProjectService {
   }
 
   /**
-   * Calculate optimal panel configuration
-   * @param data Configuration parameters
-   * @returns Optimal configuration recommendations
+   * Explicit on-demand production refresh (§5.3 — forced via endpoint).
+   * Returns only the production fields and timestamp.
    */
+  async refreshProjectProductionOnDemand(
+    projectId: string,
+    caller: CallerContext,
+  ): Promise<{
+    prodToday: IProductionPoint[];
+    previousProd: IProductionPoint[];
+    nextProd: IProductionPoint[];
+    lastRefreshedAt: string;
+  }> {
+    const project = await ProjectModel.findById(projectId).populate('panel');
+    if (!project) throw new Error('Project not found');
+
+    if (caller.role !== 'admin' && project.owner?.toString() !== caller.userId) {
+      throw new Error('Not authorized');
+    }
+
+    if (!project.lat || !project.lon) {
+      throw new Error('Project has no location data; cannot calculate production');
+    }
+
+    const panel = resolvePopulatedPanel(project.panel);
+    if (!panel) {
+      throw new Error('No panel associated with project; cannot calculate production');
+    }
+
+    const params = toProductionParams(project)!;
+    const production = await productionService.computeProductionData(params, panel);
+    const refreshedAt = new Date();
+
+    await ProjectModel.findByIdAndUpdate(projectId, {
+      ...production,
+      lastRefreshedAt: refreshedAt,
+    });
+
+    return {
+      prodToday: production.prodToday,
+      previousProd: production.previousProd,
+      nextProd: production.nextProd,
+      lastRefreshedAt: refreshedAt.toISOString(),
+    };
+  }
+
+  /**
+   * Nightly refresh called by the scheduler (§5.2).
+   * Accumulates today's production into totalProd before rolling over.
+   */
+  async refreshProductionData(projectId: string): Promise<void> {
+    const project = await ProjectModel.findById(projectId).populate('panel');
+    if (!project || !project.lat || !project.lon) {
+      console.warn(`[Scheduler] Skipping ${projectId}: missing location or not found`);
+      return;
+    }
+
+    const panel = resolvePopulatedPanel(project.panel);
+    if (!panel) {
+      console.warn(`[Scheduler] Skipping ${projectId}: no panel associated`);
+      return;
+    }
+
+    const params = toProductionParams(project);
+    if (!params) return;
+
+    const production = await productionService.computeProductionData(params, panel);
+    const todaySum = production.prodToday.reduce((sum, p) => sum + p.pv, 0);
+
+    await ProjectModel.findByIdAndUpdate(projectId, {
+      prodToday: production.prodToday,
+      nextProd: production.nextProd,
+      previousProd: production.previousProd,
+      lastRefreshedAt: new Date(),
+      $inc: { totalProd: todaySum },
+    });
+
+    console.info(`[Scheduler] Refreshed ${projectId} (+${todaySum.toFixed(3)} kWh today)`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Solar calculations
+  // ---------------------------------------------------------------------------
+
   async calculateOptimalConfig(data: OptimalConfigInput): Promise<OptimalConfigResponse> {
     const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak } = data;
 
-    // Panel dimensions are already in metres
     const W = panelWidth;
     const H = panelHeight;
     const tiltRad = (tilt * Math.PI) / 180;
 
-    // Calculate shadow-based optimal row spacing:
-    //TODO - Revisar que esta formula se aplica correctamente. Por que hay datos hardcoadeados? Explicaciónd de por qué revisarlo:
-    /**
-     * La fórmula de espaciado d = H × sin(α) / tan(β) asume implícitamente que los paneles están orientados al sur (azimut 180°). 
-     * Si un panel está orientado al este u oeste, las sombras caen de forma diferente y el espaciado necesario es distinto. 
-     * El azimut está guardado en el proyecto pero no se usa aquí.
-     */
-    // d = H × sin(α) / tan(β)  where β = 90° − |lat| − 23.45°
+    // Shadow-based row spacing: d = H × sin(α) / tan(β) where β = 90° − |lat| − 23.45°
+    // TODO - Formula assumes south-facing panels; azimuth should be factored in
     const betaDeg = 90 - Math.abs(latitude) - 23.45;
     let recommendedRowSpacing: number;
     if (betaDeg <= 0) {
-      recommendedRowSpacing = H * 3; // extreme latitude fallback
+      recommendedRowSpacing = H * 3;
     } else {
       const betaRad = (betaDeg * Math.PI) / 180;
       recommendedRowSpacing = (H * Math.sin(tiltRad)) / Math.tan(betaRad);
     }
-    // Enforce a minimum of 0.6 m for maintenance access
-    //TODO - No sólo debería ser por acceso a manetimiento sino porque pueden generarse sombra entre los paneles si se acercan mucho y de la inclinación.
     recommendedRowSpacing = Math.max(recommendedRowSpacing, 0.6);
-    // Round to 2 decimal places
     recommendedRowSpacing = Math.round(recommendedRowSpacing * 100) / 100;
 
-    // panelFootprint = W × (H × cos(α) + d)
     const panelFootprint = W * (H * Math.cos(tiltRad) + recommendedRowSpacing);
-
-    // Utilisation factor: 85% for roof (default)
-    //TODO - Hay alguna manera de no tener que asumir el porcentaje de area aprovechable?
     const utilisation = 0.85;
     const usableArea = surfaceArea * utilisation;
+    const recommendedPanels = panelFootprint > 0 ? Math.floor(usableArea / panelFootprint) : 0;
 
-    const recommendedPanels = panelFootprint > 0
-      ? Math.floor(usableArea / panelFootprint)
-      : 0;
-
-    // Use actual panel wattage when available, otherwise fall back to 300 W average
     const panelWatts = wattPeak ?? 300;
-    const estimatedCapacity = (recommendedPanels * panelWatts) / 1000; // kW
+    const estimatedCapacity = (recommendedPanels * panelWatts) / 1000;
 
-    // Estimate annual production (simplified calculation)
-    // Peak sun hours vary by latitude: equator ~5.5h, higher latitudes ~3-4h
-    //TODO - Usar API para calcular las horas de sol
-    const peakSunHours = 5.5 - Math.abs(latitude) * 0.02; // Rough approximation
-    //TODO - Modificar para que tenga en cuenta factores reales, como sombras, orientacion, nubes, inversor, etc.
-    const systemEfficiency = 0.85; // Account for losses
-    const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency; // kWh/year
+    // TODO - Replace with API-based peak sun hours
+    const peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+    const systemEfficiency = 0.85;
+    const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency;
 
-    // Coverage percentage based on raw panel area vs total surface
-    // TODO - Revisar este cálculo. Explicación:
-    /**
-     * coverage = (recommendedPanels × panelArea) / surfaceArea × 100
-     * El coverage se calcula como área física de los paneles vs área total, 
-     * pero ignora el espacio de los pasillos entre filas. 
-     * No es un error grave, pero da la impresión de que "solo se cubre un X% 
-     * de la superficie" cuando en realidad los paneles + sus pasillos ocupan mucho más.
-     */
     const panelArea = W * H;
     const coverage = ((recommendedPanels * panelArea) / surfaceArea) * 100;
 
@@ -652,34 +694,19 @@ export class ProjectService {
     });
   }
 
-  /**
-   * Calculate optimal panel configuration from polygon
-   * @param data Polygon configuration parameters
-   * @returns Optimal configuration recommendations
-   */
   async calculateFromPolygon(data: OptimalConfigFromPolygonInput): Promise<OptimalConfigResponse> {
     const { area, panelId, tilt } = data;
 
-    // Get panel details
     const panel = await PanelModel.findById(panelId);
-    if (!panel) {
-      throw new Error('Panel not found');
-    }
+    if (!panel) throw new Error('Panel not found');
 
-    // Calculate center coordinates for latitude
-    const center = getCenter(area.map((point) => ({ latitude: point.lat, longitude: point.lon })));
+    const center = getCenter(area.map((p) => ({ latitude: p.lat, longitude: p.lon })));
+    if (!center) throw new Error('Could not calculate center of area');
 
-    if (!center) {
-      throw new Error('Could not calculate center of area');
-    }
-
-    // Calculate surface area
     const surfaceArea = getAreaOfPolygon(
-      area.map((point) => ({ latitude: point.lat, longitude: point.lon }))
+      area.map((p) => ({ latitude: p.lat, longitude: p.lon })),
     );
 
-    // Call the core calculation method
-    // dimensions are stored in mm — convert to metres for the area calculation
     return this.calculateOptimalConfig({
       surfaceArea,
       panelWidth: panel.dimensions.width / 1000,
@@ -690,75 +717,50 @@ export class ProjectService {
     });
   }
 
-  /**
-   * Quick visitor estimate from polygon — no auth, fixed panel size
-   * Panel: 2m × 4m, row spacing: 2m, tilt: 30°, utilisation: 85%
-   */
-  async estimateFromPolygon(area: GeoPointInput[]): Promise<{ panelCount: number; areaSqm: number; estimatedKwp: number }> {
+  async estimateFromPolygon(
+    area: GeoPointInput[],
+  ): Promise<{ panelCount: number; areaSqm: number; estimatedKwp: number }> {
     const geoPoints = area.map((p) => ({ latitude: p.lat, longitude: p.lon }));
     const areaSqm = getAreaOfPolygon(geoPoints);
 
-    // Fixed panel dimensions: 2m wide × 4m tall, 2m row spacing
     const panelW = 2;
     const panelH = 4;
     const rowSpacing = 2;
     const footprint = panelW * (panelH + rowSpacing);
     const usableArea = areaSqm * 0.85;
     const panelCount = footprint > 0 ? Math.max(0, Math.floor(usableArea / footprint)) : 0;
-
-    // Assume 400 W per panel (typical standard panel)
     const estimatedKwp = (panelCount * 400) / 1000;
 
     return { panelCount, areaSqm, estimatedKwp };
   }
 
-  /**
-   * Get sun path data for project location
-   * @param projectId Project ID
-   * @returns Sun path calculations
-   */
   async getSunPath(projectId: string, caller: CallerContext): Promise<SunPathData> {
     const project = await ProjectModel.findById(projectId);
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
+    if (!project) throw new Error('Project not found');
 
     if (caller.role !== 'admin' && project.owner?.toString() !== caller.userId) {
       throw new Error('Not authorized to view this project');
     }
 
-    // lat/lon are not stored in the DB — derive them from the area polygon
     const geo = calculateGeospatialFields(project.area);
-    if (!geo.lat || !geo.lon) {
-      throw new Error('Project has no defined area polygon');
-    }
+    if (!geo.lat || !geo.lon) throw new Error('Project has no defined area polygon');
 
     const latitude = geo.lat;
-
-    // Calculate solar declination and hour angle for key times of year
-    const sunPathData = {
+    return {
       latitude,
-      summerSolstice: this.calculateSunPosition(latitude, 23.5), // June 21
-      winterSolstice: this.calculateSunPosition(latitude, -23.5), // Dec 21
-      equinox: this.calculateSunPosition(latitude, 0), // Mar 21 / Sep 21
+      summerSolstice: this.calculateSunPosition(latitude, 23.5),
+      winterSolstice: this.calculateSunPosition(latitude, -23.5),
+      equinox: this.calculateSunPosition(latitude, 0),
     };
-
-    return sunPathData;
   }
 
-  /**
-   * Helper: Calculate sun position for given latitude and declination
-   */
   private calculateSunPosition(latitude: number, declination: number) {
     const latRad = (latitude * Math.PI) / 180;
     const decRad = (declination * Math.PI) / 180;
 
-    // Solar noon altitude
-    //TODO - Revisar que el cálculo. Se sugiere esto: noonAltitude = 90 - |latitude - declination|
+    // TODO - Revisar: noonAltitude = 90 - |latitude - declination| is more accurate
     const noonAltitude = 90 - latitude + declination;
 
-    // Sunrise/sunset hour angle
     const cosHourAngle = -Math.tan(latRad) * Math.tan(decRad);
     const hourAngle = Math.acos(Math.max(-1, Math.min(1, cosHourAngle)));
     const daylightHours = (2 * hourAngle * 180) / Math.PI / 15;
@@ -766,46 +768,27 @@ export class ProjectService {
     return {
       noonAltitude: Math.max(0, noonAltitude),
       daylightHours,
-      //TODO - Revisar cálculos de sunrise/sunset. Explicación:
-      /**
-       * sunrise = 12 - daylightHours / 2
-       * sunset = 12 + daylightHours / 2
-       * Se asume que el mediodía solar es a las 12:00 UTC, lo cual solo es 
-       * correcto en el meridiano 0°. Para cualquier otra longitud hay una desviación, 
-       * y la ecuación del tiempo añade hasta ±16 minutos adicionales. 
-       * No es crítico para los cálculos de producción, pero los horarios mostrados al 
-       * usuario pueden estar desfasados hasta 1-2 horas
-       */
+      // TODO - sunrise/sunset assume solar noon at 12:00 UTC (only exact at meridian 0°)
       sunrise: 12 - daylightHours / 2,
       sunset: 12 + daylightHours / 2,
     };
   }
 
-  /**
-   * Generate plan data for PDF
-   * @param projectId Project ID
-   * @returns Structured plan data
-   */
   async generatePlanData(projectId: string, caller: CallerContext): Promise<PlanData> {
     const project = await ProjectModel.findById(projectId)
       .populate('panel')
       .populate('owner', 'fullName email');
 
-    if (!project) {
-      throw new Error('Project not found');
-    }
+    if (!project) throw new Error('Project not found');
 
     if (caller.role !== 'admin' && project.owner) {
       const ownerId =
         typeof project.owner === 'object' && project.owner !== null && '_id' in project.owner
           ? (project.owner as { _id: { toString(): string } })._id.toString()
           : (project.owner as unknown as { toString(): string }).toString();
-      if (ownerId !== caller.userId) {
-        throw new Error('Not authorized to view this project');
-      }
+      if (ownerId !== caller.userId) throw new Error('Not authorized to view this project');
     }
 
-    // Calculate additional metrics
     let totalCapacityKw = 0;
     let panelDetails: PlanData['panelDetails'] = null;
 
@@ -821,11 +804,9 @@ export class ProjectService {
       };
     }
 
-    // Estimate annual production (simplified)
     const peakSunHours = project.lat ? 5.5 - Math.abs(project.lat) * 0.02 : 5;
     const estimatedAnnualProduction = totalCapacityKw * peakSunHours * 365 * 0.85;
 
-    // Return structured data for PDF generation
     return {
       project: transformProjectToResponse(project),
       panelDetails,
@@ -835,52 +816,47 @@ export class ProjectService {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
   /**
-   * 2.3 Refresh a project's production data (called by the nightly scheduler)
-   * Re-fetches Solcast data and accumulates totalProd
+   * Background production refresh for all stale projects of a user.
+   * Called fire-and-forget from getUserDashboard.
    */
-  async refreshProductionData(projectId: string): Promise<void> {
-    const project = await ProjectModel.findById(projectId).populate('panel');
-    if (!project || !project.lat || !project.lon) {
-      console.warn(`[Scheduler] Skipping project ${projectId}: missing location or not found`);
-      return;
+  private async refreshStaleProjectsForUser(userId: string): Promise<void> {
+    const thresholdMs =
+      parseInt(process.env.PRODUCTION_REFRESH_THRESHOLD_H ?? '6', 10) * 3_600_000;
+    const cutoff = new Date(Date.now() - thresholdMs);
+
+    const staleProjects = await ProjectModel.find({
+      owner: userId,
+      lat: { $exists: true, $ne: null },
+      lon: { $exists: true, $ne: null },
+      panel: { $exists: true, $ne: null },
+      $or: [
+        { lastRefreshedAt: { $exists: false } },
+        { lastRefreshedAt: { $lt: cutoff } },
+      ],
+    })
+      .populate('panel')
+      .limit(5); // Cap to avoid overwhelming Open-Meteo on each dashboard load
+
+    for (const project of staleProjects) {
+      try {
+        await this.refreshProductionData(project._id.toString());
+      } catch (err) {
+        console.warn(`[Dashboard] Refresh failed for ${project._id.toString()}:`, err);
+      }
     }
-
-    // TODO - Fallback silencioso: si el proyecto no tiene panel asociado, se usa 1 kW por defecto sin ningún aviso.
-    // Esto hace que totalProd se acumule con datos de una capacidad ficticia. Considerar saltar el refresh o loguear un warning más visible.
-    let capacityKw = 1;
-    if (project.panel && typeof project.panel !== 'string' && 'wattPeak' in project.panel) {
-      const panel = project.panel as unknown as { wattPeak: number };
-      capacityKw = (panel.wattPeak * project.panelNumber) / 1000;
-    }
-
-    const production = await this.fetchSolcastData(project.lat, project.lon, capacityKw);
-    const todaySum = production.prodToday.reduce((sum, p) => sum + p.pv, 0);
-
-    await ProjectModel.findByIdAndUpdate(projectId, {
-      prodToday: production.prodToday,
-      nextProd: production.nextProd,
-      previousProd: production.previousProd,
-      lastRefreshedAt: new Date(),
-      $inc: { totalProd: todaySum },
-    });
-
-    console.info(`[Scheduler] Refreshed production for project ${projectId} (+${todaySum.toFixed(2)} kWh)`);
   }
 
-  /**
-   * 1.1 Resolve country from latitude and longitude
-   * Uses reverse geocoding to get country name and code
-   */
   private resolveCountry(
     lat: number | undefined,
     lon: number | undefined,
-    fallback?: { name: string; code: string }
+    fallback?: { name: string; code: string },
   ): { name: string; code: string } | undefined {
-    if (!lat || !lon) {
-      return fallback;
-    }
-
+    if (!lat || !lon) return fallback;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
       const CRG = require('country-reverse-geocoding').country_reverse_geocoding;
@@ -888,280 +864,35 @@ export class ProjectService {
       const crg = CRG();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const result = crg.get_country(lat, lon) as { code: string; name: string } | null;
-      if (result && result.name) {
-        return { name: result.name, code: result.code };
-      }
+      if (result?.name) return { name: result.name, code: result.code };
     } catch (error) {
-      console.warn(`[Country Resolution] Failed to resolve country for (${lat}, ${lon}):`, error);
+      console.warn(`[Country Resolution] Failed for (${lat}, ${lon}):`, error);
     }
-
     return fallback;
   }
 
-  /**
-   * 1.2 Resolve timezone from latitude and longitude
-   * Uses geo-tz to find IANA timezone
-   */
-  private resolveTimezone(lat: number | undefined, lon: number | undefined, fallback?: string): string | undefined {
-    if (!lat || !lon) {
-      return fallback ?? 'UTC';
-    }
-
+  private resolveTimezone(
+    lat: number | undefined,
+    lon: number | undefined,
+    fallback?: string,
+  ): string | undefined {
+    if (!lat || !lon) return fallback ?? 'UTC';
     try {
       const zones = find(lat, lon);
-      if (zones && zones.length > 0) {
-        return zones[0];
-      }
+      if (zones?.length > 0) return zones[0];
     } catch (error) {
-      console.warn(`[Timezone Resolution] Failed to resolve timezone for (${lat}, ${lon}):`, error);
+      console.warn(`[Timezone Resolution] Failed for (${lat}, ${lon}):`, error);
     }
-
     return fallback ?? 'UTC';
   }
 
-  // TODO - Implementar usando entsoe.eu API para los precios de electricidad.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private fetchElectricityPrice(
-    _countryCode: string,
-    _fallbackPrice?: number,
-    _fallbackCurrency?: string,
+  private async fetchElectricityPrice(
+    countryCode: string,
   ): Promise<{ price: number | undefined; currency: string | undefined }> {
-    return Promise.resolve({ price: undefined, currency: undefined });
-  }
-
-  /**
-   * 1.4 Fetch production data from Solcast or generate realistic mock data
-   * Returns production data for today, next 6 days, and previous 6 days
-   */
-  private async fetchSolcastData(
-    lat: number,
-    lon: number,
-    capacityKw: number
-  ): Promise<{ prodToday: IProductionPoint[]; nextProd: IProductionPoint[]; previousProd: IProductionPoint[] }> {
-    const useMockData = process.env.USE_MOCK_SOLCAST === 'true';
-    const solcastApiKey = process.env.SOLCAST_API_KEY;
-
-    // If using mock data or no API key, generate realistic synthetic data
-    if (useMockData || !solcastApiKey) {
-      console.info('[Solcast] Using mock production data');
-      return this.generateMockSolcastData(lat, capacityKw);
-    }
-
-    try {
-      return await this.fetchRealSolcastData(lat, lon, capacityKw, solcastApiKey);
-    } catch (error) {
-      console.warn('[Solcast] Failed to fetch real Solcast data, falling back to mock data:', error);
-      return this.generateMockSolcastData(lat, capacityKw);
-    }
-  }
-
-  /**
-   * Fetch real Solcast API data
-   */
-  //TODO - Se esta haciendo un fetch de 168 horas = 7 días pero estamos mostrando 6. Ver esto
-  private async fetchRealSolcastData(
-    lat: number,
-    lon: number,
-    capacityKw: number,
-    apiKey: string
-  ): Promise<{ prodToday: IProductionPoint[]; nextProd: IProductionPoint[]; previousProd: IProductionPoint[] }> {
-    const baseUrl = 'https://api.solcast.com.au/world_pv_power';
-    const params = `latitude=${lat}&longitude=${lon}&capacity=${capacityKw}&hours=168&api_key=${apiKey}`;
-
-    // Fetch forecasts
-    const forecastsController = new AbortController();
-    const forecastsTimeoutId = setTimeout(() => forecastsController.abort(), 10000);
-    const forecastsRes = await fetch(`${baseUrl}/forecasts?${params}`, { signal: forecastsController.signal });
-    clearTimeout(forecastsTimeoutId);
-    if (!forecastsRes.ok) throw new Error(`Solcast forecasts returned ${forecastsRes.status}`);
-    const forecastsData = (await forecastsRes.json()) as { forecasts: Array<{ period_end: string; pv_estimate: number }> };
-
-    // Fetch estimated actuals
-    const actualsController = new AbortController();
-    const actualsTimeoutId = setTimeout(() => actualsController.abort(), 10000);
-    const actualsRes = await fetch(`${baseUrl}/estimated_actuals?${params}`, { signal: actualsController.signal });
-    clearTimeout(actualsTimeoutId);
-    if (!actualsRes.ok) throw new Error(`Solcast actuals returned ${actualsRes.status}`);
-    const actualsData = (await actualsRes.json()) as { estimated_actuals: Array<{ period_end: string; pv_estimate: number }> };
-
-    // Transform data
-    const prodToday = this.extractTodayProduction(forecastsData.forecasts);
-    const { nextProd, previousProd } = this.aggregateProductionByDay(
-      forecastsData.forecasts,
-      actualsData.estimated_actuals
-    );
-
-    return { prodToday, nextProd, previousProd };
-  }
-
-  /**
-   * Generate realistic mock Solcast data based on solar geometry and latitude
-   */
-  //TODO - Borrar y hacer pruebas reales con datos de Solcast
-  // private generateMockSolcastData(lat: number, capacityKw: number): {
-  //   prodToday: IProductionPoint[];
-  //   nextProd: IProductionPoint[];
-  //   previousProd: IProductionPoint[];
-  // } {
-  //   const now = new Date();
-  //   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  //   // Calculate sunset/sunrise using simplified formula
-  //   const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-  //   const B = (2 * Math.PI * (dayOfYear - 81)) / 364;
-  //   const declinationRad = 0.33645 * Math.sin(B) - 3.6396 * Math.cos(B);
-  //   const latRad = (lat * Math.PI) / 180;
-
-  //   // Sunrise/Sunset angle (solar noon UTC = ~12:00)
-  //   const cosH = -Math.tan(latRad) * Math.tan(declinationRad);
-  //   const H = cosH >= -1 && cosH <= 1 ? Math.acos(cosH) : Math.PI / 2;
-  //   const dayLengthHours = (2 * H * 180) / Math.PI / 15; // Convert to hours
-  //   const sunriseHour = 12 - dayLengthHours / 2;
-  //   const sunsetHour = 12 + dayLengthHours / 2;
-
-  //   // Generate hourly data for today
-  //   const prodToday: IProductionPoint[] = [];
-  //   for (let hour = 6; hour <= 18; hour++) {
-  //     const dt = new Date(today);
-  //     dt.setHours(hour, 0, 0, 0);
-
-  //     let pv = 0;
-  //     if (hour >= sunriseHour && hour <= sunsetHour) {
-  //       // Bell curve: peak at solar noon
-  //       const normalizedHour = (hour - sunriseHour) / (sunsetHour - sunriseHour);
-  //       const peakProduction = capacityKw * (0.8 + Math.random() * 0.1); // 80-90% of capacity
-  //       pv = peakProduction * Math.sin(normalizedHour * Math.PI);
-  //     }
-
-  //     prodToday.push({
-  //       dateTime: dt,
-  //       pv: Math.max(0, Math.round(pv * 100) / 100),
-  //     });
-  //   }
-
-  //   // Generate daily aggregates for next 6 days
-  //   const nextProd: IProductionPoint[] = [];
-  //   for (let i = 1; i <= 6; i++) {
-  //     const futureDate = new Date(today);
-  //     futureDate.setDate(futureDate.getDate() + i);
-
-  //     // Vary production by day (simulate cloudy/sunny days)
-  //     //TODO - Modificar para que esto no sea random, sino que pille datos históricos de cantidad de dias nubosos o porcentaje
-  //     const dayVariation = 0.7 + Math.random() * 0.3; // 70-100% of clear-sky production
-  //     //TODO - De donde sale ese system efficiency del 75%? Como puedo hacer que este valor sea calculado de unas variables?
-  //     const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation; // 75% system efficiency
-
-  //     nextProd.push({
-  //       dateTime: futureDate,
-  //       pv: Math.max(0, Math.round(dailyProduction * 100) / 100),
-  //     });
-  //   }
-
-  //   // Generate daily aggregates for previous 6 days
-  //   const previousProd: IProductionPoint[] = [];
-  //   for (let i = 6; i >= 1; i--) {
-  //     const pastDate = new Date(today);
-  //     pastDate.setDate(pastDate.getDate() - i);
-
-  //     // Vary production by day
-  //     //TODO - Modificar para que esto no sea random, sino que pille datos históricos de nubosidad por día.
-  //     const dayVariation = 0.6 + Math.random() * 0.35; // 60-95% of clear-sky production
-  //     const dailyProduction = capacityKw * dayLengthHours * 0.75 * dayVariation;
-
-  //     previousProd.push({
-  //       dateTime: pastDate,
-  //       pv: Math.max(0, Math.round(dailyProduction * 100) / 100),
-  //     });
-  //   }
-
-  //   return { prodToday, nextProd, previousProd };
-  // }
-
-  /**
-   * Extract today's hourly production from forecasts
-   */
-  private extractTodayProduction(
-    forecasts: Array<{ period_end: string; pv_estimate: number }>
-  ): IProductionPoint[] {
-    const today = new Date();
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-    return forecasts
-      .filter((f) => {
-        const fDate = new Date(f.period_end);
-        const fDateOnly = new Date(fDate.getFullYear(), fDate.getMonth(), fDate.getDate());
-        return fDateOnly.getTime() === todayDate.getTime();
-      })
-      .map((f) => ({
-        dateTime: new Date(f.period_end),
-        pv: f.pv_estimate,
-      }));
-  }
-
-  /**
-   * Aggregate production data by day from hourly data
-   */
-  private aggregateProductionByDay(
-    forecasts: Array<{ period_end: string; pv_estimate: number }>,
-    actuals: Array<{ period_end: string; pv_estimate: number }>
-  ): { nextProd: IProductionPoint[]; previousProd: IProductionPoint[] } {
-    const today = new Date();
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-    // Aggregate forecasts for next 6 days
-    //TODO - Por qué quedarme con 6 días? Si en teoría tengo acceso a más? Explorar añadir mas de forecast o sino de past data.
-    const forecastsByDay: Record<string, number[]> = {};
-    forecasts.forEach((f) => {
-      const fDate = new Date(f.period_end);
-      const fDateOnly = new Date(fDate.getFullYear(), fDate.getMonth(), fDate.getDate());
-
-      // Only include days after today
-      if (fDateOnly.getTime() > todayDate.getTime()) {
-        const key = fDateOnly.toISOString().split('T')[0] || '';
-        if (!forecastsByDay[key]) {
-          forecastsByDay[key] = [];
-        }
-        forecastsByDay[key].push(f.pv_estimate);
-      }
-    });
-
-    // TODO - Verificar unidades: Solcast devuelve pv_estimate en kW promedio por período (normalmente 30 min).
-    // Para convertir a kWh hay que multiplicar cada valor por 0.5 (duración del período en horas).
-    // Si los totales diarios son el doble de lo esperado, es este factor el que falta.
-    // Corrección: values.reduce((a, b) => a + b * 0.5, 0)
-    const nextProd = Object.entries(forecastsByDay)
-      .slice(0, 6)
-      .map(([dateStr, values]) => ({
-        dateTime: new Date(`${dateStr}T00:00:00Z`),
-        pv: values.reduce((a, b) => a + b, 0),
-      }));
-
-    // Aggregate actuals for previous 6 days
-    const actualsByDay: Record<string, number[]> = {};
-    actuals.forEach((a) => {
-      const aDate = new Date(a.period_end);
-      const aDateOnly = new Date(aDate.getFullYear(), aDate.getMonth(), aDate.getDate());
-
-      // Only include days before today
-      if (aDateOnly.getTime() < todayDate.getTime()) {
-        const key = aDateOnly.toISOString().split('T')[0] || '';
-        if (!actualsByDay[key]) {
-          actualsByDay[key] = [];
-        }
-        actualsByDay[key].push(a.pv_estimate);
-      }
-    });
-
-    // TODO - Mismo problema de unidades que en nextProd: pv_estimate está en kW por período, no en kWh.
-    // Aplicar el mismo factor × 0.5 si los períodos son de 30 min.
-    const previousProd = Object.entries(actualsByDay)
-      .slice(-6)
-      .map(([dateStr, values]) => ({
-        dateTime: new Date(`${dateStr}T00:00:00Z`),
-        pv: values.reduce((a, b) => a + b, 0),
-      }));
-
-    return { nextProd, previousProd };
+    if (!countryCode) return { price: undefined, currency: undefined };
+    const result = await entsoeService.fetchElectricityPrice(countryCode);
+    if (result) return result;
+    return { price: undefined, currency: undefined };
   }
 }
 
