@@ -189,6 +189,12 @@ export interface ProjectResponse {
   panel?: string;
   cultivar?: string;
   owner?: string;
+  pvgisRef?: {
+    yearlyKwh: number;
+    yearlyKwhPerKwp: number;
+    monthlyKwh: number[];
+    yearlyPOAIrradiation?: number;
+  };
   prodToday?: ProductionPoint[];
   nextProd?: ProductionPoint[];
   previousProd?: ProductionPoint[];

@@ -500,7 +500,7 @@ export class ConfigureProjectComponent implements OnInit {
     return { value, totalKwh, currency: data.currency ?? 'EUR', symbol };
   });
 
-  private getCurrencySymbol(currency: string): string {
+  getCurrencySymbol(currency: string): string {
     const symbols: Record<string, string> = {
       EUR: '€', USD: '$', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹',
       AUD: 'A$', CAD: 'C$', CHF: 'Fr', ARS: '$', BRL: 'R$',
