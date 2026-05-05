@@ -52,6 +52,21 @@ const SystemLossesSchema = new Schema<ISystemLosses>(
  */
 
 // Project data interface
+export interface IPvgisRef {
+  yearlyKwh: number;      // Annual production estimate from PVGIS (kWh/year)
+  yearlyKwhPerKwp: number; // Specific yield — location quality index (kWh/kWp·year)
+  monthlyKwh: number[];   // 12 monthly values (kWh/month)
+}
+
+const PvgisRefSchema = new Schema<IPvgisRef>(
+  {
+    yearlyKwh:       { type: Number, min: 0 },
+    yearlyKwhPerKwp: { type: Number, min: 0 },
+    monthlyKwh:      [{ type: Number, min: 0 }],
+  },
+  { _id: false },
+);
+
 export interface IProject {
   name: string;
   description?: string;
@@ -69,6 +84,8 @@ export interface IProject {
   azimuth?: number; // Azimuth angle (0-360 degrees)
   rawSpacing?: number; // Spacing between panel rows
   panelNumber: number; // Number of panels in project
+  // DC:AC ratio for inverter clipping (PVWatts V5 default: 1.1)
+  dcAcRatio?: number;
   panel?: mongoose.Types.ObjectId; // Reference to Panel
   cultivar?: mongoose.Types.ObjectId; // Reference to Cultivar (agrivoltaic only)
   owner?: mongoose.Types.ObjectId; // Reference to User
@@ -78,6 +95,8 @@ export interface IProject {
   totalProd?: number; // Accumulated total production since install (kWh)
   lastRefreshedAt?: Date; // Timestamp of the last successful nightly production refresh
   systemLosses?: ISystemLosses;
+  // Reference production from PVGIS (fetched once on project creation)
+  pvgisRef?: IPvgisRef;
   resourceModelVersion?: string;
   pvModuleModelVersion?: string;
   installDate: Date;
@@ -143,6 +162,11 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
       required: true,
       min: 1,
     },
+    dcAcRatio: {
+      type: Number,
+      min: 0.5,
+      max: 3,
+    },
     panel: {
       type: Schema.Types.ObjectId,
       ref: 'Panels',
@@ -165,6 +189,7 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
     },
     lastRefreshedAt:      { type: Date },
     systemLosses:         { type: SystemLossesSchema, default: {} },
+    pvgisRef:             { type: PvgisRefSchema },
     resourceModelVersion: { type: String },
     pvModuleModelVersion: { type: String },
     installDate: {

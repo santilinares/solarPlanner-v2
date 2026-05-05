@@ -81,6 +81,7 @@ export const ProjectCreateSchema = z.object({
   // que podría reutilizarse aquí: panelId: ObjectIdSchema.optional()
   panelId: z.string().optional(), // Reference to Panel document
   cultivarId: z.string().optional(), // Reference to Cultivar document (agrivoltaic only)
+  dcAcRatio: z.number().min(0.5).max(3).optional(), // DC:AC ratio for inverter clipping
   systemLosses: SystemLossesZodSchema,
 });
 
@@ -111,6 +112,7 @@ export const ProjectUpdateSchema = z.object({
   timezone: z.string().optional(),
   currency: z.string().optional(),
   price: z.number().nonnegative().optional(),
+  dcAcRatio: z.number().min(0.5).max(3).optional(),
   systemLosses: SystemLossesZodSchema,
 });
 

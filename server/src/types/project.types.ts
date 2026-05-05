@@ -19,6 +19,12 @@ export interface SystemLossesResponse {
   shadingStatic?: number;
 }
 
+export interface PvgisRefResponse {
+  yearlyKwh: number;
+  yearlyKwhPerKwp: number;
+  monthlyKwh: number[];
+}
+
 export interface ProjectResponse {
   _id: string;
   name: string;
@@ -37,6 +43,7 @@ export interface ProjectResponse {
   azimuth?: number;
   rawSpacing?: number;
   panelNumber: number;
+  dcAcRatio?: number;
   panel?: string | object; // Panel ID or populated panel object
   cultivar?: string | object; // Cultivar ID or populated cultivar object
   owner?: string | { _id: string; fullName: string; email: string }; // User ID or populated user object
@@ -46,6 +53,7 @@ export interface ProjectResponse {
   totalProd?: number;
   lastRefreshedAt?: string; // ISO timestamp of last production data refresh
   systemLosses?: SystemLossesResponse;
+  pvgisRef?: PvgisRefResponse;
   installDate: string;
   createdAt: string;
   updatedAt: string;

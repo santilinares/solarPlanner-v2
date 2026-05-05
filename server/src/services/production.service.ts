@@ -1,18 +1,21 @@
 /**
  * Production Service
- * Implements the hourly PV output model (spec §5.4) and orchestrates the
- * three production time windows: prodToday, previousProd, nextProd.
+ * Implements the hourly PV output model and orchestrates the three production
+ * time windows: prodToday, previousProd, nextProd.
  *
  * Units: all IProductionPoint.pv values are in kWh.
  *
- * Model summary (per §5.4):
- *   1. Cell temp   : t_cell = t_amb + (NOCT − 20) × (GTI / 800)
- *   2. Temp derating: p_dc  = wattPeak × (1 + γPmp/100 × ΔT)
- *   3. Degradation : p_dc  ×= (1 − degFirstYear%) × (1 − degAnnual%)^(year−1)
- *   4. Irradiance  : p_dc  ×= GTI / 1000
- *   5. Array DC    : p_arr = p_dc × panelCount
- *   6. System losses: p_ac = p_arr × η_inv × (1−dcWiring%) × …
- *   7. Energy      : E = p_ac / 1000  [kW → kWh per 1 h step]
+ * Thermal model — Fuentes (PVWatts V5, Sandia SAND85-0330):
+ *   U₀ and U₁ are derived from the panel's NOCT at standard conditions
+ *   (G=800 W/m², W=1 m/s, T_a=20 °C) preserving the PVWatts V5 U₁/U₀ ratio.
+ *   T_cell = T_a + GTI / (U₀ + U₁ × windSpeed)
+ *
+ * DC model — PVWatts V5 (Dobos 2014, NREL/TP-6A20-62641):
+ *   P_dc = (GTI/1000) × wattPeak × (1 + γ/100 × ΔT) × degradation
+ *
+ * Loss model — multiplicative (PVWatts V5 §2.2):
+ *   DC losses applied before inverter; AC wiring after; clipping at inverter nameplate.
+ *   P_ac_nameplate = panelNumber × wattPeak / dcAcRatio
  */
 
 import { IProductionPoint } from '../models/project.model';
@@ -64,6 +67,8 @@ export interface ProjectProductionParams {
   azimuth?: number;
   panelNumber: number;
   installDate: Date;
+  // DC:AC ratio for inverter clipping (PVWatts V5 default: 1.1)
+  dcAcRatio?: number;
   systemLosses?: {
     inverterEfficiency?: number;
     dcWiring?: number;
@@ -115,6 +120,7 @@ class ProductionService {
     const panelParams = this.resolvePanelParams(panel);
     const lossParams = this.resolveLossParams(project.systemLosses);
     const year = this.yearOfOperation(project.installDate);
+    const dcAcRatio = project.dcAcRatio ?? 1.1;
 
     // Build UTC midnight boundaries for today
     const now = new Date();
@@ -140,10 +146,12 @@ class ProductionService {
       const pv = this.calculateHourlyOutputKwh(
         point.gti,
         point.temperature,
+        point.windSpeed,
         panelParams,
         lossParams,
         project.panelNumber,
         year,
+        dcAcRatio,
       );
 
       if (t >= todayMidnightMs && t <= currentHourMs) {
@@ -183,6 +191,7 @@ class ProductionService {
     const panelParams = this.resolvePanelParams(panel);
     const lossParams = this.resolveLossParams(project.systemLosses);
     const year = this.yearOfOperation(project.installDate);
+    const dcAcRatio = project.dcAcRatio ?? 1.1;
 
     const now = new Date();
     const todayMidnightMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -202,10 +211,12 @@ class ProductionService {
       const pv = this.calculateHourlyOutputKwh(
         point.gti,
         point.temperature,
+        point.windSpeed,
         panelParams,
         lossParams,
         project.panelNumber,
         year,
+        dcAcRatio,
       );
 
       if (t >= todayMidnightMs && t <= currentHourMs) {
@@ -219,57 +230,69 @@ class ProductionService {
   }
 
   /**
-   * §5.4 — Hourly AC energy output for the entire array (kWh).
+   * Hourly AC energy output for the entire array (kWh).
    *
-   * The formula is applied in sequence:
-   *   1. Cell temperature from NOCT simplified model
-   *   2. Temperature derating of DC power
-   *   3. Degradation factor based on years of operation
-   *   4. Scale by irradiance ratio vs STC (1000 W/m²)
-   *   5. Multiply by panel count → array DC power
-   *   6. Apply all system losses → AC power (W)
-   *   7. Convert W → kWh (1 h time step)
+   * 1. Cell temp  — Fuentes model (Sandia SAND85-0330, via PVWatts V5):
+   *      U₀, U₁ derived from NOCT using the PVWatts V5 wind ratio (U₁/U₀ = 0.274)
+   *      T_cell = T_a + GTI / (U₀ + U₁ × windSpeed)
+   * 2. DC power   — PVWatts V5: P_dc = (GTI/1000) × wattPeak × (1 + γ/100 × ΔT)
+   * 3. Degradation factor applied to P_dc
+   * 4. Array DC   — multiply by panelNumber
+   * 5. DC losses  — dcWiring, mismatch, soiling, shadingStatic, degradationExtra
+   * 6. Inverter   — η_inv × P_dc_loss, clipped to P_ac_nameplate = ratedDc / dcAcRatio
+   * 7. AC wiring  — applied after inverter
+   * 8. Energy     — W × 1 h = Wh → kWh
    */
   calculateHourlyOutputKwh(
     gti: number,
     tAmb: number,
+    windSpeed: number,
     panel: ResolvedPanelParams,
     losses: ResolvedLossParams,
     panelNumber: number,
     year: number,
+    dcAcRatio: number,
   ): number {
     if (gti <= 0) return 0;
 
-    // 1. Cell temperature (NOCT simplified model)
-    const tCell = tAmb + (panel.noct - 20) * (gti / 800);
+    // 1. Cell temperature — Fuentes model with wind speed (PVWatts V5)
+    // U₀ + U₁ at NOCT conditions (G=800, W=1): uSum = 800 / (NOCT - 20)
+    // U₁/U₀ ratio from PVWatts V5: 6.84/25 = 0.274
+    const uSum = 800 / Math.max(panel.noct - 20, 1); // guard against NOCT ≤ 20
+    const u0 = uSum / 1.274;
+    const u1 = u0 * 0.274;
+    const tCell = tAmb + gti / (u0 + u1 * windSpeed);
 
-    // 2. Temperature-adjusted DC power per panel (W)
+    // 2. Temperature-adjusted DC power per panel (W) — PVWatts V5 Eq. 2
     const deltaT = tCell - 25;
     const pDcPerPanel = panel.wattPeak * (1 + (panel.gammaPmp / 100) * deltaT);
 
-    // 3. Degradation factor (year 1 uses degradationFirstYear; subsequent years add annualRate)
+    // 3. Degradation factor
     const degFactor =
       (1 - panel.degradationFirstYear / 100) *
       Math.pow(1 - panel.degradationAnnual / 100, year - 1);
 
-    // 4. Irradiance factor relative to STC (1000 W/m²)
-    const irrFactor = gti / 1000;
+    // 4. Array DC power scaled by irradiance ratio vs STC (1000 W/m²)
+    const pArrayDc = pDcPerPanel * degFactor * (gti / 1000) * panelNumber;
 
-    // 5. Total DC array power (W)
-    const pArrayDc = pDcPerPanel * degFactor * irrFactor * panelNumber;
-
-    // 6. AC power after system losses (W)
-    const pAc =
+    // 5. DC-side losses (before inverter)
+    const pDcAfterLosses =
       pArrayDc *
-      losses.inverterEfficiency *
       (1 - losses.dcWiring / 100) *
-      (1 - losses.acWiring / 100) *
       (1 - losses.mismatch / 100) *
       (1 - losses.soiling / 100) *
       (1 - losses.shadingStatic / 100) *
       (1 - losses.degradationExtra / 100);
 
-    // 7. Energy: W × 1 h = Wh → kWh
+    // 6. Inverter with clipping — PVWatts V5 §3.1
+    // P_ac_nameplate = rated DC capacity / DC:AC ratio
+    const pAcNameplate = (panelNumber * panel.wattPeak) / dcAcRatio;
+    const pInverterOut = Math.min(pDcAfterLosses * losses.inverterEfficiency, pAcNameplate);
+
+    // 7. AC wiring loss
+    const pAc = pInverterOut * (1 - losses.acWiring / 100);
+
+    // 8. Energy: W × 1 h = Wh → kWh
     return Math.max(0, pAc / 1000);
   }
 
@@ -306,3 +329,31 @@ class ProductionService {
 }
 
 export const productionService = new ProductionService();
+
+/**
+ * Compute the total effective system loss percentage to pass to PVGIS PVcalc.
+ * PVGIS `loss` = all losses combined (inverter + wiring + mismatch + soiling + …).
+ */
+export function computeTotalSystemLossPct(
+  systemLosses?: ProjectProductionParams['systemLosses'],
+): number {
+  const l = {
+    inverterEfficiency: systemLosses?.inverterEfficiency ?? LOSS_DEFAULTS.inverterEfficiency,
+    dcWiring:           systemLosses?.dcWiring           ?? LOSS_DEFAULTS.dcWiring,
+    acWiring:           systemLosses?.acWiring           ?? LOSS_DEFAULTS.acWiring,
+    mismatch:           systemLosses?.mismatch           ?? LOSS_DEFAULTS.mismatch,
+    soiling:            systemLosses?.soiling            ?? LOSS_DEFAULTS.soiling,
+    shadingStatic:      systemLosses?.shadingStatic      ?? LOSS_DEFAULTS.shadingStatic,
+    degradationExtra:   systemLosses?.degradationExtra   ?? LOSS_DEFAULTS.degradationExtra,
+  };
+  const efficiency =
+    l.inverterEfficiency *
+    (1 - l.dcWiring        / 100) *
+    (1 - l.acWiring        / 100) *
+    (1 - l.mismatch        / 100) *
+    (1 - l.soiling         / 100) *
+    (1 - l.shadingStatic   / 100) *
+    (1 - l.degradationExtra/ 100);
+  // Round to one decimal place (PVGIS accepts integer or one-decimal values)
+  return Math.round((1 - efficiency) * 1000) / 10;
+}

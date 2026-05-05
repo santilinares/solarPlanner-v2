@@ -6,7 +6,8 @@ import { PanelModel, IPanel } from '../models/panel.model';
 import { CultivarModel } from '../models/cultivar.model';
 import { UserModel } from '../models/user.model';
 import { emailService } from './email.service';
-import { productionService, ProjectProductionParams, TodayAndForecastData } from './production.service';
+import { productionService, computeTotalSystemLossPct, ProjectProductionParams, TodayAndForecastData } from './production.service';
+import { pvgisService, PvgisAnnualResult } from './pvgis.service';
 import { entsoeService } from './entsoe.service';
 import {
   ProjectCreateInput,
@@ -22,6 +23,7 @@ import {
   DashboardStats,
   OptimalConfigResponse,
   CallerContext,
+  PvgisRefResponse,
 } from '../types/project.types';
 
 /**
@@ -105,7 +107,8 @@ const toProductionParams = (project: HydratedDocument<IProject>): ProjectProduct
     azimuth: project.azimuth,
     panelNumber: project.panelNumber,
     installDate: project.installDate,
-    systemLosses: project.systemLosses
+    dcAcRatio: project.dcAcRatio,
+    systemLosses: project.systemLosses,
   };
 };
 
@@ -157,6 +160,7 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     azimuth: project.azimuth,
     rawSpacing: project.rawSpacing,
     panelNumber: project.panelNumber,
+    dcAcRatio: project.dcAcRatio,
     panel: project.panel?._id.toString(),
     cultivar: project.cultivar?._id?.toString(),
     owner: ownerData,
@@ -174,6 +178,13 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
           soiling: project.systemLosses.soiling,
           degradationExtra: project.systemLosses.degradationExtra,
           shadingStatic: project.systemLosses.shadingStatic,
+        }
+      : undefined,
+    pvgisRef: project.pvgisRef
+      ? {
+          yearlyKwh: project.pvgisRef.yearlyKwh,
+          yearlyKwhPerKwp: project.pvgisRef.yearlyKwhPerKwp,
+          monthlyKwh: project.pvgisRef.monthlyKwh,
         }
       : undefined,
     installDate: project.installDate.toISOString(),
@@ -243,8 +254,10 @@ export class ProjectService {
       },
     );
 
-    // Fetch initial production data if the project has a panel and location
+    // Fetch initial production data (Open-Meteo) and PVGIS reference if panel + location exist
     let productionData = { prodToday: [] as IProductionPoint[], nextProd: [] as IProductionPoint[], previousProd: [] as IProductionPoint[] };
+    let pvgisResult: PvgisAnnualResult | undefined;
+
     if (lat && lon && data.panelId) {
       try {
         const panel = await PanelModel.findById(data.panelId);
@@ -257,11 +270,30 @@ export class ProjectService {
               azimuth: undefined, // azimuth not in create schema, defaults to south
               panelNumber: data.panelNumber,
               installDate: new Date(),
+              dcAcRatio: data.dcAcRatio,
               systemLosses: data.systemLosses,
             },
             panel,
           );
           console.info(`[Project Creation] Production data: today=${productionData.prodToday.length}pts, prev=${productionData.previousProd.length}pts, next=${productionData.nextProd.length}pts`);
+
+          // PVGIS reference — called once per project creation, no API key required.
+          // Provides annual/monthly production estimate for ROI/payback calculations.
+          try {
+            const peakpowerKw = (data.panelNumber * panel.wattPeak) / 1000;
+            const systemLossPct = computeTotalSystemLossPct(data.systemLosses);
+            pvgisResult = await pvgisService.fetchAnnualProduction(
+              lat,
+              lon,
+              peakpowerKw,
+              systemLossPct,
+              data.tilt,
+              undefined, // azimuth not in create schema, defaults to south
+            );
+            console.info(`[Project Creation] PVGIS: ${pvgisResult.yearlyKwh.toFixed(0)} kWh/year, ${pvgisResult.yearlyKwhPerKwp.toFixed(0)} kWh/kWp`);
+          } catch (pvgisError) {
+            console.warn('[Project Creation] PVGIS lookup skipped:', pvgisError);
+          }
         }
       } catch (error) {
         console.warn('[Project Creation] Production data error:', error);
@@ -269,6 +301,14 @@ export class ProjectService {
     }
 
     const hasProduction = productionData.prodToday.length > 0 || productionData.previousProd.length > 0 || productionData.nextProd.length > 0;
+
+    const pvgisRef: PvgisRefResponse | undefined = pvgisResult
+      ? {
+          yearlyKwh: pvgisResult.yearlyKwh,
+          yearlyKwhPerKwp: pvgisResult.yearlyKwhPerKwp,
+          monthlyKwh: pvgisResult.monthlyKwh,
+        }
+      : undefined;
 
     const updatedProject = await ProjectModel.findByIdAndUpdate(
       project._id,
@@ -284,6 +324,7 @@ export class ProjectService {
         nextProd: productionData.nextProd,
         previousProd: productionData.previousProd,
         lastRefreshedAt: hasProduction ? new Date() : undefined,
+        ...(pvgisRef && { pvgisRef }),
       },
       { new: true },
     );
