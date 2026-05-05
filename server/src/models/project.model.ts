@@ -53,16 +53,18 @@ const SystemLossesSchema = new Schema<ISystemLosses>(
 
 // Project data interface
 export interface IPvgisRef {
-  yearlyKwh: number;      // Annual production estimate from PVGIS (kWh/year)
-  yearlyKwhPerKwp: number; // Specific yield — location quality index (kWh/kWp·year)
-  monthlyKwh: number[];   // 12 monthly values (kWh/month)
+  yearlyKwh: number;               // Annual production estimate from PVGIS (kWh/year)
+  yearlyKwhPerKwp: number;         // Specific yield — location quality index (kWh/kWp·year)
+  monthlyKwh: number[];            // 12 monthly values (kWh/month)
+  yearlyPOAIrradiation?: number;   // Global irradiation on tilted plane H(i)_y (kWh/m²/year)
 }
 
 const PvgisRefSchema = new Schema<IPvgisRef>(
   {
-    yearlyKwh:       { type: Number, min: 0 },
-    yearlyKwhPerKwp: { type: Number, min: 0 },
-    monthlyKwh:      [{ type: Number, min: 0 }],
+    yearlyKwh:            { type: Number, min: 0 },
+    yearlyKwhPerKwp:      { type: Number, min: 0 },
+    monthlyKwh:           [{ type: Number, min: 0 }],
+    yearlyPOAIrradiation: { type: Number, min: 0 },
   },
   { _id: false },
 );
@@ -78,7 +80,10 @@ export interface IProject {
   country?: string;
   timezone?: string;
   currency?: string;
-  price?: number; // Energy price
+  price?: number; // Energy price (€/kWh or local currency/kWh)
+  // TODO: installationCost — total system cost (panels + inverter/batteries + labor).
+  // Cost model research pending (panel DB prices + inverter collection + labor estimate API).
+  // When ready: add field here, to ProjectCreateSchema/UpdateSchema, and ProjectAnalytics.
   tilt: number; // Panel tilt angle (0-90 degrees)
   direction: string; // e.g., "south", "north"
   azimuth?: number; // Azimuth angle (0-360 degrees)

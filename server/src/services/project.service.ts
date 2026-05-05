@@ -22,6 +22,7 @@ import {
   ProjectListResponse,
   DashboardStats,
   OptimalConfigResponse,
+  ProjectAnalytics,
   CallerContext,
   PvgisRefResponse,
 } from '../types/project.types';
@@ -185,6 +186,7 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
           yearlyKwh: project.pvgisRef.yearlyKwh,
           yearlyKwhPerKwp: project.pvgisRef.yearlyKwhPerKwp,
           monthlyKwh: project.pvgisRef.monthlyKwh,
+          yearlyPOAIrradiation: project.pvgisRef.yearlyPOAIrradiation,
         }
       : undefined,
     installDate: project.installDate.toISOString(),
@@ -307,6 +309,7 @@ export class ProjectService {
           yearlyKwh: pvgisResult.yearlyKwh,
           yearlyKwhPerKwp: pvgisResult.yearlyKwhPerKwp,
           monthlyKwh: pvgisResult.monthlyKwh,
+          yearlyPOAIrradiation: pvgisResult.yearlyPOAIrradiation,
         }
       : undefined;
 
@@ -947,6 +950,72 @@ export class ProjectService {
         console.warn(`[Dashboard] Refresh failed for ${project._id.toString()}:`, err);
       }
     }
+  }
+
+  /**
+   * Compute analytics metrics for a project.
+   * Formulas from NREL PVWatts V5 (NREL/TP-6A20-62641) §3.1, §5.1, §5.2, §8.1, §8.2.
+   */
+  async getProjectAnalytics(projectId: string, caller: CallerContext): Promise<ProjectAnalytics> {
+    const project = await ProjectModel.findById(projectId).populate('panel');
+
+    if (!project) throw new Error('Project not found');
+
+    if (caller.role !== 'admin' && project.owner) {
+      const ownerId =
+        typeof project.owner === 'object' && project.owner !== null && '_id' in project.owner
+          ? (project.owner as { _id: { toString(): string } })._id.toString()
+          : (project.owner as unknown as { toString(): string }).toString();
+      if (ownerId !== caller.userId) throw new Error('Not authorized to view this project');
+    }
+
+    const pvgisRef = project.pvgisRef;
+    if (!pvgisRef) throw new Error('No PVGIS reference data for this project');
+
+    const panel = resolvePopulatedPanel(project.panel);
+    const wattPeak = panel?.wattPeak ?? 0;
+    const pDc0Kw = (project.panelNumber * wattPeak) / 1000;
+
+    // CF (%) = 100 × yearlyKwh / (Pdc0_kW × 8760) — NREL PVWatts V5 §8.1
+    const capacityFactor = pDc0Kw > 0 ? (100 * pvgisRef.yearlyKwh) / (pDc0Kw * 8760) : 0;
+
+    // PR (%) = 100 × yearlyKwh / (Pdc0_kW × H(i)_y) — NREL PVWatts V5 §8.2
+    // null for projects created before yearlyPOAIrradiation was stored
+    const performanceRatio =
+      pvgisRef.yearlyPOAIrradiation && pDc0Kw > 0
+        ? (100 * pvgisRef.yearlyKwh) / (pDc0Kw * pvgisRef.yearlyPOAIrradiation)
+        : null;
+
+    const price = project.price ?? null;
+
+    // Annual savings = yearlyKwh × price — null if price not set
+    const annualSavingsEur = price != null ? pvgisRef.yearlyKwh * price : null;
+
+    // 25-year savings projection with panel degradation — null if no price
+    // Year 1: yearlyKwh × (1 - dfy/100) × price
+    // Year i: yearlyKwh × (1 - dfy/100) × (1 - da/100)^(i-1) × price
+    const PROJECTION_YEARS = 25;
+    const dfy = panel?.degradationFirstYear ?? 2.0;
+    const da = panel?.degradationAnnual ?? 0.5;
+    let annualSavingsPerYear: number[] | null = null;
+    if (price != null) {
+      annualSavingsPerYear = [];
+      for (let i = 1; i <= PROJECTION_YEARS; i++) {
+        const degradationFactor =
+          (1 - dfy / 100) * Math.pow(1 - da / 100, i - 1);
+        annualSavingsPerYear.push(pvgisRef.yearlyKwh * degradationFactor * price);
+      }
+    }
+
+    // TODO: paybackYears = installationCost / annualSavingsEur once installationCost is added to IProject
+    // TODO: roi25Years = 100 * (sum(annualSavingsPerYear) - installationCost) / installationCost
+
+    return {
+      capacityFactor,
+      performanceRatio,
+      annualSavingsEur,
+      annualSavingsPerYear,
+    };
   }
 
   private resolveCountry(

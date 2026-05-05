@@ -23,6 +23,7 @@ export interface PvgisRefResponse {
   yearlyKwh: number;
   yearlyKwhPerKwp: number;
   monthlyKwh: number[];
+  yearlyPOAIrradiation?: number; // H(i)_y — absent for projects created before this field was added
 }
 
 export interface ProjectResponse {
@@ -86,4 +87,13 @@ export interface OptimalConfigResponse {
   surfaceArea: number; // m² — polygon area for client-side maxPanels recalc
   latitude: number; // centre latitude for client-side sun elevation calc
   recommendedRowSpacing: number; // m — shadow-based optimal row spacing
+}
+
+export interface ProjectAnalytics {
+  capacityFactor: number;               // CF (%) — NREL PVWatts V5 §8.1
+  performanceRatio: number | null;      // PR (%) — null if yearlyPOAIrradiation not stored (old projects)
+  annualSavingsEur: number | null;      // yearlyKwh × price — null if project.price not set
+  annualSavingsPerYear: number[] | null; // 25-element array with degradation — null if no price
+  // TODO: paybackYears: number | null  — add once installationCost is implemented
+  // TODO: roi25Years: number | null    — add once installationCost is implemented
 }

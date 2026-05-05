@@ -161,6 +161,17 @@ export const estimateProject = asyncHandler(async (req: Request, res: Response) 
 });
 
 /**
+ * @route   GET /projects/:id/analytics
+ * @desc    Get performance and financial analytics for a project
+ * @access  Private
+ */
+export const getProjectAnalytics = asyncHandler(async (req: Request, res: Response) => {
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const analytics = await projectService.getProjectAnalytics(req.params.id, caller);
+  return success(res, analytics);
+});
+
+/**
  * @route   POST /projects/:id/refresh-production
  * @desc    Refresh production data for a project (on-demand by default, full recalc if forceFullRecalc=true)
  * @access  Private (project owner or admin)

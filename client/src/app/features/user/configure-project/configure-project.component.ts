@@ -45,6 +45,7 @@ import {
   OptimalConfigFromPolygonRequest,
   SunPathData,
   PlanData,
+  ProjectAnalytics,
 } from '@core/models';
 import { FileService } from '@core/services/file.service';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
@@ -112,6 +113,8 @@ export class ConfigureProjectComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly isCalculating = signal(false);
   readonly isDownloadingPlan = signal(false);
+  readonly analytics = signal<ProjectAnalytics | null>(null);
+  readonly isAnalyticsLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly saveError = signal<string | null>(null);
   readonly saveSuccess = signal(false);
@@ -453,6 +456,28 @@ export class ConfigureProjectComponent implements OnInit {
     };
   });
 
+  readonly savingsChartOptions = computed((): Highcharts.Options => {
+    const perYear = this.analytics()?.annualSavingsPerYear;
+    if (!perYear) return {};
+    return {
+      ...this.CHART_THEME,
+      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
+      xAxis: {
+        categories: perYear.map((_, i) => `Y${i + 1}`),
+        title: { text: 'Year' },
+      },
+      yAxis: { title: { text: this.projectData()?.currency ?? 'EUR' }, min: 0 },
+      tooltip: { valueDecimals: 2, valueSuffix: ` ${this.projectData()?.currency ?? 'EUR'}` },
+      series: [{
+        type: 'column',
+        name: 'Annual Savings',
+        data: perYear,
+        color: '#22c55e',
+        borderRadius: 4,
+      }],
+    };
+  });
+
   readonly hasProductionData = computed(() => {
     const data = this.projectData();
     return (
@@ -529,6 +554,12 @@ export class ConfigureProjectComponent implements OnInit {
 
         // Load sun path data independently (non-blocking)
         this.loadSunPath(id);
+
+        // Load analytics in view mode (non-blocking)
+        // TODO: display paybackYears / roi25Years once installationCost is implemented
+        if (this.mode() === 'view') {
+          this.loadAnalytics(id);
+        }
 
         // Set up form watchers AFTER initial population
         this.setupFormWatchers();
@@ -744,6 +775,20 @@ export class ConfigureProjectComponent implements OnInit {
         console.error('Update failed', err);
         this.saveError.set('Failed to save. Please check your inputs and try again.');
         this.isSaving.set(false);
+      },
+    });
+  }
+
+  // ─── Analytics ───
+  private loadAnalytics(id: string): void {
+    this.isAnalyticsLoading.set(true);
+    this.projectService.getAnalytics(id).subscribe({
+      next: (data) => {
+        this.analytics.set(data);
+        this.isAnalyticsLoading.set(false);
+      },
+      error: () => {
+        this.isAnalyticsLoading.set(false);
       },
     });
   }
