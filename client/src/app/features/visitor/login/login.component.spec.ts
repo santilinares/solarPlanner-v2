@@ -152,3 +152,110 @@ describe('LoginComponent – signInWithGoogle', () => {
     }));
   });
 });
+
+describe('LoginComponent – onSubmit', () => {
+  let component: LoginComponent;
+  let router: Router;
+  let mockAuthService: Partial<AuthService>;
+
+  beforeEach(async () => {
+    mockAuthService = {
+      login: jest.fn().mockReturnValue(of(STUB_RESPONSE)),
+      isAuthenticated: signal(false),
+      currentUser: signal(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: mockAuthService },
+      ],
+    }).compileComponents();
+
+    router = TestBed.inject(Router);
+    jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    const fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('does nothing when form is invalid', () => {
+    component.onSubmit();
+    expect(mockAuthService.login).not.toHaveBeenCalled();
+  });
+
+  it('sets loading to true and clears errorMessage while request is in flight', () => {
+    component.errorMessage.set('previous error');
+    component.loginForm.setValue({ email: 'user@test.com', password: 'pass' });
+
+    const pending$ = new Subject<AuthResponse>();
+    (mockAuthService.login as jest.Mock).mockReturnValue(pending$);
+
+    component.onSubmit();
+
+    expect(component.loading()).toBe(true);
+    expect(component.errorMessage()).toBe('');
+    pending$.complete();
+  });
+
+  it('calls authService.login with form values', () => {
+    component.loginForm.setValue({ email: 'user@test.com', password: 'secret' });
+    component.onSubmit();
+    expect(mockAuthService.login).toHaveBeenCalledWith({ email: 'user@test.com', password: 'secret' });
+  });
+
+  it('navigates to /projects on success', fakeAsync(() => {
+    component.loginForm.setValue({ email: 'user@test.com', password: 'secret' });
+    component.onSubmit();
+    tick();
+    expect(router.navigate).toHaveBeenCalledWith(['/projects']);
+  }));
+
+  it('sets errorMessage and clears loading on error', fakeAsync(() => {
+    (mockAuthService.login as jest.Mock).mockReturnValue(
+      throwError(() => ({ message: 'Invalid credentials' })),
+    );
+    component.loginForm.setValue({ email: 'user@test.com', password: 'wrong' });
+    component.onSubmit();
+    tick();
+    expect(component.errorMessage()).toBeTruthy();
+    expect(component.loading()).toBe(false);
+  }));
+});
+
+describe('LoginComponent – form validation', () => {
+  let component: LoginComponent;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated: signal(false), currentUser: signal(null) },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('is invalid with empty fields', () => {
+    expect(component.loginForm.valid).toBe(false);
+  });
+
+  it('marks email invalid when malformed', () => {
+    component.loginForm.setValue({ email: 'not-an-email', password: 'pass' });
+    expect(component.loginForm.get('email')?.valid).toBe(false);
+  });
+
+  it('is valid with a correct email and non-empty password', () => {
+    component.loginForm.setValue({ email: 'user@test.com', password: 'pass' });
+    expect(component.loginForm.valid).toBe(true);
+  });
+});

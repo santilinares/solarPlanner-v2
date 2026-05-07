@@ -3499,3 +3499,43 @@ User requested unit tests for the Google OAuth fix — no real connection, just 
 
 ### Reasoning
 The key challenges were: (1) `jest-preset-angular` v16 exports `setupZoneTestEnv` as a named function that must be explicitly called, not auto-executed on import; (2) `RouterLink` requires the real Angular router (`provideRouter([])`) rather than a partial mock; (3) in-flight state (`loading=true`) is not observable with synchronous `of()` mocks — solved with an unresolved `Subject` that holds the stream open during the assertion.
+
+---
+
+## May 7, 2026 - Client-Side Unit Tests (Comprehensive)
+
+### Topic
+Add comprehensive Jest unit tests to the Angular client covering `onSubmit` flows, form validation, guards, interceptors, and the AuthService.
+
+### Summary of Prompt
+"Añade tests unitarios al cliente side" — followed by approval of a 6-file plan. Work was done on a new feature branch `adding-client-side-tests` with a PR targeting `develop`.
+
+### What Was Achieved
+- Extended `login.component.spec.ts` with `onSubmit()` tests (5) and form-validation tests (3)
+- Extended `register.component.spec.ts` with `onSubmit()` tests (4), form-validation tests (3), and `ngOnDestroy` cleanup test (1)
+- Created `auth.guard.spec.ts` — 2 tests for the `authGuard` functional guard
+- Created `admin.guard.spec.ts` — 3 tests for the `adminGuard` functional guard
+- Created `jwt.interceptor.spec.ts` — 2 tests for the JWT header injection interceptor
+- Created `auth.service.spec.ts` — 11 tests covering login, register, logout, token decoding, isAdmin, and refreshToken
+- All **50 tests pass** across 6 suites (7 s)
+
+### Full Prompt
+> "Añade tests unitarios al cliente side"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.spec.ts` — extended
+- `client/src/app/features/visitor/register/register.component.spec.ts` — extended
+- `client/src/app/core/guards/auth.guard.spec.ts` — NEW
+- `client/src/app/core/guards/admin.guard.spec.ts` — NEW
+- `client/src/app/core/interceptors/jwt.interceptor.spec.ts` — NEW
+- `client/src/app/core/services/auth.service.spec.ts` — NEW
+
+### Reasoning
+
+**Guard testing with `devBypassAuth`:** The dev environment sets `devBypassAuth: true`, which short-circuits both guards. To test the actual guard logic, `jest.mock('@environments/environment', ...)` overrides it to `false`. Jest hoists `jest.mock()` calls before imports, so the guard module picks up the mocked environment automatically.
+
+**Functional guards and interceptors:** Angular 21 functional guards (`CanActivateFn`) require an injection context to call `inject()`. Guards were tested using `TestBed.runInInjectionContext()`. The interceptor was registered via `provideHttpClient(withInterceptors([jwtInterceptor]))` and verified end-to-end with `HttpTestingController`.
+
+**AuthService constructor isolation:** `AuthService` calls `checkAuthStatus()` in the constructor, which reads localStorage and may make a `GET /users/me` HTTP call. Calling `localStorage.clear()` in `beforeEach` before injecting the service makes the constructor exit early (no token), keeping each test isolated without any pending HTTP requests.
+
+**`fakeAsync` for timer-based flows:** `RegisterComponent.onSubmit()` sets a 1500 ms `setTimeout` before navigating on success. Tests use `fakeAsync` + `tick(1500)` to drain fake timers synchronously. The `ngOnDestroy` test confirms that `clearTimeout` before `tick(1500)` prevents navigation from firing.

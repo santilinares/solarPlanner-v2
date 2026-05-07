@@ -152,3 +152,142 @@ describe('RegisterComponent – signInWithGoogle', () => {
     }));
   });
 });
+
+const VALID_FORM = {
+  firstName: 'John',
+  lastName: 'Doe',
+  email: 'john@test.com',
+  password: 'password123',
+};
+
+describe('RegisterComponent – onSubmit', () => {
+  let component: RegisterComponent;
+  let router: Router;
+  let mockAuthService: Partial<AuthService>;
+
+  beforeEach(async () => {
+    mockAuthService = {
+      register: jest.fn().mockReturnValue(of(STUB_RESPONSE)),
+      isAuthenticated: signal(false),
+      currentUser: signal(null),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [RegisterComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: mockAuthService },
+      ],
+    }).compileComponents();
+
+    router = TestBed.inject(Router);
+    jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    const fixture = TestBed.createComponent(RegisterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('does nothing when form is invalid', () => {
+    component.onSubmit();
+    expect(mockAuthService.register).not.toHaveBeenCalled();
+  });
+
+  it('calls authService.register with form values', () => {
+    component.registerForm.setValue(VALID_FORM);
+    component.onSubmit();
+    expect(mockAuthService.register).toHaveBeenCalledWith(VALID_FORM);
+  });
+
+  it('sets successMessage immediately and navigates to /projects after 1500ms', fakeAsync(() => {
+    component.registerForm.setValue(VALID_FORM);
+    component.onSubmit();
+
+    expect(component.successMessage()).toBe('Account created successfully! Redirecting...');
+    tick(1500);
+    expect(router.navigate).toHaveBeenCalledWith(['/projects']);
+  }));
+
+  it('sets errorMessage and clears loading on error', fakeAsync(() => {
+    (mockAuthService.register as jest.Mock).mockReturnValue(
+      throwError(() => ({ message: 'Email already exists' })),
+    );
+    component.registerForm.setValue(VALID_FORM);
+    component.onSubmit();
+    tick();
+    expect(component.errorMessage()).toBeTruthy();
+    expect(component.loading()).toBe(false);
+  }));
+});
+
+describe('RegisterComponent – form validation', () => {
+  let component: RegisterComponent;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RegisterComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated: signal(false), currentUser: signal(null) },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RegisterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('is invalid with empty fields', () => {
+    expect(component.registerForm.valid).toBe(false);
+  });
+
+  it('rejects a password shorter than 8 characters', () => {
+    component.registerForm.setValue({ ...VALID_FORM, password: 'short' });
+    expect(component.registerForm.get('password')?.valid).toBe(false);
+  });
+
+  it('is valid with all required fields correctly filled', () => {
+    component.registerForm.setValue(VALID_FORM);
+    expect(component.registerForm.valid).toBe(true);
+  });
+});
+
+describe('RegisterComponent – ngOnDestroy', () => {
+  let component: RegisterComponent;
+  let router: Router;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RegisterComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AuthService,
+          useValue: {
+            register: jest.fn().mockReturnValue(of(STUB_RESPONSE)),
+            isAuthenticated: signal(false),
+            currentUser: signal(null),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    router = TestBed.inject(Router);
+    jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    const fixture = TestBed.createComponent(RegisterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('cancels the redirect timeout when destroyed before it fires', fakeAsync(() => {
+    component.registerForm.setValue(VALID_FORM);
+    component.onSubmit();
+    component.ngOnDestroy();
+    tick(1500);
+    expect(router.navigate).not.toHaveBeenCalled();
+  }));
+});
