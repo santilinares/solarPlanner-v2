@@ -3442,3 +3442,60 @@ Se creó `features.md` en la raíz del proyecto con un registro completo de toda
 
 ### Reasoning
 Se exploró la base de código completa (frontend + backend) mediante un agente especializado para identificar todas las funcionalidades implementadas. Las features marcadas con `[~]` corresponden a cálculos con supuestos simplificados (factor de utilización fijo, horas pico promedio por latitud, fórmula de espaciado geométrica básica), datos externos con granularidad mejorable (Solcast, precios de electricidad), y especificaciones de paneles y cultivares que podrían enriquecerse con bases de datos más completas.
+
+---
+
+## May 7, 2026 - Fix: Google OAuth 2.0 Race Condition
+
+### Topic
+Fix Google sign-in failing silently on login and register pages due to async script load race condition.
+
+### Summary of Prompt
+User reported that Google OAuth 2.0 login was failing. Asked the agent to gather all necessary information and ask if needed before fixing.
+
+### What Was Achieved
+- Identified a race condition where `ngAfterViewInit` ran before the Google GSI script finished loading (`async` in `index.html`), causing `initialize()` to never register its callback.
+- Merged `initGoogleButton()` and `signInWithGoogle()` into a single method that calls `initialize()` immediately before `prompt()` on every click, guaranteeing the callback is always registered regardless of script load timing.
+- Removed the now-unnecessary `AfterViewInit` lifecycle hook from both `LoginComponent` and `RegisterComponent`.
+- TypeScript type check passes with zero errors.
+
+### Full Prompt
+> "Cuando intenton hacer el login mediante google oauth 2.0, me falla. Recupera toda la info necesaria y si lo necesitas pregunta"
+> (follow-up) "sí, procede"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+
+### Reasoning
+The Google GSI script is loaded with `async` in `index.html`, meaning it may not be available when `ngAfterViewInit` fires. The original code split initialization (`initGoogleButton` in `ngAfterViewInit`) from triggering (`signInWithGoogle`). If the script hadn't loaded by the time `ngAfterViewInit` ran, `initGoogleButton` silently returned without ever registering the credential callback. Then when the user clicked the button, `prompt()` was called but had no registered callback, so the flow was broken. The fix ensures `initialize()` is always called just before `prompt()` on every user click, which is safe per Google's docs (calling `initialize()` multiple times is idempotent).
+
+---
+
+## May 7, 2026 - Test: Unit tests for Google OAuth signInWithGoogle
+
+### Topic
+Add unit tests (Jest) for the `signInWithGoogle()` method fixed in the previous session, covering both `LoginComponent` and `RegisterComponent`.
+
+### Summary of Prompt
+User requested unit tests for the Google OAuth fix — no real connection, just unit-level coverage.
+
+### What Was Achieved
+- Set up Jest testing infrastructure for the Angular client from scratch (`jest`, `jest-preset-angular`, `jest-environment-jsdom`), since no test runner was previously installed.
+- Created `jest.config.js` and `setup-jest.ts` (with `TextEncoder`/`TextDecoder` polyfill and `setupZoneTestEnv()`) compatible with Angular 21 + zone.js.
+- Updated `package.json` scripts to use `jest` directly.
+- Wrote 8 unit tests per component (16 total) covering: guard when `window.google` is absent, correct `client_id` passed to `initialize()`, `initialize` called before `prompt()`, `googleLoading` signal set correctly, credential forwarded to `authService`, in-flight loading state (using a `Subject` to avoid synchronous mock collapse), navigation on success, and error handling.
+- All 16 tests pass.
+
+### Full Prompt
+> "Para esto no podemos meter tests (aunque no comprueben la conexión real), pero que sean unitarios"
+
+### Affected Files
+- `client/jest.config.js` — nuevo
+- `client/setup-jest.ts` — nuevo
+- `client/package.json` — scripts test/test:watch actualizados, devDependencies ampliadas
+- `client/src/app/features/visitor/login/login.component.spec.ts` — nuevo
+- `client/src/app/features/visitor/register/register.component.spec.ts` — nuevo
+
+### Reasoning
+The key challenges were: (1) `jest-preset-angular` v16 exports `setupZoneTestEnv` as a named function that must be explicitly called, not auto-executed on import; (2) `RouterLink` requires the real Angular router (`provideRouter([])`) rather than a partial mock; (3) in-flight state (`loading=true`) is not observable with synchronous `of()` mocks — solved with an unresolved `Subject` that holds the stream open during the assertion.

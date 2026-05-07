@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy, AfterViewInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -317,7 +317,7 @@ import { environment } from '@environments/environment';
     }
   `]
 })
-export class RegisterComponent implements AfterViewInit, OnDestroy {
+export class RegisterComponent implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -335,11 +335,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
 
-  ngAfterViewInit(): void {
-    this.initGoogleButton();
-  }
-
-  private initGoogleButton(): void {
+  signInWithGoogle(): void {
     type GoogleAccounts = {
       accounts: {
         id: {
@@ -373,19 +369,7 @@ export class RegisterComponent implements AfterViewInit, OnDestroy {
         });
       },
     });
-  }
 
-  signInWithGoogle(): void {
-    type GoogleAccounts = {
-      accounts: {
-        id: {
-          initialize: (cfg: object) => void;
-          prompt: () => void;
-        };
-      };
-    };
-    const google = (window as unknown as { google?: GoogleAccounts }).google;
-    if (!google) return;
     this.googleLoading.set(true);
     google.accounts.id.prompt();
   }
