@@ -26,6 +26,8 @@ import {
   CallerContext,
   PvgisRefResponse,
 } from '../types/project.types';
+import { getCapexPerKwp } from './capex-benchmark.service';
+import { CapexSegment } from '../data/capex-benchmarks-eu';
 
 /**
  * Project Service
@@ -108,6 +110,7 @@ const toProductionParams = (project: HydratedDocument<IProject>): ProjectProduct
     azimuth: project.azimuth,
     panelNumber: project.panelNumber,
     installDate: project.installDate,
+    albedo: project.albedo,
     dcAcRatio: project.dcAcRatio,
     systemLosses: project.systemLosses,
   };
@@ -153,9 +156,13 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     lon: project.lon,
     surface: project.surface,
     country: project.country,
+    countryCode: project.countryCode,
     timezone: project.timezone,
     currency: project.currency,
     price: project.price,
+    installationCost: project.installationCost,
+    segment: project.segment,
+    albedo: project.albedo,
     tilt: project.tilt,
     direction: project.direction,
     azimuth: project.azimuth,
@@ -320,6 +327,7 @@ export class ProjectService {
         lon: geo.lon,
         surface: geo.surface,
         country: resolvedCountry?.name,
+        countryCode: resolvedCountry?.code,
         timezone: resolvedTimezone,
         currency: priceData.currency,
         price: priceData.price,
@@ -992,8 +1000,6 @@ export class ProjectService {
     const annualSavingsEur = price != null ? pvgisRef.yearlyKwh * price : null;
 
     // 25-year savings projection with panel degradation — null if no price
-    // Year 1: yearlyKwh × (1 - dfy/100) × price
-    // Year i: yearlyKwh × (1 - dfy/100) × (1 - da/100)^(i-1) × price
     const PROJECTION_YEARS = 25;
     const dfy = panel?.degradationFirstYear ?? 2.0;
     const da = panel?.degradationAnnual ?? 0.5;
@@ -1001,20 +1007,49 @@ export class ProjectService {
     if (price != null) {
       annualSavingsPerYear = [];
       for (let i = 1; i <= PROJECTION_YEARS; i++) {
-        const degradationFactor =
-          (1 - dfy / 100) * Math.pow(1 - da / 100, i - 1);
+        const degradationFactor = (1 - dfy / 100) * Math.pow(1 - da / 100, i - 1);
         annualSavingsPerYear.push(pvgisRef.yearlyKwh * degradationFactor * price);
       }
     }
 
-    // TODO: paybackYears = installationCost / annualSavingsEur once installationCost is added to IProject
-    // TODO: roi25Years = 100 * (sum(annualSavingsPerYear) - installationCost) / installationCost
+    // Installation cost: user-provided value takes precedence, then CAPEX benchmark
+    let installationCost: number | null = project.installationCost ?? null;
+    let installationCostSource: 'user' | 'benchmark' | null = null;
+
+    if (installationCost != null) {
+      installationCostSource = 'user';
+    } else if (pDc0Kw > 0) {
+      const segment = (project.segment ?? 'residential') as CapexSegment;
+      const countryCode = project.countryCode ?? 'ES';
+      const capex = getCapexPerKwp(countryCode, segment);
+      if (capex) {
+        installationCost = pDc0Kw * capex.value;
+        installationCostSource = 'benchmark';
+      }
+    }
+
+    // Payback period
+    const paybackYears =
+      installationCost != null && annualSavingsEur && annualSavingsEur > 0
+        ? installationCost / annualSavingsEur
+        : null;
+
+    // 25-year ROI
+    let roi25Years: number | null = null;
+    if (annualSavingsPerYear && installationCost != null && installationCost > 0) {
+      const cumulativeSavings = annualSavingsPerYear.reduce((s, v) => s + v, 0);
+      roi25Years = (100 * (cumulativeSavings - installationCost)) / installationCost;
+    }
 
     return {
       capacityFactor,
       performanceRatio,
       annualSavingsEur,
       annualSavingsPerYear,
+      paybackYears,
+      roi25Years,
+      installationCostUsed: installationCost,
+      installationCostSource,
     };
   }
 

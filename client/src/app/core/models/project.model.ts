@@ -63,6 +63,9 @@ export interface ProjectUpdateRequest {
   timezone?: string;
   currency?: string;
   price?: number;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  albedo?: number;
 }
 
 // Simplified Panel reference for project
@@ -178,9 +181,13 @@ export interface ProjectResponse {
   lon?: number;
   surface?: number;
   country?: string;
+  countryCode?: string;
   timezone?: string;
   currency?: string;
   price?: number;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  albedo?: number;
   tilt: number;
   direction: string;
   azimuth?: number;
@@ -224,9 +231,12 @@ export interface OptimalConfigFromPolygonRequest {
 }
 
 export interface ProjectAnalytics {
-  capacityFactor: number;               // CF (%) — NREL PVWatts V5 §8.1
-  performanceRatio: number | null;      // PR (%) — null if H(i)_y not stored (old projects)
-  annualSavingsEur: number | null;      // yearlyKwh × price — null if price not set
-  annualSavingsPerYear: number[] | null; // 25-element array with degradation — null if no price
-  // TODO: paybackYears / roi25Years — pending installationCost implementation
+  capacityFactor: number;                               // CF (%) — NREL PVWatts V5 §8.1
+  performanceRatio: number | null;                      // PR (%) — null if H(i)_y not stored
+  annualSavingsEur: number | null;                      // yearlyKwh × price — null if price not set
+  annualSavingsPerYear: number[] | null;                // 25-element array with degradation — null if no price
+  paybackYears: number | null;                          // installationCost / annualSavingsEur
+  roi25Years: number | null;                            // % ROI over 25 years
+  installationCostUsed: number | null;                  // cost used for calculations
+  installationCostSource: 'user' | 'benchmark' | null; // where the cost came from
 }

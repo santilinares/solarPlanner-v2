@@ -157,7 +157,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
  * @access  Public
  */
 export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
+  const { refreshToken } = req.body as { refreshToken: string };
 
   if (!refreshToken) {
     return res.status(400).json({

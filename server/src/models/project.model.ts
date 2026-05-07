@@ -78,12 +78,13 @@ export interface IProject {
   lon?: number; // Stored center longitude (derived from area polygon)
   surface?: number; // Stored area in m² (derived from area polygon)
   country?: string;
+  countryCode?: string; // ISO 3166-1 alpha-2 code (ES, PT, DE, …)
   timezone?: string;
   currency?: string;
   price?: number; // Energy price (€/kWh or local currency/kWh)
-  // TODO: installationCost — total system cost (panels + inverter/batteries + labor).
-  // Cost model research pending (panel DB prices + inverter collection + labor estimate API).
-  // When ready: add field here, to ProjectCreateSchema/UpdateSchema, and ProjectAnalytics.
+  installationCost?: number; // Total system cost in € (user-provided or estimated)
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  albedo?: number; // Ground reflectance [0-1] for bifacial gain (default 0.20 — grass)
   tilt: number; // Panel tilt angle (0-90 degrees)
   direction: string; // e.g., "south", "north"
   azimuth?: number; // Azimuth angle (0-360 degrees)
@@ -146,6 +147,14 @@ const ProjectSchema = new Schema<IProject, ProjectModel, Record<string, never>>(
       type: Number,
       min: 0,
     },
+    countryCode: { type: String, trim: true, uppercase: true, maxlength: 2 },
+    installationCost: { type: Number, min: 0 },
+    segment: {
+      type: String,
+      enum: ['residential', 'commercial', 'utility', 'agrivoltaic'],
+      default: 'residential',
+    },
+    albedo: { type: Number, min: 0, max: 1, default: 0.20 },
     tilt: {
       type: Number,
       required: true,

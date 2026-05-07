@@ -10,7 +10,8 @@ const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 
 export interface OpenMeteoPoint {
   dateTime: Date;
-  gti: number;       // W/m² — Global Tilted Irradiance on the panel plane
+  gti: number;         // W/m² — Global Tilted Irradiance on the panel plane
+  ghi: number;         // W/m² — Global Horizontal Irradiance (for bifacial rear gain)
   temperature: number; // °C  — Ambient temperature at 2 m
   windSpeed: number;   // m/s — Wind speed at 10 m (for Fuentes thermal model)
 }
@@ -19,6 +20,7 @@ interface OpenMeteoResponse {
   hourly: {
     time: string[];
     global_tilted_irradiance: (number | null)[];
+    shortwave_radiation: (number | null)[];
     temperature_2m: (number | null)[];
     wind_speed_10m: (number | null)[];
   };
@@ -54,7 +56,7 @@ class OpenMeteoService {
     const params = new URLSearchParams({
       latitude: lat.toString(),
       longitude: lon.toString(),
-      hourly: 'global_tilted_irradiance,temperature_2m,wind_speed_10m',
+      hourly: 'global_tilted_irradiance,shortwave_radiation,temperature_2m,wind_speed_10m',
       tilt: tilt.toString(),
       azimuth: omAzimuth.toString(),
       past_days: historyDays.toString(),
@@ -83,12 +85,14 @@ class OpenMeteoService {
   }
 
   private parseHourlyResponse(data: OpenMeteoResponse): OpenMeteoPoint[] {
-    const { time, global_tilted_irradiance, temperature_2m, wind_speed_10m } = data.hourly;
+    const { time, global_tilted_irradiance, shortwave_radiation, temperature_2m, wind_speed_10m } =
+      data.hourly;
 
     return time.map((t, i) => ({
       // Open-Meteo times: "YYYY-MM-DDTHH:MM" in UTC (timezone=UTC requested)
       dateTime: new Date(t + ':00Z'),
       gti: Math.max(0, global_tilted_irradiance[i] ?? 0),
+      ghi: Math.max(0, shortwave_radiation[i] ?? 0),
       temperature: temperature_2m[i] ?? 20,
       // NOCT standard condition assumes 1 m/s; use that as fallback
       windSpeed: Math.max(0, wind_speed_10m[i] ?? 1),

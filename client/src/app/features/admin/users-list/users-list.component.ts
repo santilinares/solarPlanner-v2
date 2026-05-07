@@ -532,7 +532,7 @@ export class UsersListComponent {
   }
 
   protected viewProjects(user: UserResponse): void {
-    this.router.navigate(['/projects/all'], { queryParams: { owner: user._id } });
+    void this.router.navigate(['/projects/all'], { queryParams: { owner: user._id } });
   }
 
   protected exportCsv(): void {
