@@ -3539,3 +3539,60 @@ Add comprehensive Jest unit tests to the Angular client covering `onSubmit` flow
 **AuthService constructor isolation:** `AuthService` calls `checkAuthStatus()` in the constructor, which reads localStorage and may make a `GET /users/me` HTTP call. Calling `localStorage.clear()` in `beforeEach` before injecting the service makes the constructor exit early (no token), keeping each test isolated without any pending HTTP requests.
 
 **`fakeAsync` for timer-based flows:** `RegisterComponent.onSubmit()` sets a 1500 ms `setTimeout` before navigating on success. Tests use `fakeAsync` + `tick(1500)` to drain fake timers synchronously. The `ngOnDestroy` test confirms that `clearTimeout` before `tick(1500)` prevents navigation from firing.
+
+---
+
+## 📅 May 7, 2026 - Phase 2: High-Value Client-Side Unit Tests (12 New Suites, ~58 Tests)
+
+### Topic
+Extended the client-side test suite with 12 additional spec files covering interceptors, HTTP services, visitor/user/admin feature components, and the authenticated layout.
+
+### Summary of Prompt
+After Phase 1 (50 tests across 6 suites), the user was asked whether more coverage could be added. A scan of untested files was presented and the user approved implementing the high-value ones first.
+
+### What Was Achieved
+- **12 new spec files** added to the `adding-client-side-tests` feature branch
+- **~58 additional tests** covering:
+  - `api-response.interceptor.spec.ts` — envelope unwrapping, passthrough for non-envelope responses
+  - `auth-refresh.interceptor.spec.ts` — non-401 passthrough, 401 on `/auth/login` skipped, refresh+retry flow, failed refresh triggers logout
+  - `http-error.model.spec.ts` — `getErrorMessage()` pure function: all edge cases for missing/wrong-typed message fields
+  - `project.service.spec.ts` — POST, paginated GET, optional filters, admin owner filter, DELETE, analytics endpoint
+  - `panel.service.spec.ts` — pagination, envelope extraction, POST, DELETE, `searchPanels()` with/without filters
+  - `user.service.spec.ts` — GET /me, PATCH profile, PATCH password, GET all users, DELETE
+  - `forgot-password.component.spec.ts` — form validation states, does-nothing-when-invalid, service call, success/error message handling
+  - `reset-password.component.spec.ts` — token from query param, route param fallback, empty token, mismatch validator, service call with token, redirect after 2s, `ngOnDestroy` cancel
+  - `profile.component.spec.ts` — ngOnInit form population, displayName/avatarInitial signals, mismatch validator, `saveProfile()`/`changePassword()` calls and toast feedback
+  - `user-layout.component.spec.ts` — `isAdmin` computed signal (regular/admin role/`isAdmin()` mock), `visiblePrimaryNavItems` filtering, `isRouteActive()` exact+prefix match, `logout()`
+  - `admin-dashboard.component.spec.ts` — forkJoin calls all three services, count signals populated on success, loading cleared on error
+  - `panel-form.component.spec.ts` — invalid initial state, `isEditMode` true/false, form pre-population, `hasError()`, `onCancel()` emit, `onSubmit()` invalid/valid paths
+
+### Full Prompt
+> "Are there any other client side tests that can be added? Do a scan and come back with a list of them and their tests"
+> "Sure, more coverage wont hurt, right? Implement the high value first and then commit the changes to the feature branch we just created"
+
+### Affected Files
+- `client/src/app/core/interceptors/api-response.interceptor.spec.ts` — NEW
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — NEW
+- `client/src/app/core/models/http-error.model.spec.ts` — NEW
+- `client/src/app/core/services/project.service.spec.ts` — NEW
+- `client/src/app/core/services/panel.service.spec.ts` — NEW
+- `client/src/app/core/services/user.service.spec.ts` — NEW
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.spec.ts` — NEW
+- `client/src/app/features/visitor/reset-password/reset-password.component.spec.ts` — NEW
+- `client/src/app/features/user/profile/profile.component.spec.ts` — NEW
+- `client/src/app/layouts/user-layout/user-layout.component.spec.ts` — NEW
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.spec.ts` — NEW
+- `client/src/app/features/admin/panels/panel-form.component.spec.ts` — NEW
+- `santi-agent-interactions.md`
+
+### Reasoning
+
+**`MessageService` as component-level provider:** PrimeNG's `MessageService` is declared in `providers` inside the component decorator, not at root. `TestBed.inject(MessageService)` gets the root-level token (which may differ). The correct approach is `fixture.debugElement.injector.get(MessageService)` to get the instance the component actually uses.
+
+**Signal inputs and `setInput()`:** Angular 21 signal inputs declared with `input()` cannot be set via property assignment in tests. `fixture.componentRef.setInput('panel', value)` is the correct API — it triggers the same reactivity as a parent template binding.
+
+**Computed signal re-evaluation:** Angular computed signals only re-evaluate when their tracked reactive signal dependencies change. Calling `jest.fn().mockReturnValue(true)` on a plain function dependency doesn't trigger re-computation. The workaround is to mutate a tracked signal (e.g. `currentUser.set(null)`) to force the computed to re-read all its dependencies including the plain function.
+
+**`RouterLink` and the real Router:** Providing `{ provide: Router, useValue: mockRouter }` alongside `provideRouter([])` breaks `RouterLink`'s internal navigation (it reads from `router.root` which the mock lacks). The correct pattern: use `provideRouter([{ path: '**', component: DummyComponent }])`, let Angular provide the real Router, and spy on its `navigate` method via `jest.spyOn(router, 'navigate').mockResolvedValue(true)`.
+
+**Module-level interceptor state:** `auth-refresh.interceptor.ts` uses module-level `isRefreshing` and `refreshTokenSubject` variables. Tests must use synchronous observables (`of()`, `throwError()`) to ensure each request completes within the same synchronous tick and leaves `isRefreshing = false` for the next test case.
