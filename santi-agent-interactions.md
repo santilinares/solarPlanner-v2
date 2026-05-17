@@ -3596,3 +3596,34 @@ After Phase 1 (50 tests across 6 suites), the user was asked whether more covera
 **`RouterLink` and the real Router:** Providing `{ provide: Router, useValue: mockRouter }` alongside `provideRouter([])` breaks `RouterLink`'s internal navigation (it reads from `router.root` which the mock lacks). The correct pattern: use `provideRouter([{ path: '**', component: DummyComponent }])`, let Angular provide the real Router, and spy on its `navigate` method via `jest.spyOn(router, 'navigate').mockResolvedValue(true)`.
 
 **Module-level interceptor state:** `auth-refresh.interceptor.ts` uses module-level `isRefreshing` and `refreshTokenSubject` variables. Tests must use synchronous observables (`of()`, `throwError()`) to ensure each request completes within the same synchronous tick and leaves `isRefreshing = false` for the next test case.
+
+---
+
+## May 17, 2026 - Security Enhancement: HttpOnly Cookie para Refresh Token
+
+### Topic
+Migración del refresh token de `localStorage` a cookie HttpOnly + Secure + SameSite=Strict.
+
+### Summary of prompt
+El usuario preguntó si la app seguía un modelo parecido al estándar de autenticación con access token corto, refresh token largo en cookie HttpOnly, con rotación y revocación. Tras el análisis, se identificó que el refresh token estaba en `localStorage` (vulnerable a XSS), no había cookie HttpOnly, y no había revocación en servidor. El usuario pidió implementar la mejora significativa de mover el refresh token a cookie HttpOnly en la rama `feature/enhance-authentication`.
+
+### Full prompt
+> "Quiero tener la mejora significativa. Veamos como se comporta y si no da muchos problemas la incorporamos a la rama develop. He creado explícitamente esta rama feature para desarrollar esta solución y probarla"
+
+### What was achieved
+- **Servidor:** Instalado `cookie-parser`. Añadido middleware en `app.ts`. Creado helper `setRefreshCookie` en el controlador con opciones `httpOnly: true`, `secure` (sólo en producción), `sameSite: 'strict'`, `maxAge: 7d`, `path: '/api/auth'`. Actualizados `registerUser`, `loginUser`, `googleAuth` para setear la cookie y devolver solo `{ token, user }` en el body. Actualizado `refreshAccessToken` para leer el token de `req.cookies` en vez del body. Añadido endpoint `POST /api/auth/logout` que limpia la cookie con `res.clearCookie`.
+- **Cliente:** Eliminado todo uso de `localStorage` para el refresh token. Actualizado `logout()` para llamar primero a `POST /api/auth/logout` (con `withCredentials: true`) y luego limpiar estado local — garantizando que el logout funciona incluso si el servidor falla. Añadido `withCredentials: true` en todas las llamadas a endpoints de auth. Eliminado método `getRefreshToken()`. Actualizada la interfaz `AuthResponse` para eliminar `refreshToken` del tipo cliente.
+- **Tests:** Actualizados `auth.service.spec.ts` y `auth-refresh.interceptor.spec.ts` para reflejar el nuevo comportamiento. Todos los tests pasan: 19/19 en servidor, 17/17 en cliente.
+
+### Affected files
+- `server/src/app.ts` — añadido `cookieParser()`
+- `server/src/controllers/user.controller.ts` — helper cookie + handlers actualizados + `logoutUser`
+- `server/src/routes/auth.routes.ts` — añadida ruta `POST /logout`
+- `server/package.json` — añadido `cookie-parser` + `@types/cookie-parser`
+- `client/src/app/core/models/user.model.ts` — eliminado `refreshToken` de `AuthResponse`
+- `client/src/app/core/services/auth.service.ts` — sin localStorage para refresh, `withCredentials`, logout async
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — STUB_RESPONSE actualizado
+- `client/src/app/core/services/auth.service.spec.ts` — tests actualizados para nuevo comportamiento
+
+### AI reasoning
+El cambio principal es que el refresh token deja de viajar en el body de la respuesta HTTP y en `localStorage`, y pasa a ser una cookie HttpOnly que el navegador gestiona automáticamente. Esto elimina el vector de ataque XSS: aunque se inyecte JavaScript malicioso en la página, no puede leer la cookie. El `path: '/api/auth'` limita aún más la exposición: el navegador solo envía la cookie a rutas bajo ese prefijo. El acceso token (corto) sigue en localStorage porque es necesario leerlo desde JavaScript para adjuntarlo al header `Authorization`. La rotación ya existía — se generan nuevos tokens en cada refresh. La revocación en servidor (guardar hash en BD) queda identificada como mejora futura, pero queda fuera del alcance de este cambio.

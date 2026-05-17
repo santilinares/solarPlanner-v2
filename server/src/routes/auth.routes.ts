@@ -6,6 +6,7 @@ import {
   requestPasswordReset,
   resetPassword,
   refreshAccessToken,
+  logoutUser,
 } from '../controllers/user.controller';
 import { validateBody } from '../middleware/validation.middleware';
 import {
@@ -76,9 +77,16 @@ router.post('/password/reset', verifyPasswordResetJwtToken, validateBody(Passwor
 
 /**
  * @route   POST /api/auth/refresh
- * @desc    Refresh access token
+ * @desc    Refresh access token (reads refreshToken from HttpOnly cookie)
  * @access  Public
  */
 router.post('/refresh', refreshAccessToken);
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout — clears the refreshToken HttpOnly cookie
+ * @access  Public
+ */
+router.post('/logout', logoutUser);
 
 export default router;
