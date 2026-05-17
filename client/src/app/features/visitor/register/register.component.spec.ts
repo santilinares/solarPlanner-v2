@@ -19,7 +19,6 @@ function buildMockGoogle(idClient: GoogleIdClient) {
 
 const STUB_RESPONSE: AuthResponse = {
   token: 'access-token',
-  refreshToken: 'refresh-token',
   user: {
     id: '1',
     email: 'test@example.com',
