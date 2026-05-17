@@ -8,6 +8,7 @@
     "dev:trace": "node --trace-warnings -r ts-node/register src/server.ts",
     "dev:watch": "nodemon --exec ts-node src/server.ts",
     "check:relations": "ts-node src/scripts/checkRelations.ts",
+    "seed:panels": "ts-node src/scripts/seed-panels.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",

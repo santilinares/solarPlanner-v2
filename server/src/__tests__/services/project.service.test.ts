@@ -634,8 +634,8 @@ describe('ProjectService', () => {
   // ---------- estimateFromPolygon ----------
 
   describe('estimateFromPolygon', () => {
-    it('returns non-negative estimates for a valid polygon', async () => {
-      const result = await service.estimateFromPolygon(SAMPLE_AREA);
+    it('returns non-negative estimates for a valid polygon', () => {
+      const result = service.estimateFromPolygon(SAMPLE_AREA);
 
       expect(result.panelCount).toBeGreaterThanOrEqual(0);
       expect(result.areaSqm).toBeGreaterThan(0);
@@ -646,7 +646,7 @@ describe('ProjectService', () => {
       const { getAreaOfPolygon } = await import('geolib');
       vi.mocked(getAreaOfPolygon).mockReturnValueOnce(0);
 
-      const result = await service.estimateFromPolygon(SAMPLE_AREA);
+      const result = service.estimateFromPolygon(SAMPLE_AREA);
 
       expect(result.panelCount).toBe(0);
       expect(result.estimatedKwp).toBe(0);

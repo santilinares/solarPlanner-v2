@@ -24,6 +24,7 @@ export {
   ProjectResponse,
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
+  ProjectAnalytics,
 } from './project.model';
 
 export * from './panel.model';

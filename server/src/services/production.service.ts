@@ -22,6 +22,65 @@ import { IProductionPoint } from '../models/project.model';
 import { IPanel } from '../models/panel.model';
 import { openMeteoService } from './openmeteo.service';
 
+/**
+ * Inverter efficiency using PVWatts V5 model.
+ * Reference: NREL/TP-6A20-62641, Eq. 10-11
+ * https://pvwatts.nrel.gov/downloads/pvwattsv5.pdf
+ *
+ * @param pDc DC power input to inverter (W)
+ * @param pAcNameplate Inverter AC nameplate rating (W)
+ * @param etaNom Nominal inverter efficiency at rated power [0-1] (default 0.96)
+ * @param etaRef CEC reference efficiency for post-2010 inverters (0.9637)
+ * @returns Efficiency [0-1]
+ */
+export function calculateInverterEfficiency(
+  pDc: number,
+  pAcNameplate: number,
+  etaNom: number = 0.96,
+  etaRef: number = 0.9637,
+): number {
+  if (pDc <= 0) return 0;
+
+  const pDc0 = pAcNameplate / etaNom; // DC power at rated AC output
+  const zeta = pDc / pDc0;            // Load factor
+
+  // Clipping: DC power exceeds inverter capacity
+  if (zeta >= 1.0) return etaNom;
+
+  // PVWatts V5 efficiency curve (Eq. 10)
+  const eta = (etaNom / etaRef) * (-0.0162 * zeta - 0.0059 / zeta + 0.9858);
+
+  return Math.max(0, Math.min(eta, etaNom));
+}
+
+/**
+ * Effective irradiance for bifacial panels — isotropic sky view factor model.
+ * Source: IEA-PVPS Task 13 (2021)
+ *
+ * @param gti Global tilted irradiance (front side) [W/m²]
+ * @param ghi Global horizontal irradiance [W/m²]
+ * @param tilt Panel tilt angle [degrees]
+ * @param bifacialityFactor Rear-to-front power ratio [0-1]
+ * @param albedo Ground reflectance [0-1]
+ * @returns Effective irradiance accounting for rear gain [W/m²]
+ */
+export function calculateEffectiveIrradiance(
+  gti: number,
+  ghi: number,
+  tilt: number,
+  bifacialityFactor: number,
+  albedo: number,
+): number {
+  if (bifacialityFactor === 0 || ghi <= 0) return gti;
+
+  // View factor: fraction of sky visible by rear side (isotropic model)
+  const tiltRad = (tilt * Math.PI) / 180;
+  const viewFactor = (1 - Math.cos(tiltRad)) / 2;
+
+  const gRear = albedo * ghi * viewFactor;
+  return gti + bifacialityFactor * gRear;
+}
+
 // Calculation defaults when the panel field is not populated (spec §1.3)
 const PANEL_DEFAULTS = {
   gammaPmp: -0.40,
@@ -48,6 +107,7 @@ interface ResolvedPanelParams {
   noct: number;
   degradationFirstYear: number;
   degradationAnnual: number;
+  bifacialityFactor: number;
 }
 
 interface ResolvedLossParams {
@@ -67,6 +127,7 @@ export interface ProjectProductionParams {
   azimuth?: number;
   panelNumber: number;
   installDate: Date;
+  albedo?: number; // Ground reflectance [0-1] for bifacial rear gain (default 0.20)
   // DC:AC ratio for inverter clipping (PVWatts V5 default: 1.1)
   dcAcRatio?: number;
   systemLosses?: {
@@ -121,6 +182,7 @@ class ProductionService {
     const lossParams = this.resolveLossParams(project.systemLosses);
     const year = this.yearOfOperation(project.installDate);
     const dcAcRatio = project.dcAcRatio ?? 1.1;
+    const albedo = project.albedo ?? 0.20;
 
     // Build UTC midnight boundaries for today
     const now = new Date();
@@ -145,6 +207,7 @@ class ProductionService {
       const t = point.dateTime.getTime();
       const pv = this.calculateHourlyOutputKwh(
         point.gti,
+        point.ghi,
         point.temperature,
         point.windSpeed,
         panelParams,
@@ -152,6 +215,8 @@ class ProductionService {
         project.panelNumber,
         year,
         dcAcRatio,
+        project.tilt,
+        albedo,
       );
 
       if (t >= todayMidnightMs && t <= currentHourMs) {
@@ -192,6 +257,7 @@ class ProductionService {
     const lossParams = this.resolveLossParams(project.systemLosses);
     const year = this.yearOfOperation(project.installDate);
     const dcAcRatio = project.dcAcRatio ?? 1.1;
+    const albedo = project.albedo ?? 0.20;
 
     const now = new Date();
     const todayMidnightMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -210,6 +276,7 @@ class ProductionService {
       const t = point.dateTime.getTime();
       const pv = this.calculateHourlyOutputKwh(
         point.gti,
+        point.ghi,
         point.temperature,
         point.windSpeed,
         panelParams,
@@ -217,6 +284,8 @@ class ProductionService {
         project.panelNumber,
         year,
         dcAcRatio,
+        project.tilt,
+        albedo,
       );
 
       if (t >= todayMidnightMs && t <= currentHourMs) {
@@ -232,19 +301,18 @@ class ProductionService {
   /**
    * Hourly AC energy output for the entire array (kWh).
    *
-   * 1. Cell temp  — Fuentes model (Sandia SAND85-0330, via PVWatts V5):
-   *      U₀, U₁ derived from NOCT using the PVWatts V5 wind ratio (U₁/U₀ = 0.274)
-   *      T_cell = T_a + GTI / (U₀ + U₁ × windSpeed)
-   * 2. DC power   — PVWatts V5: P_dc = (GTI/1000) × wattPeak × (1 + γ/100 × ΔT)
-   * 3. Degradation factor applied to P_dc
-   * 4. Array DC   — multiply by panelNumber
-   * 5. DC losses  — dcWiring, mismatch, soiling, shadingStatic, degradationExtra
-   * 6. Inverter   — η_inv × P_dc_loss, clipped to P_ac_nameplate = ratedDc / dcAcRatio
-   * 7. AC wiring  — applied after inverter
-   * 8. Energy     — W × 1 h = Wh → kWh
+   * 1. Cell temp    — Fuentes model (Sandia SAND85-0330, via PVWatts V5)
+   * 2. DC power     — PVWatts V5: P_dc = (G_eff/1000) × wattPeak × (1 + γ/100 × ΔT)
+   * 3. Degradation  — applied to P_dc
+   * 4. Array DC     — multiply by panelNumber; G_eff includes bifacial rear gain
+   * 5. DC losses    — dcWiring, mismatch, soiling, shadingStatic, degradationExtra
+   * 6. Inverter     — PVWatts V5 dynamic efficiency curve (Eq. 10-11)
+   * 7. AC wiring    — applied after inverter
+   * 8. Energy       — W × 1 h = Wh → kWh
    */
   calculateHourlyOutputKwh(
     gti: number,
+    ghi: number,
     tAmb: number,
     windSpeed: number,
     panel: ResolvedPanelParams,
@@ -252,13 +320,13 @@ class ProductionService {
     panelNumber: number,
     year: number,
     dcAcRatio: number,
+    tilt: number = 30,
+    albedo: number = 0.20,
   ): number {
     if (gti <= 0) return 0;
 
     // 1. Cell temperature — Fuentes model with wind speed (PVWatts V5)
-    // U₀ + U₁ at NOCT conditions (G=800, W=1): uSum = 800 / (NOCT - 20)
-    // U₁/U₀ ratio from PVWatts V5: 6.84/25 = 0.274
-    const uSum = 800 / Math.max(panel.noct - 20, 1); // guard against NOCT ≤ 20
+    const uSum = 800 / Math.max(panel.noct - 20, 1);
     const u0 = uSum / 1.274;
     const u1 = u0 * 0.274;
     const tCell = tAmb + gti / (u0 + u1 * windSpeed);
@@ -272,8 +340,9 @@ class ProductionService {
       (1 - panel.degradationFirstYear / 100) *
       Math.pow(1 - panel.degradationAnnual / 100, year - 1);
 
-    // 4. Array DC power scaled by irradiance ratio vs STC (1000 W/m²)
-    const pArrayDc = pDcPerPanel * degFactor * (gti / 1000) * panelNumber;
+    // 4. Array DC power — bifacial panels use effective irradiance (front + rear gain)
+    const gEffective = calculateEffectiveIrradiance(gti, ghi, tilt, panel.bifacialityFactor, albedo);
+    const pArrayDc = pDcPerPanel * degFactor * (gEffective / 1000) * panelNumber;
 
     // 5. DC-side losses (before inverter)
     const pDcAfterLosses =
@@ -284,10 +353,10 @@ class ProductionService {
       (1 - losses.shadingStatic / 100) *
       (1 - losses.degradationExtra / 100);
 
-    // 6. Inverter with clipping — PVWatts V5 §3.1
-    // P_ac_nameplate = rated DC capacity / DC:AC ratio
+    // 6. Inverter — PVWatts V5 dynamic efficiency curve replaces flat efficiency
     const pAcNameplate = (panelNumber * panel.wattPeak) / dcAcRatio;
-    const pInverterOut = Math.min(pDcAfterLosses * losses.inverterEfficiency, pAcNameplate);
+    const eta = calculateInverterEfficiency(pDcAfterLosses, pAcNameplate, losses.inverterEfficiency);
+    const pInverterOut = Math.min(eta * pDcAfterLosses, pAcNameplate);
 
     // 7. AC wiring loss
     const pAc = pInverterOut * (1 - losses.acWiring / 100);
@@ -310,6 +379,7 @@ class ProductionService {
       noct: panel.noct ?? PANEL_DEFAULTS.noct,
       degradationFirstYear: panel.degradationFirstYear ?? PANEL_DEFAULTS.degradationFirstYear,
       degradationAnnual: panel.degradationAnnual ?? PANEL_DEFAULTS.degradationAnnual,
+      bifacialityFactor: panel.bifacialityFactor ?? PANEL_DEFAULTS.bifacialityFactor,
     };
   }
 

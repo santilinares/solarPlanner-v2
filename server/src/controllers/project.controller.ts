@@ -154,10 +154,21 @@ export const adminDeleteProject = asyncHandler(async (req: Request, res: Respons
  * @desc    Visitor quick estimate — no auth required
  * @access  Public
  */
-export const estimateProject = asyncHandler(async (req: Request, res: Response) => {
+export const estimateProject = asyncHandler((req: Request, res: Response) => {
   const { area } = req.body as { area: { lat: number; lon: number }[] };
-  const result = await projectService.estimateFromPolygon(area);
+  const result = projectService.estimateFromPolygon(area);
   return success(res, result);
+});
+
+/**
+ * @route   GET /projects/:id/analytics
+ * @desc    Get performance and financial analytics for a project
+ * @access  Private
+ */
+export const getProjectAnalytics = asyncHandler(async (req: Request, res: Response) => {
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const analytics = await projectService.getProjectAnalytics(req.params.id, caller);
+  return success(res, analytics);
 });
 
 /**

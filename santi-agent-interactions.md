@@ -3442,3 +3442,157 @@ Se creó `features.md` en la raíz del proyecto con un registro completo de toda
 
 ### Reasoning
 Se exploró la base de código completa (frontend + backend) mediante un agente especializado para identificar todas las funcionalidades implementadas. Las features marcadas con `[~]` corresponden a cálculos con supuestos simplificados (factor de utilización fijo, horas pico promedio por latitud, fórmula de espaciado geométrica básica), datos externos con granularidad mejorable (Solcast, precios de electricidad), y especificaciones de paneles y cultivares que podrían enriquecerse con bases de datos más completas.
+
+---
+
+## May 7, 2026 - Fix: Google OAuth 2.0 Race Condition
+
+### Topic
+Fix Google sign-in failing silently on login and register pages due to async script load race condition.
+
+### Summary of Prompt
+User reported that Google OAuth 2.0 login was failing. Asked the agent to gather all necessary information and ask if needed before fixing.
+
+### What Was Achieved
+- Identified a race condition where `ngAfterViewInit` ran before the Google GSI script finished loading (`async` in `index.html`), causing `initialize()` to never register its callback.
+- Merged `initGoogleButton()` and `signInWithGoogle()` into a single method that calls `initialize()` immediately before `prompt()` on every click, guaranteeing the callback is always registered regardless of script load timing.
+- Removed the now-unnecessary `AfterViewInit` lifecycle hook from both `LoginComponent` and `RegisterComponent`.
+- TypeScript type check passes with zero errors.
+
+### Full Prompt
+> "Cuando intenton hacer el login mediante google oauth 2.0, me falla. Recupera toda la info necesaria y si lo necesitas pregunta"
+> (follow-up) "sí, procede"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+
+### Reasoning
+The Google GSI script is loaded with `async` in `index.html`, meaning it may not be available when `ngAfterViewInit` fires. The original code split initialization (`initGoogleButton` in `ngAfterViewInit`) from triggering (`signInWithGoogle`). If the script hadn't loaded by the time `ngAfterViewInit` ran, `initGoogleButton` silently returned without ever registering the credential callback. Then when the user clicked the button, `prompt()` was called but had no registered callback, so the flow was broken. The fix ensures `initialize()` is always called just before `prompt()` on every user click, which is safe per Google's docs (calling `initialize()` multiple times is idempotent).
+
+---
+
+## May 7, 2026 - Test: Unit tests for Google OAuth signInWithGoogle
+
+### Topic
+Add unit tests (Jest) for the `signInWithGoogle()` method fixed in the previous session, covering both `LoginComponent` and `RegisterComponent`.
+
+### Summary of Prompt
+User requested unit tests for the Google OAuth fix — no real connection, just unit-level coverage.
+
+### What Was Achieved
+- Set up Jest testing infrastructure for the Angular client from scratch (`jest`, `jest-preset-angular`, `jest-environment-jsdom`), since no test runner was previously installed.
+- Created `jest.config.js` and `setup-jest.ts` (with `TextEncoder`/`TextDecoder` polyfill and `setupZoneTestEnv()`) compatible with Angular 21 + zone.js.
+- Updated `package.json` scripts to use `jest` directly.
+- Wrote 8 unit tests per component (16 total) covering: guard when `window.google` is absent, correct `client_id` passed to `initialize()`, `initialize` called before `prompt()`, `googleLoading` signal set correctly, credential forwarded to `authService`, in-flight loading state (using a `Subject` to avoid synchronous mock collapse), navigation on success, and error handling.
+- All 16 tests pass.
+
+### Full Prompt
+> "Para esto no podemos meter tests (aunque no comprueben la conexión real), pero que sean unitarios"
+
+### Affected Files
+- `client/jest.config.js` — nuevo
+- `client/setup-jest.ts` — nuevo
+- `client/package.json` — scripts test/test:watch actualizados, devDependencies ampliadas
+- `client/src/app/features/visitor/login/login.component.spec.ts` — nuevo
+- `client/src/app/features/visitor/register/register.component.spec.ts` — nuevo
+
+### Reasoning
+The key challenges were: (1) `jest-preset-angular` v16 exports `setupZoneTestEnv` as a named function that must be explicitly called, not auto-executed on import; (2) `RouterLink` requires the real Angular router (`provideRouter([])`) rather than a partial mock; (3) in-flight state (`loading=true`) is not observable with synchronous `of()` mocks — solved with an unresolved `Subject` that holds the stream open during the assertion.
+
+---
+
+## May 7, 2026 - Client-Side Unit Tests (Comprehensive)
+
+### Topic
+Add comprehensive Jest unit tests to the Angular client covering `onSubmit` flows, form validation, guards, interceptors, and the AuthService.
+
+### Summary of Prompt
+"Añade tests unitarios al cliente side" — followed by approval of a 6-file plan. Work was done on a new feature branch `adding-client-side-tests` with a PR targeting `develop`.
+
+### What Was Achieved
+- Extended `login.component.spec.ts` with `onSubmit()` tests (5) and form-validation tests (3)
+- Extended `register.component.spec.ts` with `onSubmit()` tests (4), form-validation tests (3), and `ngOnDestroy` cleanup test (1)
+- Created `auth.guard.spec.ts` — 2 tests for the `authGuard` functional guard
+- Created `admin.guard.spec.ts` — 3 tests for the `adminGuard` functional guard
+- Created `jwt.interceptor.spec.ts` — 2 tests for the JWT header injection interceptor
+- Created `auth.service.spec.ts` — 11 tests covering login, register, logout, token decoding, isAdmin, and refreshToken
+- All **50 tests pass** across 6 suites (7 s)
+
+### Full Prompt
+> "Añade tests unitarios al cliente side"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.spec.ts` — extended
+- `client/src/app/features/visitor/register/register.component.spec.ts` — extended
+- `client/src/app/core/guards/auth.guard.spec.ts` — NEW
+- `client/src/app/core/guards/admin.guard.spec.ts` — NEW
+- `client/src/app/core/interceptors/jwt.interceptor.spec.ts` — NEW
+- `client/src/app/core/services/auth.service.spec.ts` — NEW
+
+### Reasoning
+
+**Guard testing with `devBypassAuth`:** The dev environment sets `devBypassAuth: true`, which short-circuits both guards. To test the actual guard logic, `jest.mock('@environments/environment', ...)` overrides it to `false`. Jest hoists `jest.mock()` calls before imports, so the guard module picks up the mocked environment automatically.
+
+**Functional guards and interceptors:** Angular 21 functional guards (`CanActivateFn`) require an injection context to call `inject()`. Guards were tested using `TestBed.runInInjectionContext()`. The interceptor was registered via `provideHttpClient(withInterceptors([jwtInterceptor]))` and verified end-to-end with `HttpTestingController`.
+
+**AuthService constructor isolation:** `AuthService` calls `checkAuthStatus()` in the constructor, which reads localStorage and may make a `GET /users/me` HTTP call. Calling `localStorage.clear()` in `beforeEach` before injecting the service makes the constructor exit early (no token), keeping each test isolated without any pending HTTP requests.
+
+**`fakeAsync` for timer-based flows:** `RegisterComponent.onSubmit()` sets a 1500 ms `setTimeout` before navigating on success. Tests use `fakeAsync` + `tick(1500)` to drain fake timers synchronously. The `ngOnDestroy` test confirms that `clearTimeout` before `tick(1500)` prevents navigation from firing.
+
+---
+
+## 📅 May 7, 2026 - Phase 2: High-Value Client-Side Unit Tests (12 New Suites, ~58 Tests)
+
+### Topic
+Extended the client-side test suite with 12 additional spec files covering interceptors, HTTP services, visitor/user/admin feature components, and the authenticated layout.
+
+### Summary of Prompt
+After Phase 1 (50 tests across 6 suites), the user was asked whether more coverage could be added. A scan of untested files was presented and the user approved implementing the high-value ones first.
+
+### What Was Achieved
+- **12 new spec files** added to the `adding-client-side-tests` feature branch
+- **~58 additional tests** covering:
+  - `api-response.interceptor.spec.ts` — envelope unwrapping, passthrough for non-envelope responses
+  - `auth-refresh.interceptor.spec.ts` — non-401 passthrough, 401 on `/auth/login` skipped, refresh+retry flow, failed refresh triggers logout
+  - `http-error.model.spec.ts` — `getErrorMessage()` pure function: all edge cases for missing/wrong-typed message fields
+  - `project.service.spec.ts` — POST, paginated GET, optional filters, admin owner filter, DELETE, analytics endpoint
+  - `panel.service.spec.ts` — pagination, envelope extraction, POST, DELETE, `searchPanels()` with/without filters
+  - `user.service.spec.ts` — GET /me, PATCH profile, PATCH password, GET all users, DELETE
+  - `forgot-password.component.spec.ts` — form validation states, does-nothing-when-invalid, service call, success/error message handling
+  - `reset-password.component.spec.ts` — token from query param, route param fallback, empty token, mismatch validator, service call with token, redirect after 2s, `ngOnDestroy` cancel
+  - `profile.component.spec.ts` — ngOnInit form population, displayName/avatarInitial signals, mismatch validator, `saveProfile()`/`changePassword()` calls and toast feedback
+  - `user-layout.component.spec.ts` — `isAdmin` computed signal (regular/admin role/`isAdmin()` mock), `visiblePrimaryNavItems` filtering, `isRouteActive()` exact+prefix match, `logout()`
+  - `admin-dashboard.component.spec.ts` — forkJoin calls all three services, count signals populated on success, loading cleared on error
+  - `panel-form.component.spec.ts` — invalid initial state, `isEditMode` true/false, form pre-population, `hasError()`, `onCancel()` emit, `onSubmit()` invalid/valid paths
+
+### Full Prompt
+> "Are there any other client side tests that can be added? Do a scan and come back with a list of them and their tests"
+> "Sure, more coverage wont hurt, right? Implement the high value first and then commit the changes to the feature branch we just created"
+
+### Affected Files
+- `client/src/app/core/interceptors/api-response.interceptor.spec.ts` — NEW
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — NEW
+- `client/src/app/core/models/http-error.model.spec.ts` — NEW
+- `client/src/app/core/services/project.service.spec.ts` — NEW
+- `client/src/app/core/services/panel.service.spec.ts` — NEW
+- `client/src/app/core/services/user.service.spec.ts` — NEW
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.spec.ts` — NEW
+- `client/src/app/features/visitor/reset-password/reset-password.component.spec.ts` — NEW
+- `client/src/app/features/user/profile/profile.component.spec.ts` — NEW
+- `client/src/app/layouts/user-layout/user-layout.component.spec.ts` — NEW
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.spec.ts` — NEW
+- `client/src/app/features/admin/panels/panel-form.component.spec.ts` — NEW
+- `santi-agent-interactions.md`
+
+### Reasoning
+
+**`MessageService` as component-level provider:** PrimeNG's `MessageService` is declared in `providers` inside the component decorator, not at root. `TestBed.inject(MessageService)` gets the root-level token (which may differ). The correct approach is `fixture.debugElement.injector.get(MessageService)` to get the instance the component actually uses.
+
+**Signal inputs and `setInput()`:** Angular 21 signal inputs declared with `input()` cannot be set via property assignment in tests. `fixture.componentRef.setInput('panel', value)` is the correct API — it triggers the same reactivity as a parent template binding.
+
+**Computed signal re-evaluation:** Angular computed signals only re-evaluate when their tracked reactive signal dependencies change. Calling `jest.fn().mockReturnValue(true)` on a plain function dependency doesn't trigger re-computation. The workaround is to mutate a tracked signal (e.g. `currentUser.set(null)`) to force the computed to re-read all its dependencies including the plain function.
+
+**`RouterLink` and the real Router:** Providing `{ provide: Router, useValue: mockRouter }` alongside `provideRouter([])` breaks `RouterLink`'s internal navigation (it reads from `router.root` which the mock lacks). The correct pattern: use `provideRouter([{ path: '**', component: DummyComponent }])`, let Angular provide the real Router, and spy on its `navigate` method via `jest.spyOn(router, 'navigate').mockResolvedValue(true)`.
+
+**Module-level interceptor state:** `auth-refresh.interceptor.ts` uses module-level `isRefreshing` and `refreshTokenSubject` variables. Tests must use synchronous observables (`of()`, `throwError()`) to ensure each request completes within the same synchronous tick and leaves `isRefreshing = false` for the next test case.

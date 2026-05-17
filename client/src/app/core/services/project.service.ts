@@ -11,7 +11,8 @@ import {
   PlanData,
   DashboardStats,
   OptimalConfigResponse,
-  OptimalConfigFromPolygonRequest
+  OptimalConfigFromPolygonRequest,
+  ProjectAnalytics,
 } from '../models';
 
 export interface ProjectFilters {
@@ -125,5 +126,12 @@ export class ProjectService {
    */
   calculateOptimalConfig(data: OptimalConfigFromPolygonRequest): Observable<OptimalConfigResponse> {
     return this.http.post<OptimalConfigResponse>(`${this.apiUrl}/calculate`, data);
+  }
+
+  /**
+   * Get analytics metrics for a project (CF, PR, savings, 25-year projection)
+   */
+  getAnalytics(id: string): Observable<ProjectAnalytics> {
+    return this.http.get<ProjectAnalytics>(`${this.apiUrl}/${id}/analytics`);
   }
 }

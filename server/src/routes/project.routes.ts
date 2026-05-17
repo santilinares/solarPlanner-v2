@@ -14,6 +14,7 @@ import {
   calculateFromPolygon,
   estimateProject,
   refreshProduction,
+  getProjectAnalytics,
 } from '../controllers/project.controller';
 import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
@@ -67,6 +68,8 @@ router.delete('/:id', verifyUserJwtToken, deleteProject);
 /**
  * Project calculations and data
  */
+router.get('/:id/analytics', verifyUserJwtToken, getProjectAnalytics);
+
 router.get('/:id/sun-path', verifyUserJwtToken, getSunPath);
 
 router.get('/:id/plan', verifyUserJwtToken, generatePlan);

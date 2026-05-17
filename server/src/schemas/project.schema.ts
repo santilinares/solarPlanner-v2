@@ -83,6 +83,9 @@ export const ProjectCreateSchema = z.object({
   cultivarId: z.string().optional(), // Reference to Cultivar document (agrivoltaic only)
   dcAcRatio: z.number().min(0.5).max(3).optional(), // DC:AC ratio for inverter clipping
   systemLosses: SystemLossesZodSchema,
+  installationCost: z.number().positive().optional(),
+  segment: z.enum(['residential', 'commercial', 'utility', 'agrivoltaic']).optional(),
+  albedo: z.number().min(0).max(1).optional(),
 });
 
 /** Type inferred from ProjectCreateSchema - used for creating solar projects */
@@ -114,6 +117,9 @@ export const ProjectUpdateSchema = z.object({
   price: z.number().nonnegative().optional(),
   dcAcRatio: z.number().min(0.5).max(3).optional(),
   systemLosses: SystemLossesZodSchema,
+  installationCost: z.number().positive().optional(),
+  segment: z.enum(['residential', 'commercial', 'utility', 'agrivoltaic']).optional(),
+  albedo: z.number().min(0).max(1).optional(),
 });
 
 /** Type inferred from ProjectUpdateSchema - used for updating solar projects */

@@ -62,10 +62,13 @@ export function errorMiddleware(
 
   // Handle Mongoose validation errors
   if (err.name === 'ValidationError') {
+    interface MongooseFieldError { path: string; message: string }
+    interface MongooseValidationError extends Error { errors: Record<string, MongooseFieldError> }
+    const ve = err as MongooseValidationError;
     res.status(400).json({
       success: false,
       message: 'Database validation failed',
-      errors: Object.values((err as any).errors).map((e: any) => ({
+      errors: Object.values(ve.errors).map((e) => ({
         field: e.path,
         message: e.message,
       })),
@@ -75,8 +78,9 @@ export function errorMiddleware(
   }
 
   // Handle Mongoose duplicate key errors
-  if (err.name === 'MongoServerError' && (err as any).code === 11000) {
-    const field = Object.keys((err as any).keyPattern)[0];
+  interface MongoServerError extends Error { code: number; keyPattern: Record<string, unknown> }
+  if (err.name === 'MongoServerError' && (err as MongoServerError).code === 11000) {
+    const field = Object.keys((err as MongoServerError).keyPattern)[0];
     res.status(409).json({
       success: false,
       message: `Duplicate value for ${field}`,
@@ -115,7 +119,7 @@ export function errorMiddleware(
   }
 
   // Default to 500 server error
-  const statusCode = (err as any).statusCode || 500;
+  const statusCode = (err as AppError).statusCode || 500;
   const message =
     process.env.NODE_ENV === 'production'
       ? 'Internal server error'

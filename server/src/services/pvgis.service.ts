@@ -10,18 +10,20 @@
 const PVGIS_BASE = 'https://re.jrc.ec.europa.eu/api/v5_2';
 
 export interface PvgisAnnualResult {
-  yearlyKwh: number;           // kWh/year for the given peak power
-  yearlyKwhPerKwp: number;     // kWh/kWp·year — location quality index
-  monthlyKwh: number[];        // 12 monthly values (kWh/month)
-  systemLossPercent: number;   // Total system loss used by PVGIS (%)
+  yearlyKwh: number;              // kWh/year for the given peak power
+  yearlyKwhPerKwp: number;        // kWh/kWp·year — location quality index
+  monthlyKwh: number[];           // 12 monthly values (kWh/month)
+  systemLossPercent: number;      // Total system loss used by PVGIS (%)
+  yearlyPOAIrradiation: number;   // Global irradiation on tilted plane (kWh/m²/year) — H(i)_y
 }
 
 interface PvgisApiResponse {
   outputs: {
     totals: {
       fixed: {
-        E_y: number;    // Yearly energy output (kWh)
-        l_total: number; // Total loss (%)
+        E_y: number;       // Yearly energy output (kWh)
+        'H(i)_y': number;  // Yearly POA irradiation (kWh/m²/year)
+        l_total: number;   // Total loss (%)
       };
     };
     monthly: {
@@ -95,6 +97,7 @@ class PvgisService {
       yearlyKwhPerKwp: peakpowerKw > 0 ? fixed.E_y / peakpowerKw : 0,
       monthlyKwh: monthly.map((m) => m.E_m),
       systemLossPercent: fixed.l_total,
+      yearlyPOAIrradiation: fixed['H(i)_y'],
     };
   }
 }
