@@ -30,8 +30,8 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        loadComponent: () => import('./features/user/settings/settings.component')
-          .then(m => m.SettingsComponent)
+        redirectTo: 'profile',
+        pathMatch: 'full',
       },
       {
         path: 'profile',
