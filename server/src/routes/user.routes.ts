@@ -7,6 +7,7 @@ import {
   updateUserProfile,
   updateUserRole,
   changePassword,
+  updatePreferredLang,
 } from '../controllers/user.controller';
 import {
   verifyUserJwtToken,
@@ -18,6 +19,7 @@ import {
   UserChangePasswordSchema,
   UserQuerySchema,
   UserUpdateRoleSchema,
+  UserUpdateLangSchema,
 } from '../schemas/user.schema';
 
 const router = Router();
@@ -32,6 +34,13 @@ const router = Router();
  * @access  Private
  */
 router.get('/me', verifyUserJwtToken, getCurrentUserProfile);
+
+/**
+ * @route   PATCH /api/users/me/lang
+ * @desc    Update user preferred language
+ * @access  Private
+ */
+router.patch('/me/lang', verifyUserJwtToken, validateBody(UserUpdateLangSchema), updatePreferredLang);
 
 /**
  * @route   PATCH /api/users/:id/profile

@@ -24,6 +24,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { Subscription } from 'rxjs';
 
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService, PanelListResponse } from '@core/services/panel.service';
 import { CultivarService } from '@core/services/cultivar.service';
@@ -65,6 +66,7 @@ interface StepDef {
     IconFieldModule,
     InputIconModule,
     LocationMapComponent,
+    TranslateModule,
   ],
   providers: [ConfirmationService],
 })
@@ -75,6 +77,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
   private readonly cultivarService = inject(CultivarService);
+  private readonly translate = inject(TranslateService);
 
   private navigationSubscription?: Subscription;
   private pendingNavigationUrl?: string;
@@ -83,18 +86,20 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   activeStep = signal(0);
 
   steps = computed<StepDef[]>(() => [
-    { label: 'Project Details', icon: 'pi pi-file' },
-    { label: 'Location & Area', icon: 'pi pi-map-marker' },
+    { label: this.translate.instant('ADD_PROJECT.STEP0_TITLE'), icon: 'pi pi-file' },
+    { label: this.translate.instant('ADD_PROJECT.STEP1_TITLE'), icon: 'pi pi-map-marker' },
     {
-      label: this.projectType() === 'agrivoltaic' ? 'Agrivoltaic Config' : 'Roof Config',
+      label: this.projectType() === 'agrivoltaic'
+        ? this.translate.instant('ADD_PROJECT.STEP2_TITLE_AGRI')
+        : this.translate.instant('ADD_PROJECT.STEP2_TITLE_ROOF'),
       icon: 'pi pi-cog',
     },
-    { label: 'Review', icon: 'pi pi-list-check' },
+    { label: this.translate.instant('ADD_PROJECT.STEP3_TITLE'), icon: 'pi pi-list-check' },
   ]);
 
   stepNextLabel = computed(() => {
     const nextStep = this.steps()[this.activeStep() + 1];
-    return nextStep ? `Next: ${nextStep.label}` : 'Next';
+    return nextStep ? `${this.translate.instant('ADD_PROJECT.NEXT')}: ${nextStep.label}` : this.translate.instant('ADD_PROJECT.NEXT');
   });
 
   // ── Step 1: Project Info ─────────────────────────

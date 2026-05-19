@@ -2,10 +2,11 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-landing-page',
-  imports: [RouterLink, ButtonModule, CardModule],
+  imports: [RouterLink, ButtonModule, CardModule, TranslateModule],
   template: `
     <div class="landing-page">
       <section class="hero animate-fade-in-down">
@@ -13,15 +14,15 @@ import { CardModule } from 'primeng/card';
           <div class="solar-icon">
             <i class="pi pi-sun hero-sun-icon"></i>
           </div>
-          <h1 class="hero-title">Solar Energy Planning Made Easy</h1>
+          <h1 class="hero-title">{{ 'LANDING.HERO_TITLE' | translate }}</h1>
           <p class="subtitle">
-            Design, simulate, and optimize your solar panel installations with our advanced planning tool.
+            {{ 'LANDING.SUBTITLE' | translate }}
             <br>
-            <span class="solar-highlight">Sustainable • Profitable • Future-Ready</span>
+            <span class="solar-highlight">{{ 'LANDING.SUBTITLE_HIGHLIGHT' | translate }}</span>
           </p>
           <div class="cta-buttons">
             <p-button
-              label="Get Started"
+              [label]="'LANDING.CTA_GET_STARTED' | translate"
               icon="pi pi-arrow-right"
               iconPos="right"
               routerLink="/registration"
@@ -29,14 +30,14 @@ import { CardModule } from 'primeng/card';
               [raised]="true"
             ></p-button>
             <p-button
-              label="Sign In"
+              [label]="'LANDING.CTA_SIGN_IN' | translate"
               icon="pi pi-sign-in"
               routerLink="/login"
               [outlined]="true"
               class="btn-outline"
             ></p-button>
             <p-button
-              label="Try for Free"
+              [label]="'LANDING.CTA_TRY_FREE' | translate"
               icon="pi pi-calculator"
               routerLink="/estimate"
               severity="secondary"
@@ -49,7 +50,7 @@ import { CardModule } from 'primeng/card';
 
       <section class="features">
         <div class="container">
-          <h2 class="section-title animate-fade-in-up">Key Features</h2>
+          <h2 class="section-title animate-fade-in-up">{{ 'LANDING.FEATURES_TITLE' | translate }}</h2>
           <div class="feature-grid stagger-children">
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
@@ -57,38 +58,38 @@ import { CardModule } from 'primeng/card';
                   <i class="pi pi-map feature-icon feature-icon-primary"></i>
                 </div>
               </ng-template>
-              <h3>Interactive Mapping</h3>
-              <p>Draw and visualize your solar farm layout with precision mapping tools powered by OpenStreetMap.</p>
+              <h3>{{ 'LANDING.FEATURE_MAP_TITLE' | translate }}</h3>
+              <p>{{ 'LANDING.FEATURE_MAP_DESC' | translate }}</p>
             </p-card>
-            
+
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-chart-bar feature-icon feature-icon-primary"></i>
                 </div>
               </ng-template>
-              <h3>Production Analysis</h3>
-              <p>Analyze monthly production data and consumption patterns with interactive visualizations.</p>
+              <h3>{{ 'LANDING.FEATURE_PRODUCTION_TITLE' | translate }}</h3>
+              <p>{{ 'LANDING.FEATURE_PRODUCTION_DESC' | translate }}</p>
             </p-card>
-            
+
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-bolt feature-icon feature-icon-solar"></i>
                 </div>
               </ng-template>
-              <h3>Panel Optimization</h3>
-              <p>Choose from a comprehensive database of solar panels and optimize your configuration for maximum efficiency.</p>
+              <h3>{{ 'LANDING.FEATURE_PANELS_TITLE' | translate }}</h3>
+              <p>{{ 'LANDING.FEATURE_PANELS_DESC' | translate }}</p>
             </p-card>
-            
+
             <p-card class="feature-card hover-lift">
               <ng-template pTemplate="header">
                 <div class="card-icon">
                   <i class="pi pi-file-pdf feature-icon feature-icon-primary"></i>
                 </div>
               </ng-template>
-              <h3>PDF Reports</h3>
-              <p>Generate professional project reports and documentation ready for stakeholders and investors.</p>
+              <h3>{{ 'LANDING.FEATURE_PDF_TITLE' | translate }}</h3>
+              <p>{{ 'LANDING.FEATURE_PDF_DESC' | translate }}</p>
             </p-card>
           </div>
         </div>

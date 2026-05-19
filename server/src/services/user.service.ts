@@ -1,7 +1,7 @@
 import { UserModel, IUser } from '../models/user.model';
 import { ProjectModel } from '../models/project.model';
 import { PanelModel } from '../models/panel.model';
-import { UserUpdateProfileInput, UserQueryInput } from '../schemas/user.schema';
+import { UserUpdateProfileInput, UserQueryInput, UserUpdateLangInput } from '../schemas/user.schema';
 import { UserResponse, UserListResponse } from '../types/user.types';
 import { FilterQuery, HydratedDocument } from 'mongoose';
 import { emailService } from './email.service';
@@ -26,6 +26,7 @@ export class UserService {
       email,
       role: user.role,
       method: user.method,
+      preferredLang: user.preferredLang ?? 'en',
       createdAt: user.createdAt.toISOString(),
     };
   }
@@ -207,6 +208,24 @@ export class UserService {
    */
   async getCurrentUser(userId: string): Promise<UserResponse> {
     return this.getUserById(userId);
+  }
+
+  /**
+   * Update user preferred language
+   * @param userId User ID
+   * @param data Language update data
+   * @returns Updated user data
+   */
+  async updatePreferredLang(userId: string, data: UserUpdateLangInput): Promise<UserResponse> {
+    const user = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: { preferredLang: data.preferredLang } },
+      { new: true }
+    );
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return this.transformUserToResponse(user);
   }
 
   /**

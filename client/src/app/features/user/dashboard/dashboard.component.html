@@ -3,12 +3,12 @@
     <div>
       <h1>
         <i class="pi pi-home icon-lg icon-primary"></i>
-        Welcome to Solar Planner, {{ user()?.fullName }}!
+        {{ 'DASHBOARD.WELCOME' | translate: { name: user()?.fullName } }}
       </h1>
-      <p class="welcome-text">Here's your solar planning overview</p>
+      <p class="welcome-text">{{ 'DASHBOARD.OVERVIEW' | translate }}</p>
     </div>
     <p-button
-      label="New Project"
+      [label]="'DASHBOARD.NEW_PROJECT' | translate"
       icon="pi pi-plus"
       routerLink="/projects/add"
       class="btn-solar"
@@ -32,10 +32,10 @@
         <div class="stat-icon stat-icon-primary">
           <i class="pi pi-folder icon-lg icon-primary"></i>
         </div>
-        <h3>My Projects</h3>
+        <h3>{{ 'DASHBOARD.MY_PROJECTS' | translate }}</h3>
         <p class="stat-value">{{ stats()!.totalProjects }}</p>
         <a routerLink="/projects/all" class="stat-link">
-          <i class="pi pi-arrow-right icon-sm"></i> View all
+          <i class="pi pi-arrow-right icon-sm"></i> {{ 'DASHBOARD.VIEW_ALL' | translate }}
         </a>
       </p-card>
 
@@ -43,27 +43,27 @@
         <div class="stat-icon stat-icon-solar">
           <i class="pi pi-bolt icon-lg icon-solar"></i>
         </div>
-        <h3>Est. Annual Production</h3>
+        <h3>{{ 'DASHBOARD.ANNUAL_PRODUCTION' | translate }}</h3>
         <p class="stat-value solar-highlight">{{ stats()!.totalProduction.toFixed(2) }}</p>
-        <span class="stat-unit">kWh / year</span>
+        <span class="stat-unit">{{ 'DASHBOARD.KWH_YEAR' | translate }}</span>
       </p-card>
 
       <p-card class="stat-card hover-lift">
         <div class="stat-icon stat-icon-tech">
           <i class="pi pi-th-large icon-lg icon-blue"></i>
         </div>
-        <h3>Active Panels</h3>
+        <h3>{{ 'DASHBOARD.ACTIVE_PANELS' | translate }}</h3>
         <p class="stat-value">{{ stats()!.totalPanels }}</p>
-        <span class="stat-unit">panels</span>
+        <span class="stat-unit">{{ 'DASHBOARD.PANELS' | translate }}</span>
       </p-card>
 
       <p-card class="stat-card hover-lift">
         <div class="stat-icon stat-icon-primary">
           <i class="pi pi-chart-line icon-lg icon-primary"></i>
         </div>
-        <h3>Total Capacity</h3>
+        <h3>{{ 'DASHBOARD.TOTAL_CAPACITY' | translate }}</h3>
         <p class="stat-value">{{ stats()!.totalCapacity.toFixed(2) }}</p>
-        <span class="stat-unit">kW</span>
+        <span class="stat-unit">{{ 'DASHBOARD.KW' | translate }}</span>
       </p-card>
     </div>
 
@@ -71,7 +71,7 @@
     <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
       <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--p-text-color); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
         <i class="pi pi-bolt icon-lg icon-solar"></i>
-        Production Overview
+        {{ 'DASHBOARD.PRODUCTION_OVERVIEW' | translate }}
       </h2>
     </div>
     <div class="dashboard-grid stagger-children" style="margin-bottom: 3rem;">
@@ -79,27 +79,27 @@
         <div class="stat-icon stat-icon-solar">
           <i class="pi pi-sun icon-lg icon-solar"></i>
         </div>
-        <h3>Today's Production</h3>
+        <h3>{{ 'DASHBOARD.TODAY_PRODUCTION' | translate }}</h3>
         <p class="stat-value solar-highlight">{{ stats()!.todayProduction.toFixed(2) }}</p>
-        <span class="stat-unit">kWh today</span>
+        <span class="stat-unit">{{ 'DASHBOARD.KWH_TODAY' | translate }}</span>
       </p-card>
 
       <p-card class="stat-card hover-lift">
         <div class="stat-icon stat-icon-tech">
           <i class="pi pi-calendar icon-lg icon-blue"></i>
         </div>
-        <h3>Next 6 Days Forecast</h3>
+        <h3>{{ 'DASHBOARD.NEXT_6_DAYS' | translate }}</h3>
         <p class="stat-value">{{ stats()!.next6DaysTotal.toFixed(2) }}</p>
-        <span class="stat-unit">kWh forecast</span>
+        <span class="stat-unit">{{ 'DASHBOARD.KWH_FORECAST' | translate }}</span>
       </p-card>
 
       <p-card class="stat-card hover-lift">
         <div class="stat-icon stat-icon-primary">
           <i class="pi pi-history icon-lg icon-primary"></i>
         </div>
-        <h3>Past 6 Days Estimates</h3>
+        <h3>{{ 'DASHBOARD.PAST_6_DAYS' | translate }}</h3>
         <p class="stat-value">{{ stats()!.past6DaysTotal.toFixed(2) }}</p>
-        <span class="stat-unit">kWh estimated</span>
+        <span class="stat-unit">{{ 'DASHBOARD.KWH_ESTIMATED' | translate }}</span>
       </p-card>
     </div>
     }
@@ -110,10 +110,10 @@
         <div class="section-header">
           <h2>
             <i class="pi pi-clock icon-lg icon-primary"></i>
-            Recent Projects
+            {{ 'DASHBOARD.RECENT_PROJECTS' | translate }}
           </h2>
           <p-button
-            label="View All"
+            [label]="'DASHBOARD.VIEW_ALL_BTN' | translate"
             icon="pi pi-arrow-right"
             iconPos="right"
             [outlined]="true"
@@ -142,7 +142,7 @@
               </div>
               <div class="project-action">
                 <span class="action-link">
-                  View details
+                  {{ 'DASHBOARD.VIEW_DETAILS' | translate }}
                   <i class="pi pi-arrow-right icon-sm"></i>
                 </span>
               </div>

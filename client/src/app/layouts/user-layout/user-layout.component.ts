@@ -4,6 +4,7 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '@core/services';
 import { UserRole } from '@core/models';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface DockItem {
   readonly label: string;
@@ -16,7 +17,7 @@ interface DockItem {
 @Component({
   selector: 'app-user-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, ButtonModule, TooltipModule],
+  imports: [RouterOutlet, RouterLink, ButtonModule, TooltipModule, TranslateModule],
   template: `
     <div class="user-shell">
       <aside class="user-dock" aria-label="User Navigation Dock">
@@ -59,9 +60,9 @@ interface DockItem {
             class="dock-item logout"
             [text]="true"
             icon="pi pi-sign-out"
-            [ariaLabel]="'Logout'"
+            [ariaLabel]="'LAYOUT.LOGOUT' | translate"
             (click)="logout()"
-            pTooltip="Logout"
+            [pTooltip]="'LAYOUT.LOGOUT' | translate"
             tooltipPosition="right"
           >
           </button>
@@ -281,62 +282,65 @@ interface DockItem {
 export class UserLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   readonly isAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
     return role === UserRole.ADMIN || this.authService.isAdmin();
   });
 
-  readonly primaryNavItems: readonly DockItem[] = [
+  readonly primaryNavItems = computed<readonly DockItem[]>(() => [
     {
-      label: 'Dashboard',
+      label: this.translate.instant('LAYOUT.DASHBOARD'),
       icon: 'pi pi-home',
       path: '/projects',
       exact: true,
     },
     {
-      label: 'Create Project',
+      label: this.translate.instant('LAYOUT.CREATE_PROJECT'),
       icon: 'pi pi-plus-circle',
       path: '/projects/add',
       matchPrefixes: ['/projects/add'],
     },
     {
-      label: 'Project List',
+      label: this.translate.instant('LAYOUT.PROJECT_LIST'),
       icon: 'pi pi-bolt',
       path: '/projects/all',
       matchPrefixes: ['/projects/all'],
     },
     {
-      label: 'Panels',
+      label: this.translate.instant('LAYOUT.PANELS'),
       icon: 'pi pi-th-large',
       path: '/projects/panels',
       matchPrefixes: ['/projects/panels', '/panels'],
     },
-  ];
+  ]);
 
-  readonly adminNavItems: readonly DockItem[] = [
+  readonly adminNavItems = computed<readonly DockItem[]>(() => [
     {
-      label: 'Admin Overview',
+      label: this.translate.instant('LAYOUT.ADMIN_OVERVIEW'),
       icon: 'pi pi-shield',
       path: '/projects/management',
       exact: true,
     },
     {
-      label: 'Manage Users',
+      label: this.translate.instant('LAYOUT.MANAGE_USERS'),
       icon: 'pi pi-users',
       path: '/projects/management/users',
       matchPrefixes: ['/projects/management/users'],
     },
-  ];
+  ]);
 
   readonly visiblePrimaryNavItems = computed<readonly DockItem[]>(() =>
     this.isAdmin()
-      ? [...this.primaryNavItems, ...this.adminNavItems]
-      : this.primaryNavItems
+      ? [...this.primaryNavItems(), ...this.adminNavItems()]
+      : this.primaryNavItems()
   );
 
   readonly profileNavItem = computed<DockItem>(() => ({
-    label: this.isAdmin() ? 'Admin Profile' : 'Profile & Settings',
+    label: this.isAdmin()
+      ? this.translate.instant('LAYOUT.ADMIN_PROFILE')
+      : this.translate.instant('LAYOUT.PROFILE_SETTINGS'),
     icon: this.isAdmin() ? 'pi pi-user-plus' : 'pi pi-user',
     path: '/projects/profile',
     matchPrefixes: ['/projects/profile', '/projects/settings'],

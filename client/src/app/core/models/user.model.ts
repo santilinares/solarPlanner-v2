@@ -6,6 +6,7 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   createdAt: Date;
+  preferredLang?: 'en' | 'es';
 }
 
 export enum UserRole {
@@ -20,6 +21,7 @@ export interface UserResponse {
   email?: string;
   role: 'user' | 'admin';
   method: 'local' | 'google';
+  preferredLang?: 'en' | 'es';
   createdAt: string;
   projectCount?: number;
 }

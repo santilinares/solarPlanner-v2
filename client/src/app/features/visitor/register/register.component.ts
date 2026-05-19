@@ -10,6 +10,7 @@ import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { RegisterRequest, getErrorMessage } from '@core/models';
 import { environment } from '@environments/environment';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-register',
@@ -23,6 +24,7 @@ import { environment } from '@environments/environment';
     PasswordModule,
     CardModule,
     MessageModule,
+    TranslateModule,
   ],
   template: `
     <div class="register-page animate-fade-in-up">
@@ -30,15 +32,15 @@ import { environment } from '@environments/environment';
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-user-plus solar-icon"></i>
-            <h2>Join Solar Planner</h2>
-            <p class="subtitle">Start planning your sustainable energy future today</p>
+            <h2>{{ 'AUTH.REGISTER.TITLE' | translate }}</h2>
+            <p class="subtitle">{{ 'AUTH.REGISTER.SUBTITLE' | translate }}</p>
           </div>
         </ng-template>
         
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
           <div class="form-row">
             <div class="form-field">
-              <label for="firstName">First Name</label>
+              <label for="firstName">{{ 'AUTH.REGISTER.FIRST_NAME' | translate }}</label>
               <input
                 pInputText
                 id="firstName"
@@ -51,7 +53,7 @@ import { environment } from '@environments/environment';
             </div>
 
             <div class="form-field">
-              <label for="lastName">Last Name</label>
+              <label for="lastName">{{ 'AUTH.REGISTER.LAST_NAME' | translate }}</label>
               <input
                 pInputText
                 id="lastName"
@@ -65,7 +67,7 @@ import { environment } from '@environments/environment';
           </div>
 
           <div class="form-field">
-            <label for="email">Email Address</label>
+            <label for="email">{{ 'AUTH.REGISTER.EMAIL_LABEL' | translate }}</label>
             <input
               pInputText
               id="email"
@@ -77,16 +79,16 @@ import { environment } from '@environments/environment';
             />
             @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
                 <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Valid email is required
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.REGISTER.EMAIL_ERROR' | translate }}
               </small>
             }
           </div>
 
           <div class="form-field">
-            <label for="password">Password</label>
+            <label for="password">{{ 'AUTH.REGISTER.PASSWORD_LABEL' | translate }}</label>
             <p-password
               formControlName="password"
-              placeholder="Minimum 8 characters"
+              [placeholder]="'AUTH.REGISTER.PASSWORD_PLACEHOLDER' | translate"
               [toggleMask]="true"
               [feedback]="true"
               class="w-full"
@@ -96,7 +98,7 @@ import { environment } from '@environments/environment';
             ></p-password>
             @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
                 <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Password must be at least 8 characters
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.REGISTER.PASSWORD_ERROR' | translate }}
               </small>
             }
           </div>
@@ -124,7 +126,7 @@ import { environment } from '@environments/environment';
           <div class="auth-btn-row">
             <p-button
               type="submit"
-              label="Create Account"
+              [label]="'AUTH.REGISTER.SUBMIT' | translate"
               icon="pi pi-user-plus"
               [disabled]="loading() || registerForm.invalid"
               [loading]="loading()"
@@ -132,7 +134,7 @@ import { environment } from '@environments/environment';
 
             <p-button
               type="button"
-              label="Continue with Google"
+              [label]="'AUTH.REGISTER.GOOGLE' | translate"
               [disabled]="loading()"
               [loading]="googleLoading()"
               severity="secondary"
@@ -146,7 +148,7 @@ import { environment } from '@environments/environment';
 
           <div class="form-links">
             <a routerLink="/login" class="link">
-              <i class="pi pi-sign-in"></i> Already have an account? Sign in
+              <i class="pi pi-sign-in"></i> {{ 'AUTH.REGISTER.SIGN_IN' | translate }}
             </a>
           </div>
         </form>
@@ -321,6 +323,7 @@ export class RegisterComponent implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   loading = signal(false);
   googleLoading = signal(false);
@@ -384,7 +387,7 @@ export class RegisterComponent implements OnDestroy {
 
       this.authService.register(registerData).subscribe({
         next: () => {
-          this.successMessage.set('Account created successfully! Redirecting...');
+          this.successMessage.set(this.translate.instant('AUTH.REGISTER.SUCCESS') || 'Account created successfully! Redirecting...');
           this.redirectTimeout = setTimeout(() => {
             this.router.navigate(['/projects']).catch(() => {
               window.location.href = '/projects';

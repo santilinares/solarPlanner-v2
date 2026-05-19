@@ -3,6 +3,8 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
+import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { routes } from './app.routes';
 import {
@@ -18,6 +20,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([jwtInterceptor, authRefreshInterceptor, apiResponseInterceptor])
     ),
+    provideTranslateService({ defaultLanguage: 'en' }),
+    ...provideTranslateHttpLoader(),
     providePrimeNG({
         theme: {
             preset: Aura,

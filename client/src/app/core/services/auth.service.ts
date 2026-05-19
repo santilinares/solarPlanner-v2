@@ -11,6 +11,7 @@ import {
   ForgotPasswordRequest,
   ResetPasswordRequest,
 } from '../models';
+import { LanguageSwitcherService } from './language-switcher.service';
 
 /**
  * JWT Token Payload structure
@@ -28,6 +29,7 @@ interface JwtPayload {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly languageSwitcher = inject(LanguageSwitcherService);
   private readonly authUrl = `${environment.apiUrl}/auth`;
   private readonly usersUrl = `${environment.apiUrl}/users`;
 
@@ -166,6 +168,9 @@ export class AuthService {
     localStorage.setItem('refreshToken', response.refreshToken);
     this.currentUser.set(response.user);
     this.isAuthenticated.set(true);
+    if (response.user.preferredLang) {
+      this.languageSwitcher.initFromUser(response.user.preferredLang);
+    }
   }
 
   /**
@@ -194,6 +199,9 @@ export class AuthService {
           .subscribe((user) => {
             if (user) {
               this.currentUser.set(user);
+              if (user.preferredLang) {
+                this.languageSwitcher.initFromUser(user.preferredLang);
+              }
             }
           });
       } else {

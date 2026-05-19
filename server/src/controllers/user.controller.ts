@@ -12,6 +12,7 @@ import {
   PasswordResetApplyInput,
   UserQuerySchema,
   UserUpdateRoleInput,
+  UserUpdateLangInput,
   GoogleAuthInput,
 } from '../schemas/user.schema';
 
@@ -149,6 +150,17 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   const { token, newPassword } = req.body as PasswordResetApplyInput;
   await authService.resetPassword(token, newPassword);
   return success(res, null, 'Password reset successfully');
+});
+
+/**
+ * @route   PATCH /users/me/lang
+ * @desc    Update preferred language for authenticated user
+ * @access  Private
+ */
+export const updatePreferredLang = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.userId!;
+  const user = await userService.updatePreferredLang(userId, req.body as UserUpdateLangInput);
+  return success(res, user, 'Language preference updated');
 });
 
 /**

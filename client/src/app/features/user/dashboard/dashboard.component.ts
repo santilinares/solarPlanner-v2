@@ -5,6 +5,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
 import { ButtonModule } from 'primeng/button';
 import { AuthService, ProjectService } from '@core/services';
+import { TranslateModule } from '@ngx-translate/core';
 
 interface DashboardData {
   totalProjects: number;
@@ -24,7 +25,7 @@ interface DashboardData {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, CardModule, SkeletonModule, MessageModule, ButtonModule],
+  imports: [RouterLink, CardModule, SkeletonModule, MessageModule, ButtonModule, TranslateModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })

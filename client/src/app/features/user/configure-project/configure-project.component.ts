@@ -33,6 +33,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
 import {
@@ -91,6 +92,7 @@ type ProjectScreenMode = 'configure' | 'view';
     ToastModule,
     LocationMapComponent,
     HighchartsChartModule,
+    TranslateModule,
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './configure-project.component.html',
@@ -107,6 +109,7 @@ export class ConfigureProjectComponent implements OnInit {
   private readonly panelService = inject(PanelService);
   private readonly fileService = inject(FileService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   // ─── State ───
   readonly isLoading = signal(true);

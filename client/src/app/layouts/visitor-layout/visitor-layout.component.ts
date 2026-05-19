@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-visitor-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="visitor-layout">
@@ -11,20 +12,20 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
         <div class="container">
           <div class="brand">
             <i class="pi pi-sun brand-icon"></i>
-            <h1>Solar Planner</h1>
+            <h1>{{ 'BRAND.NAME' | translate }}</h1>
           </div>
           <nav>
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
               <i class="pi pi-home"></i>
-              <span>Home</span>
+              <span>{{ 'NAV.HOME' | translate }}</span>
             </a>
             <a routerLink="/login" routerLinkActive="active">
               <i class="pi pi-sign-in"></i>
-              <span>Login</span>
+              <span>{{ 'NAV.LOGIN' | translate }}</span>
             </a>
             <a routerLink="/registration" routerLinkActive="active">
               <i class="pi pi-user-plus"></i>
-              <span>Register</span>
+              <span>{{ 'NAV.REGISTER' | translate }}</span>
             </a>
           </nav>
         </div>
@@ -36,7 +37,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 
       <footer class="visitor-footer">
         <div class="container">
-          <p>&copy; 2025 Solar Planner. All rights reserved.</p>
+          <p>{{ 'BRAND.FOOTER' | translate }}</p>
         </div>
       </footer>
     </div>

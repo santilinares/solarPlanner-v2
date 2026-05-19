@@ -4,12 +4,12 @@
   <div class="estimate-header">
     <div class="estimate-header-inner">
       <div class="estimate-header-text">
-        <h1 class="estimate-title">Quick Panel Estimate</h1>
-        <p class="estimate-subtitle">Draw your area on the map to get an instant panel count — no sign-up needed.</p>
+        <h1 class="estimate-title">{{ 'ESTIMATE.TITLE' | translate }}</h1>
+        <p class="estimate-subtitle">{{ 'ESTIMATE.SUBTITLE' | translate }}</p>
       </div>
       <div class="estimate-header-badge">
         <i class="pi pi-calculator"></i>
-        <span>Free Tool</span>
+        <span>{{ 'ESTIMATE.FREE_TOOL' | translate }}</span>
       </div>
     </div>
   </div>
@@ -45,7 +45,7 @@
             </button>
           </p-iconfield>
           <p-button
-            label="Search"
+            [label]="'ESTIMATE.SEARCH' | translate"
             [outlined]="true"
             [loading]="isSearching()"
             [disabled]="isSearching() || !addressQuery().trim()"
@@ -80,12 +80,12 @@
         @if (hasDrawnArea()) {
           <div class="feedback-banner feedback-success">
             <i class="pi pi-check-circle"></i>
-            <span>Area defined — <strong>{{ drawnPolygonPoints().length }}</strong> vertices</span>
+            <span>{{ 'ESTIMATE.AREA_DEFINED' | translate }} <strong>{{ drawnPolygonPoints().length }}</strong> {{ 'ESTIMATE.VERTICES' | translate }}</span>
           </div>
         } @else {
           <div class="feedback-banner feedback-neutral">
             <i class="pi pi-info-circle"></i>
-            <span>Use the polygon tool on the map to draw your installation area</span>
+            <span>{{ 'ESTIMATE.DRAW_HINT' | translate }}</span>
           </div>
         }
       </div>
@@ -98,21 +98,21 @@
       <div class="info-card">
         <div class="info-card-header">
           <i class="pi pi-info-circle"></i>
-          <span>How it works</span>
+          <span>{{ 'ESTIMATE.HOW_IT_WORKS' | translate }}</span>
         </div>
         <ol class="how-it-works">
-          <li>Search for your location or use the map</li>
-          <li>Draw a polygon over your roof or land area</li>
-          <li>Click <strong>Calculate</strong> to get your estimate</li>
+          <li>{{ 'ESTIMATE.HOW_STEP_1' | translate }}</li>
+          <li>{{ 'ESTIMATE.HOW_STEP_2' | translate }}</li>
+          <li [innerHTML]="'ESTIMATE.HOW_STEP_3' | translate"></li>
         </ol>
         <div class="assumptions-note">
-          <small>Uses standard 2 m × 4 m panels · 30° tilt · 85% utilisation</small>
+          <small>{{ 'ESTIMATE.ASSUMPTIONS' | translate }}</small>
         </div>
       </div>
 
       <!-- Calculate button -->
       <p-button
-        label="Calculate Estimate"
+        [label]="'ESTIMATE.CALCULATE' | translate"
         icon="pi pi-calculator"
         iconPos="left"
         [rounded]="true"
@@ -134,7 +134,7 @@
         <div class="result-block animate-fade-in-up">
           <div class="result-header">
             <i class="pi pi-check-circle" style="color: var(--p-green-500)"></i>
-            <span>Your Estimate</span>
+            <span>{{ 'ESTIMATE.YOUR_ESTIMATE' | translate }}</span>
           </div>
 
           <!-- Stat cards -->
@@ -142,17 +142,17 @@
             <div class="stat-card stat-card-primary">
               <span class="material-symbols-outlined stat-icon-mat">solar_power</span>
               <span class="stat-value">{{ r.panelCount }}</span>
-              <span class="stat-label">Panels</span>
+              <span class="stat-label">{{ 'ESTIMATE.PANELS' | translate }}</span>
             </div>
             <div class="stat-card">
               <span class="material-symbols-outlined stat-icon-mat">straighten</span>
               <span class="stat-value">{{ r.areaSqm | number: '1.0-0' }} m²</span>
-              <span class="stat-label">Area</span>
+              <span class="stat-label">{{ 'ESTIMATE.AREA' | translate }}</span>
             </div>
             <div class="stat-card">
               <i class="pi pi-bolt" style="color: var(--p-yellow-500); font-size: 1.3rem;"></i>
               <span class="stat-value">{{ r.estimatedKwp.toFixed(1) }} kWp</span>
-              <span class="stat-label">Peak Power</span>
+              <span class="stat-label">{{ 'ESTIMATE.PEAK_POWER' | translate }}</span>
             </div>
           </div>
 
@@ -162,40 +162,40 @@
             <div class="locked-preview" aria-hidden="true">
               <div class="locked-preview-label-row">
                 <i class="pi pi-chart-bar"></i>
-                <span>Estimated Annual Production</span>
+                <span>{{ 'ESTIMATE.ANNUAL_PRODUCTION_LABEL' | translate }}</span>
               </div>
               <div class="production-items">
                 <div class="production-item">
                   <span class="production-value">— — —</span>
-                  <small>kWh / year</small>
+                  <small>{{ 'ESTIMATE.KWH_YEAR' | translate }}</small>
                 </div>
                 <div class="production-divider"></div>
                 <div class="production-item">
                   <span class="production-value">€ — —</span>
-                  <small>annual savings</small>
+                  <small>{{ 'ESTIMATE.ANNUAL_SAVINGS' | translate }}</small>
                 </div>
                 <div class="production-divider"></div>
                 <div class="production-item">
                   <span class="production-value">— —</span>
-                  <small>t CO₂ avoided</small>
+                  <small>{{ 'ESTIMATE.CO2_AVOIDED' | translate }}</small>
                 </div>
               </div>
             </div>
             <!-- Lock overlay on top -->
             <div class="locked-overlay">
               <i class="pi pi-lock locked-icon"></i>
-              <span class="locked-title">Sign in for the full analysis</span>
-              <small class="locked-sub">Annual production, savings, and CO₂ data are calculated with real Solcast solar forecasts and local electricity prices.</small>
+              <span class="locked-title">{{ 'ESTIMATE.SIGN_IN_FOR_FULL' | translate }}</span>
+              <small class="locked-sub">{{ 'ESTIMATE.SIGN_IN_DETAIL' | translate }}</small>
               <div class="locked-cta-row">
                 <p-button
-                  label="Get Started — it's free"
+                  [label]="'ESTIMATE.GET_STARTED' | translate"
                   icon="pi pi-user-plus"
                   iconPos="right"
                   [rounded]="true"
                   (onClick)="onGetStarted()"
                 />
                 <p-button
-                  label="Sign In"
+                  [label]="'ESTIMATE.SIGN_IN' | translate"
                   icon="pi pi-sign-in"
                   [rounded]="true"
                   [outlined]="true"

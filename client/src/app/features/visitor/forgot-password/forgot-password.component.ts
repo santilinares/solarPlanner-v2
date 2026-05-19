@@ -7,25 +7,26 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-forgot-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, ButtonModule, InputTextModule, CardModule, MessageModule],
+  imports: [ReactiveFormsModule, RouterLink, ButtonModule, InputTextModule, CardModule, MessageModule, TranslateModule],
   template: `
     <div class="forgot-password-page animate-fade-in-up">
       <p-card class="forgot-password-card">
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-lock solar-icon"></i>
-            <h2>Reset Password</h2>
-            <p class="subtitle">Enter your email and we'll send you a reset link</p>
+            <h2>{{ 'AUTH.FORGOT_PASSWORD.TITLE' | translate }}</h2>
+            <p class="subtitle">{{ 'AUTH.FORGOT_PASSWORD.SUBTITLE' | translate }}</p>
           </div>
         </ng-template>
 
         <form [formGroup]="forgotPasswordForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
-            <label for="email">Email Address</label>
+            <label for="email">{{ 'AUTH.FORGOT_PASSWORD.EMAIL_LABEL' | translate }}</label>
             <input
               pInputText
               id="email"
@@ -37,7 +38,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
             />
             @if (forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched) {
               <small class="error-text">
-                <i class="pi pi-exclamation-circle"></i> Valid email is required
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.FORGOT_PASSWORD.EMAIL_ERROR' | translate }}
               </small>
             }
           </div>
@@ -52,7 +53,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
           <p-button
             type="submit"
-            label="Send Reset Link"
+            [label]="'AUTH.FORGOT_PASSWORD.SUBMIT' | translate"
             icon="pi pi-send"
             [disabled]="loading() || forgotPasswordForm.invalid"
             [loading]="loading()"
@@ -61,7 +62,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
           <div class="form-links">
             <a routerLink="/login" class="link">
-              <i class="pi pi-arrow-left"></i> Back to sign in
+              <i class="pi pi-arrow-left"></i> {{ 'AUTH.FORGOT_PASSWORD.BACK' | translate }}
             </a>
           </div>
         </form>

@@ -6,3 +6,4 @@ export * from './panel.service';
 export * from './file.service';
 export * from './cultivar.service';
 export * from './theme.service';
+export * from './language-switcher.service';

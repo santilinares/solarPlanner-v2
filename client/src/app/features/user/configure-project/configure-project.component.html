@@ -3,7 +3,7 @@
     <div class="step-nav-bar">
       <div class="step-nav-left">
         <p-button
-            label="Back"
+            [label]="'CONFIGURE.BACK' | translate"
             icon="pi pi-arrow-left"
             severity="secondary"
             [rounded]="true"
@@ -12,7 +12,7 @@
             size="small"
         />
         <p-button
-            label="Exit Configure Mode"
+            [label]="'CONFIGURE.EXIT' | translate"
             icon="pi pi-times"
             severity="secondary"
             [outlined]="true"
@@ -21,7 +21,7 @@
             size="small"
         />
       </div>
-        <span class="step-nav-mode-label">Configure Mode</span>
+        <span class="step-nav-mode-label">{{ 'CONFIGURE.CONFIGURE_MODE' | translate }}</span>
         <div class="step-nav-right">
             @if (activeStep() < 2) {
           <p-button
@@ -34,7 +34,7 @@
           />
       } @else {
           <p-button
-          label="Save Changes"
+          [label]="'CONFIGURE.SAVE_CHANGES' | translate"
           icon="pi pi-check"
           [rounded]="true"
           [loading]="isSaving()"
@@ -70,10 +70,10 @@
         <p-card class="error-card">
         <div class="error-content">
             <i class="pi pi-exclamation-triangle error-icon"></i>
-            <h2>Something went wrong</h2>
+            <h2>{{ 'CONFIGURE.ERROR_TITLE' | translate }}</h2>
             <p>{{ errorMessage() }}</p>
             <p-button
-            label="Back to Projects"
+            [label]="'CONFIGURE.BACK_TO_PROJECTS' | translate"
             icon="pi pi-arrow-left"
             routerLink="/projects/all"
             severity="secondary"
@@ -90,7 +90,7 @@
         @if (isViewMode()) {
         <a class="back-link" [routerLink]="isConfigureMode() ? '/projects/' + projectId() : '/projects/all'">
         <i class="pi pi-arrow-left"></i>
-        {{ isConfigureMode() ? 'Back to Project' : 'Back to Projects' }}
+        {{ isConfigureMode() ? ('CONFIGURE.BACK_TO_PROJECT' | translate) : ('CONFIGURE.BACK_TO_PROJECTS' | translate) }}
         </a>
         }
         <div class="header-row">
@@ -108,13 +108,13 @@
             </div>
             <p class="subtitle">
             <i [class]="isConfigureMode() ? 'pi pi-cog icon-lg' : 'pi pi-eye icon-lg'"></i>
-            {{ isConfigureMode() ? 'Configure your solar project' : 'Project details' }}
+            {{ isConfigureMode() ? ('CONFIGURE.CONFIGURE_SUBTITLE' | translate) : ('CONFIGURE.VIEW_SUBTITLE' | translate) }}
             </p>
         </div>
         @if (isViewMode()) {
         <div class="header-actions">
           <p-button
-              label="Download Plan"
+              [label]="'CONFIGURE.DOWNLOAD_PLAN' | translate"
               icon="pi pi-download"
               severity="secondary"
               [outlined]="true"
@@ -123,7 +123,7 @@
               (onClick)="downloadPlan()"
           />
           <p-button
-              label="Configure"
+              [label]="'CONFIGURE.CONFIGURE' | translate"
               icon="pi pi-cog"
               [routerLink]="'/projects/' + projectId() + '/configure'"
               [rounded]="true"
@@ -132,7 +132,7 @@
         }
         @if (isConfigureMode()) {
         <p-tag
-            [value]="hasUnsavedChanges() ? 'Unsaved Changes' : 'All Saved'"
+            [value]="hasUnsavedChanges() ? ('CONFIGURE.UNSAVED_CHANGES' | translate) : ('CONFIGURE.ALL_SAVED' | translate)"
             [severity]="hasUnsavedChanges() ? 'warn' : 'success'"
             [rounded]="true"
             [icon]="hasUnsavedChanges() ? 'pi pi-pencil' : 'pi pi-check'"
@@ -141,7 +141,7 @@
         </div>
     </header>
 
-    
+
 
     <p-stepper [(value)]="activeStep" class="configure-stepper">
 
@@ -155,7 +155,7 @@
                 <p-tag [value]="timezoneLabel()" icon="pi pi-clock" [rounded]="true" pTooltip="Auto-detected from country" />
                 <div class="meta-separator"></div>
                 <div class="meta-editable">
-                <label for="strip-currency">Currency</label>
+                <label for="strip-currency">{{ 'CONFIGURE.CURRENCY' | translate }}</label>
                 <p-select
                     [options]="currencyOptions"
                     optionLabel="label"
@@ -168,7 +168,7 @@
                 />
                 </div>
                 <div class="meta-editable">
-                <label for="strip-price">Energy Price</label>
+                <label for="strip-price">{{ 'CONFIGURE.ENERGY_PRICE' | translate }}</label>
                 <p-inputnumber
                     formControlName="price"
                     inputId="strip-price"
@@ -193,8 +193,8 @@
                     <i class="pi pi-map-marker"></i>
                     </div>
                     <div>
-                    <h2>Location & Area</h2>
-                    <p>Search for an address and draw the installation area polygon.</p>
+                    <h2>{{ 'CONFIGURE.LOCATION_AREA' | translate }}</h2>
+                    <p>{{ 'CONFIGURE.LOCATION_AREA_DESC' | translate }}</p>
                     </div>
                 </div>
 
@@ -246,12 +246,12 @@
                 @if (polygonCoords().length === 0) {
                     <div class="map-instructions">
                     <i class="pi pi-info-circle"></i>
-                    <span>Use the polygon draw tool on the map to define the installation area.</span>
+                    <span>{{ 'CONFIGURE.POLYGON_HINT' | translate }}</span>
                     </div>
                 } @else {
                     <div class="map-status">
                     <i class="pi pi-check-circle"></i>
-                    <span>Polygon defined with {{ polygonCoords().length }} points</span>
+                    <span>{{ 'CONFIGURE.POLYGON_DEFINED' | translate }} {{ polygonCoords().length }} {{ 'CONFIGURE.POLYGON_POINTS' | translate }}</span>
                     </div>
                 }
                 </div>
@@ -263,8 +263,8 @@
                     <i class="pi pi-sun"></i>
                     </div>
                     <div>
-                    <h2>Panel & Installation</h2>
-                    <p>Configure solar panel type, tilt, orientation and layout.</p>
+                    <h2>{{ 'CONFIGURE.PANEL_INSTALLATION' | translate }}</h2>
+                    <p>{{ 'CONFIGURE.PANEL_INSTALLATION_DESC' | translate }}</p>
                     </div>
                 </div>
 
@@ -305,7 +305,7 @@
                             </div>
                         </ng-template>
                         </p-select>
-                        <label for="panelId">Solar Panel</label>
+                        <label for="panelId">{{ 'CONFIGURE.SOLAR_PANEL' | translate }}</label>
                     </p-floatlabel>
                     </div>
 
@@ -348,7 +348,7 @@
                         class="w-full"
                         [disabled]="isViewMode()"
                         />
-                        <label for="panelNumber">Number of Panels</label>
+                        <label for="panelNumber">{{ 'CONFIGURE.PANEL_NUMBER' | translate }}</label>
                     </p-floatlabel>
                     </div>
 
@@ -364,7 +364,7 @@
                         class="w-full"
                         [disabled]="isViewMode()"
                         />
-                        <label for="tilt">Tilt / Inclination</label>
+                        <label for="tilt">{{ 'CONFIGURE.TILT_INCLINATION' | translate }}</label>
                     </p-floatlabel>
                     </div>
 
@@ -389,7 +389,7 @@
                             <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span>
                         </ng-template>
                         </p-select>
-                        <label for="direction">Orientation / Direction</label>
+                        <label for="direction">{{ 'CONFIGURE.ORIENTATION' | translate }}</label>
                     </p-floatlabel>
                     </div>
 
@@ -405,9 +405,9 @@
                         class="w-full"
                         [disabled]="isViewMode()"
                         />
-                        <label for="azimuth">Azimuth</label>
+                        <label for="azimuth">{{ 'CONFIGURE.AZIMUTH' | translate }}</label>
                     </p-floatlabel>
-                    <small class="field-hint">0° = North, 180° = South</small>
+                    <small class="field-hint">{{ 'CONFIGURE.AZIMUTH_HINT' | translate }}</small>
                     </div>
 
                     <div class="form-field">
@@ -423,7 +423,7 @@
                         class="w-full"
                         [disabled]="isViewMode()"
                         />
-                        <label for="rawSpacing">Row Spacing</label>
+                        <label for="rawSpacing">{{ 'CONFIGURE.ROW_SPACING' | translate }}</label>
                     </p-floatlabel>
                     </div>
                 </form>
@@ -436,8 +436,8 @@
                     <i class="pi pi-box"></i>
                     </div>
                     <div>
-                    <h2>3D Installation View</h2>
-                    <p>Visual preview of the planned installation.</p>
+                    <h2>{{ 'CONFIGURE.THREE_D_VIEW' | translate }}</h2>
+                    <p>{{ 'CONFIGURE.THREE_D_VIEW_DESC' | translate }}</p>
                     </div>
                 </div>
 
@@ -445,9 +445,9 @@
 
                 <div class="placeholder-content">
                     <i class="pi pi-box placeholder-main-icon"></i>
-                    <span class="placeholder-title">Coming Soon</span>
+                    <span class="placeholder-title">{{ 'CONFIGURE.COMING_SOON' | translate }}</span>
                     <span class="placeholder-text">
-                    Interactive 3D preview of your solar panel installation will appear here.
+                    {{ 'CONFIGURE.THREE_D_TEXT' | translate }}
                     </span>
                 </div>
                 </div>
@@ -459,11 +459,11 @@
                     <i class="pi pi-bolt"></i>
                     </div>
                     <div>
-                    <h2>Live Capacity Preview</h2>
-                    <p>Real-time estimation based on your configuration.</p>
+                    <h2>{{ 'CONFIGURE.LIVE_CAPACITY' | translate }}</h2>
+                    <p>{{ 'CONFIGURE.LIVE_CAPACITY_DESC' | translate }}</p>
                     </div>
                     <p-tag
-                    [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+                    [value]="isUsingOptimalConfig() ? ('CONFIGURE.OPTIMAL' | translate) : ('CONFIGURE.CUSTOM' | translate)"
                     [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
                     [rounded]="true"
                     [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
@@ -482,32 +482,32 @@
                 } @else if (selectedPanelData(); as sp) {
                     <div class="capacity-grid">
                     <div class="capacity-item">
-                        <span class="capacity-label">Selected Panel</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.SELECTED_PANEL' | translate }}</span>
                         <strong>{{ sp.brand }} {{ sp.model }}</strong>
                     </div>
                     <div class="capacity-item">
-                        <span class="capacity-label">Panel Power</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.PANEL_POWER' | translate }}</span>
                         <strong>{{ sp.wattPeak }} W</strong>
                     </div>
                     <div class="capacity-item">
-                        <span class="capacity-label">Total Panels</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.TOTAL_PANELS' | translate }}</span>
                         <strong>{{ formValue().panelNumber || 0 }}</strong>
                     </div>
                     <div class="capacity-item">
-                        <span class="capacity-label">Project Total Area</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.PROJECT_AREA' | translate }}</span>
                         <strong>{{ projectTotalArea() | number: '1.0-0' }} m²</strong>
                     </div>
                     <div class="capacity-item highlight">
-                        <span class="capacity-label">Total Capacity</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.TOTAL_CAPACITY' | translate }}</span>
                         <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
                     </div>
                     @if (optimalConfig(); as oc) {
                         <div class="capacity-item">
-                        <span class="capacity-label">Est. Annual Production</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.ANNUAL_PRODUCTION' | translate }}</span>
                         <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
                         </div>
                         <div class="capacity-item">
-                        <span class="capacity-label">Area Coverage</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.AREA_COVERAGE' | translate }}</span>
                         <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
                         </div>
                     }
@@ -515,16 +515,16 @@
                     @if (isConfigureMode() && !isUsingOptimalConfig() && optimalConfig()) {
                     <div class="optimal-hint">
                         <i class="pi pi-info-circle"></i>
-                        <span>Custom configuration active.</span>
+                        <span>{{ 'CONFIGURE.CUSTOM_CONFIG_HINT' | translate }}</span>
                         <button class="link-btn" (click)="applyOptimalConfig()">
-                        Restore optimal ({{ optimalConfig()!.recommendedPanels }} panels)
+                        {{ 'CONFIGURE.RESTORE_OPTIMAL' | translate }} ({{ optimalConfig()!.recommendedPanels }} {{ 'CONFIGURE.PANELS_SUFFIX' | translate }})
                         </button>
                     </div>
                     }
                 } @else {
                     <div class="no-panel-message">
                     <i class="pi pi-info-circle"></i>
-                    <span>Select a panel to see the capacity preview. Area: {{ projectTotalArea() | number: '1.0-0' }} m²</span>
+                    <span>{{ 'CONFIGURE.SELECT_PANEL_HINT' | translate }} {{ projectTotalArea() | number: '1.0-0' }} m²</span>
                     </div>
                 }
                 </div>
@@ -537,8 +537,8 @@
                   <i class="pi pi-sun"></i>
                 </div>
                 <div>
-                  <h2>Sun Path</h2>
-                  <p>Solar position data for this location across the year.</p>
+                  <h2>{{ 'CONFIGURE.SUN_PATH' | translate }}</h2>
+                  <p>{{ 'CONFIGURE.SUN_PATH_DESC' | translate }}</p>
                 </div>
               </div>
 
@@ -555,30 +555,30 @@
                 <div class="sun-path-table">
                   <div class="sun-path-row sun-path-header">
                     <span></span>
-                    <span>Summer Solstice</span>
-                    <span>Equinox</span>
-                    <span>Winter Solstice</span>
+                    <span>{{ 'CONFIGURE.SUN_PATH_SUMMER' | translate }}</span>
+                    <span>{{ 'CONFIGURE.SUN_PATH_EQUINOX' | translate }}</span>
+                    <span>{{ 'CONFIGURE.SUN_PATH_WINTER' | translate }}</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Solar noon altitude</span>
+                    <span class="row-label">{{ 'CONFIGURE.SUN_PATH_ALTITUDE' | translate }}</span>
                     <span>{{ sp.summerSolstice.noonAltitude | number: '1.1-1' }}°</span>
                     <span>{{ sp.equinox.noonAltitude | number: '1.1-1' }}°</span>
                     <span>{{ sp.winterSolstice.noonAltitude | number: '1.1-1' }}°</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Daylight hours</span>
+                    <span class="row-label">{{ 'CONFIGURE.SUN_PATH_DAYLIGHT' | translate }}</span>
                     <span>{{ sp.summerSolstice.daylightHours | number: '1.1-1' }} h</span>
                     <span>{{ sp.equinox.daylightHours | number: '1.1-1' }} h</span>
                     <span>{{ sp.winterSolstice.daylightHours | number: '1.1-1' }} h</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Sunrise</span>
+                    <span class="row-label">{{ 'CONFIGURE.SUN_PATH_SUNRISE' | translate }}</span>
                     <span>{{ formatDecimalHours(sp.summerSolstice.sunrise) }}</span>
                     <span>{{ formatDecimalHours(sp.equinox.sunrise) }}</span>
                     <span>{{ formatDecimalHours(sp.winterSolstice.sunrise) }}</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Sunset</span>
+                    <span class="row-label">{{ 'CONFIGURE.SUN_PATH_SUNSET' | translate }}</span>
                     <span>{{ formatDecimalHours(sp.summerSolstice.sunset) }}</span>
                     <span>{{ formatDecimalHours(sp.equinox.sunset) }}</span>
                     <span>{{ formatDecimalHours(sp.winterSolstice.sunset) }}</span>
@@ -587,12 +587,12 @@
               } @else if (mapLat() == null || mapLng() == null) {
                 <div class="sun-path-warning">
                   <i class="pi pi-info-circle"></i>
-                  <span>Set a location to see sun path data.</span>
+                  <span>{{ 'CONFIGURE.SET_LOCATION_HINT' | translate }}</span>
                 </div>
               } @else {
                 <div class="sun-path-warning">
                   <i class="pi pi-exclamation-triangle"></i>
-                  <span>Sun path data unavailable for this location.</span>
+                  <span>{{ 'CONFIGURE.SUN_PATH_UNAVAILABLE' | translate }}</span>
                 </div>
               }
             </div>
@@ -607,7 +607,7 @@
                     <i class="pi pi-dollar"></i>
                   </div>
                   <div class="economic-info">
-                    <span>Estimated Energy Value</span>
+                    <span>{{ 'CONFIGURE.ECONOMIC_VALUE' | translate }}</span>
                     <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
                     <small>{{ ev.totalKwh | number: '1.1-1' }} kWh × {{ projectData()?.price | number: '1.2-4' }}/kWh</small>
                   </div>
@@ -615,7 +615,7 @@
               </div>
               }
 
-              
+
               <!-- Next 6 days forecast + Past 6 days side by side -->
               <div class="charts-pair-grid">
                   <!-- Today's hourly production -->
@@ -626,8 +626,8 @@
                         <i class="pi pi-sun"></i>
                     </div>
                     <div>
-                        <h2>Today's Hourly Production</h2>
-                        <p>Forecasted PV output for today, hour by hour.</p>
+                        <h2>{{ 'CONFIGURE.TODAY_HOURLY' | translate }}</h2>
+                        <p>{{ 'CONFIGURE.TODAY_HOURLY_DESC' | translate }}</p>
                     </div>
                     </div>
                     <p-divider />
@@ -644,8 +644,8 @@
                       <i class="pi pi-calendar"></i>
                     </div>
                     <div>
-                      <h2>Next 6 Days Forecast</h2>
-                      <p>Projected daily energy production.</p>
+                      <h2>{{ 'CONFIGURE.NEXT_6_DAYS' | translate }}</h2>
+                      <p>{{ 'CONFIGURE.NEXT_6_DAYS_DESC' | translate }}</p>
                     </div>
                   </div>
                   <p-divider />
@@ -665,8 +665,8 @@
                       <i class="pi pi-history"></i>
                     </div>
                     <div>
-                      <h2>Past 6 Days Estimates</h2>
-                      <p>Estimated actual production per day.</p>
+                      <h2>{{ 'CONFIGURE.PAST_6_DAYS' | translate }}</h2>
+                      <p>{{ 'CONFIGURE.PAST_6_DAYS_DESC' | translate }}</p>
                     </div>
                   </div>
                   <p-divider />
@@ -699,18 +699,18 @@
                         <i class="pi pi-chart-line"></i>
                       </div>
                       <div>
-                        <h2>System Performance</h2>
-                        <p>Metrics based on PVGIS annual reference (NREL PVWatts V5).</p>
+                        <h2>{{ 'CONFIGURE.SYSTEM_PERF' | translate }}</h2>
+                        <p>{{ 'CONFIGURE.SYSTEM_PERF_DESC' | translate }}</p>
                       </div>
                     </div>
                     <p-divider />
                     <div class="capacity-grid">
                       <div class="capacity-item highlight">
-                        <span class="capacity-label">Capacity Factor</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.CAPACITY_FACTOR' | translate }}</span>
                         <strong>{{ a.capacityFactor | number: '1.1-1' }} %</strong>
                       </div>
                       <div class="capacity-item">
-                        <span class="capacity-label">Performance Ratio</span>
+                        <span class="capacity-label">{{ 'CONFIGURE.PERF_RATIO' | translate }}</span>
                         <strong>{{ a.performanceRatio != null ? (a.performanceRatio | number: '1.1-1') + ' %' : '—' }}</strong>
                       </div>
                     </div>
@@ -723,8 +723,8 @@
                         <i class="pi pi-wallet"></i>
                       </div>
                       <div>
-                        <h2>Estimated Annual Savings</h2>
-                        <p>Based on PVGIS yearly production × energy price.</p>
+                        <h2>{{ 'CONFIGURE.ANNUAL_SAVINGS' | translate }}</h2>
+                        <p>{{ 'CONFIGURE.ANNUAL_SAVINGS_DESC' | translate }}</p>
                       </div>
                     </div>
                     <p-divider />
@@ -732,7 +732,7 @@
                       <div class="economic-value-content">
                         <div class="economic-icon"><i class="pi pi-dollar"></i></div>
                         <div class="economic-info">
-                          <span>Est. Annual Value</span>
+                          <span>{{ 'CONFIGURE.EST_ANNUAL_VALUE' | translate }}</span>
                           <strong>{{ getCurrencySymbol(projectData()?.currency ?? 'EUR') }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
                           <small>{{ projectData()?.pvgisRef?.yearlyKwh | number: '1.0-0' }} kWh/yr × {{ projectData()?.price | number: '1.2-4' }}/kWh</small>
                         </div>
@@ -740,7 +740,7 @@
                     } @else {
                       <div class="sun-path-warning">
                         <i class="pi pi-info-circle"></i>
-                        <span>Set an energy price to see savings estimates.</span>
+                        <span>{{ 'CONFIGURE.SET_ENERGY_PRICE' | translate }}</span>
                       </div>
                     }
                   </div>
@@ -754,8 +754,8 @@
                         <i class="pi pi-calendar-plus"></i>
                       </div>
                       <div>
-                        <h2>25-Year Savings Projection</h2>
-                        <p>Annual savings with panel degradation applied (NREL PVWatts V5).</p>
+                        <h2>{{ 'CONFIGURE.SAVINGS_PROJECTION' | translate }}</h2>
+                        <p>{{ 'CONFIGURE.SAVINGS_PROJECTION_DESC' | translate }}</p>
                       </div>
                     </div>
                     <p-divider />
@@ -781,28 +781,28 @@
                 <!-- Project & Metadata Summary -->
                 <div class="step-card review-card">
                     <div class="review-card-header">
-                    <h3><i class="pi pi-file-edit"></i> Project & Metadata</h3>
+                    <h3><i class="pi pi-file-edit"></i> {{ 'CONFIGURE.REVIEW_PROJECT_META' | translate }}</h3>
                     </div>
                     <p-divider />
                     <div class="review-items">
                     <div class="review-item">
-                        <span>Project Name</span>
+                        <span>{{ 'CONFIGURE.REVIEW_PROJECT_NAME' | translate }}</span>
                         <strong>{{ formValue().name || '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Country</span>
+                        <span>{{ 'CONFIGURE.REVIEW_COUNTRY' | translate }}</span>
                         <strong>{{ formValue().country || '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Timezone</span>
+                        <span>{{ 'CONFIGURE.REVIEW_TIMEZONE' | translate }}</span>
                         <strong>{{ formValue().timezone || '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Currency</span>
+                        <span>{{ 'CONFIGURE.REVIEW_CURRENCY' | translate }}</span>
                         <strong>{{ formValue().currency || '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Energy Price</span>
+                        <span>{{ 'CONFIGURE.REVIEW_ENERGY_PRICE' | translate }}</span>
                         <strong>{{ formValue().price != null ? (formValue().price | number: '1.2-4') + '/kWh' : '—' }}</strong>
                     </div>
                     </div>
@@ -811,29 +811,29 @@
                 <!-- Location & Area Summary -->
                 <div class="step-card review-card">
                     <div class="review-card-header">
-                    <h3><i class="pi pi-map-marker"></i> Location & Area</h3>
+                    <h3><i class="pi pi-map-marker"></i> {{ 'CONFIGURE.REVIEW_LOCATION' | translate }}</h3>
                     <p-button
                         icon="pi pi-pencil"
                         [rounded]="true"
                         [textContent]="true"
                         size="small"
-                        pTooltip="Edit Location"
+                        [pTooltip]="'CONFIGURE.EDIT_LOCATION' | translate"
                         (onClick)="activeStep.set(1)"
                     />
                     </div>
                     <p-divider />
                     <div class="review-items">
                     <div class="review-item">
-                        <span>Coordinates</span>
+                        <span>{{ 'CONFIGURE.REVIEW_COORDINATES' | translate }}</span>
                         <strong>{{ locationSummary() }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Installation Area</span>
-                        <strong>{{ polygonCoords().length >= 3 ? polygonCoords().length + ' points defined' : 'Not defined' }}</strong>
+                        <span>{{ 'CONFIGURE.REVIEW_AREA' | translate }}</span>
+                        <strong>{{ polygonCoords().length >= 3 ? polygonCoords().length + ' ' + ('CONFIGURE.POINTS_DEFINED' | translate) : ('CONFIGURE.NOT_DEFINED' | translate) }}</strong>
                     </div>
                     @if (optimalConfig(); as oc) {
                         <div class="review-item">
-                        <span>Area Coverage</span>
+                        <span>{{ 'CONFIGURE.REVIEW_AREA_COVERAGE' | translate }}</span>
                         <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
                         </div>
                     }
@@ -843,40 +843,40 @@
                 <!-- Panel & Installation Summary -->
                 <div class="step-card review-card">
                     <div class="review-card-header">
-                    <h3><i class="pi pi-sun"></i> Panel & Installation</h3>
+                    <h3><i class="pi pi-sun"></i> {{ 'CONFIGURE.REVIEW_PANEL_INSTALL' | translate }}</h3>
                     <p-button
                         icon="pi pi-pencil"
                         [rounded]="true"
                         [textContent]="true"
                         size="small"
-                        pTooltip="Edit Panel Setup"
+                        [pTooltip]="'CONFIGURE.EDIT_PANEL_SETUP' | translate"
                         (onClick)="activeStep.set(1)"
                     />
                     </div>
                     <p-divider />
                     <div class="review-items">
                     <div class="review-item">
-                        <span>Solar Panel</span>
+                        <span>{{ 'CONFIGURE.REVIEW_SOLAR_PANEL' | translate }}</span>
                         <strong>{{ selectedPanelLabel() }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Number of Panels</span>
+                        <span>{{ 'CONFIGURE.REVIEW_NUM_PANELS' | translate }}</span>
                         <strong>{{ formValue().panelNumber || '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Tilt</span>
+                        <span>{{ 'CONFIGURE.REVIEW_TILT' | translate }}</span>
                         <strong>{{ formValue().tilt != null ? formValue().tilt + '°' : '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Direction</span>
+                        <span>{{ 'CONFIGURE.REVIEW_DIRECTION' | translate }}</span>
                         <strong>{{ selectedDirectionLabel() }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Azimuth</span>
+                        <span>{{ 'CONFIGURE.REVIEW_AZIMUTH' | translate }}</span>
                         <strong>{{ formValue().azimuth != null ? formValue().azimuth + '°' : '—' }}</strong>
                     </div>
                     <div class="review-item">
-                        <span>Row Spacing</span>
+                        <span>{{ 'CONFIGURE.REVIEW_SPACING' | translate }}</span>
                         <strong>{{ formValue().rawSpacing != null ? formValue().rawSpacing + ' m' : '—' }}</strong>
                     </div>
                     </div>
@@ -885,9 +885,9 @@
                 <!-- Capacity Summary -->
                 <div class="step-card review-card">
                     <div class="review-card-header">
-                    <h3><i class="pi pi-bolt"></i> Capacity</h3>
+                    <h3><i class="pi pi-bolt"></i> {{ 'CONFIGURE.REVIEW_CAPACITY' | translate }}</h3>
                     <p-tag
-                        [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+                        [value]="isUsingOptimalConfig() ? ('CONFIGURE.OPTIMAL' | translate) : ('CONFIGURE.CUSTOM' | translate)"
                         [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
                         [rounded]="true"
                         [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
@@ -896,16 +896,16 @@
                     <p-divider />
                     <div class="review-items">
                     <div class="review-item">
-                        <span>Total Capacity</span>
+                        <span>{{ 'CONFIGURE.REVIEW_TOTAL_CAPACITY' | translate }}</span>
                         <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
                     </div>
                     @if (optimalConfig(); as oc) {
                         <div class="review-item">
-                        <span>Est. Annual Production</span>
+                        <span>{{ 'CONFIGURE.REVIEW_EST_ANNUAL' | translate }}</span>
                         <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
                         </div>
                         <div class="review-item">
-                        <span>Area Coverage</span>
+                        <span>{{ 'CONFIGURE.REVIEW_AREA_COVERAGE' | translate }}</span>
                         <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
                         </div>
                     }
@@ -920,7 +920,7 @@
                     <i class="pi pi-sun"></i>
                     </div>
                     <div class="capacity-info">
-                    <span>Estimated Total Capacity</span>
+                    <span>{{ 'CONFIGURE.TOTAL_CAPACITY_LABEL' | translate }}</span>
                     <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
                     </div>
                 </div>
@@ -933,7 +933,7 @@
                 @if (saveSuccess()) {
                 <p-message
                     severity="success"
-                    text="Project updated successfully!"
+                    [text]="'CONFIGURE.SAVE_SUCCESS' | translate"
                     class="w-full"
                 />
                 }

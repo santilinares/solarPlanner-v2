@@ -4,6 +4,108 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 19, 2026 - Internacionalización completa (i18n) EN/ES con @ngx-translate
+
+### Topic
+Implementar soporte completo de inglés y español en toda la aplicación Angular usando `@ngx-translate/core`, con preferencia de idioma persistida en MongoDB (no localStorage), switcheada automáticamente al iniciar sesión.
+
+### Summary of Prompt
+El usuario pidió implementar i18n end-to-end en 11 pasos explícitos:
+1. Añadir `preferredLang` al modelo MongoDB de Usuario
+2. Configurar `TranslateModule` en `app.config.ts`
+3. Crear `LanguageSwitcherService`
+4. Inicializar el idioma tras cargar el usuario en `AuthService`
+5. (Omitido) toggle de idioma en la UI
+6. Añadir endpoint `PATCH /api/users/me/lang`
+7. Sustituir todos los strings ingleses hardcoded por `{{ 'KEY' | translate }}`
+8. Generar `src/assets/i18n/en.json` completo
+9. Generar `src/assets/i18n/es.json` completo
+10. Gestionar strings en TypeScript con `translate.instant()`
+11. Verificar con `ng build` y paridad de claves
+
+Restricciones duras: solo `@ngx-translate` (no Angular `$localize`), fuente de verdad en MongoDB (no localStorage), no traducir contenido dinámico de la base de datos, `TranslateModule` en el `imports[]` de cada componente standalone que use el pipe.
+
+### What Was Achieved
+- **Capa de datos**: `preferredLang: { type: String, enum: ['en', 'es'], default: 'en' }` añadido al esquema Mongoose de `User`. El campo se expone en `GET /users/me`, se acepta en `PATCH /users/:id/profile`, y tiene su propio endpoint `PATCH /api/users/me/lang`.
+- **Configuración Angular**: `app.config.ts` migrado de la API antigua (`HttpLoaderFactory` + `importProvidersFrom`) a la nueva API de `@ngx-translate/http-loader` v17 (`provideTranslateService` + `provideTranslateHttpLoader`).
+- **`LanguageSwitcherService`**: servicio singleton que expone `setLanguage(lang)` (llama al API y aplica `TranslateService.use()`) y `initLanguage(lang)` (solo aplica localmente, usado al inicio de sesión).
+- **`AuthService`**: llama a `languageSwitcher.initLanguage(user.preferredLang)` justo después de cargar el perfil del usuario.
+- **Endpoint de idioma**: `PATCH /api/users/me/lang` con validación Zod `{ lang: z.enum(['en','es']) }`, accesible con JWT.
+- **Archivos de traducción**: `en.json` y `es.json` generados con cobertura total de la aplicación, organizados en namespaces: `AUTH`, `PROFILE`, `DASHBOARD`, `PROJECTS`, `ADD_PROJECT`, `CONFIGURE`, `ESTIMATE`, `ADMIN`, `NAV`, `ERRORS`, `COMMON`.
+- **Componentes traducidos** (todos con `TranslateModule` en `imports[]`):
+  - `login`, `register`, `forgot-password`, `reset-password` (visitor/auth)
+  - `estimate` (visitor, incluyendo `[innerHTML]` para strings con HTML)
+  - `profile` (con 4 tipos de toast traducidos vía `translate.instant()`)
+  - `dashboard` (con interpolación `{ name: user()?.fullName }`)
+  - `user-projects` (con ternarios admin/no-admin en template)
+  - `add-project` (computed signals `steps` y `stepNextLabel` usando `translate.instant()`)
+  - `configure-project` (946 líneas completamente traducidas)
+  - `user-layout` (dock labels, breadcrumbs, nav items)
+  - `admin/users-list`, `admin/panel-list`, `admin/project-list`
+- **Verificación**: `ng build` pasa sin errores TypeScript ni de templates. Los fallos restantes son presupuestos de bundle (leaflet/highcharts/canvg no-ESM) pre-existentes, no relacionados con i18n.
+
+### Full Prompt
+> "Implementa i18n completo con las siguientes instrucciones:
+> STEP 1: Add `preferredLang: 'en' | 'es'` to the MongoDB User model...
+> STEP 2: Configure TranslateModule in app.config.ts...
+> STEP 3: Create LanguageSwitcherService...
+> STEP 4: Wire language init after user load in AuthService...
+> STEP 5: No language toggle needed yet...
+> STEP 6: Add PATCH /api/users/me/lang endpoint...
+> STEP 7: Replace ALL hardcoded English strings with {{ 'KEY' | translate }}...
+> STEP 8: Generate src/assets/i18n/en.json...
+> STEP 9: Generate src/assets/i18n/es.json...
+> STEP 10: Handle strings in TypeScript files using translate.instant()...
+> STEP 11: Verify with ng build, confirm key parity...
+> Hard constraints: standalone components only, @ngx-translate only (no $localize), no localStorage for lang preference (MongoDB is source of truth), do NOT translate dynamic content from DB, every standalone component using the translate pipe MUST have TranslateModule in its imports[]"
+
+### Affected Files
+
+**Server**
+- `server/src/models/user.model.ts` — `preferredLang` field added to schema
+- `server/src/routes/user.routes.ts` — `PATCH /api/users/me/lang` route registered
+- `server/src/controllers/user.controller.ts` — `updateUserLanguage` controller
+- `server/src/services/user.service.ts` — `updateUserLanguage` service method
+- `server/src/schemas/user.schema.ts` — `updateLanguageSchema` Zod validation
+
+**Client — Core**
+- `client/src/app/app.config.ts` — migrated to `provideTranslateService` + `provideTranslateHttpLoader` (v17 API)
+- `client/src/app/core/services/language-switcher.service.ts` — NEW: `setLanguage()` / `initLanguage()`
+- `client/src/app/core/services/index.ts` — export of LanguageSwitcherService
+- `client/src/app/core/services/auth.service.ts` — `initLanguage()` called after user profile load
+
+**Client — Translation files**
+- `client/src/assets/i18n/en.json` — full English translation dictionary
+- `client/src/assets/i18n/es.json` — full Spanish translation dictionary
+
+**Client — Components (TranslateModule + template translations)**
+- `client/src/app/features/visitor/login/login.component.ts` + `.html`
+- `client/src/app/features/visitor/register/register.component.ts` + `.html`
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.ts` + `.html`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts` + `.html`
+- `client/src/app/features/visitor/estimate/estimate.component.ts` + `.html`
+- `client/src/app/features/user/profile/profile.component.ts` + `.html`
+- `client/src/app/features/user/dashboard/dashboard.component.ts` + `.html`
+- `client/src/app/features/user/user-projects/user-projects.component.ts` + `.html`
+- `client/src/app/features/user/add-project/add-project.component.ts` + `.html`
+- `client/src/app/features/user/configure-project/configure-project.component.ts` + `.html`
+- `client/src/app/layouts/user-layout/user-layout.component.ts` + `.html`
+- `client/src/app/features/admin/users-list/users-list.component.ts` + `.html`
+- `client/src/app/features/admin/panel-list/panel-list.component.ts` + `.html`
+- `client/src/app/features/admin/project-list/project-list.component.ts` + `.html`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La decisión más importante fue usar MongoDB como única fuente de verdad para el idioma preferido, en lugar de localStorage. Esto garantiza que el usuario obtiene su idioma correcto desde cualquier dispositivo o sesión nueva. El flujo es: `AuthService` carga el perfil → extrae `preferredLang` → llama a `LanguageSwitcherService.initLanguage()` → `TranslateService.use(lang)` carga el JSON correspondiente de `/assets/i18n/`.
+
+Técnicamente, la migración a `@ngx-translate/http-loader` v17 fue necesaria porque la API de constructor (`new TranslateHttpLoader(http, prefix, suffix)`) fue eliminada en favor de un `Injectable` puro con DI (`provideTranslateHttpLoader()`). Los valores por defecto (`/assets/i18n/` y `.json`) coinciden exactamente con la estructura del proyecto, por lo que no se necesita configuración adicional.
+
+Para componentes con strings en TypeScript (toasts, computed signals), se inyectó `TranslateService` y se usó `translate.instant('KEY')`. En computed signals reactivos (steps del wizard en add-project), `translate.instant()` dentro del signal garantiza que el label se recalcula si el signal cambia, aunque dado que el idioma solo cambia al iniciar sesión y no mid-session, esto es suficiente para la UX requerida.
+
+Los templates con contenido HTML embebido (ESTIMATE.HOW_STEP_3 contiene `<strong>`) requirieron `[innerHTML]="'KEY' | translate"` en lugar de interpolación `{{ }}` para que el browser renderice el HTML en lugar de mostrarlo como texto plano.
+
+---
+
 ## May 19, 2026 - Fusión de Settings en Profile + ThemeService (modo oscuro)
 
 ### Topic

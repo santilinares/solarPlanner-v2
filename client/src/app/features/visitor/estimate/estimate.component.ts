@@ -19,6 +19,7 @@ import { DividerModule } from 'primeng/divider';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
 import { Coordinates } from '@core/models';
 import { environment } from '@environments/environment';
+import { TranslateModule } from '@ngx-translate/core';
 
 interface EstimateResult {
   panelCount: number;
@@ -41,6 +42,7 @@ interface EstimateResult {
     InputIconModule,
     DividerModule,
     LocationMapComponent,
+    TranslateModule,
   ],
 })
 export class EstimateComponent {

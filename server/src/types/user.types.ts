@@ -8,6 +8,7 @@ export interface UserResponse {
   email?: string;
   role: 'user' | 'admin';
   method: 'local' | 'google';
+  preferredLang: 'en' | 'es';
   createdAt: string;
   projectCount?: number;
 }

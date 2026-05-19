@@ -24,6 +24,7 @@ import { MessageService } from 'primeng/api';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { ThemeService } from '@core/services/theme.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const newPassword = control.get('newPassword')?.value;
@@ -46,6 +47,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
     PasswordModule,
     ToastModule,
     ToggleSwitchModule,
+    TranslateModule,
   ],
   providers: [MessageService],
   template: `
@@ -57,7 +59,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
           <span>{{ avatarInitial() }}</span>
         </div>
         <div>
-          <p class="eyebrow">Account</p>
+          <p class="eyebrow">{{ 'PROFILE.EYEBROW' | translate }}</p>
           <h1>{{ displayName() }}</h1>
           <p class="email-text">{{ authService.currentUser()?.email || '' }}</p>
         </div>
@@ -67,26 +69,26 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 
         <!-- Profile form -->
         <p-card styleClass="profile-card">
-          <ng-template pTemplate="title">Account Information</ng-template>
+          <ng-template pTemplate="title">{{ 'PROFILE.ACCOUNT_INFO_TITLE' | translate }}</ng-template>
           <ng-template pTemplate="content">
-            <p class="card-description">Update your display name across all your projects.</p>
+            <p class="card-description">{{ 'PROFILE.ACCOUNT_INFO_DESC' | translate }}</p>
             <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="form-body">
               <div class="field">
-                <label for="fullName">Full name</label>
+                <label for="fullName">{{ 'PROFILE.FULL_NAME_LABEL' | translate }}</label>
                 <input
                   pInputText
                   id="fullName"
                   formControlName="fullName"
-                  placeholder="Your full name"
+                  [placeholder]="'PROFILE.FULL_NAME_PLACEHOLDER' | translate"
                   class="w-full"
                 />
                 @if (profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched) {
-                  <small class="field-error">Full name is required.</small>
+                  <small class="field-error">{{ 'PROFILE.FULL_NAME_ERROR' | translate }}</small>
                 }
               </div>
               <p-button
                 type="submit"
-                label="Save changes"
+                [label]="'PROFILE.SAVE_CHANGES' | translate"
                 icon="pi pi-check"
                 [loading]="savingProfile()"
                 [disabled]="profileForm.invalid || profileForm.pristine"
@@ -97,57 +99,57 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 
         <!-- Password form -->
         <p-card styleClass="profile-card">
-          <ng-template pTemplate="title">Change Password</ng-template>
+          <ng-template pTemplate="title">{{ 'PROFILE.CHANGE_PASSWORD_TITLE' | translate }}</ng-template>
           <ng-template pTemplate="content">
-            <p class="card-description">Choose a strong password to keep your account secure.</p>
+            <p class="card-description">{{ 'PROFILE.CHANGE_PASSWORD_DESC' | translate }}</p>
             <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="form-body">
               <div class="field">
-                <label for="currentPassword">Current password</label>
+                <label for="currentPassword">{{ 'PROFILE.CURRENT_PASSWORD' | translate }}</label>
                 <p-password
                   inputId="currentPassword"
                   formControlName="currentPassword"
-                  placeholder="Enter current password"
+                  [placeholder]="'PROFILE.CURRENT_PASSWORD_PLACEHOLDER' | translate"
                   [feedback]="false"
                   [toggleMask]="true"
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
                 @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
-                  <small class="field-error">Current password is required.</small>
+                  <small class="field-error">{{ 'PROFILE.CURRENT_PASSWORD_ERROR' | translate }}</small>
                 }
               </div>
               <div class="field">
-                <label for="newPassword">New password</label>
+                <label for="newPassword">{{ 'PROFILE.NEW_PASSWORD' | translate }}</label>
                 <p-password
                   inputId="newPassword"
                   formControlName="newPassword"
-                  placeholder="At least 8 characters"
+                  [placeholder]="'PROFILE.NEW_PASSWORD_PLACEHOLDER' | translate"
                   [toggleMask]="true"
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
                 @if (passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched) {
-                  <small class="field-error">Password must be at least 8 characters.</small>
+                  <small class="field-error">{{ 'PROFILE.NEW_PASSWORD_ERROR' | translate }}</small>
                 }
               </div>
               <div class="field">
-                <label for="confirmPassword">Confirm new password</label>
+                <label for="confirmPassword">{{ 'PROFILE.CONFIRM_PASSWORD' | translate }}</label>
                 <p-password
                   inputId="confirmPassword"
                   formControlName="confirmPassword"
-                  placeholder="Repeat new password"
+                  [placeholder]="'PROFILE.CONFIRM_PASSWORD_PLACEHOLDER' | translate"
                   [feedback]="false"
                   [toggleMask]="true"
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
                 @if (passwordForm.hasError('passwordsMismatch') && passwordForm.get('confirmPassword')?.touched) {
-                  <small class="field-error">Passwords do not match.</small>
+                  <small class="field-error">{{ 'PROFILE.CONFIRM_PASSWORD_ERROR' | translate }}</small>
                 }
               </div>
               <p-button
                 type="submit"
-                label="Update password"
+                [label]="'PROFILE.UPDATE_PASSWORD' | translate"
                 icon="pi pi-shield"
                 severity="secondary"
                 [loading]="savingPassword()"
@@ -163,15 +165,15 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 
       <!-- Preferences section -->
       <div class="preferences-section">
-        <h2 class="section-title">Preferences</h2>
-        <p class="section-description">Customize your Solar Planner experience.</p>
+        <h2 class="section-title">{{ 'PROFILE.PREFERENCES_TITLE' | translate }}</h2>
+        <p class="section-description">{{ 'PROFILE.PREFERENCES_DESC' | translate }}</p>
 
         <div class="pref-row">
           <div class="pref-info">
             <span class="material-icons pref-icon">dark_mode</span>
             <div>
-              <p class="pref-label">Dark mode</p>
-              <p class="pref-hint">Switch between light and dark theme</p>
+              <p class="pref-label">{{ 'PROFILE.DARK_MODE' | translate }}</p>
+              <p class="pref-hint">{{ 'PROFILE.DARK_MODE_HINT' | translate }}</p>
             </div>
           </div>
           <p-toggleswitch
@@ -338,6 +340,7 @@ export class ProfileComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);
+  private readonly translate = inject(TranslateService);
 
   readonly savingProfile = signal(false);
   readonly savingPassword = signal(false);
@@ -384,16 +387,16 @@ export class ProfileComponent implements OnInit {
         this.savingProfile.set(false);
         this.messageService.add({
           severity: 'success',
-          summary: 'Profile updated',
-          detail: 'Your name has been saved successfully.',
+          summary: this.translate.instant('PROFILE.TOAST.PROFILE_UPDATED'),
+          detail: this.translate.instant('PROFILE.TOAST.PROFILE_UPDATED_DETAIL'),
         });
       },
       error: () => {
         this.savingProfile.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Update failed',
-          detail: 'Could not update your profile. Please try again.',
+          summary: this.translate.instant('PROFILE.TOAST.PROFILE_FAILED'),
+          detail: this.translate.instant('PROFILE.TOAST.PROFILE_FAILED_DETAIL'),
         });
       },
     });
@@ -412,16 +415,16 @@ export class ProfileComponent implements OnInit {
         this.savingPassword.set(false);
         this.messageService.add({
           severity: 'success',
-          summary: 'Password changed',
-          detail: 'Your password has been updated successfully.',
+          summary: this.translate.instant('PROFILE.TOAST.PASSWORD_CHANGED'),
+          detail: this.translate.instant('PROFILE.TOAST.PASSWORD_CHANGED_DETAIL'),
         });
       },
       error: (err: { error?: { message?: string } }) => {
         this.savingPassword.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Password change failed',
-          detail: err?.error?.message ?? 'Please check your current password and try again.',
+          summary: this.translate.instant('PROFILE.TOAST.PASSWORD_FAILED'),
+          detail: err?.error?.message ?? this.translate.instant('PROFILE.TOAST.PASSWORD_FAILED_DEFAULT'),
         });
       },
     });

@@ -16,6 +16,7 @@ import { ProjectService } from '@core/services/project.service';
 import { AuthService, UserService } from '@core/services';
 import { UserRole, UserResponse } from '@core/models';
 import { Project } from '@core/models';
+import { TranslateModule } from '@ngx-translate/core';
 
 interface ProjectCardView {
   id: string;
@@ -54,6 +55,7 @@ interface ProjectCardView {
     TagModule,
     TitleCasePipe,
     TooltipModule,
+    TranslateModule,
   ],
   template: `
     <section class="projects-page animate-fade-in-up">
@@ -61,12 +63,12 @@ interface ProjectCardView {
         <div>
           <h1>
             <i class="pi pi-bolt icon-lg icon-primary"></i>
-            {{ isAdmin() ? (filterOwner() ? 'User Projects' : 'All Projects') : 'My Projects' }}
+            {{ isAdmin() ? (filterOwner() ? ('PROJECTS.USER_TITLE' | translate) : ('PROJECTS.ALL_TITLE' | translate)) : ('PROJECTS.MY_TITLE' | translate) }}
           </h1>
-          <p>{{ isAdmin() ? (filterOwner() ? 'Showing projects for a specific user' : 'Manage all user projects') : 'Manage your solar panel installations' }}</p>
+          <p>{{ isAdmin() ? (filterOwner() ? ('PROJECTS.USER_SUBTITLE' | translate) : ('PROJECTS.ALL_SUBTITLE' | translate)) : ('PROJECTS.MY_SUBTITLE' | translate) }}</p>
         </div>
         @if (!isAdmin()) {
-          <p-button label="New Project" icon="pi pi-plus" routerLink="/projects/add" />
+          <p-button [label]="'PROJECTS.NEW_PROJECT' | translate" icon="pi pi-plus" routerLink="/projects/add" />
         }
       </header>
 
@@ -82,11 +84,11 @@ interface ProjectCardView {
         }
         @if (availableFilterTypes().length > 0) {
           <button class="add-filter-btn" (click)="openAddFilter($event)">
-            <i class="pi pi-plus"></i> Add filter
+            <i class="pi pi-plus"></i> {{ 'PROJECTS.ADD_FILTER' | translate }}
           </button>
         }
         @if (activeChips().length > 0) {
-          <button class="clear-all-btn" (click)="clearAll()">Clear all</button>
+          <button class="clear-all-btn" (click)="clearAll()">{{ 'PROJECTS.CLEAR_ALL' | translate }}</button>
         }
       </div>
 
@@ -94,7 +96,7 @@ interface ProjectCardView {
       <p-popover #addFilterPopover (onHide)="onPopoverHide()">
         <div class="filter-popover">
           @if (!selectedFilterType()) {
-            <p class="popover-title">Filter by</p>
+            <p class="popover-title">{{ 'PROJECTS.FILTER_BY' | translate }}</p>
             <ul class="filter-type-list">
               @for (type of availableFilterTypes(); track type.key) {
                 <li class="filter-type-item" (click)="selectedFilterType.set(type.key)">
@@ -106,7 +108,7 @@ interface ProjectCardView {
           } @else {
             <div class="popover-input-step">
               <button class="back-btn" (click)="selectedFilterType.set(null)">
-                <i class="pi pi-arrow-left"></i> Back
+                <i class="pi pi-arrow-left"></i> {{ 'PROJECTS.BACK' | translate }}
               </button>
               <p class="popover-title">{{ currentFilterLabel() }}</p>
 
@@ -171,7 +173,7 @@ interface ProjectCardView {
                 }
               }
 
-              <p-button label="Apply" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
+              <p-button [label]="'PROJECTS.APPLY' | translate" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
             </div>
           }
         </div>
@@ -199,10 +201,10 @@ interface ProjectCardView {
         <p-card class="empty-state">
           <div class="empty-content">
             <i class="pi pi-sun"></i>
-            <h2>{{ isAdmin() ? 'No projects found' : 'No projects yet' }}</h2>
-            <p>{{ activeChips().length > 0 ? 'No projects match the active filters.' : (isAdmin() ? 'There are no user projects to display yet.' : 'Create your first solar panel project to get started') }}</p>
+            <h2>{{ isAdmin() ? ('PROJECTS.NO_PROJECTS_ADMIN_TITLE' | translate) : ('PROJECTS.NO_PROJECTS_TITLE' | translate) }}</h2>
+            <p>{{ activeChips().length > 0 ? ('PROJECTS.NO_PROJECTS_FILTER_DESC' | translate) : (isAdmin() ? ('PROJECTS.NO_PROJECTS_ADMIN_DESC' | translate) : ('PROJECTS.NO_PROJECTS_DESC' | translate)) }}</p>
             @if (!isAdmin()) {
-              <p-button label="Create Project" icon="pi pi-plus" routerLink="/projects/add" />
+              <p-button [label]="'PROJECTS.CREATE_PROJECT' | translate" icon="pi pi-plus" routerLink="/projects/add" />
             }
           </div>
         </p-card>
@@ -256,11 +258,11 @@ interface ProjectCardView {
 
               <div class="project-specs">
                 <div class="spec-item">
-                  <span class="spec-label">Panels</span>
+                  <span class="spec-label">{{ 'PROJECTS.SPEC_PANELS' | translate }}</span>
                   <span class="spec-value">{{ project.panels }}</span>
                 </div>
                 <div class="spec-item">
-                  <span class="spec-label">Power</span>
+                  <span class="spec-label">{{ 'PROJECTS.SPEC_POWER' | translate }}</span>
                   <span class="spec-value">{{ project.power | number: '1.1-1' }}kW</span>
                 </div>
               </div>

@@ -7,28 +7,29 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { getErrorMessage } from '@core/models';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-reset-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, ButtonModule, PasswordModule, CardModule, MessageModule],
+  imports: [ReactiveFormsModule, RouterLink, ButtonModule, PasswordModule, CardModule, MessageModule, TranslateModule],
   template: `
     <div class="reset-password-page animate-fade-in-up">
       <p-card class="reset-password-card">
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-key solar-icon"></i>
-            <h2>Set New Password</h2>
-            <p class="subtitle">Choose a strong password for your account</p>
+            <h2>{{ 'AUTH.RESET_PASSWORD.TITLE' | translate }}</h2>
+            <p class="subtitle">{{ 'AUTH.RESET_PASSWORD.SUBTITLE' | translate }}</p>
           </div>
         </ng-template>
 
         <form [formGroup]="resetPasswordForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
-            <label for="password">New Password</label>
+            <label for="password">{{ 'AUTH.RESET_PASSWORD.NEW_PASSWORD' | translate }}</label>
             <p-password
               formControlName="password"
-              placeholder="Minimum 8 characters"
+              [placeholder]="'AUTH.RESET_PASSWORD.NEW_PASSWORD_PLACEHOLDER' | translate"
               [toggleMask]="true"
               [feedback]="false"
               class="w-full"
@@ -36,16 +37,16 @@ import { getErrorMessage } from '@core/models';
             ></p-password>
             @if (resetPasswordForm.get('password')?.invalid && resetPasswordForm.get('password')?.touched) {
               <small class="error-text">
-                <i class="pi pi-exclamation-circle"></i> Password must be at least 8 characters
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.RESET_PASSWORD.PASSWORD_ERROR' | translate }}
               </small>
             }
           </div>
 
           <div class="form-field">
-            <label for="confirmPassword">Confirm Password</label>
+            <label for="confirmPassword">{{ 'AUTH.RESET_PASSWORD.CONFIRM_PASSWORD' | translate }}</label>
             <p-password
               formControlName="confirmPassword"
-              placeholder="Repeat your password"
+              [placeholder]="'AUTH.RESET_PASSWORD.CONFIRM_PASSWORD_PLACEHOLDER' | translate"
               [toggleMask]="true"
               [feedback]="false"
               class="w-full"
@@ -53,7 +54,7 @@ import { getErrorMessage } from '@core/models';
             ></p-password>
             @if (resetPasswordForm.hasError('passwordMismatch') && resetPasswordForm.get('confirmPassword')?.touched) {
               <small class="error-text">
-                <i class="pi pi-exclamation-circle"></i> Passwords do not match
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.RESET_PASSWORD.CONFIRM_ERROR' | translate }}
               </small>
             }
           </div>
@@ -68,7 +69,7 @@ import { getErrorMessage } from '@core/models';
 
           <p-button
             type="submit"
-            label="Reset Password"
+            [label]="'AUTH.RESET_PASSWORD.SUBMIT' | translate"
             icon="pi pi-check"
             [disabled]="loading() || resetPasswordForm.invalid"
             [loading]="loading()"
@@ -77,7 +78,7 @@ import { getErrorMessage } from '@core/models';
 
           <div class="form-links">
             <a routerLink="/login" class="link">
-              <i class="pi pi-arrow-left"></i> Back to sign in
+              <i class="pi pi-arrow-left"></i> {{ 'AUTH.RESET_PASSWORD.BACK' | translate }}
             </a>
           </div>
         </form>
@@ -212,6 +213,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   loading = signal(false);
   errorMessage = signal('');
@@ -254,7 +256,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       this.authService.resetPassword(this.token, { password }).subscribe({
         next: () => {
           this.loading.set(false);
-          this.successMessage.set('Password reset successful! Redirecting to login...');
+          this.successMessage.set(this.translate.instant('AUTH.RESET_PASSWORD.SUCCESS'));
           this.redirectTimeout = setTimeout(() => {
             this.router.navigate(['/login']).catch(() => {
               window.location.href = '/login';

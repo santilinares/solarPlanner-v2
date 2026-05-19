@@ -4,7 +4,7 @@
     <div class="step-nav-bar">
       <div class="step-nav-left">
         <p-button
-          label="Back"
+          [label]="'ADD_PROJECT.BACK' | translate"
           icon="pi pi-arrow-left"
           severity="secondary"
           [rounded]="true"
@@ -13,7 +13,7 @@
           size="small"
         />
         <p-button
-          label="Exit Create Mode"
+          [label]="'ADD_PROJECT.EXIT' | translate"
           icon="pi pi-times"
           severity="secondary"
           [outlined]="true"
@@ -22,7 +22,7 @@
           size="small"
         />
       </div>
-      <span class="step-nav-mode-label">Create Mode</span>
+      <span class="step-nav-mode-label">{{ 'ADD_PROJECT.CREATE_MODE' | translate }}</span>
       <div class="step-nav-right">
         @if (activeStep() < 3) {
           <p-button
@@ -36,7 +36,7 @@
           />
         } @else {
           <p-button
-            label="Create Project"
+            [label]="'ADD_PROJECT.CREATE_PROJECT' | translate"
             icon="pi pi-check"
             [rounded]="true"
             [loading]="isSubmitting()"
@@ -89,11 +89,11 @@
       <!-- ════════ STEP 0: Project Details ════════ -->
       @if (activeStep() === 0) {
         <section class="step-section animate-fade-in-up">
-          <h2 class="step-title">Project Details</h2>
-          <p class="step-subtitle">Start by giving your project a name and choosing the installation type.</p>
+          <h2 class="step-title">{{ 'ADD_PROJECT.STEP0_TITLE' | translate }}</h2>
+          <p class="step-subtitle">{{ 'ADD_PROJECT.STEP0_SUBTITLE' | translate }}</p>
 
           <div class="form-group">
-            <label for="projectName">Project Name</label>
+            <label for="projectName">{{ 'ADD_PROJECT.PROJECT_NAME' | translate }}</label>
             <input
               pInputText
               id="projectName"
@@ -106,7 +106,7 @@
           </div>
 
           <div class="form-group">
-            <label for="projectDesc">Description</label>
+            <label for="projectDesc">{{ 'ADD_PROJECT.DESCRIPTION' | translate }}</label>
             <textarea
               pTextarea
               id="projectDesc"
@@ -116,11 +116,11 @@
               rows="3"
               class="w-full"
             ></textarea>
-            <small class="helper-text">Optional. Add notes for your team.</small>
+            <small class="helper-text">{{ 'ADD_PROJECT.DESCRIPTION_OPTIONAL' | translate }}</small>
           </div>
 
           <div class="form-group">
-            <label>Installation Type</label>
+            <label>{{ 'ADD_PROJECT.INSTALLATION_TYPE' | translate }}</label>
             <div class="type-cards">
               <button
                 type="button"
@@ -131,8 +131,8 @@
                 <span class="type-icon-box" [class.active]="projectType() === 'roof'">
                   <span class="material-symbols-outlined">roofing</span>
                 </span>
-                <span class="type-label">Roof Mounting</span>
-                <span class="type-desc">Traditional rooftop or ground-mounted solar panel installation</span>
+                <span class="type-label">{{ 'ADD_PROJECT.ROOF_MOUNTING' | translate }}</span>
+                <span class="type-desc">{{ 'ADD_PROJECT.ROOF_MOUNTING_DESC' | translate }}</span>
               </button>
               <button
                 type="button"
@@ -143,8 +143,8 @@
                 <span class="type-icon-box" [class.active]="projectType() === 'agrivoltaic'">
                    <span class="material-symbols-outlined">psychiatry</span>
                 </span>
-                <span class="type-label">Agrivoltaic</span>
-                <span class="type-desc">Dual-use solar with agriculture, optimized for crop compatibility</span>
+                <span class="type-label">{{ 'ADD_PROJECT.AGRIVOLTAIC' | translate }}</span>
+                <span class="type-desc">{{ 'ADD_PROJECT.AGRIVOLTAIC_DESC' | translate }}</span>
               </button>
             </div>
           </div>
@@ -154,12 +154,12 @@
       <!-- ════════ STEP 1: Location & Area ════════ -->
       @if (activeStep() === 1) {
         <section class="step-section animate-fade-in-up">
-          <h2 class="step-title">Location & Area</h2>
-          <p class="step-subtitle">Search for the installation site and define the project area.</p>
+          <h2 class="step-title">{{ 'ADD_PROJECT.STEP1_TITLE' | translate }}</h2>
+          <p class="step-subtitle">{{ 'ADD_PROJECT.STEP1_SUBTITLE' | translate }}</p>
 
           <!-- Search bar -->
           <div class="form-group">
-            <label>Search Location</label>
+            <label>{{ 'ADD_PROJECT.SEARCH_LOCATION' | translate }}</label>
             <div class="location-search">
               <p-iconfield class="search-field">
                 <p-inputicon class="pi pi-search" />
@@ -184,7 +184,7 @@
                 </button>
               </p-iconfield>
               <p-button
-                label="Search"
+                [label]="'ADD_PROJECT.SEARCH' | translate"
                 [outlined]="true"
                 [loading]="isSearching()"
                 [disabled]="isSearching() || !addressQuery().trim()"
@@ -224,19 +224,19 @@
           @if (hasDrawnArea()) {
             <div class="feedback-banner feedback-success">
               <i class="pi pi-check-circle"></i>
-              <span>Polygon defined — <strong>{{ drawnPolygonPoints().length }}</strong> vertices</span>
+              <span>{{ 'ADD_PROJECT.POLYGON_DEFINED_PREFIX' | translate }} <strong>{{ drawnPolygonPoints().length }}</strong> {{ 'ADD_PROJECT.VERTICES' | translate }}</span>
             </div>
           } @else {
             <div class="feedback-banner feedback-neutral">
               <i class="pi pi-info-circle"></i>
-              <span>No polygon defined. Draw a polygon to define the installation area.</span>
+              <span>{{ 'ADD_PROJECT.NO_POLYGON' | translate }}</span>
             </div>
           }
 
           <!-- Energy Price -->
           <div class="form-group">
             <div class="label-row">
-              <label>Energy Price</label>
+              <label>{{ 'ADD_PROJECT.ENERGY_PRICE' | translate }}</label>
               <p-tag value="€/kWh" icon="pi pi-bolt" severity="secondary" [rounded]="true" />
             </div>
             <div class="inline-field">
@@ -249,7 +249,7 @@
                 [minFractionDigits]="2"
                 [maxFractionDigits]="4"
               />
-              <small class="helper-text">Local grid electricity price for ROI calculations.</small>
+              <small class="helper-text">{{ 'ADD_PROJECT.ROI_HINT' | translate }}</small>
             </div>
           </div>
         </section>
@@ -261,12 +261,12 @@
 
           <!-- ──── ROOF CONFIG ──── -->
           @if (projectType() !== 'agrivoltaic') {
-            <h2 class="step-title">Roof Installation Config</h2>
-            <p class="step-subtitle">Select your panel and configure the optimal layout for your roof installation.</p>
+            <h2 class="step-title">{{ 'ADD_PROJECT.STEP2_TITLE_ROOF' | translate }}</h2>
+            <p class="step-subtitle">{{ 'ADD_PROJECT.STEP2_SUBTITLE_ROOF' | translate }}</p>
 
             <!-- Panel selection -->
             <div class="form-group">
-              <label for="panelSelect">Solar Panel</label>
+              <label for="panelSelect">{{ 'ADD_PROJECT.SOLAR_PANEL' | translate }}</label>
               <p-select
                 inputId="panelSelect"
                 [options]="panelOptions()"
@@ -298,7 +298,7 @@
             <!-- Config grid 2x2 -->
             <div class="config-grid-2x2">
               <div class="form-group">
-                <label for="tiltAngle">Tilt Angle (°)</label>
+                <label for="tiltAngle">{{ 'ADD_PROJECT.TILT_ANGLE' | translate }}</label>
                 <p-inputNumber
                   inputId="tiltAngle"
                   [ngModel]="tiltAngle()"
@@ -307,7 +307,7 @@
                 />
               </div>
               <div class="form-group">
-                <label for="direction">Orientation</label>
+                <label for="direction">{{ 'ADD_PROJECT.ORIENTATION' | translate }}</label>
                 <p-select
                   inputId="direction"
                   [options]="directionOptions"
@@ -319,9 +319,9 @@
               </div>
               <div class="form-group">
                 <div class="label-row">
-                  <label for="panelCount">Number of Panels</label>
+                  <label for="panelCount">{{ 'ADD_PROJECT.NUM_PANELS' | translate }}</label>
                   @if (polygonArea() > 0 && selectedPanelData()) {
-                    <small class="helper-text">max ~{{ maxPanels() }}</small>
+                    <small class="helper-text">{{ 'ADD_PROJECT.MAX' | translate }} ~{{ maxPanels() }}</small>
                   }
                 </div>
                 <p-inputNumber
@@ -333,10 +333,10 @@
               </div>
               <div class="form-group">
                 <div class="label-row">
-                  <label for="rowSpacing">Row Spacing (m)</label>
+                  <label for="rowSpacing">{{ 'ADD_PROJECT.ROW_SPACING' | translate }}</label>
                   <p-button
                     icon="pi pi-refresh"
-                    label="Auto"
+                    [label]="'ADD_PROJECT.AUTO' | translate"
                     [text]="true"
                     size="small"
                     (onClick)="applyAutoSpacing()"
@@ -390,17 +390,17 @@
                 <div class="stat-card">
                   <i class="pi pi-bolt stat-icon"></i>
                   <span class="stat-value">{{ totalPowerKWp().toFixed(1) }} kWp</span>
-                  <span class="stat-label">Total Power</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.TOTAL_POWER' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <i class="pi pi-arrows-v stat-icon"></i>
                   <span class="stat-value">{{ optimalSpacing() }} m</span>
-                  <span class="stat-label">Optimal Spacing</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.OPTIMAL_SPACING' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <i class="pi pi-box stat-icon"></i>
                   <span class="stat-value">{{ totalPanelArea().toFixed(1) }} m²</span>
-                  <span class="stat-label">Panel Area</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.PANEL_AREA' | translate }}</span>
                 </div>
               </div>
             }
@@ -410,16 +410,16 @@
             <!-- 3D Preview placeholder -->
             <div class="form-group">
               <div class="label-row">
-                <label>3D Preview</label>
-                <p-tag value="Coming Soon" severity="secondary" [rounded]="true" />
+                <label>{{ 'ADD_PROJECT.THREE_D_PREVIEW' | translate }}</label>
+                <p-tag [value]="'ADD_PROJECT.COMING_SOON' | translate" severity="secondary" [rounded]="true" />
               </div>
               <div class="placeholder-3d">
                 <span class="placeholder-3d-icon"><i class="pi pi-box"></i></span>
-                <span class="placeholder-3d-text">3D visualization of your panel layout</span>
+                <span class="placeholder-3d-text">{{ 'ADD_PROJECT.THREE_D_TEXT' | translate }}</span>
                 @if (selectedPanelData(); as panel) {
                   <small class="placeholder-3d-sub">{{ panelCount() }}× {{ panel.brand }} {{ panel.model }} at {{ tiltAngle() }}° tilt, {{ rowSpacing() }}m spacing</small>
                 } @else {
-                  <small class="placeholder-3d-sub">Select a panel to preview configuration</small>
+                  <small class="placeholder-3d-sub">{{ 'ADD_PROJECT.SELECT_PANEL_PREVIEW' | translate }}</small>
                 }
               </div>
             </div>
@@ -427,14 +427,14 @@
 
           <!-- ──── AGRIVOLTAIC CONFIG ──── -->
           @if (projectType() === 'agrivoltaic') {
-            <h2 class="step-title">Agrivoltaic Config</h2>
-            <p class="step-subtitle">Configure panel layout and select the cultivar for dual-use optimization.</p>
+            <h2 class="step-title">{{ 'ADD_PROJECT.STEP2_TITLE_AGRI' | translate }}</h2>
+            <p class="step-subtitle">{{ 'ADD_PROJECT.STEP2_SUBTITLE_AGRI' | translate }}</p>
 
             <!-- Two-column selection -->
             <div class="selection-grid-2col">
               <!-- Panel column -->
               <div class="form-group">
-                <label for="panelSelectAgri">Solar Panel</label>
+                <label for="panelSelectAgri">{{ 'ADD_PROJECT.SOLAR_PANEL' | translate }}</label>
                 <p-select
                   inputId="panelSelectAgri"
                   [options]="panelOptions()"
@@ -511,7 +511,7 @@
             <!-- Config grid 2x2 + clearance height -->
             <div class="config-grid-2x2">
               <div class="form-group">
-                <label for="tiltAngleAgri">Tilt Angle (°)</label>
+                <label for="tiltAngleAgri">{{ 'ADD_PROJECT.TILT_ANGLE' | translate }}</label>
                 <p-inputNumber
                   inputId="tiltAngleAgri"
                   [ngModel]="tiltAngle()"
@@ -520,7 +520,7 @@
                 />
               </div>
               <div class="form-group">
-                <label for="directionAgri">Orientation</label>
+                <label for="directionAgri">{{ 'ADD_PROJECT.ORIENTATION' | translate }}</label>
                 <p-select
                   inputId="directionAgri"
                   [options]="directionOptions"
@@ -532,9 +532,9 @@
               </div>
               <div class="form-group">
                 <div class="label-row">
-                  <label for="panelCountAgri">Number of Panels</label>
+                  <label for="panelCountAgri">{{ 'ADD_PROJECT.NUM_PANELS' | translate }}</label>
                   @if (polygonArea() > 0 && selectedPanelData()) {
-                    <small class="helper-text">max ~{{ maxPanels() }}</small>
+                    <small class="helper-text">{{ 'ADD_PROJECT.MAX' | translate }} ~{{ maxPanels() }}</small>
                   }
                 </div>
                 <p-inputNumber
@@ -546,10 +546,10 @@
               </div>
               <div class="form-group">
                 <div class="label-row">
-                  <label for="rowSpacingAgri">Row Spacing (m)</label>
+                  <label for="rowSpacingAgri">{{ 'ADD_PROJECT.ROW_SPACING' | translate }}</label>
                   <p-button
                     icon="pi pi-refresh"
-                    label="Auto"
+                    [label]="'ADD_PROJECT.AUTO' | translate"
                     [text]="true"
                     size="small"
                     (onClick)="applyAutoSpacing()"
@@ -643,22 +643,22 @@
                 <div class="stat-card">
                   <i class="pi pi-bolt stat-icon"></i>
                   <span class="stat-value">{{ totalPowerKWp().toFixed(1) }} kWp</span>
-                  <span class="stat-label">Total Power</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.TOTAL_POWER' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <i class="pi pi-arrows-v stat-icon"></i>
                   <span class="stat-value">{{ rowSpacing() }} m</span>
-                  <span class="stat-label">Row Spacing</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.ROW_SPACING_LABEL' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <i class="pi pi-arrow-up stat-icon"></i>
                   <span class="stat-value">{{ minHeight() }} m</span>
-                  <span class="stat-label">Min Height</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.MIN_HEIGHT' | translate }}</span>
                 </div>
                 <div class="stat-card">
                   <i class="pi pi-box stat-icon"></i>
                   <span class="stat-value">{{ totalPanelArea().toFixed(1) }} m²</span>
-                  <span class="stat-label">Panel Area</span>
+                  <span class="stat-label">{{ 'ADD_PROJECT.PANEL_AREA' | translate }}</span>
                 </div>
               </div>
             }
@@ -668,20 +668,20 @@
             <!-- 3D Preview placeholder -->
             <div class="form-group">
               <div class="label-row">
-                <label>3D Preview</label>
-                <p-tag value="Coming Soon" severity="secondary" [rounded]="true" />
+                <label>{{ 'ADD_PROJECT.THREE_D_PREVIEW' | translate }}</label>
+                <p-tag [value]="'ADD_PROJECT.COMING_SOON' | translate" severity="secondary" [rounded]="true" />
               </div>
               <div class="placeholder-3d">
                 <span class="placeholder-3d-icon"><i class="pi pi-box"></i></span>
-                <span class="placeholder-3d-text">3D visualization of your agrivoltaic layout</span>
+                <span class="placeholder-3d-text">{{ 'ADD_PROJECT.THREE_D_AGRI_TEXT' | translate }}</span>
                 @if (selectedPanelData(); as panel) {
                   @if (selectedCultivarData(); as crop) {
                     <small class="placeholder-3d-sub">{{ panelCount() }}× {{ panel.brand }} {{ panel.model }} over {{ crop.name }} at {{ minHeight() }}m height</small>
                   } @else {
-                    <small class="placeholder-3d-sub">Select panel and cultivar to preview</small>
+                    <small class="placeholder-3d-sub">{{ 'ADD_PROJECT.SELECT_PANEL_CULTIVAR_PREVIEW' | translate }}</small>
                   }
                 } @else {
-                  <small class="placeholder-3d-sub">Select panel and cultivar to preview</small>
+                  <small class="placeholder-3d-sub">{{ 'ADD_PROJECT.SELECT_PANEL_CULTIVAR_PREVIEW' | translate }}</small>
                 }
               </div>
             </div>
@@ -692,31 +692,31 @@
       <!-- ════════ STEP 3: Review & Confirm ════════ -->
       @if (activeStep() === 3) {
         <section class="step-section animate-fade-in-up">
-          <h2 class="step-title">Review & Confirm</h2>
-          <p class="step-subtitle">Review your project configuration before creating.</p>
+          <h2 class="step-title">{{ 'ADD_PROJECT.STEP3_TITLE' | translate }}</h2>
+          <p class="step-subtitle">{{ 'ADD_PROJECT.STEP3_SUBTITLE' | translate }}</p>
 
           <!-- Section 1: Project Details -->
           <div class="review-section">
             <div class="review-section-header">
               <i class="pi pi-file"></i>
-              <span>Project Details</span>
+              <span>{{ 'ADD_PROJECT.REVIEW_PROJECT' | translate }}</span>
             </div>
             <div class="review-rows">
               <div class="review-row">
-                <span class="review-key">Name</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_NAME' | translate }}</span>
                 <span class="review-val">{{ projectName() }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Description</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_DESCRIPTION' | translate }}</span>
                 <span class="review-val">{{ projectDescription() || '—' }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Type</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_TYPE' | translate }}</span>
                 <span class="review-val">
                   @if (projectType() === 'roof') {
-                    <p-tag value="Roof Mounting" icon="pi pi-home" severity="secondary" [rounded]="true" />
+                    <p-tag [value]="'ADD_PROJECT.ROOF_MOUNTING' | translate" icon="pi pi-home" severity="secondary" [rounded]="true" />
                   } @else {
-                    <p-tag value="Agrivoltaic" icon="pi pi-leaf" severity="secondary" [rounded]="true" />
+                    <p-tag [value]="'ADD_PROJECT.AGRIVOLTAIC' | translate" icon="pi pi-leaf" severity="secondary" [rounded]="true" />
                   }
                 </span>
               </div>
@@ -729,27 +729,27 @@
           <div class="review-section">
             <div class="review-section-header">
               <i class="pi pi-map-marker"></i>
-              <span>Location & Area</span>
+              <span>{{ 'ADD_PROJECT.REVIEW_LOCATION' | translate }}</span>
             </div>
             <div class="review-rows">
               <div class="review-row">
-                <span class="review-key">Address</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_ADDRESS' | translate }}</span>
                 <span class="review-val">{{ addressResult() || '—' }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Coordinates</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_COORDINATES' | translate }}</span>
                 <span class="review-val">{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Polygon Area</span>
-                <span class="review-val">{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : 'Not defined' }}</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_POLYGON_AREA' | translate }}</span>
+                <span class="review-val">{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : ('ADD_PROJECT.NOT_DEFINED' | translate) }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Polygon Vertices</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_POLYGON_VERTICES' | translate }}</span>
                 <span class="review-val">{{ hasDrawnArea() ? drawnPolygonPoints().length : '—' }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Energy Price</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_ENERGY_PRICE' | translate }}</span>
                 <span class="review-val">€{{ energyPrice().toFixed(2) }}/kWh</span>
               </div>
             </div>
@@ -761,11 +761,11 @@
           <div class="review-section">
             <div class="review-section-header">
               <i class="pi pi-cog"></i>
-              <span>{{ projectType() === 'agrivoltaic' ? 'Agrivoltaic Configuration' : 'Roof Configuration' }}</span>
+              <span>{{ projectType() === 'agrivoltaic' ? ('ADD_PROJECT.REVIEW_CONFIG_AGRI' | translate) : ('ADD_PROJECT.REVIEW_CONFIG_ROOF' | translate) }}</span>
             </div>
             <div class="review-rows">
               <div class="review-row">
-                <span class="review-key">Solar Panel</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_PANEL' | translate }}</span>
                 <span class="review-val">
                   @if (selectedPanelData(); as panel) {
                     {{ panel.brand }} {{ panel.model }} ({{ panel.wattPeak }}W)
@@ -773,31 +773,31 @@
                 </span>
               </div>
               <div class="review-row">
-                <span class="review-key">Panel Count</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_PANEL_COUNT' | translate }}</span>
                 <span class="review-val">{{ panelCount() }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Total Power</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_PANEL_POWER' | translate }}</span>
                 <span class="review-val review-val-highlight">
                   <i class="pi pi-bolt" style="color: var(--p-yellow-500)"></i>
                   {{ totalPowerKWp().toFixed(1) }} kWp
                 </span>
               </div>
               <div class="review-row">
-                <span class="review-key">Tilt Angle</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_TILT' | translate }}</span>
                 <span class="review-val">{{ tiltAngle() }}°</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Orientation</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_ORIENTATION' | translate }}</span>
                 <span class="review-val">{{ capitalizeFirst(selectedDirection()) }}</span>
               </div>
               <div class="review-row">
-                <span class="review-key">Row Spacing</span>
+                <span class="review-key">{{ 'ADD_PROJECT.REVIEW_SPACING' | translate }}</span>
                 <span class="review-val">{{ rowSpacing() }} m</span>
               </div>
               @if (selectedPanelData()) {
                 <div class="review-row">
-                  <span class="review-key">Panel Area</span>
+                  <span class="review-key">{{ 'ADD_PROJECT.REVIEW_PANEL_AREA' | translate }}</span>
                   <span class="review-val">{{ totalPanelArea().toFixed(1) }} m²</span>
                 </div>
               }
@@ -810,27 +810,27 @@
             <div class="review-section">
               <div class="review-section-header review-section-green">
                 <i class="pi pi-leaf"></i>
-                <span>Cultivar Configuration</span>
+                <span>{{ 'ADD_PROJECT.REVIEW_CULTIVAR_SECTION' | translate }}</span>
               </div>
               <div class="review-rows">
                 <div class="review-row">
-                  <span class="review-key">Cultivar</span>
+                  <span class="review-key">{{ 'ADD_PROJECT.REVIEW_CULTIVAR' | translate }}</span>
                   <span class="review-val">{{ selectedCultivarData()?.name ?? '—' }}</span>
                 </div>
                 @if (selectedCultivarData(); as crop) {
                   <div class="review-row">
-                    <span class="review-key">Category</span>
+                    <span class="review-key">{{ 'ADD_PROJECT.REVIEW_CATEGORY' | translate }}</span>
                     <span class="review-val">{{ crop.category }}</span>
                   </div>
                   <div class="review-row">
-                    <span class="review-key">Light Requirement</span>
+                    <span class="review-key">{{ 'ADD_PROJECT.REVIEW_LIGHT' | translate }}</span>
                     <span class="review-val">
                       <p-tag [value]="formatLightRequirement(crop.lightRequirement)" severity="secondary" [rounded]="true" />
                     </span>
                   </div>
                 }
                 <div class="review-row">
-                  <span class="review-key">Min Clearance Height</span>
+                  <span class="review-key">{{ 'ADD_PROJECT.REVIEW_HEIGHT' | translate }}</span>
                   <span class="review-val">{{ minHeight() }} m</span>
                 </div>
               </div>
@@ -843,15 +843,15 @@
           <div class="stat-cards stat-cards-3">
             <div class="stat-card">
               <i class="pi pi-bolt stat-icon" style="color: var(--p-yellow-500)"></i>
-              <small class="stat-label">Total Power</small>
+              <small class="stat-label">{{ 'ADD_PROJECT.TOTAL_POWER_LABEL' | translate }}</small>
               <span class="stat-value-lg">{{ totalPowerKWp().toFixed(1) }} kWp</span>
-              <small class="stat-sub">{{ panelCount() }} panels</small>
+              <small class="stat-sub">{{ panelCount() }} {{ 'ADD_PROJECT.PANELS_SUFFIX' | translate }}</small>
             </div>
             <div class="stat-card">
               <i class="pi pi-box stat-icon" style="color: var(--p-blue-500)"></i>
-              <small class="stat-label">Installation Area</small>
+              <small class="stat-label">{{ 'ADD_PROJECT.AREA_LABEL' | translate }}</small>
               <span class="stat-value-lg">{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : 'TBD' }}</span>
-              <small class="stat-sub truncate">{{ addressResult() || 'No location' }}</small>
+              <small class="stat-sub truncate">{{ addressResult() || ('ADD_PROJECT.NO_LOCATION' | translate) }}</small>
             </div>
             <div class="stat-card">
               @if (projectType() === 'agrivoltaic') {
@@ -859,9 +859,9 @@
               } @else {
                 <i class="pi pi-home stat-icon" style="color: var(--p-primary-color)"></i>
               }
-              <small class="stat-label">Project Type</small>
-              <span class="stat-value-lg">{{ projectType() === 'agrivoltaic' ? 'Agrivoltaic' : 'Roof Mounting' }}</span>
-              <small class="stat-sub truncate">{{ projectType() === 'agrivoltaic' ? (selectedCultivarData()?.name ?? 'No cultivar') : 'Standard installation' }}</small>
+              <small class="stat-label">{{ 'ADD_PROJECT.PROJECT_TYPE_LABEL' | translate }}</small>
+              <span class="stat-value-lg">{{ projectType() === 'agrivoltaic' ? ('ADD_PROJECT.AGRIVOLTAIC' | translate) : ('ADD_PROJECT.ROOF_MOUNTING' | translate) }}</span>
+              <small class="stat-sub truncate">{{ projectType() === 'agrivoltaic' ? (selectedCultivarData()?.name ?? ('ADD_PROJECT.NO_CULTIVAR' | translate)) : ('ADD_PROJECT.STANDARD_INSTALL' | translate) }}</small>
             </div>
           </div>
 
@@ -869,20 +869,20 @@
           <div class="production-card">
             <div class="production-header">
               <i class="pi pi-bolt" style="color: var(--p-yellow-500)"></i>
-              <span>Estimated Annual Production</span>
+              <span>{{ 'ADD_PROJECT.ANNUAL_PRODUCTION' | translate }}</span>
             </div>
             <div class="production-grid">
               <div class="production-item">
                 <span class="production-value">{{ (totalPowerKWp() * 1350).toFixed(0) }}</span>
-                <small class="production-label">kWh/year (est.)</small>
+                <small class="production-label">{{ 'ADD_PROJECT.KWH_YEAR_EST' | translate }}</small>
               </div>
               <div class="production-item">
                 <span class="production-value">€{{ (totalPowerKWp() * 1350 * energyPrice()).toFixed(0) }}</span>
-                <small class="production-label">annual savings (est.)</small>
+                <small class="production-label">{{ 'ADD_PROJECT.ANNUAL_SAVINGS_EST' | translate }}</small>
               </div>
               <div class="production-item">
                 <span class="production-value">{{ (totalPowerKWp() * 1350 * 0.000233).toFixed(1) }}</span>
-                <small class="production-label">tonnes CO₂ avoided/year</small>
+                <small class="production-label">{{ 'ADD_PROJECT.CO2_AVOIDED' | translate }}</small>
               </div>
             </div>
           </div>

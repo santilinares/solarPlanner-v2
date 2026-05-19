@@ -10,6 +10,7 @@ import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { LoginRequest, getErrorMessage } from '@core/models';
 import { environment } from '@environments/environment';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-login',
@@ -23,6 +24,7 @@ import { environment } from '@environments/environment';
     PasswordModule,
     CardModule,
     MessageModule,
+    TranslateModule,
   ],
   template: `
     <div class="login-page animate-fade-in-up">
@@ -30,14 +32,14 @@ import { environment } from '@environments/environment';
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-sign-in solar-icon"></i>
-            <h2>Welcome Back</h2>
-            <p class="subtitle">Sign in to access your solar planning dashboard</p>
+            <h2>{{ 'AUTH.LOGIN.TITLE' | translate }}</h2>
+            <p class="subtitle">{{ 'AUTH.LOGIN.SUBTITLE' | translate }}</p>
           </div>
         </ng-template>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
-            <label for="email">Email Address</label>
+            <label for="email">{{ 'AUTH.LOGIN.EMAIL_LABEL' | translate }}</label>
             <input
               pInputText
               id="email"
@@ -49,16 +51,16 @@ import { environment } from '@environments/environment';
             />
             @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
               <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Valid email is required
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.LOGIN.EMAIL_ERROR' | translate }}
               </small>
             }
           </div>
 
           <div class="form-field">
-            <label for="password">Password</label>
+            <label for="password">{{ 'AUTH.LOGIN.PASSWORD_LABEL' | translate }}</label>
             <p-password
               formControlName="password"
-              placeholder="Enter your password"
+              [placeholder]="'AUTH.LOGIN.PASSWORD_PLACEHOLDER' | translate"
               [toggleMask]="true"
               [feedback]="false"
               class="w-full"
@@ -66,7 +68,7 @@ import { environment } from '@environments/environment';
             ></p-password>
             @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
               <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Password is required
+                <i class="pi pi-exclamation-circle"></i> {{ 'AUTH.LOGIN.PASSWORD_ERROR' | translate }}
               </small>
             }
           </div>
@@ -84,7 +86,7 @@ import { environment } from '@environments/environment';
           <div class="auth-btn-row">
             <p-button
               type="submit"
-              label="Sign In"
+              [label]="'AUTH.LOGIN.SUBMIT' | translate"
               icon="pi pi-sign-in"
               [disabled]="loading() || loginForm.invalid"
               [loading]="loading()"
@@ -92,7 +94,7 @@ import { environment } from '@environments/environment';
 
             <p-button
               type="button"
-              label="Continue with Google"
+              [label]="'AUTH.LOGIN.GOOGLE' | translate"
               [disabled]="loading()"
               [loading]="googleLoading()"
               severity="secondary"
@@ -106,10 +108,10 @@ import { environment } from '@environments/environment';
 
           <div class="form-links">
             <a routerLink="/forgot_password" class="link">
-              <i class="pi pi-question-circle"></i> Forgot password?
+              <i class="pi pi-question-circle"></i> {{ 'AUTH.LOGIN.FORGOT_PASSWORD' | translate }}
             </a>
             <a routerLink="/registration" class="link">
-              <i class="pi pi-user-plus"></i> Create account
+              <i class="pi pi-user-plus"></i> {{ 'AUTH.LOGIN.CREATE_ACCOUNT' | translate }}
             </a>
           </div>
         </form>
@@ -276,6 +278,7 @@ export class LoginComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
 
   loading = signal(false);
   googleLoading = signal(false);
@@ -317,7 +320,7 @@ export class LoginComponent implements OnInit {
           },
           error: (err: unknown) => {
             this.loading.set(false);
-            this.errorMessage.set(getErrorMessage(err, 'Google sign-in failed. Please try again.'));
+            this.errorMessage.set(getErrorMessage(err, this.translate.instant('AUTH.LOGIN.GOOGLE_FAILED') || 'Google sign-in failed. Please try again.'));
           },
           complete: () => {
             this.loading.set(false);
@@ -345,7 +348,7 @@ export class LoginComponent implements OnInit {
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(getErrorMessage(err, 'Login failed. Please try again.'));
+          this.errorMessage.set(getErrorMessage(err, this.translate.instant('AUTH.LOGIN.FAILED') || 'Login failed. Please try again.'));
         },
         complete: () => {
           this.loading.set(false);

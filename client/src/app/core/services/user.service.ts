@@ -36,6 +36,13 @@ export class UserService {
   }
 
   /**
+   * Update preferred language for current user
+   */
+  updatePreferredLang(lang: 'en' | 'es'): Observable<UserResponse> {
+    return this.http.patch<UserResponse>(`${this.apiUrl}/me/lang`, { preferredLang: lang });
+  }
+
+  /**
    * Get all users (admin only)
    */
   getAllUsers(): Observable<UserListResponse> {

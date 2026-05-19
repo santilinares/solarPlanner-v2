@@ -80,8 +80,15 @@ export const UserUpdateProfileSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(120),
 });
 
+export const UserUpdateLangSchema = z.object({
+  preferredLang: z.enum(['en', 'es']),
+});
+
 /** Type inferred from UserUpdateProfileSchema - used for updating user profile */
 export type UserUpdateProfileInput = z.infer<typeof UserUpdateProfileSchema>;
+
+/** Type inferred from UserUpdateLangSchema */
+export type UserUpdateLangInput = z.infer<typeof UserUpdateLangSchema>;
 
 /**
  * Password change schema
