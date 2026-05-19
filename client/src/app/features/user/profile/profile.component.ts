@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import {
   FormBuilder,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
   AbstractControl,
@@ -14,12 +15,15 @@ import {
 } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { DividerModule } from 'primeng/divider';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { ToastModule } from 'primeng/toast';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
+import { ThemeService } from '@core/services/theme.service';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const newPassword = control.get('newPassword')?.value;
@@ -33,12 +37,15 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
   selector: 'app-profile',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FormsModule,
     ReactiveFormsModule,
     ButtonModule,
     CardModule,
+    DividerModule,
     InputTextModule,
     PasswordModule,
     ToastModule,
+    ToggleSwitchModule,
   ],
   providers: [MessageService],
   template: `
@@ -151,6 +158,28 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
         </p-card>
 
       </div>
+
+      <p-divider />
+
+      <!-- Preferences section -->
+      <div class="preferences-section">
+        <h2 class="section-title">Preferences</h2>
+        <p class="section-description">Customize your Solar Planner experience.</p>
+
+        <div class="pref-row">
+          <div class="pref-info">
+            <span class="material-icons pref-icon">dark_mode</span>
+            <div>
+              <p class="pref-label">Dark mode</p>
+              <p class="pref-hint">Switch between light and dark theme</p>
+            </div>
+          </div>
+          <p-toggleswitch
+            [ngModel]="themeService.isDarkMode()"
+            (onChange)="themeService.toggle()"
+          />
+        </div>
+      </div>
     </section>
   `,
   styles: [`
@@ -241,16 +270,71 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
       font-size: 0.8rem;
     }
 
+    .preferences-section {
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--p-text-color);
+        margin: 0 0 0.25rem;
+      }
+
+      .section-description {
+        color: var(--p-text-muted-color);
+        font-size: 0.9rem;
+        margin: 0 0 1.5rem;
+      }
+    }
+
+    .pref-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-radius: 0.75rem;
+      background: var(--p-surface-100);
+      border: 1px solid var(--p-surface-200);
+      max-width: 32rem;
+    }
+
+    .pref-info {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+
+      .pref-icon {
+        font-size: 1.4rem;
+        color: var(--p-primary-600);
+      }
+
+      .pref-label {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--p-text-color);
+      }
+
+      .pref-hint {
+        margin: 0.1rem 0 0;
+        font-size: 0.8rem;
+        color: var(--p-text-muted-color);
+      }
+    }
+
     @media (max-width: 640px) {
       .profile-header {
         flex-direction: column;
         align-items: flex-start;
+      }
+
+      .pref-row {
+        max-width: 100%;
       }
     }
   `]
 })
 export class ProfileComponent implements OnInit {
   readonly authService = inject(AuthService);
+  readonly themeService = inject(ThemeService);
   private readonly userService = inject(UserService);
   private readonly messageService = inject(MessageService);
   private readonly fb = inject(FormBuilder);

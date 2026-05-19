@@ -4,6 +4,62 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 19, 2026 - Fusión de Settings en Profile + ThemeService (modo oscuro)
+
+### Topic
+Eliminar el `SettingsComponent` placeholder y fusionarlo en `ProfileComponent`, añadiendo una sección de Preferencias con toggle de modo oscuro persistido en localStorage.
+
+### Summary of Prompt
+El usuario observó que `SettingsComponent` era un placeholder vacío sin funcionalidad y `ProfileComponent` tenía gestión de cuenta y contraseña ya completa. Propuso fusionarlos en una sola página con separación visual, y añadir modo oscuro/claro e idioma (idioma pospuesto para otro momento).
+
+### What Was Achieved
+- **ThemeService** creado en `core/services/theme.service.ts`: se auto-inicializa en el constructor leyendo `localStorage('solar-planner-theme')` y aplica la clase `.dark-mode` en `document.documentElement`. PrimeNG ya tenía `darkModeSelector: '.dark-mode'` configurado en `app.config.ts`, por lo que el dark mode funciona inmediatamente.
+- **ProfileComponent** expandido con una tercera sección "Preferences" separada por `<p-divider>`, con un `<p-toggleswitch>` que invoca `themeService.toggle()`. El tema persiste entre recargas.
+- **Routing**: la ruta `/projects/settings` ahora redirige a `/projects/profile` con `redirectTo: 'profile'`.
+- **UserLayout**: eliminado el ítem "Settings" del dock primario (era redundante). El ítem de Profile en el dock inferior ahora tiene label "Profile & Settings" y matchea también `/projects/settings`.
+- **SettingsComponent eliminado** del proyecto.
+
+### Full Prompt
+> "que se te ocurre que podamos añadir en el apartado de settings (y quizas completar tambien el perfil de usuario). A mi se me ocurre algo como idioma, modo noche y modo light. Otra cosa que se me ocurre es tener en el perfil de usuario todo integrado, también las settings, ya que tenemos pocas cosas en las settings. Creo que lo mejor es fusionarlos y mediante UI separar visualmente la parte de gestion del perfil de usuario vs settings, que te parece?"
+
+### Affected Files
+- `client/src/app/core/services/theme.service.ts` — NUEVO
+- `client/src/app/core/services/index.ts` — añadido export de ThemeService
+- `client/src/app/features/user/profile/profile.component.ts` — añadida sección Preferences con ToggleSwitch
+- `client/src/app/features/user/settings/settings.component.ts` — ELIMINADO
+- `client/src/app/app.routes.ts` — settings → redirectTo profile
+- `client/src/app/layouts/user-layout/user-layout.component.ts` — eliminado Settings del dock, actualizado profileNavItem
+
+### Reasoning
+PrimeNG 21 ya tiene `darkModeSelector: '.dark-mode'` preconfigured, lo que hace que la implementación del theme sea trivial: basta con añadir/quitar esa clase en el `<html>`. Un `ThemeService` con `signal()` auto-inicializado desde localStorage es la forma más limpia sin necesitar APP_INITIALIZER ni ningún proveedor adicional. La fusión de Settings en Profile evita mantener una página casi vacía y mejora la coherencia de la navegación.
+
+---
+
+## May 19, 2026 - Plan de despliegue en markdown del proyecto
+
+### Topic
+Publicar dentro del repositorio un fichero markdown con el plan de despliegue de frontend en Vercel, backend en Render y base de datos en MongoDB Atlas.
+
+### Summary of Prompt
+El usuario pidió explícitamente dejar el plan en un archivo markdown dentro del proyecto.
+
+### What Was Achieved
+- Se creó un nuevo documento en la raíz del repositorio con el plan completo de despliegue.
+- El contenido incluye estado actual del código, fases, variables críticas, integración CORS/Auth y checklist de salida.
+
+### Full Prompt
+> "Puedes dejar el plan en un fichero markdown dentro del proyecto, porfa?"
+
+### Affected Files
+- `deployment-plan-vercel-render-atlas.md`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- La petición fue documental y concreta: mover el plan desde el workspace de sesión al repositorio para que quede versionable y accesible al equipo.
+- Se mantuvo el alcance de investigación + guía, sin introducir configuración de despliegue ejecutable en esta fase.
+
+---
+
 ## May 3, 2026 - Lint Fix: estimateFromPolygon Async Removal
 
 ### Topic
