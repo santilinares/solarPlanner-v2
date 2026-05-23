@@ -8,7 +8,6 @@ import { environment } from '@environments/environment';
 
 const STUB_RESPONSE: AuthResponse = {
   token: 'access-token',
-  refreshToken: 'refresh-token',
   user: {
     id: '1',
     email: 'test@example.com',
@@ -58,12 +57,11 @@ describe('AuthService', () => {
       req.flush(STUB_RESPONSE);
     });
 
-    it('stores tokens in localStorage on success', () => {
+    it('stores access token in localStorage on success', () => {
       service.login({ email: 'a@b.com', password: 'pass' }).subscribe();
       httpMock.expectOne(`${environment.apiUrl}/auth/login`).flush(STUB_RESPONSE);
 
       expect(localStorage.getItem('token')).toBe('access-token');
-      expect(localStorage.getItem('refreshToken')).toBe('refresh-token');
     });
 
     it('sets isAuthenticated and currentUser signals on success', () => {
@@ -90,19 +88,22 @@ describe('AuthService', () => {
   });
 
   describe('logout()', () => {
-    it('clears localStorage, resets signals, and navigates to /login', () => {
+    it('POSTs to /auth/logout, clears localStorage, resets signals, and navigates to /login', () => {
       const router = TestBed.inject(Router);
       jest.spyOn(router, 'navigate').mockResolvedValue(true);
 
       localStorage.setItem('token', 'tok');
-      localStorage.setItem('refreshToken', 'ref');
       service.currentUser.set(STUB_RESPONSE.user);
       service.isAuthenticated.set(true);
 
       service.logout();
 
+      const req = httpMock.expectOne(`${environment.apiUrl}/auth/logout`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.withCredentials).toBe(true);
+      req.flush({});
+
       expect(localStorage.getItem('token')).toBeNull();
-      expect(localStorage.getItem('refreshToken')).toBeNull();
       expect(service.isAuthenticated()).toBe(false);
       expect(service.currentUser()).toBeNull();
       expect(router.navigate).toHaveBeenCalledWith(['/login']);
@@ -147,14 +148,12 @@ describe('AuthService', () => {
   });
 
   describe('refreshToken()', () => {
-    it('POSTs the stored refresh token to /auth/refresh', () => {
-      localStorage.setItem('refreshToken', 'stored-refresh');
-
+    it('POSTs to /auth/refresh with credentials (cookie sent automatically)', () => {
       service.refreshToken().subscribe();
 
       const req = httpMock.expectOne(`${environment.apiUrl}/auth/refresh`);
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ refreshToken: 'stored-refresh' });
+      expect(req.request.withCredentials).toBe(true);
       req.flush(STUB_RESPONSE);
     });
   });

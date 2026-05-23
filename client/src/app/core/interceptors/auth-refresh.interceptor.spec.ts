@@ -9,7 +9,6 @@ import { AuthResponse, UserRole } from '../models';
 
 const STUB_RESPONSE: AuthResponse = {
   token: 'new-access-token',
-  refreshToken: 'new-refresh-token',
   user: {
     id: '1',
     email: 'test@example.com',

@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { corsMiddleware } from './middleware/cors.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import routes from './routes';
@@ -16,7 +17,7 @@ export function createApp(): Application {
   // CORS middleware
   app.use(corsMiddleware);
 
-
+  app.use(cookieParser());
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 

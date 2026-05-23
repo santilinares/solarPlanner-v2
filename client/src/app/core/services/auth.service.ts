@@ -49,7 +49,7 @@ export class AuthService {
       password: data.password,
     };
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/register`, payload)
+      .post<AuthResponse>(`${this.authUrl}/register`, payload, { withCredentials: true })
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
@@ -58,7 +58,7 @@ export class AuthService {
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/login`, credentials)
+      .post<AuthResponse>(`${this.authUrl}/login`, credentials, { withCredentials: true })
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
@@ -67,20 +67,24 @@ export class AuthService {
    */
   loginWithGoogle(idToken: string): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/google`, { idToken })
+      .post<AuthResponse>(`${this.authUrl}/google`, { idToken }, { withCredentials: true })
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
   /**
-   * Logout user
+   * Logout user — clears the HttpOnly cookie on server, then local state
    */
   logout(): void {
+    this.http
+      .post(`${this.authUrl}/logout`, {}, { withCredentials: true })
+      .subscribe({ complete: () => this.clearLocalSession(), error: () => this.clearLocalSession() });
+  }
+
+  private clearLocalSession(): void {
     localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
     this.router.navigate(['/login']).catch(() => {
-      // Fallback to hard navigation if Angular routing fails
       window.location.href = '/login';
     });
   }
@@ -112,27 +116,19 @@ export class AuthService {
   }
 
   /**
-   * Refresh the access token using the refresh token
+   * Refresh the access token — refresh token is sent automatically via HttpOnly cookie
    */
   refreshToken(): Observable<AuthResponse> {
-    const refreshToken = localStorage.getItem('refreshToken');
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/refresh`, { refreshToken })
+      .post<AuthResponse>(`${this.authUrl}/refresh`, {}, { withCredentials: true })
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
   /**
-   * Get current token
+   * Get current access token
    */
   getToken(): string | null {
     return localStorage.getItem('token');
-  }
-
-  /**
-   * Get current refresh token
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem('refreshToken');
   }
 
   /**
@@ -159,11 +155,10 @@ export class AuthService {
   }
 
   /**
-   * Handle successful authentication
+   * Handle successful authentication — refresh token arrives as HttpOnly cookie (not in body)
    */
   private handleAuthSuccess(response: AuthResponse): void {
     localStorage.setItem('token', response.token);
-    localStorage.setItem('refreshToken', response.refreshToken);
     this.currentUser.set(response.user);
     this.isAuthenticated.set(true);
   }
