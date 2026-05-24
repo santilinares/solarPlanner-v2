@@ -1,4 +1,4 @@
-@if (projectData() && isConfigureMode()) {
+@if (projectData()) {
 <div class="configure-sticky-header">
     <div class="step-nav-bar">
       <div class="step-nav-left">
@@ -21,28 +21,28 @@
             size="small"
         />
       </div>
-        <span class="step-nav-mode-label">Configure Mode</span>
-        <div class="step-nav-right">
-            @if (activeStep() < 2) {
+      <span class="step-nav-mode-label">Configure Mode</span>
+      <div class="step-nav-right">
+        @if (activeStep() < 2) {
           <p-button
-          [label]="stepNextLabel()"
-          icon="pi pi-arrow-right"
-          iconPos="right"
-          [rounded]="true"
-          (onClick)="activeStep.set(activeStep() + 1)"
-          size="small"
+            [label]="stepNextLabel()"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            [rounded]="true"
+            (onClick)="activeStep.set(activeStep() + 1)"
+            size="small"
           />
-      } @else {
+        } @else {
           <p-button
-          label="Save Changes"
-          icon="pi pi-check"
-          [rounded]="true"
-          [loading]="isSaving()"
-          [disabled]="!canSave()"
-          (onClick)="onSave()"
-          size="small"
+            label="Save Changes"
+            icon="pi pi-check"
+            [rounded]="true"
+            [loading]="isSaving()"
+            [disabled]="!canSave()"
+            (onClick)="onSave()"
+            size="small"
           />
-      }
+        }
       </div>
     </div>
 </div>
@@ -87,12 +87,6 @@
     <!-- Main content -->
     @else if (projectData()) {
     <header class="page-header">
-        @if (isViewMode()) {
-        <a class="back-link" [routerLink]="isConfigureMode() ? '/projects/' + projectId() : '/projects/all'">
-        <i class="pi pi-arrow-left"></i>
-        {{ isConfigureMode() ? 'Back to Project' : 'Back to Projects' }}
-        </a>
-        }
         <div class="header-row">
         <div class="header-title-area">
             <div class="editable-name-wrapper">
@@ -103,48 +97,23 @@
                 placeholder="Project Name"
                 autocomplete="off"
                 spellcheck="false"
-                [readonly]="isViewMode()"
             />
             </div>
             <p class="subtitle">
-            <i [class]="isConfigureMode() ? 'pi pi-cog icon-lg' : 'pi pi-eye icon-lg'"></i>
-            {{ isConfigureMode() ? 'Configure your solar project' : 'Project details' }}
+            <i class="pi pi-cog icon-lg"></i>
+            Configure your solar project
             </p>
         </div>
-        @if (isViewMode()) {
-        <div class="header-actions">
-          <p-button
-              label="Download Plan"
-              icon="pi pi-download"
-              severity="secondary"
-              [outlined]="true"
-              [rounded]="true"
-              [loading]="isDownloadingPlan()"
-              (onClick)="downloadPlan()"
-          />
-          <p-button
-              label="Configure"
-              icon="pi pi-cog"
-              [routerLink]="'/projects/' + projectId() + '/configure'"
-              [rounded]="true"
-          />
-        </div>
-        }
-        @if (isConfigureMode()) {
         <p-tag
             [value]="hasUnsavedChanges() ? 'Unsaved Changes' : 'All Saved'"
             [severity]="hasUnsavedChanges() ? 'warn' : 'success'"
             [rounded]="true"
             [icon]="hasUnsavedChanges() ? 'pi pi-pencil' : 'pi pi-check'"
         />
-        }
         </div>
     </header>
 
-    
-
     <p-stepper [(value)]="activeStep" class="configure-stepper">
-
         <p-step-panels>
         <!-- ════════ STEP 1: Panel Setup (metadata strip + 2×2 Grid) ════════ -->
         <p-step-panel [value]="1">
@@ -164,7 +133,6 @@
                     inputId="strip-currency"
                     appendTo="body"
                     [style]="{ 'min-width': '130px' }"
-                    [disabled]="isViewMode()"
                 />
                 </div>
                 <div class="meta-editable">
@@ -180,254 +148,38 @@
                     [placeholder]="'Price of KW/h'"
                     suffix=" /kWh"
                     [style]="{ 'max-width': '170px' }"
-                    [disabled]="isViewMode()"
                 />
                 </div>
             </div>
 
             <div class="setup-grid">
-                <!-- ── Location & Area (top-left) ── -->
-                <div class="step-card map-edit-card">
-                <div class="step-card-header">
-                    <div class="step-card-icon location-icon">
-                    <i class="pi pi-map-marker"></i>
-                    </div>
-                    <div>
-                    <h2>Location & Area</h2>
-                    <p>Search for an address and draw the installation area polygon.</p>
-                    </div>
-                </div>
+                <app-configure-location-step
+                  [polygonCoords]="polygonCoords()"
+                  [mapLat]="mapLat()"
+                  [mapLng]="mapLng()"
+                  [mapCenter]="mapCenter()"
+                  [isSearching]="isSearching()"
+                  [searchError]="searchError()"
+                  (polygonChange)="onPolygonChange($event)"
+                  (addressSearch)="searchAddress($event)"
+                />
 
-                <p-divider />
-
-                <div class="location-search">
-                    <span class="p-input-icon-right location-search-input">
-                    <input
-                        pInputText
-                        type="text"
-                        placeholder="Search address or place…"
-                        [value]="addressQuery()"
-                        (input)="addressQuery.set($any($event.target).value)"
-                        (keydown.enter)="searchAddress()"
-                        aria-label="Search location"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                    />
-                    </span>
-                    @if (isConfigureMode()) {
-                    <p-button
-                    icon="pi pi-search"
-                    [rounded]="true"
-                    [loading]="isSearching()"
-                    [disabled]="isSearching() || !addressQuery().trim()"
-                    (onClick)="searchAddress()"
-                    pTooltip="Search location"
-                    aria-label="Go to location"
-                    size="small"
-                    />
-                    }
-                </div>
-                @if (searchError()) {
-                    <small class="field-error">{{ searchError() }}</small>
-                }
-
-                <div class="map-container">
-                    <app-location-map
-                    [editable]="isConfigureMode()"
-                    [centerOnUser]="mapLat() == null || mapLng() == null"
-                    [center]="mapCenter()"
-                    [lat]="mapLat() ?? 0"
-                    [lng]="mapLng() ?? 0"
-                    [polygon]="polygonCoords()"
-                    (polygonChange)="onPolygonChange($event)"
-                    />
-                </div>
-
-                @if (polygonCoords().length === 0) {
-                    <div class="map-instructions">
-                    <i class="pi pi-info-circle"></i>
-                    <span>Use the polygon draw tool on the map to define the installation area.</span>
-                    </div>
-                } @else {
-                    <div class="map-status">
-                    <i class="pi pi-check-circle"></i>
-                    <span>Polygon defined with {{ polygonCoords().length }} points</span>
-                    </div>
-                }
-                </div>
-
-                <!-- ── Panel & Installation (top-right) ── -->
-                <div class="step-card panel-installation-card">
-                <div class="step-card-header">
-                    <div class="step-card-icon panel-icon">
-                    <i class="pi pi-sun"></i>
-                    </div>
-                    <div>
-                    <h2>Panel & Installation</h2>
-                    <p>Configure solar panel type, tilt, orientation and layout.</p>
-                    </div>
-                </div>
-
-                <p-divider />
-
-                <form [formGroup]="configForm" class="form-grid">
-                    <div class="form-field full-width">
-                    <p-floatlabel variant="on">
-                        <p-select
-                        [options]="panelsWithLabel()"
-                        optionLabel="displayLabel"
-                        optionValue="id"
-                        formControlName="panelId"
-                        inputId="panelId"
-                        [filter]="true"
-                        filterBy="brand,model"
-                        placeholder="Choose a panel"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                        >
-                        <ng-template #selectedItem let-selectedPanel>
-                            @if (selectedPanel) {
-                            <div class="panel-option">
-                                <strong>{{ selectedPanel.brand }} {{ selectedPanel.model }}</strong>
-                                <span class="panel-watts">{{ selectedPanel.wattPeak }}W</span>
-                            </div>
-                            }
-                        </ng-template>
-                        <ng-template #item let-panel>
-                            <div class="panel-option">
-                            <div>
-                                <strong>{{ panel.brand }} {{ panel.model }}</strong>
-                                <small class="panel-meta">
-                                {{ panel.wattPeak }}W · {{ panel.efficiency }}% eff · {{ panel.technology }}
-                                </small>
-                            </div>
-                            <span class="panel-watts">{{ panel.wattPeak }}W</span>
-                            </div>
-                        </ng-template>
-                        </p-select>
-                        <label for="panelId">Solar Panel</label>
-                    </p-floatlabel>
-                    </div>
-
-                    @if (selectedPanelData()) {
-                    <div class="form-field full-width">
-                        <div class="panel-info-card">
-                        <div class="panel-info-surface">
-                        <div class="panel-info-header">
-                            <span class="panel-info-title">
-                            <i class="pi pi-info-circle" aria-hidden="true"></i>
-                            <strong>{{ selectedPanelName() }}</strong>
-                            </span>
-                            <p>{{ selectedPanelTechDimensions() }}</p>
-                        </div>
-                        <div class="panel-info-tags">
-                            @for (entry of panelTagEntries(); track entry.label) {
-                            <p-tag
-                                [value]="entry.value"
-                                [icon]="entry.icon"
-                                [severity]="entry.severity"
-                                [rounded]="true"
-                                [attr.aria-label]="entry.label"
-                                [pTooltip]="entry.label"
-                            />
-                            }
-                        </div>
-                        </div>
-                        </div>
-                    </div>
-                    }
-
-                    <div class="form-field">
-                    <p-floatlabel variant="on">
-                        <p-inputnumber
-                        formControlName="panelNumber"
-                        inputId="panelNumber"
-                        [showButtons]="true"
-                        [min]="1"
-                        [max]="9999"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                        />
-                        <label for="panelNumber">Number of Panels</label>
-                    </p-floatlabel>
-                    </div>
-
-                    <div class="form-field">
-                    <p-floatlabel variant="on">
-                        <p-inputnumber
-                        formControlName="tilt"
-                        inputId="tilt"
-                        [showButtons]="true"
-                        [min]="0"
-                        [max]="90"
-                        suffix="°"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                        />
-                        <label for="tilt">Tilt / Inclination</label>
-                    </p-floatlabel>
-                    </div>
-
-                    <div class="form-field">
-                    <p-floatlabel variant="on">
-                        <p-select
-                        [options]="orientationOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        formControlName="direction"
-                        inputId="direction"
-                        placeholder="Select orientation"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                        >
-                        <ng-template #selectedItem let-opt>
-                            @if (opt) {
-                            <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span>
-                            }
-                        </ng-template>
-                        <ng-template #item let-opt>
-                            <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span>
-                        </ng-template>
-                        </p-select>
-                        <label for="direction">Orientation / Direction</label>
-                    </p-floatlabel>
-                    </div>
-
-                    <div class="form-field">
-                    <p-floatlabel variant="on">
-                        <p-inputnumber
-                        formControlName="azimuth"
-                        inputId="azimuth"
-                        [showButtons]="true"
-                        [min]="0"
-                        [max]="360"
-                        suffix="°"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                        />
-                        <label for="azimuth">Azimuth</label>
-                    </p-floatlabel>
-                    <small class="field-hint">0° = North, 180° = South</small>
-                    </div>
-
-                    <div class="form-field">
-                    <p-floatlabel variant="on">
-                        <p-inputnumber
-                        formControlName="rawSpacing"
-                        inputId="rawSpacing"
-                        mode="decimal"
-                        [minFractionDigits]="1"
-                        [maxFractionDigits]="2"
-                        [min]="0"
-                        suffix=" m"
-                        class="w-full"
-                        [disabled]="isViewMode()"
-                        />
-                        <label for="rawSpacing">Row Spacing</label>
-                    </p-floatlabel>
-                    </div>
-                </form>
-                </div>
+                <app-configure-panel-form-step
+                  [formGroup]="configForm"
+                  [panelsWithLabel]="panelsWithLabel()"
+                  [selectedPanelData]="selectedPanelData()"
+                  [selectedPanelName]="selectedPanelName()"
+                  [selectedPanelTechDimensions]="selectedPanelTechDimensions()"
+                  [panelTagEntries]="panelTagEntries()"
+                  [orientationOptions]="orientationOptions"
+                  [totalCapacityKw]="totalCapacityKw()"
+                  [projectTotalArea]="projectTotalArea()"
+                  [optimalConfig]="optimalConfig()"
+                  [isCalculating]="isCalculating()"
+                  [isUsingOptimalConfig]="isUsingOptimalConfig()"
+                  [panelNumber]="formValue().panelNumber ?? null"
+                  (applyOptimal)="applyOptimalConfig()"
+                />
 
                 <!-- ── 3D View Placeholder (bottom-left) ── -->
                 <div class="step-card placeholder-3d-card">
@@ -440,9 +192,7 @@
                     <p>Visual preview of the planned installation.</p>
                     </div>
                 </div>
-
                 <p-divider />
-
                 <div class="placeholder-content">
                     <i class="pi pi-box placeholder-main-icon"></i>
                     <span class="placeholder-title">Coming Soon</span>
@@ -450,83 +200,6 @@
                     Interactive 3D preview of your solar panel installation will appear here.
                     </span>
                 </div>
-                </div>
-
-                <!-- ── Live Capacity Preview (bottom-right) ── -->
-                <div class="step-card capacity-preview-card">
-                <div class="step-card-header">
-                    <div class="step-card-icon capacity-icon">
-                    <i class="pi pi-bolt"></i>
-                    </div>
-                    <div>
-                    <h2>Live Capacity Preview</h2>
-                    <p>Real-time estimation based on your configuration.</p>
-                    </div>
-                    <p-tag
-                    [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
-                    [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
-                    [rounded]="true"
-                    [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
-                    class="config-badge"
-                    />
-                </div>
-
-                <p-divider />
-
-                @if (isCalculating()) {
-                    <div class="calculating-state">
-                    <p-skeleton width="100%" height="3rem" borderRadius="12px" />
-                    <p-skeleton width="100%" height="3rem" borderRadius="12px" />
-                    <p-skeleton width="100%" height="4rem" borderRadius="12px" />
-                    </div>
-                } @else if (selectedPanelData(); as sp) {
-                    <div class="capacity-grid">
-                    <div class="capacity-item">
-                        <span class="capacity-label">Selected Panel</span>
-                        <strong>{{ sp.brand }} {{ sp.model }}</strong>
-                    </div>
-                    <div class="capacity-item">
-                        <span class="capacity-label">Panel Power</span>
-                        <strong>{{ sp.wattPeak }} W</strong>
-                    </div>
-                    <div class="capacity-item">
-                        <span class="capacity-label">Total Panels</span>
-                        <strong>{{ formValue().panelNumber || 0 }}</strong>
-                    </div>
-                    <div class="capacity-item">
-                        <span class="capacity-label">Project Total Area</span>
-                        <strong>{{ projectTotalArea() | number: '1.0-0' }} m²</strong>
-                    </div>
-                    <div class="capacity-item highlight">
-                        <span class="capacity-label">Total Capacity</span>
-                        <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
-                    </div>
-                    @if (optimalConfig(); as oc) {
-                        <div class="capacity-item">
-                        <span class="capacity-label">Est. Annual Production</span>
-                        <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
-                        </div>
-                        <div class="capacity-item">
-                        <span class="capacity-label">Area Coverage</span>
-                        <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
-                        </div>
-                    }
-                    </div>
-                    @if (isConfigureMode() && !isUsingOptimalConfig() && optimalConfig()) {
-                    <div class="optimal-hint">
-                        <i class="pi pi-info-circle"></i>
-                        <span>Custom configuration active.</span>
-                        <button class="link-btn" (click)="applyOptimalConfig()">
-                        Restore optimal ({{ optimalConfig()!.recommendedPanels }} panels)
-                        </button>
-                    </div>
-                    }
-                } @else {
-                    <div class="no-panel-message">
-                    <i class="pi pi-info-circle"></i>
-                    <span>Select a panel to see the capacity preview. Area: {{ projectTotalArea() | number: '1.0-0' }} m²</span>
-                    </div>
-                }
                 </div>
             </div>
 
@@ -596,351 +269,30 @@
                 </div>
               }
             </div>
-            <!-- ── Production Data (view mode only) ── -->
-            @if (isViewMode() && hasProductionData()) {
-
-              <!-- Economic value highlight -->
-              @if (economicValue(); as ev) {
-              <div class="step-card economic-value-card">
-                <div class="economic-value-content">
-                  <div class="economic-icon">
-                    <i class="pi pi-dollar"></i>
-                  </div>
-                  <div class="economic-info">
-                    <span>Estimated Energy Value</span>
-                    <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
-                    <small>{{ ev.totalKwh | number: '1.1-1' }} kWh × {{ projectData()?.price | number: '1.2-4' }}/kWh</small>
-                  </div>
-                </div>
-              </div>
-              }
-
-              
-              <!-- Next 6 days forecast + Past 6 days side by side -->
-              <div class="charts-pair-grid">
-                  <!-- Today's hourly production -->
-                  @if ((projectData()?.nextProd?.length ?? 0) > 0) {
-                <div class="step-card chart-card">
-                    <div class="step-card-header">
-                    <div class="step-card-icon chart-icon-today">
-                        <i class="pi pi-sun"></i>
-                    </div>
-                    <div>
-                        <h2>Today's Hourly Production</h2>
-                        <p>Forecasted PV output for today, hour by hour.</p>
-                    </div>
-                    </div>
-                    <p-divider />
-                    <highcharts-chart
-                    [Highcharts]="Highcharts"
-                    [options]="todayChartOptions()"
-                    [oneToOne]="true"
-                    style="width: 100%; max-width: 100%; height: 280px; display: block; overflow: hidden;"
-                    ></highcharts-chart>
-                </div>
-                <div class="step-card chart-card">
-                  <div class="step-card-header">
-                    <div class="step-card-icon chart-icon-forecast">
-                      <i class="pi pi-calendar"></i>
-                    </div>
-                    <div>
-                      <h2>Next 6 Days Forecast</h2>
-                      <p>Projected daily energy production.</p>
-                    </div>
-                  </div>
-                  <p-divider />
-                  <highcharts-chart
-                    [Highcharts]="Highcharts"
-                    [options]="nextProdChartOptions()"
-                    [oneToOne]="true"
-                    style="width: 100%; max-width: 100%; height: 260px; display: block; overflow: hidden;"
-                  ></highcharts-chart>
-                </div>
-                }
-
-                @if ((projectData()?.previousProd?.length ?? 0) > 0) {
-                <div class="step-card chart-card">
-                  <div class="step-card-header">
-                    <div class="step-card-icon chart-icon-past">
-                      <i class="pi pi-history"></i>
-                    </div>
-                    <div>
-                      <h2>Past 6 Days Estimates</h2>
-                      <p>Estimated actual production per day.</p>
-                    </div>
-                  </div>
-                  <p-divider />
-                  <highcharts-chart
-                    [Highcharts]="Highcharts"
-                    [options]="previousProdChartOptions()"
-                    [oneToOne]="true"
-                    style="width: 100%; max-width: 100%; height: 260px; display: block; overflow: hidden;"
-                  ></highcharts-chart>
-                </div>
-                }
-              </div>
-
-            }
-
-            <!-- ── Analytics (view mode only) ── -->
-            @if (isViewMode()) {
-              <!-- TODO: add Payback and ROI cards once installationCost is implemented -->
-              @if (isAnalyticsLoading()) {
-                <div class="charts-pair-grid">
-                  <p-skeleton width="100%" height="9rem" borderRadius="16px" />
-                  <p-skeleton width="100%" height="9rem" borderRadius="16px" />
-                </div>
-              } @else if (analytics(); as a) {
-                <div class="charts-pair-grid">
-                  <!-- Performance metrics card -->
-                  <div class="step-card analytics-perf-card">
-                    <div class="step-card-header">
-                      <div class="step-card-icon capacity-icon">
-                        <i class="pi pi-chart-line"></i>
-                      </div>
-                      <div>
-                        <h2>System Performance</h2>
-                        <p>Metrics based on PVGIS annual reference (NREL PVWatts V5).</p>
-                      </div>
-                    </div>
-                    <p-divider />
-                    <div class="capacity-grid">
-                      <div class="capacity-item highlight">
-                        <span class="capacity-label">Capacity Factor</span>
-                        <strong>{{ a.capacityFactor | number: '1.1-1' }} %</strong>
-                      </div>
-                      <div class="capacity-item">
-                        <span class="capacity-label">Performance Ratio</span>
-                        <strong>{{ a.performanceRatio != null ? (a.performanceRatio | number: '1.1-1') + ' %' : '—' }}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Annual savings card -->
-                  <div class="step-card analytics-savings-card">
-                    <div class="step-card-header">
-                      <div class="step-card-icon chart-icon-today">
-                        <i class="pi pi-wallet"></i>
-                      </div>
-                      <div>
-                        <h2>Estimated Annual Savings</h2>
-                        <p>Based on PVGIS yearly production × energy price.</p>
-                      </div>
-                    </div>
-                    <p-divider />
-                    @if (a.annualSavingsEur != null) {
-                      <div class="economic-value-content">
-                        <div class="economic-icon"><i class="pi pi-dollar"></i></div>
-                        <div class="economic-info">
-                          <span>Est. Annual Value</span>
-                          <strong>{{ getCurrencySymbol(projectData()?.currency ?? 'EUR') }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
-                          <small>{{ projectData()?.pvgisRef?.yearlyKwh | number: '1.0-0' }} kWh/yr × {{ projectData()?.price | number: '1.2-4' }}/kWh</small>
-                        </div>
-                      </div>
-                    } @else {
-                      <div class="sun-path-warning">
-                        <i class="pi pi-info-circle"></i>
-                        <span>Set an energy price to see savings estimates.</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <!-- 25-year projection chart -->
-                @if (a.annualSavingsPerYear) {
-                  <div class="step-card chart-card">
-                    <div class="step-card-header">
-                      <div class="step-card-icon chart-icon-forecast">
-                        <i class="pi pi-calendar-plus"></i>
-                      </div>
-                      <div>
-                        <h2>25-Year Savings Projection</h2>
-                        <p>Annual savings with panel degradation applied (NREL PVWatts V5).</p>
-                      </div>
-                    </div>
-                    <p-divider />
-                    <highcharts-chart
-                      [Highcharts]="Highcharts"
-                      [options]="savingsChartOptions()"
-                      [oneToOne]="true"
-                      style="width: 100%; max-width: 100%; height: 300px; display: block; overflow: hidden;"
-                    ></highcharts-chart>
-                  </div>
-                }
-              }
-            }
             </ng-template>
         </p-step-panel>
 
         <!-- ════════ STEP 2: Review & Save ════════ -->
-        @if (isConfigureMode()) {
         <p-step-panel [value]="2">
             <ng-template #content>
-            <div class="step-content">
-                <div class="review-grid">
-                <!-- Project & Metadata Summary -->
-                <div class="step-card review-card">
-                    <div class="review-card-header">
-                    <h3><i class="pi pi-file-edit"></i> Project & Metadata</h3>
-                    </div>
-                    <p-divider />
-                    <div class="review-items">
-                    <div class="review-item">
-                        <span>Project Name</span>
-                        <strong>{{ formValue().name || '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Country</span>
-                        <strong>{{ formValue().country || '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Timezone</span>
-                        <strong>{{ formValue().timezone || '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Currency</span>
-                        <strong>{{ formValue().currency || '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Energy Price</span>
-                        <strong>{{ formValue().price != null ? (formValue().price | number: '1.2-4') + '/kWh' : '—' }}</strong>
-                    </div>
-                    </div>
-                </div>
-
-                <!-- Location & Area Summary -->
-                <div class="step-card review-card">
-                    <div class="review-card-header">
-                    <h3><i class="pi pi-map-marker"></i> Location & Area</h3>
-                    <p-button
-                        icon="pi pi-pencil"
-                        [rounded]="true"
-                        [textContent]="true"
-                        size="small"
-                        pTooltip="Edit Location"
-                        (onClick)="activeStep.set(1)"
-                    />
-                    </div>
-                    <p-divider />
-                    <div class="review-items">
-                    <div class="review-item">
-                        <span>Coordinates</span>
-                        <strong>{{ locationSummary() }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Installation Area</span>
-                        <strong>{{ polygonCoords().length >= 3 ? polygonCoords().length + ' points defined' : 'Not defined' }}</strong>
-                    </div>
-                    @if (optimalConfig(); as oc) {
-                        <div class="review-item">
-                        <span>Area Coverage</span>
-                        <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
-                        </div>
-                    }
-                    </div>
-                </div>
-
-                <!-- Panel & Installation Summary -->
-                <div class="step-card review-card">
-                    <div class="review-card-header">
-                    <h3><i class="pi pi-sun"></i> Panel & Installation</h3>
-                    <p-button
-                        icon="pi pi-pencil"
-                        [rounded]="true"
-                        [textContent]="true"
-                        size="small"
-                        pTooltip="Edit Panel Setup"
-                        (onClick)="activeStep.set(1)"
-                    />
-                    </div>
-                    <p-divider />
-                    <div class="review-items">
-                    <div class="review-item">
-                        <span>Solar Panel</span>
-                        <strong>{{ selectedPanelLabel() }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Number of Panels</span>
-                        <strong>{{ formValue().panelNumber || '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Tilt</span>
-                        <strong>{{ formValue().tilt != null ? formValue().tilt + '°' : '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Direction</span>
-                        <strong>{{ selectedDirectionLabel() }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Azimuth</span>
-                        <strong>{{ formValue().azimuth != null ? formValue().azimuth + '°' : '—' }}</strong>
-                    </div>
-                    <div class="review-item">
-                        <span>Row Spacing</span>
-                        <strong>{{ formValue().rawSpacing != null ? formValue().rawSpacing + ' m' : '—' }}</strong>
-                    </div>
-                    </div>
-                </div>
-
-                <!-- Capacity Summary -->
-                <div class="step-card review-card">
-                    <div class="review-card-header">
-                    <h3><i class="pi pi-bolt"></i> Capacity</h3>
-                    <p-tag
-                        [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
-                        [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
-                        [rounded]="true"
-                        [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
-                    />
-                    </div>
-                    <p-divider />
-                    <div class="review-items">
-                    <div class="review-item">
-                        <span>Total Capacity</span>
-                        <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
-                    </div>
-                    @if (optimalConfig(); as oc) {
-                        <div class="review-item">
-                        <span>Est. Annual Production</span>
-                        <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
-                        </div>
-                        <div class="review-item">
-                        <span>Area Coverage</span>
-                        <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
-                        </div>
-                    }
-                    </div>
-                </div>
-                </div>
-
-                <!-- Total capacity highlight card -->
-                <div class="step-card total-capacity-card">
-                <div class="total-capacity-content">
-                    <div class="capacity-sun-icon">
-                    <i class="pi pi-sun"></i>
-                    </div>
-                    <div class="capacity-info">
-                    <span>Estimated Total Capacity</span>
-                    <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
-                    </div>
-                </div>
-                </div>
-
-                @if (saveError()) {
-                <p-message severity="error" Content="saveError()!" class="w-full" />
-                }
-
-                @if (saveSuccess()) {
-                <p-message
-                    severity="success"
-                    text="Project updated successfully!"
-                    class="w-full"
-                />
-                }
-            </div>
+            <app-configure-review-step
+                [formValue]="configForm.getRawValue()"
+                [locationSummary]="locationSummary()"
+                [polygonCoords]="polygonCoords()"
+                [optimalConfig]="optimalConfig()"
+                [isUsingOptimalConfig]="isUsingOptimalConfig()"
+                [totalCapacityKw]="totalCapacityKw()"
+                [selectedPanelLabel]="selectedPanelLabel()"
+                [selectedDirectionLabel]="selectedDirectionLabel()"
+                [isSaving]="isSaving()"
+                [canSave]="canSave()"
+                [saveError]="saveError()"
+                [saveSuccess]="saveSuccess()"
+                (goToStep)="activeStep.set($event)"
+                (save)="onSave()"
+            />
             </ng-template>
         </p-step-panel>
-        }
         </p-step-panels>
     </p-stepper>
     }

@@ -1,0 +1,66 @@
+<div class="step-card map-edit-card">
+  <div class="step-card-header">
+    <div class="step-card-icon location-icon">
+      <i class="pi pi-map-marker"></i>
+    </div>
+    <div>
+      <h2>Location & Area</h2>
+      <p>Search for an address and draw the installation area polygon.</p>
+    </div>
+  </div>
+
+  <p-divider />
+
+  <div class="location-search">
+    <span class="p-input-icon-right location-search-input">
+      <input
+        pInputText
+        type="text"
+        placeholder="Search address or place…"
+        [value]="addressQuery()"
+        (input)="addressQuery.set($any($event.target).value)"
+        (keydown.enter)="triggerSearch()"
+        aria-label="Search location"
+        class="w-full"
+      />
+    </span>
+    <p-button
+      icon="pi pi-search"
+      [rounded]="true"
+      [loading]="isSearching()"
+      [disabled]="isSearching() || !addressQuery().trim()"
+      (onClick)="triggerSearch()"
+      pTooltip="Search location"
+      aria-label="Go to location"
+      size="small"
+    />
+  </div>
+
+  @if (searchError()) {
+    <small class="field-error">{{ searchError() }}</small>
+  }
+
+  <div class="map-container">
+    <app-location-map
+      [editable]="true"
+      [centerOnUser]="mapLat() == null || mapLng() == null"
+      [center]="mapCenter()"
+      [lat]="mapLat() ?? 0"
+      [lng]="mapLng() ?? 0"
+      [polygon]="polygonCoords()"
+      (polygonChange)="polygonChange.emit($event)"
+    />
+  </div>
+
+  @if (polygonCoords().length === 0) {
+    <div class="map-instructions">
+      <i class="pi pi-info-circle"></i>
+      <span>Use the polygon draw tool on the map to define the installation area.</span>
+    </div>
+  } @else {
+    <div class="map-status">
+      <i class="pi pi-check-circle"></i>
+      <span>Polygon defined with {{ polygonCoords().length }} points</span>
+    </div>
+  }
+</div>

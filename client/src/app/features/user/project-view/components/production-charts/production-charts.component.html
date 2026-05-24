@@ -1,0 +1,69 @@
+@if (economicValue(); as ev) {
+  <div class="view-card economic-value-card">
+    <div class="economic-value-content">
+      <div class="economic-icon"><i class="pi pi-dollar"></i></div>
+      <div class="economic-info">
+        <span>Estimated Energy Value</span>
+        <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
+        <small>{{ ev.totalKwh | number: '1.1-1' }} kWh × {{ price() | number: '1.2-4' }}/kWh</small>
+      </div>
+    </div>
+  </div>
+}
+
+<div class="charts-pair-grid">
+  @if (hasTodayData()) {
+    <div class="view-card chart-card">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-today"><i class="pi pi-sun"></i></div>
+        <div>
+          <h2>Today's Hourly Production</h2>
+          <p>Forecasted PV output for today, hour by hour.</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="todayChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 280px; display: block; overflow: hidden;"
+      />
+    </div>
+
+    <div class="view-card chart-card">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-forecast"><i class="pi pi-calendar"></i></div>
+        <div>
+          <h2>Next 6 Days Forecast</h2>
+          <p>Projected daily energy production.</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="nextProdChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 260px; display: block; overflow: hidden;"
+      />
+    </div>
+  }
+
+  @if (hasPreviousProdData()) {
+    <div class="view-card chart-card">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-past"><i class="pi pi-history"></i></div>
+        <div>
+          <h2>Past 6 Days Estimates</h2>
+          <p>Estimated actual production per day.</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="previousProdChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 260px; display: block; overflow: hidden;"
+      />
+    </div>
+  }
+</div>

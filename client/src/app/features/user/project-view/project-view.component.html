@@ -1,0 +1,164 @@
+<p-toast />
+
+<section class="view-page animate-fade-in-up">
+
+  <!-- Loading skeleton -->
+  @if (isLoading()) {
+  <div class="skeleton-wrapper">
+    <p-skeleton width="40%" height="2.5rem" borderRadius="16px" />
+    <p-skeleton width="60%" height="1rem" class="mt-3" borderRadius="8px" />
+    <p-skeleton width="100%" height="14rem" class="mt-6" borderRadius="24px" />
+  </div>
+  }
+
+  <!-- Error state -->
+  @else if (errorMessage()) {
+  <div class="error-wrapper">
+    <p-card class="error-card">
+      <div class="error-content">
+        <i class="pi pi-exclamation-triangle error-icon"></i>
+        <h2>Something went wrong</h2>
+        <p>{{ errorMessage() }}</p>
+        <p-button
+          label="Back to Projects"
+          icon="pi pi-arrow-left"
+          routerLink="/projects/all"
+          severity="secondary"
+          [rounded]="true"
+        />
+      </div>
+    </p-card>
+  </div>
+  }
+
+  <!-- Main content -->
+  @else if (projectData(); as project) {
+  <header class="page-header">
+    <a class="back-link" routerLink="/projects/all">
+      <i class="pi pi-arrow-left"></i> Back to Projects
+    </a>
+    <div class="header-row">
+      <div class="header-title-area">
+        <h1 class="project-title">{{ project.name }}</h1>
+        <p class="subtitle">
+          <i class="pi pi-eye icon-lg"></i>
+          Project details
+        </p>
+      </div>
+      <div class="header-actions">
+        <p-button
+          label="Download Plan"
+          icon="pi pi-download"
+          severity="secondary"
+          [outlined]="true"
+          [rounded]="true"
+          [loading]="isDownloadingPlan()"
+          (onClick)="downloadPlan()"
+        />
+        <p-button
+          label="Configure"
+          icon="pi pi-cog"
+          [routerLink]="'/projects/' + projectId() + '/configure'"
+          [rounded]="true"
+        />
+      </div>
+    </div>
+  </header>
+
+  <!-- Info strip (read-only metadata) -->
+  <div class="info-strip">
+    <p-tag [value]="project.country || 'No location'" icon="pi pi-globe" [rounded]="true" />
+    <p-tag [value]="project.timezone || 'No timezone'" icon="pi pi-clock" [rounded]="true" />
+    @if (project.currency) {
+      <p-tag [value]="project.currency" icon="pi pi-wallet" [rounded]="true" severity="secondary" />
+    }
+    @if (project.price != null) {
+      <p-tag [value]="(project.price | number: '1.2-4') + ' /kWh'" icon="pi pi-bolt" [rounded]="true" severity="warn" />
+    }
+  </div>
+
+  <!-- Sun Path card -->
+  <div class="view-card sun-path-card">
+    <div class="step-card-header">
+      <div class="step-card-icon sun-path-icon">
+        <i class="pi pi-sun"></i>
+      </div>
+      <div>
+        <h2>Sun Path</h2>
+        <p>Solar position data for this location across the year.</p>
+      </div>
+    </div>
+    <p-divider />
+    @if (isSunPathLoading()) {
+      <div class="sun-path-skeleton">
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+      </div>
+    } @else if (sunPathData(); as sp) {
+      <div class="sun-path-table">
+        <div class="sun-path-row sun-path-header">
+          <span></span>
+          <span>Summer Solstice</span>
+          <span>Equinox</span>
+          <span>Winter Solstice</span>
+        </div>
+        <div class="sun-path-row">
+          <span class="row-label">Solar noon altitude</span>
+          <span>{{ sp.summerSolstice.noonAltitude | number: '1.1-1' }}°</span>
+          <span>{{ sp.equinox.noonAltitude | number: '1.1-1' }}°</span>
+          <span>{{ sp.winterSolstice.noonAltitude | number: '1.1-1' }}°</span>
+        </div>
+        <div class="sun-path-row">
+          <span class="row-label">Daylight hours</span>
+          <span>{{ sp.summerSolstice.daylightHours | number: '1.1-1' }} h</span>
+          <span>{{ sp.equinox.daylightHours | number: '1.1-1' }} h</span>
+          <span>{{ sp.winterSolstice.daylightHours | number: '1.1-1' }} h</span>
+        </div>
+        <div class="sun-path-row">
+          <span class="row-label">Sunrise</span>
+          <span>{{ formatDecimalHours(sp.summerSolstice.sunrise) }}</span>
+          <span>{{ formatDecimalHours(sp.equinox.sunrise) }}</span>
+          <span>{{ formatDecimalHours(sp.winterSolstice.sunrise) }}</span>
+        </div>
+        <div class="sun-path-row">
+          <span class="row-label">Sunset</span>
+          <span>{{ formatDecimalHours(sp.summerSolstice.sunset) }}</span>
+          <span>{{ formatDecimalHours(sp.equinox.sunset) }}</span>
+          <span>{{ formatDecimalHours(sp.winterSolstice.sunset) }}</span>
+        </div>
+      </div>
+    } @else {
+      <div class="sun-path-warning">
+        <i class="pi pi-info-circle"></i>
+        <span>Sun path data unavailable for this location.</span>
+      </div>
+    }
+  </div>
+
+  <!-- Production data section -->
+  @if (hasProductionData()) {
+    <app-production-charts
+      [todayChartOptions]="todayChartOptions()"
+      [nextProdChartOptions]="nextProdChartOptions()"
+      [previousProdChartOptions]="previousProdChartOptions()"
+      [economicValue]="economicValue()"
+      [price]="project.price ?? null"
+      [hasTodayData]="hasTodayData()"
+      [hasPreviousProdData]="hasPreviousProdData()"
+    />
+  }
+
+  <!-- Analytics section -->
+  <app-project-analytics
+    [analytics]="analytics()"
+    [isLoading]="isAnalyticsLoading()"
+    [currency]="project.currency ?? 'EUR'"
+    [price]="project.price ?? null"
+    [pvgisYearlyKwh]="project.pvgisRef?.yearlyKwh ?? null"
+    [savingsChartOptions]="savingsChartOptions()"
+  />
+
+  }<!-- end @else if projectData -->
+</section>

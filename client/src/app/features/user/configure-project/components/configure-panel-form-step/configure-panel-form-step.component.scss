@@ -1,0 +1,207 @@
+:host {
+  display: contents;
+}
+
+.step-card {
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 0.0625rem 0.1875rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
+  transition: box-shadow 0.25s, border-color 0.25s;
+}
+.step-card:hover {
+  box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--p-text-color) 14%, transparent);
+}
+.mt-card {
+  margin-top: 1.5rem;
+}
+
+.step-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.step-card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--p-text-color);
+}
+.step-card-header p {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+.step-card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+.panel-icon {
+  background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+  color: var(--p-amber-900);
+}
+.capacity-icon {
+  background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+  color: var(--p-amber-900);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+.form-field.full-width {
+  grid-column: 1 / -1;
+}
+.w-full { width: 100%; }
+.mr-2 { margin-right: 0.5rem; }
+
+.field-hint {
+  color: var(--p-text-muted-color);
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  display: block;
+}
+
+.panel-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+.panel-option strong { color: var(--p-text-color); }
+.panel-meta {
+  display: block;
+  color: var(--p-text-muted-color);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+.panel-watts {
+  font-weight: 700;
+  color: var(--p-primary-color);
+  white-space: nowrap;
+}
+
+.panel-info-card {
+  display: block;
+  width: 100%;
+  border-radius: 1rem;
+  background: transparent;
+}
+.panel-info-surface {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  border-radius: 1rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--p-surface-100);
+  padding: 0.9rem;
+}
+.panel-info-header {
+  margin-bottom: 0.6rem;
+  color: var(--p-text-color);
+}
+.panel-info-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.panel-info-title i { font-size: 0.95rem; }
+.panel-info-header p {
+  margin: 0.2rem 0 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.82rem;
+}
+.panel-info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.config-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.capacity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.capacity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--p-content-hover-background);
+  border-radius: 0.75rem;
+}
+.capacity-item.highlight {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--p-amber-100) 0%, var(--p-yellow-400) 100%);
+  text-align: center;
+}
+.capacity-item.highlight strong {
+  font-size: 1.3rem;
+  color: var(--p-text-color);
+}
+.capacity-label {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  font-weight: 500;
+}
+.capacity-item strong {
+  color: var(--p-text-color);
+  font-weight: 700;
+}
+.calculating-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.no-panel-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--p-content-hover-background);
+  color: var(--p-text-muted-color);
+  font-size: 0.88rem;
+}
+
+.optimal-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--p-primary-100) 45%, var(--p-surface-0));
+  color: var(--p-text-color);
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--p-primary-color);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.85rem;
+  padding: 0;
+}
+.link-btn:hover { color: var(--p-text-color); }
+
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .capacity-grid { grid-template-columns: 1fr; }
+}

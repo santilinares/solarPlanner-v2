@@ -7,12 +7,9 @@ import {
   computed,
   DestroyRef,
 } from '@angular/core';
-import * as Highcharts from 'highcharts';
-import { HighchartsChartModule } from 'highcharts-angular';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -35,6 +32,7 @@ import { ToastModule } from 'primeng/toast';
 
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
+import { GeocodingService } from '@core/services/geocoding.service';
 import {
   ProjectResponse,
   Panel,
@@ -44,13 +42,13 @@ import {
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
   SunPathData,
-  PlanData,
-  ProjectAnalytics,
 } from '@core/models';
-import { FileService } from '@core/services/file.service';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
+import { ConfigureLocationStepComponent } from './components/configure-location-step/configure-location-step.component';
+import { ConfigurePanelFormStepComponent } from './components/configure-panel-form-step/configure-panel-form-step.component';
+import { ConfigureReviewStepComponent } from './components/configure-review-step/configure-review-step.component';
 
-interface OrientationOption {
+export interface OrientationOption {
   label: string;
   value: string;
   icon: string;
@@ -66,7 +64,7 @@ interface CurrencyOption {
   value: string;
 }
 
-type ProjectScreenMode = 'configure' | 'view';
+export type ConfigFormValue = ReturnType<ConfigureProjectComponent['configForm']['getRawValue']>;
 
 @Component({
   selector: 'app-configure-project',
@@ -90,7 +88,9 @@ type ProjectScreenMode = 'configure' | 'view';
     ConfirmDialogModule,
     ToastModule,
     LocationMapComponent,
-    HighchartsChartModule,
+    ConfigureLocationStepComponent,
+    ConfigurePanelFormStepComponent,
+    ConfigureReviewStepComponent,
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './configure-project.component.html',
@@ -100,21 +100,17 @@ export class ConfigureProjectComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
-  private readonly http = inject(HttpClient);
+  private readonly geocodingService = inject(GeocodingService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
-  private readonly fileService = inject(FileService);
   private readonly destroyRef = inject(DestroyRef);
 
   // ─── State ───
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   readonly isCalculating = signal(false);
-  readonly isDownloadingPlan = signal(false);
-  readonly analytics = signal<ProjectAnalytics | null>(null);
-  readonly isAnalyticsLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly saveError = signal<string | null>(null);
   readonly saveSuccess = signal(false);
@@ -123,11 +119,7 @@ export class ConfigureProjectComponent implements OnInit {
   readonly isSunPathLoading = signal(false);
   readonly panels = signal<Panel[]>([]);
   readonly projectId = signal('');
-  readonly mode = signal<ProjectScreenMode>('configure');
-  activeStep = signal(1);
-
-  // ─── Highcharts ───
-  readonly Highcharts: typeof Highcharts = Highcharts;
+  readonly activeStep = signal(1);
 
   // ─── Map / Location State ───
   readonly mapLat = signal<number | null>(null);
@@ -141,36 +133,6 @@ export class ConfigureProjectComponent implements OnInit {
 
   // ─── Optimal Config State ───
   readonly optimalConfig = signal<OptimalConfigResponse | null>(null);
-
-  // ─── Country → Currency / Timezone Mappings ───
-  private readonly COUNTRY_CURRENCY: Record<string, string> = {
-    us: 'USD', gb: 'GBP', jp: 'JPY', cn: 'CNY', in: 'INR',
-    au: 'AUD', ca: 'CAD', ch: 'CHF', ar: 'ARS', br: 'BRL',
-    cl: 'CLP', mx: 'MXN', co: 'COP', nz: 'AUD',
-    // Eurozone
-    de: 'EUR', fr: 'EUR', es: 'EUR', it: 'EUR', pt: 'EUR',
-    nl: 'EUR', be: 'EUR', at: 'EUR', ie: 'EUR', fi: 'EUR',
-    gr: 'EUR', ee: 'EUR', lt: 'EUR', lv: 'EUR', sk: 'EUR',
-    si: 'EUR', cy: 'EUR', mt: 'EUR', lu: 'EUR', hr: 'EUR',
-  };
-
-  private readonly COUNTRY_TIMEZONE: Record<string, string> = {
-    us: 'America/New_York', gb: 'Europe/London', jp: 'Asia/Tokyo',
-    cn: 'Asia/Singapore', in: 'Asia/Kolkata', au: 'Australia/Sydney',
-    ca: 'America/New_York', ch: 'Europe/Berlin', nz: 'Pacific/Auckland',
-    ar: 'America/Argentina/Buenos_Aires', br: 'America/Argentina/Buenos_Aires',
-    cl: 'America/Halifax', mx: 'America/Chicago', co: 'America/New_York',
-    ru: 'Europe/Moscow', ae: 'Asia/Dubai', pk: 'Asia/Karachi',
-    bd: 'Asia/Dhaka', th: 'Asia/Bangkok', sg: 'Asia/Singapore',
-    // Europe
-    de: 'Europe/Berlin', fr: 'Europe/Berlin', es: 'Europe/Berlin',
-    it: 'Europe/Berlin', pt: 'Europe/London', nl: 'Europe/Berlin',
-    be: 'Europe/Berlin', at: 'Europe/Berlin', ie: 'Europe/London',
-    fi: 'Europe/Athens', gr: 'Europe/Athens', ee: 'Europe/Athens',
-    lt: 'Europe/Athens', lv: 'Europe/Athens', sk: 'Europe/Berlin',
-    si: 'Europe/Berlin', cy: 'Europe/Athens', mt: 'Europe/Berlin',
-    lu: 'Europe/Berlin', hr: 'Europe/Berlin',
-  };
 
   // ─── Options ───
   readonly orientationOptions: OrientationOption[] = [
@@ -306,9 +268,7 @@ export class ConfigureProjectComponent implements OnInit {
     );
   });
 
-  readonly canSave = computed(() => {
-    return this.configForm.valid && !this.isSaving();
-  });
+  readonly canSave = computed(() => this.configForm.valid && !this.isSaving());
 
   readonly isUsingOptimalConfig = computed(() => {
     const opt = this.optimalConfig();
@@ -322,43 +282,30 @@ export class ConfigureProjectComponent implements OnInit {
     return this.timezoneOptions.find((o) => o.value === tz)?.label ?? tz;
   });
 
-  readonly stepNextLabel = computed(() => {
-    return this.activeStep() === 1 ? 'Next: Review & Save' : 'Next';
-  });
-
-  readonly stepNavTitle = computed(() => {
-    return this.activeStep() === 1 ? 'Panel Setup' : 'Review & Save';
-  });
-
-  readonly isConfigureMode = computed(() => this.mode() === 'configure');
-  readonly isViewMode = computed(() => this.mode() === 'view');
+  readonly stepNextLabel = computed(() =>
+    this.activeStep() === 1 ? 'Next: Review & Save' : 'Next'
+  );
 
   readonly projectTotalArea = computed(() => {
     const fromProject = this.projectData()?.surface;
     if (typeof fromProject === 'number' && Number.isFinite(fromProject)) {
       return fromProject;
     }
-
     const fromOptimal = this.optimalConfig()?.surfaceArea;
     if (typeof fromOptimal === 'number' && Number.isFinite(fromOptimal)) {
       return fromOptimal;
     }
-
     return 0;
   });
 
   readonly panelTagEntries = computed(() => {
     const panel = this.selectedPanelData();
     if (!panel) return [];
-
     const maybeBifacial = panel as Panel & { bifacial?: boolean };
     const isBifacial =
       typeof maybeBifacial.bifacial === 'boolean'
-        ? maybeBifacial.bifacial
-          ? 'Yes'
-          : 'No'
+        ? maybeBifacial.bifacial ? 'Yes' : 'No'
         : 'N/A';
-
     return [
       { label: 'Efficiency', value: `${panel.efficiency}%`, icon: 'pi pi-gauge', severity: 'success' as const },
       { label: 'Peak', value: `${panel.wattPeak}W`, icon: 'pi pi-bolt', severity: 'warn' as const },
@@ -381,138 +328,8 @@ export class ConfigureProjectComponent implements OnInit {
     return `${technology} - ${dimensions}`;
   });
 
-  // ─── Production Charts (view mode) ───
-
-  private readonly CHART_THEME: Highcharts.Options = {
-    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' }, width: undefined },
-    credits: { enabled: false },
-    title: { text: undefined },
-    legend: { enabled: false },
-    tooltip: { valueDecimals: 2, valueSuffix: ' kWh' },
-  };
-
-  readonly todayChartOptions = computed((): Highcharts.Options => {
-    const prodToday = (this.projectData()?.prodToday ?? []);
-    return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
-      xAxis: {
-        categories: prodToday.map((p) => {
-          const d = new Date(p.dateTime);
-          return `${d.getHours().toString().padStart(2, '0')}:00`;
-        }),
-        title: { text: 'Hour' },
-      },
-      yAxis: { title: { text: 'kWh' }, min: 0 },
-      series: [{
-        type: 'column',
-        name: 'Production',
-        data: prodToday.map((p) => p.pv),
-        color: '#f59e0b',
-        borderRadius: 4,
-      }],
-    };
-  });
-
-  readonly nextProdChartOptions = computed((): Highcharts.Options => {
-    const nextProd = (this.projectData()?.nextProd ?? []);
-    return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
-      xAxis: {
-        categories: nextProd.map((p) =>
-          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
-        ),
-      },
-      yAxis: { title: { text: 'kWh/day' }, min: 0 },
-      series: [{
-        type: 'bar',
-        name: 'Forecast',
-        data: nextProd.map((p) => p.pv),
-        color: '#22c55e',
-        borderRadius: 4,
-      }],
-    };
-  });
-
-  readonly previousProdChartOptions = computed((): Highcharts.Options => {
-    const previousProd = (this.projectData()?.previousProd ?? []);
-    return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
-      xAxis: {
-        categories: previousProd.map((p) =>
-          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
-        ),
-      },
-      yAxis: { title: { text: 'kWh/day' }, min: 0 },
-      series: [{
-        type: 'bar',
-        name: 'Actual',
-        data: previousProd.map((p) => p.pv),
-        color: '#6366f1',
-        borderRadius: 4,
-      }],
-    };
-  });
-
-  readonly savingsChartOptions = computed((): Highcharts.Options => {
-    const perYear = this.analytics()?.annualSavingsPerYear;
-    if (!perYear) return {};
-    return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
-      xAxis: {
-        categories: perYear.map((_, i) => `Y${i + 1}`),
-        title: { text: 'Year' },
-      },
-      yAxis: { title: { text: this.projectData()?.currency ?? 'EUR' }, min: 0 },
-      tooltip: { valueDecimals: 2, valueSuffix: ` ${this.projectData()?.currency ?? 'EUR'}` },
-      series: [{
-        type: 'column',
-        name: 'Annual Savings',
-        data: perYear,
-        color: '#22c55e',
-        borderRadius: 4,
-      }],
-    };
-  });
-
-  readonly hasProductionData = computed(() => {
-    const data = this.projectData();
-    return (
-      (data?.prodToday?.length ?? 0) > 0 ||
-      (data?.nextProd?.length ?? 0) > 0 ||
-      (data?.previousProd?.length ?? 0) > 0
-    );
-  });
-
-  readonly economicValue = computed(() => {
-    const data = this.projectData();
-    if (!data?.price) return null;
-
-    const todaySum = (data.prodToday ?? []).reduce((s, p) => s + (p).pv, 0);
-    const previousSum = (data.previousProd ?? []).reduce((s, p) => s + (p).pv, 0);
-    const totalKwh = todaySum + previousSum;
-    const value = totalKwh * data.price;
-    const symbol = this.getCurrencySymbol(data.currency ?? 'EUR');
-
-    return { value, totalKwh, currency: data.currency ?? 'EUR', symbol };
-  });
-
-  getCurrencySymbol(currency: string): string {
-    const symbols: Record<string, string> = {
-      EUR: '€', USD: '$', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹',
-      AUD: 'A$', CAD: 'C$', CHF: 'Fr', ARS: '$', BRL: 'R$',
-      CLP: '$', MXN: '$', COP: '$',
-    };
-    return symbols[currency] ?? currency;
-  }
-
   // ─── Lifecycle ───
   ngOnInit(): void {
-    this.detectModeFromRoute();
-
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.errorMessage.set('Invalid project ID.');
@@ -521,12 +338,6 @@ export class ConfigureProjectComponent implements OnInit {
     }
     this.projectId.set(id);
     this.loadData(id);
-  }
-
-  private detectModeFromRoute(): void {
-    const isConfigureRoute = this.route.snapshot.url.some((segment) => segment.path === 'configure');
-    this.mode.set(isConfigureRoute ? 'configure' : 'view');
-    this.activeStep.set(1);
   }
 
   // ─── Data Loading ───
@@ -541,27 +352,14 @@ export class ConfigureProjectComponent implements OnInit {
       next: ({ project, panels: panelRes }) => {
         const projectResponse = project as unknown as ProjectResponse;
         this.projectData.set(projectResponse);
-        // Normalize: ensure every panel has `id` (API returns `_id` only)
         this.panels.set(
           (panelRes.panels ?? []).map((p) => ({ ...p, id: p.id ?? p._id ?? '' })),
         );
         this.populateForm(projectResponse);
         this.extractMapData(projectResponse);
         this.isLoading.set(false);
-
-        // Calculate initial optimal baseline without auto-applying
         this.fetchOptimalConfig(false);
-
-        // Load sun path data independently (non-blocking)
         this.loadSunPath(id);
-
-        // Load analytics in view mode (non-blocking)
-        // TODO: display paybackYears / roi25Years once installationCost is implemented
-        if (this.mode() === 'view') {
-          this.loadAnalytics(id);
-        }
-
-        // Set up form watchers AFTER initial population
         this.setupFormWatchers();
       },
       error: () => {
@@ -590,7 +388,6 @@ export class ConfigureProjectComponent implements OnInit {
   private extractMapData(project: ProjectResponse): void {
     this.mapLat.set(typeof project.lat === 'number' ? project.lat : null);
     this.mapLng.set(typeof project.lon === 'number' ? project.lon : null);
-
     const coords: Coordinates[] =
       Array.isArray(project.area) && project.area.length >= 3
         ? project.area.map((p: GeoPoint) => ({ lat: p.lat, lng: p.lon }))
@@ -598,10 +395,6 @@ export class ConfigureProjectComponent implements OnInit {
     this.polygonCoords.set(coords);
   }
 
-  /**
-   * Subscribe to panel/tilt form changes to recalculate optimal config.
-   * Called after initial form population to avoid triggering on patchValue.
-   */
   private setupFormWatchers(): void {
     this.configForm
       .get('panelId')
@@ -614,6 +407,22 @@ export class ConfigureProjectComponent implements OnInit {
       .subscribe(() => this.fetchOptimalConfig(true));
   }
 
+  // ─── Sun Path ───
+  private loadSunPath(id: string): void {
+    this.isSunPathLoading.set(true);
+    this.projectService.getSunPath(id).subscribe({
+      next: (data) => { this.sunPathData.set(data); this.isSunPathLoading.set(false); },
+      error: () => { this.isSunPathLoading.set(false); },
+    });
+  }
+
+  formatDecimalHours(h: number): string {
+    const totalMinutes = Math.round(h * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+
   // ─── Polygon Change ───
   onPolygonChange(coords: Coordinates[]): void {
     this.polygonCoords.set(coords);
@@ -622,16 +431,10 @@ export class ConfigureProjectComponent implements OnInit {
   }
 
   // ─── Optimal Config ───
-  /**
-   * Call the server to compute the optimal panel configuration from the current
-   * polygon, selected panel, and tilt.
-   * @param autoApply When true, auto-updates the panel number to the optimal value.
-   */
   private fetchOptimalConfig(autoApply: boolean): void {
     const panelId = this.configForm.get('panelId')?.value;
     const tilt = this.configForm.get('tilt')?.value;
     const coords = this.polygonCoords();
-
     if (!panelId || tilt == null || coords.length < 3) return;
 
     this.isCalculating.set(true);
@@ -646,9 +449,7 @@ export class ConfigureProjectComponent implements OnInit {
         }
         this.isCalculating.set(false);
       },
-      error: () => {
-        this.isCalculating.set(false);
-      },
+      error: () => { this.isCalculating.set(false); },
     });
   }
 
@@ -660,69 +461,42 @@ export class ConfigureProjectComponent implements OnInit {
   }
 
   // ─── Address Search ───
-  searchAddress(): void {
-    const query = this.addressQuery().trim();
-    if (!query) return;
+  searchAddress(query: string): void {
+    const trimmed = query.trim();
+    if (!trimmed) return;
 
     this.isSearching.set(true);
     this.searchError.set(null);
 
-    interface NominatimResult {
-      lat: string;
-      lon: string;
-      address?: { country?: string; country_code?: string };
-    }
-
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1&accept-language=en`;
-    this.http.get<NominatimResult[]>(url).subscribe({
-      next: (results) => {
+    this.geocodingService.search(trimmed).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (result) => {
         this.isSearching.set(false);
-        if (results.length === 0) {
-          this.searchError.set('Location not found. Try a more specific address.');
-          return;
-        }
-        const result = results[0];
-        const lat = parseFloat(result.lat);
-        const lng = parseFloat(result.lon);
-        this.mapCenter.set({ lat, lng });
-        this.mapLat.set(lat);
-        this.mapLng.set(lng);
-
-        // Auto-populate country, timezone, currency from location
-        this.applyLocationMetadata(result.address);
+        this.mapCenter.set({ lat: result.lat, lng: result.lng });
+        this.mapLat.set(result.lat);
+        this.mapLng.set(result.lng);
+        const timezone = this.geocodingService.getTimezoneForCountry(result.countryCode);
+        this.configForm.patchValue({
+          country: result.country,
+          currency: this.geocodingService.getCurrencyForCountry(result.countryCode),
+          ...(timezone ? { timezone } : {}),
+        });
       },
       error: () => {
         this.isSearching.set(false);
-        this.searchError.set('Search failed. Please try again.');
+        this.searchError.set('Location not found. Try a more specific address.');
       },
     });
   }
 
-  /** Derive country, timezone, and currency from Nominatim address data. */
-  private applyLocationMetadata(address?: { country?: string; country_code?: string }): void {
-    if (!address) return;
-
-    const cc = address.country_code?.toLowerCase() ?? '';
-    const country = address.country ?? '';
-    const timezone = this.COUNTRY_TIMEZONE[cc] ?? '';
-    const currency = this.COUNTRY_CURRENCY[cc] ?? 'EUR';
-
-    this.configForm.patchValue({
-      country,
-      ...(timezone ? { timezone } : {}),
-      currency,
-    });
-  }
-
-  // ─── Save ───
+  // ─── Exit / Save ───
   onExitEditMode(): void {
     const targetUrl = ['/projects', this.projectId()];
-
     if (!this.hasUnsavedChanges()) {
       void this.router.navigate(targetUrl);
       return;
     }
-
     this.confirmationService.confirm({
       header: 'Discard unsaved changes?',
       message: 'You have unsaved changes. If you exit edit mode now, those changes will be lost.',
@@ -742,7 +516,6 @@ export class ConfigureProjectComponent implements OnInit {
     this.saveSuccess.set(false);
 
     const fv = this.configForm.getRawValue();
-
     const payload: Record<string, unknown> = {};
     if (fv.name) payload['name'] = fv.name;
     if (fv.tilt != null) payload['tilt'] = fv.tilt;
@@ -775,60 +548,6 @@ export class ConfigureProjectComponent implements OnInit {
         console.error('Update failed', err);
         this.saveError.set('Failed to save. Please check your inputs and try again.');
         this.isSaving.set(false);
-      },
-    });
-  }
-
-  // ─── Analytics ───
-  private loadAnalytics(id: string): void {
-    this.isAnalyticsLoading.set(true);
-    this.projectService.getAnalytics(id).subscribe({
-      next: (data) => {
-        this.analytics.set(data);
-        this.isAnalyticsLoading.set(false);
-      },
-      error: () => {
-        this.isAnalyticsLoading.set(false);
-      },
-    });
-  }
-
-  // ─── Sun Path ───
-  private loadSunPath(id: string): void {
-    this.isSunPathLoading.set(true);
-    this.projectService.getSunPath(id).subscribe({
-      next: (data) => {
-        this.sunPathData.set(data);
-        this.isSunPathLoading.set(false);
-      },
-      error: () => {
-        this.isSunPathLoading.set(false);
-      },
-    });
-  }
-
-  formatDecimalHours(h: number): string {
-    const totalMinutes = Math.round(h * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-  }
-
-  // ─── Download Plan PDF ───
-  downloadPlan(): void {
-    this.isDownloadingPlan.set(true);
-    this.projectService.getPlanData(this.projectId()).subscribe({
-      next: (planData: PlanData) => {
-        this.fileService.generateProjectPDF(planData);
-        this.isDownloadingPlan.set(false);
-      },
-      error: () => {
-        this.isDownloadingPlan.set(false);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Download Failed',
-          detail: 'Could not generate the project plan. Please try again.',
-        });
       },
     });
   }
