@@ -42,7 +42,7 @@ export const listPanels = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private
  */
 export const getPanelById = asyncHandler(async (req: Request, res: Response) => {
-  const panel = await panelService.getPanelById(req.params.id);
+  const panel = await panelService.getPanelById(req.params.id as string);
   return success(res, panel);
 });
 
@@ -57,7 +57,7 @@ export const updatePanel = asyncHandler(async (req: Request, res: Response) => {
   const isAdmin = userRole === 'admin';
 
   const panel = await panelService.updatePanel(
-    req.params.id,
+    req.params.id as string,
     req.body as PanelUpdateInput,
     userId,
     isAdmin
@@ -75,6 +75,6 @@ export const deletePanel = asyncHandler(async (req: Request, res: Response) => {
   const userRole = req.userRole!;
   const isAdmin = userRole === 'admin';
 
-  await panelService.deletePanel(req.params.id, userId, isAdmin);
+  await panelService.deletePanel(req.params.id as string, userId, isAdmin);
   return success(res, null, 'Panel deleted successfully');
 });
