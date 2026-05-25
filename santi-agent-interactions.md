@@ -4,6 +4,62 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 19, 2026 - Fusión de Settings en Profile + ThemeService (modo oscuro)
+
+### Topic
+Eliminar el `SettingsComponent` placeholder y fusionarlo en `ProfileComponent`, añadiendo una sección de Preferencias con toggle de modo oscuro persistido en localStorage.
+
+### Summary of Prompt
+El usuario observó que `SettingsComponent` era un placeholder vacío sin funcionalidad y `ProfileComponent` tenía gestión de cuenta y contraseña ya completa. Propuso fusionarlos en una sola página con separación visual, y añadir modo oscuro/claro e idioma (idioma pospuesto para otro momento).
+
+### What Was Achieved
+- **ThemeService** creado en `core/services/theme.service.ts`: se auto-inicializa en el constructor leyendo `localStorage('solar-planner-theme')` y aplica la clase `.dark-mode` en `document.documentElement`. PrimeNG ya tenía `darkModeSelector: '.dark-mode'` configurado en `app.config.ts`, por lo que el dark mode funciona inmediatamente.
+- **ProfileComponent** expandido con una tercera sección "Preferences" separada por `<p-divider>`, con un `<p-toggleswitch>` que invoca `themeService.toggle()`. El tema persiste entre recargas.
+- **Routing**: la ruta `/projects/settings` ahora redirige a `/projects/profile` con `redirectTo: 'profile'`.
+- **UserLayout**: eliminado el ítem "Settings" del dock primario (era redundante). El ítem de Profile en el dock inferior ahora tiene label "Profile & Settings" y matchea también `/projects/settings`.
+- **SettingsComponent eliminado** del proyecto.
+
+### Full Prompt
+> "que se te ocurre que podamos añadir en el apartado de settings (y quizas completar tambien el perfil de usuario). A mi se me ocurre algo como idioma, modo noche y modo light. Otra cosa que se me ocurre es tener en el perfil de usuario todo integrado, también las settings, ya que tenemos pocas cosas en las settings. Creo que lo mejor es fusionarlos y mediante UI separar visualmente la parte de gestion del perfil de usuario vs settings, que te parece?"
+
+### Affected Files
+- `client/src/app/core/services/theme.service.ts` — NUEVO
+- `client/src/app/core/services/index.ts` — añadido export de ThemeService
+- `client/src/app/features/user/profile/profile.component.ts` — añadida sección Preferences con ToggleSwitch
+- `client/src/app/features/user/settings/settings.component.ts` — ELIMINADO
+- `client/src/app/app.routes.ts` — settings → redirectTo profile
+- `client/src/app/layouts/user-layout/user-layout.component.ts` — eliminado Settings del dock, actualizado profileNavItem
+
+### Reasoning
+PrimeNG 21 ya tiene `darkModeSelector: '.dark-mode'` preconfigured, lo que hace que la implementación del theme sea trivial: basta con añadir/quitar esa clase en el `<html>`. Un `ThemeService` con `signal()` auto-inicializado desde localStorage es la forma más limpia sin necesitar APP_INITIALIZER ni ningún proveedor adicional. La fusión de Settings en Profile evita mantener una página casi vacía y mejora la coherencia de la navegación.
+
+---
+
+## May 19, 2026 - Plan de despliegue en markdown del proyecto
+
+### Topic
+Publicar dentro del repositorio un fichero markdown con el plan de despliegue de frontend en Vercel, backend en Render y base de datos en MongoDB Atlas.
+
+### Summary of Prompt
+El usuario pidió explícitamente dejar el plan en un archivo markdown dentro del proyecto.
+
+### What Was Achieved
+- Se creó un nuevo documento en la raíz del repositorio con el plan completo de despliegue.
+- El contenido incluye estado actual del código, fases, variables críticas, integración CORS/Auth y checklist de salida.
+
+### Full Prompt
+> "Puedes dejar el plan en un fichero markdown dentro del proyecto, porfa?"
+
+### Affected Files
+- `deployment-plan-vercel-render-atlas.md`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- La petición fue documental y concreta: mover el plan desde el workspace de sesión al repositorio para que quede versionable y accesible al equipo.
+- Se mantuvo el alcance de investigación + guía, sin introducir configuración de despliegue ejecutable en esta fase.
+
+---
+
 ## May 3, 2026 - Lint Fix: estimateFromPolygon Async Removal
 
 ### Topic
@@ -3442,3 +3498,188 @@ Se creó `features.md` en la raíz del proyecto con un registro completo de toda
 
 ### Reasoning
 Se exploró la base de código completa (frontend + backend) mediante un agente especializado para identificar todas las funcionalidades implementadas. Las features marcadas con `[~]` corresponden a cálculos con supuestos simplificados (factor de utilización fijo, horas pico promedio por latitud, fórmula de espaciado geométrica básica), datos externos con granularidad mejorable (Solcast, precios de electricidad), y especificaciones de paneles y cultivares que podrían enriquecerse con bases de datos más completas.
+
+---
+
+## May 7, 2026 - Fix: Google OAuth 2.0 Race Condition
+
+### Topic
+Fix Google sign-in failing silently on login and register pages due to async script load race condition.
+
+### Summary of Prompt
+User reported that Google OAuth 2.0 login was failing. Asked the agent to gather all necessary information and ask if needed before fixing.
+
+### What Was Achieved
+- Identified a race condition where `ngAfterViewInit` ran before the Google GSI script finished loading (`async` in `index.html`), causing `initialize()` to never register its callback.
+- Merged `initGoogleButton()` and `signInWithGoogle()` into a single method that calls `initialize()` immediately before `prompt()` on every click, guaranteeing the callback is always registered regardless of script load timing.
+- Removed the now-unnecessary `AfterViewInit` lifecycle hook from both `LoginComponent` and `RegisterComponent`.
+- TypeScript type check passes with zero errors.
+
+### Full Prompt
+> "Cuando intenton hacer el login mediante google oauth 2.0, me falla. Recupera toda la info necesaria y si lo necesitas pregunta"
+> (follow-up) "sí, procede"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+
+### Reasoning
+The Google GSI script is loaded with `async` in `index.html`, meaning it may not be available when `ngAfterViewInit` fires. The original code split initialization (`initGoogleButton` in `ngAfterViewInit`) from triggering (`signInWithGoogle`). If the script hadn't loaded by the time `ngAfterViewInit` ran, `initGoogleButton` silently returned without ever registering the credential callback. Then when the user clicked the button, `prompt()` was called but had no registered callback, so the flow was broken. The fix ensures `initialize()` is always called just before `prompt()` on every user click, which is safe per Google's docs (calling `initialize()` multiple times is idempotent).
+
+---
+
+## May 7, 2026 - Test: Unit tests for Google OAuth signInWithGoogle
+
+### Topic
+Add unit tests (Jest) for the `signInWithGoogle()` method fixed in the previous session, covering both `LoginComponent` and `RegisterComponent`.
+
+### Summary of Prompt
+User requested unit tests for the Google OAuth fix — no real connection, just unit-level coverage.
+
+### What Was Achieved
+- Set up Jest testing infrastructure for the Angular client from scratch (`jest`, `jest-preset-angular`, `jest-environment-jsdom`), since no test runner was previously installed.
+- Created `jest.config.js` and `setup-jest.ts` (with `TextEncoder`/`TextDecoder` polyfill and `setupZoneTestEnv()`) compatible with Angular 21 + zone.js.
+- Updated `package.json` scripts to use `jest` directly.
+- Wrote 8 unit tests per component (16 total) covering: guard when `window.google` is absent, correct `client_id` passed to `initialize()`, `initialize` called before `prompt()`, `googleLoading` signal set correctly, credential forwarded to `authService`, in-flight loading state (using a `Subject` to avoid synchronous mock collapse), navigation on success, and error handling.
+- All 16 tests pass.
+
+### Full Prompt
+> "Para esto no podemos meter tests (aunque no comprueben la conexión real), pero que sean unitarios"
+
+### Affected Files
+- `client/jest.config.js` — nuevo
+- `client/setup-jest.ts` — nuevo
+- `client/package.json` — scripts test/test:watch actualizados, devDependencies ampliadas
+- `client/src/app/features/visitor/login/login.component.spec.ts` — nuevo
+- `client/src/app/features/visitor/register/register.component.spec.ts` — nuevo
+
+### Reasoning
+The key challenges were: (1) `jest-preset-angular` v16 exports `setupZoneTestEnv` as a named function that must be explicitly called, not auto-executed on import; (2) `RouterLink` requires the real Angular router (`provideRouter([])`) rather than a partial mock; (3) in-flight state (`loading=true`) is not observable with synchronous `of()` mocks — solved with an unresolved `Subject` that holds the stream open during the assertion.
+
+---
+
+## May 7, 2026 - Client-Side Unit Tests (Comprehensive)
+
+### Topic
+Add comprehensive Jest unit tests to the Angular client covering `onSubmit` flows, form validation, guards, interceptors, and the AuthService.
+
+### Summary of Prompt
+"Añade tests unitarios al cliente side" — followed by approval of a 6-file plan. Work was done on a new feature branch `adding-client-side-tests` with a PR targeting `develop`.
+
+### What Was Achieved
+- Extended `login.component.spec.ts` with `onSubmit()` tests (5) and form-validation tests (3)
+- Extended `register.component.spec.ts` with `onSubmit()` tests (4), form-validation tests (3), and `ngOnDestroy` cleanup test (1)
+- Created `auth.guard.spec.ts` — 2 tests for the `authGuard` functional guard
+- Created `admin.guard.spec.ts` — 3 tests for the `adminGuard` functional guard
+- Created `jwt.interceptor.spec.ts` — 2 tests for the JWT header injection interceptor
+- Created `auth.service.spec.ts` — 11 tests covering login, register, logout, token decoding, isAdmin, and refreshToken
+- All **50 tests pass** across 6 suites (7 s)
+
+### Full Prompt
+> "Añade tests unitarios al cliente side"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.spec.ts` — extended
+- `client/src/app/features/visitor/register/register.component.spec.ts` — extended
+- `client/src/app/core/guards/auth.guard.spec.ts` — NEW
+- `client/src/app/core/guards/admin.guard.spec.ts` — NEW
+- `client/src/app/core/interceptors/jwt.interceptor.spec.ts` — NEW
+- `client/src/app/core/services/auth.service.spec.ts` — NEW
+
+### Reasoning
+
+**Guard testing with `devBypassAuth`:** The dev environment sets `devBypassAuth: true`, which short-circuits both guards. To test the actual guard logic, `jest.mock('@environments/environment', ...)` overrides it to `false`. Jest hoists `jest.mock()` calls before imports, so the guard module picks up the mocked environment automatically.
+
+**Functional guards and interceptors:** Angular 21 functional guards (`CanActivateFn`) require an injection context to call `inject()`. Guards were tested using `TestBed.runInInjectionContext()`. The interceptor was registered via `provideHttpClient(withInterceptors([jwtInterceptor]))` and verified end-to-end with `HttpTestingController`.
+
+**AuthService constructor isolation:** `AuthService` calls `checkAuthStatus()` in the constructor, which reads localStorage and may make a `GET /users/me` HTTP call. Calling `localStorage.clear()` in `beforeEach` before injecting the service makes the constructor exit early (no token), keeping each test isolated without any pending HTTP requests.
+
+**`fakeAsync` for timer-based flows:** `RegisterComponent.onSubmit()` sets a 1500 ms `setTimeout` before navigating on success. Tests use `fakeAsync` + `tick(1500)` to drain fake timers synchronously. The `ngOnDestroy` test confirms that `clearTimeout` before `tick(1500)` prevents navigation from firing.
+
+---
+
+## 📅 May 7, 2026 - Phase 2: High-Value Client-Side Unit Tests (12 New Suites, ~58 Tests)
+
+### Topic
+Extended the client-side test suite with 12 additional spec files covering interceptors, HTTP services, visitor/user/admin feature components, and the authenticated layout.
+
+### Summary of Prompt
+After Phase 1 (50 tests across 6 suites), the user was asked whether more coverage could be added. A scan of untested files was presented and the user approved implementing the high-value ones first.
+
+### What Was Achieved
+- **12 new spec files** added to the `adding-client-side-tests` feature branch
+- **~58 additional tests** covering:
+  - `api-response.interceptor.spec.ts` — envelope unwrapping, passthrough for non-envelope responses
+  - `auth-refresh.interceptor.spec.ts` — non-401 passthrough, 401 on `/auth/login` skipped, refresh+retry flow, failed refresh triggers logout
+  - `http-error.model.spec.ts` — `getErrorMessage()` pure function: all edge cases for missing/wrong-typed message fields
+  - `project.service.spec.ts` — POST, paginated GET, optional filters, admin owner filter, DELETE, analytics endpoint
+  - `panel.service.spec.ts` — pagination, envelope extraction, POST, DELETE, `searchPanels()` with/without filters
+  - `user.service.spec.ts` — GET /me, PATCH profile, PATCH password, GET all users, DELETE
+  - `forgot-password.component.spec.ts` — form validation states, does-nothing-when-invalid, service call, success/error message handling
+  - `reset-password.component.spec.ts` — token from query param, route param fallback, empty token, mismatch validator, service call with token, redirect after 2s, `ngOnDestroy` cancel
+  - `profile.component.spec.ts` — ngOnInit form population, displayName/avatarInitial signals, mismatch validator, `saveProfile()`/`changePassword()` calls and toast feedback
+  - `user-layout.component.spec.ts` — `isAdmin` computed signal (regular/admin role/`isAdmin()` mock), `visiblePrimaryNavItems` filtering, `isRouteActive()` exact+prefix match, `logout()`
+  - `admin-dashboard.component.spec.ts` — forkJoin calls all three services, count signals populated on success, loading cleared on error
+  - `panel-form.component.spec.ts` — invalid initial state, `isEditMode` true/false, form pre-population, `hasError()`, `onCancel()` emit, `onSubmit()` invalid/valid paths
+
+### Full Prompt
+> "Are there any other client side tests that can be added? Do a scan and come back with a list of them and their tests"
+> "Sure, more coverage wont hurt, right? Implement the high value first and then commit the changes to the feature branch we just created"
+
+### Affected Files
+- `client/src/app/core/interceptors/api-response.interceptor.spec.ts` — NEW
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — NEW
+- `client/src/app/core/models/http-error.model.spec.ts` — NEW
+- `client/src/app/core/services/project.service.spec.ts` — NEW
+- `client/src/app/core/services/panel.service.spec.ts` — NEW
+- `client/src/app/core/services/user.service.spec.ts` — NEW
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.spec.ts` — NEW
+- `client/src/app/features/visitor/reset-password/reset-password.component.spec.ts` — NEW
+- `client/src/app/features/user/profile/profile.component.spec.ts` — NEW
+- `client/src/app/layouts/user-layout/user-layout.component.spec.ts` — NEW
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.spec.ts` — NEW
+- `client/src/app/features/admin/panels/panel-form.component.spec.ts` — NEW
+- `santi-agent-interactions.md`
+
+### Reasoning
+
+**`MessageService` as component-level provider:** PrimeNG's `MessageService` is declared in `providers` inside the component decorator, not at root. `TestBed.inject(MessageService)` gets the root-level token (which may differ). The correct approach is `fixture.debugElement.injector.get(MessageService)` to get the instance the component actually uses.
+
+**Signal inputs and `setInput()`:** Angular 21 signal inputs declared with `input()` cannot be set via property assignment in tests. `fixture.componentRef.setInput('panel', value)` is the correct API — it triggers the same reactivity as a parent template binding.
+
+**Computed signal re-evaluation:** Angular computed signals only re-evaluate when their tracked reactive signal dependencies change. Calling `jest.fn().mockReturnValue(true)` on a plain function dependency doesn't trigger re-computation. The workaround is to mutate a tracked signal (e.g. `currentUser.set(null)`) to force the computed to re-read all its dependencies including the plain function.
+
+**`RouterLink` and the real Router:** Providing `{ provide: Router, useValue: mockRouter }` alongside `provideRouter([])` breaks `RouterLink`'s internal navigation (it reads from `router.root` which the mock lacks). The correct pattern: use `provideRouter([{ path: '**', component: DummyComponent }])`, let Angular provide the real Router, and spy on its `navigate` method via `jest.spyOn(router, 'navigate').mockResolvedValue(true)`.
+
+**Module-level interceptor state:** `auth-refresh.interceptor.ts` uses module-level `isRefreshing` and `refreshTokenSubject` variables. Tests must use synchronous observables (`of()`, `throwError()`) to ensure each request completes within the same synchronous tick and leaves `isRefreshing = false` for the next test case.
+
+---
+
+## May 17, 2026 - Security Enhancement: HttpOnly Cookie para Refresh Token
+
+### Topic
+Migración del refresh token de `localStorage` a cookie HttpOnly + Secure + SameSite=Strict.
+
+### Summary of prompt
+El usuario preguntó si la app seguía un modelo parecido al estándar de autenticación con access token corto, refresh token largo en cookie HttpOnly, con rotación y revocación. Tras el análisis, se identificó que el refresh token estaba en `localStorage` (vulnerable a XSS), no había cookie HttpOnly, y no había revocación en servidor. El usuario pidió implementar la mejora significativa de mover el refresh token a cookie HttpOnly en la rama `feature/enhance-authentication`.
+
+### Full prompt
+> "Quiero tener la mejora significativa. Veamos como se comporta y si no da muchos problemas la incorporamos a la rama develop. He creado explícitamente esta rama feature para desarrollar esta solución y probarla"
+
+### What was achieved
+- **Servidor:** Instalado `cookie-parser`. Añadido middleware en `app.ts`. Creado helper `setRefreshCookie` en el controlador con opciones `httpOnly: true`, `secure` (sólo en producción), `sameSite: 'strict'`, `maxAge: 7d`, `path: '/api/auth'`. Actualizados `registerUser`, `loginUser`, `googleAuth` para setear la cookie y devolver solo `{ token, user }` en el body. Actualizado `refreshAccessToken` para leer el token de `req.cookies` en vez del body. Añadido endpoint `POST /api/auth/logout` que limpia la cookie con `res.clearCookie`.
+- **Cliente:** Eliminado todo uso de `localStorage` para el refresh token. Actualizado `logout()` para llamar primero a `POST /api/auth/logout` (con `withCredentials: true`) y luego limpiar estado local — garantizando que el logout funciona incluso si el servidor falla. Añadido `withCredentials: true` en todas las llamadas a endpoints de auth. Eliminado método `getRefreshToken()`. Actualizada la interfaz `AuthResponse` para eliminar `refreshToken` del tipo cliente.
+- **Tests:** Actualizados `auth.service.spec.ts` y `auth-refresh.interceptor.spec.ts` para reflejar el nuevo comportamiento. Todos los tests pasan: 19/19 en servidor, 17/17 en cliente.
+
+### Affected files
+- `server/src/app.ts` — añadido `cookieParser()`
+- `server/src/controllers/user.controller.ts` — helper cookie + handlers actualizados + `logoutUser`
+- `server/src/routes/auth.routes.ts` — añadida ruta `POST /logout`
+- `server/package.json` — añadido `cookie-parser` + `@types/cookie-parser`
+- `client/src/app/core/models/user.model.ts` — eliminado `refreshToken` de `AuthResponse`
+- `client/src/app/core/services/auth.service.ts` — sin localStorage para refresh, `withCredentials`, logout async
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — STUB_RESPONSE actualizado
+- `client/src/app/core/services/auth.service.spec.ts` — tests actualizados para nuevo comportamiento
+
+### AI reasoning
+El cambio principal es que el refresh token deja de viajar en el body de la respuesta HTTP y en `localStorage`, y pasa a ser una cookie HttpOnly que el navegador gestiona automáticamente. Esto elimina el vector de ataque XSS: aunque se inyecte JavaScript malicioso en la página, no puede leer la cookie. El `path: '/api/auth'` limita aún más la exposición: el navegador solo envía la cookie a rutas bajo ese prefijo. El acceso token (corto) sigue en localStorage porque es necesario leerlo desde JavaScript para adjuntarlo al header `Authorization`. La rotación ya existía — se generan nuevos tokens en cada refresh. La revocación en servidor (guardar hash en BD) queda identificada como mejora futura, pero queda fuera del alcance de este cambio.

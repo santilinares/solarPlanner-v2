@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit, AfterViewInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -271,7 +271,7 @@ import { environment } from '@environments/environment';
     `,
   ],
 })
-export class LoginComponent implements OnInit, AfterViewInit {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -291,11 +291,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/projects';
   }
 
-  ngAfterViewInit(): void {
-    this.initGoogleButton();
-  }
-
-  private initGoogleButton(): void {
+  signInWithGoogle(): void {
     type GoogleAccounts = {
       accounts: {
         id: {
@@ -329,19 +325,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
         });
       },
     });
-  }
 
-  signInWithGoogle(): void {
-    type GoogleAccounts = {
-      accounts: {
-        id: {
-          initialize: (cfg: object) => void;
-          prompt: () => void;
-        };
-      };
-    };
-    const google = (window as unknown as { google?: GoogleAccounts }).google;
-    if (!google) return;
     this.googleLoading.set(true);
     google.accounts.id.prompt();
   }

@@ -111,7 +111,7 @@ UserSchema.method('verifyPassword', async function (password: string): Promise<b
  */
 UserSchema.method('generateJwt', function (): string {
   const secret = process.env.JWT_SECRET;
-  const expiresIn = process.env.JWT_EXP || '24h';
+  const expiresIn = process.env.JWT_EXP || '15m';
 
   if (!secret) {
     throw new Error('JWT_SECRET not configured');

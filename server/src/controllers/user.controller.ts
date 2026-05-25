@@ -1,7 +1,20 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
-import { success, created, forbidden } from '../utils/response';
+import { success, created, forbidden, noContent } from '../utils/response';
 import { authService } from '../services/auth.service';
+
+const REFRESH_COOKIE = 'refreshToken';
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/api/auth',
+};
+
+function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE, token, REFRESH_COOKIE_OPTIONS);
+}
 import { userService } from '../services/user.service';
 import {
   UserCreateInput,
@@ -27,7 +40,8 @@ import {
  */
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.register(req.body as UserCreateInput);
-  return created(res, result, 'User registered successfully');
+  setRefreshCookie(res, result.refreshToken);
+  return created(res, { token: result.token, user: result.user }, 'User registered successfully');
 });
 
 /**
@@ -37,7 +51,8 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
  */
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.login(req.body as UserLoginInput);
-  return success(res, result, 'Login successful');
+  setRefreshCookie(res, result.refreshToken);
+  return success(res, { token: result.token, user: result.user }, 'Login successful');
 });
 
 /**
@@ -47,7 +62,8 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
  */
 export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.loginWithGoogle((req.body as GoogleAuthInput).idToken);
-  return success(res, result, 'Google login successful');
+  setRefreshCookie(res, result.refreshToken);
+  return success(res, { token: result.token, user: result.user }, 'Google login successful');
 });
 
 /**
@@ -157,15 +173,18 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
  * @access  Public
  */
 export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.body as { refreshToken: string };
+  const refreshToken = req.cookies[REFRESH_COOKIE] as string | undefined;
 
   if (!refreshToken) {
-    return res.status(400).json({
-      success: false,
-      message: 'Refresh token is required',
-    });
+    return res.status(401).json({ success: false, message: 'No refresh token' });
   }
 
   const result = await authService.refreshTokens(refreshToken);
-  return success(res, result, 'Token refreshed successfully');
+  setRefreshCookie(res, result.refreshToken);
+  return success(res, { token: result.token, user: result.user }, 'Token refreshed successfully');
+});
+
+export const logoutUser = asyncHandler(async (_req: Request, res: Response) => {
+  res.clearCookie(REFRESH_COOKIE, { ...REFRESH_COOKIE_OPTIONS, maxAge: undefined });
+  return noContent(res);
 });

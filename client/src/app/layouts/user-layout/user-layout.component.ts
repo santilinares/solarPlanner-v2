@@ -312,12 +312,6 @@ export class UserLayoutComponent {
       path: '/projects/panels',
       matchPrefixes: ['/projects/panels', '/panels'],
     },
-    {
-      label: 'Settings',
-      icon: 'pi pi-cog',
-      path: '/projects/settings',
-      matchPrefixes: ['/projects/settings'],
-    },
   ];
 
   readonly adminNavItems: readonly DockItem[] = [
@@ -342,10 +336,10 @@ export class UserLayoutComponent {
   );
 
   readonly profileNavItem = computed<DockItem>(() => ({
-    label: this.isAdmin() ? 'Admin Profile' : 'Profile',
+    label: this.isAdmin() ? 'Admin Profile' : 'Profile & Settings',
     icon: this.isAdmin() ? 'pi pi-user-plus' : 'pi pi-user',
     path: '/projects/profile',
-    matchPrefixes: ['/projects/profile'],
+    matchPrefixes: ['/projects/profile', '/projects/settings'],
   }));
 
   isRouteActive(item: DockItem): boolean {
