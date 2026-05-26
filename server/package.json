@@ -27,7 +27,7 @@
     "express",
     "typescript"
   ],
-  "author": "Solar Planner Team",
+  "author": "Santiago Linares Oliveira",
   "license": "MIT",
   "dependencies": {
     "@types/node-schedule": "^2.1.8",
