@@ -82,18 +82,12 @@ UserSchema.index({ role: 1 });
 /**
  * Hash password before saving
  */
-UserSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function () {
   if (!this.isModified('local.password') || !this.local?.password) {
-    return next();
+    return;
   }
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.local.password = await bcrypt.hash(this.local.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.local.password = await bcrypt.hash(this.local.password, salt);
 });
 
 /**

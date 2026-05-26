@@ -3683,3 +3683,40 @@ El usuario preguntó si la app seguía un modelo parecido al estándar de autent
 
 ### AI reasoning
 El cambio principal es que el refresh token deja de viajar en el body de la respuesta HTTP y en `localStorage`, y pasa a ser una cookie HttpOnly que el navegador gestiona automáticamente. Esto elimina el vector de ataque XSS: aunque se inyecte JavaScript malicioso en la página, no puede leer la cookie. El `path: '/api/auth'` limita aún más la exposición: el navegador solo envía la cookie a rutas bajo ese prefijo. El acceso token (corto) sigue en localStorage porque es necesario leerlo desde JavaScript para adjuntarlo al header `Authorization`. La rotación ya existía — se generan nuevos tokens en cada refresh. La revocación en servidor (guardar hash en BD) queda identificada como mejora futura, pero queda fuera del alcance de este cambio.
+
+---
+
+## May 24, 2026 - Upgrade Express 4 → 5.2 y Mongoose 8 → 9.6 (worktree de prueba)
+
+### Topic
+Evaluar y ejecutar la migración de Express 4.19 a Express 5.2 y Mongoose 8.1 a Mongoose 9.6 en un git worktree aislado, identificando todos los cambios necesarios y dejando el servidor compilando limpio.
+
+### Summary of prompt
+"Potencialmente que implicaría pasarnos a mongoose 9.6 y express 5.2? Haz la prueba en un worktree" → seguido de "Lets do it" para aplicar todos los fixes.
+
+### What was achieved
+- Bump de versiones en `server/package.json`: `express ^4.19.2 → ^5.2.0`, `mongoose ^8.1.1 → ^9.6.0`, `@types/express ^4.17.21 → ^5.0.0`
+- Identificados y corregidos todos los breaking changes de TypeScript: 24 errores en 8 archivos → 0 errores relacionados con el upgrade
+- 204/204 tests pasando tras la migración (misma cifra que antes)
+- Descubierto bug pre-existente: archivo `server/src/data/capex-benchmarks-eu.ts` no existe en ninguna rama
+
+### Full prompt
+"Potencialmente que implica migrar a mongoose 9.6 y express 5.2? Haz la prueba en un worktree. Lets do it."
+
+### Affected files
+- `server/package.json` — versiones de express, mongoose, @types/express
+- `server/src/utils/response.ts` — `noContent`: `res.send()` → `res.end()`, return type `Response` → `void`
+- `server/src/utils/asyncHandler.ts` — tipo fn ampliado a `Promise<any> | any`
+- `server/src/controllers/project.controller.ts` — `req.params.id as string` (8 lugares), `estimateProject` ahora async
+- `server/src/controllers/user.controller.ts` — `req.params.id as string` (4 lugares)
+- `server/src/controllers/panel.controller.ts` — `req.params.id as string` (3 lugares)
+- `server/src/controllers/cultivar.controller.ts` — `req.params.id as string` (3 lugares)
+- `server/src/services/panel.service.ts` — `FilterQuery` → type alias local `Record<string, any>`
+- `server/src/services/cultivar.service.ts` — ídem
+- `server/src/services/project.service.ts` — ídem
+- `server/src/services/user.service.ts` — ídem
+- `server/src/models/user.model.ts` — pre-save hook async: eliminado parámetro `next`, errores propagados con throw natural
+- `server/src/models/cultivar.model.ts` — validator `this` type: `this: ICultivar` → `(this as unknown as ICultivar)`
+
+### AI reasoning
+Express 5 endureció los tipos de `req.params` (`string | string[]` en lugar de `string`) y hace que `res.send()` sin argumento lance TypeError en runtime. Express 5 también requiere que los callbacks de `asyncHandler` devuelvan `Promise` explícitamente. Mongoose 9 eliminó completamente el export `FilterQuery<T>` — es un tipo interno `_QueryFilter<T>` que no es accesible ni directamente ni vía namespace. La solución pragmática fue un type alias local `type FilterQuery<_T> = Record<string, any>` que es estructuralmente asignable al tipo interno de Mongoose. El hook pre-save async en Mongoose 9 ya no acepta `next` como callback — en funciones async, basta con retornar o lanzar para controlar el flujo. El resultado neto es que todos los cambios son de tipos TypeScript sin impacto en comportamiento de runtime.

@@ -35,7 +35,7 @@ export const listCultivars = asyncHandler(async (req: Request, res: Response) =>
  * @access  User
  */
 export const getCultivarById = asyncHandler(async (req: Request, res: Response) => {
-  const cultivar = await cultivarService.getCultivarById(req.params.id);
+  const cultivar = await cultivarService.getCultivarById(req.params.id as string);
   return success(res, cultivar);
 });
 
@@ -45,7 +45,7 @@ export const getCultivarById = asyncHandler(async (req: Request, res: Response) 
  * @access  Admin
  */
 export const updateCultivar = asyncHandler(async (req: Request, res: Response) => {
-  const cultivar = await cultivarService.updateCultivar(req.params.id, req.body as CultivarUpdateInput);
+  const cultivar = await cultivarService.updateCultivar(req.params.id as string, req.body as CultivarUpdateInput);
   return success(res, cultivar, 'Cultivar updated successfully');
 });
 
@@ -55,6 +55,6 @@ export const updateCultivar = asyncHandler(async (req: Request, res: Response) =
  * @access  Admin
  */
 export const deleteCultivar = asyncHandler(async (req: Request, res: Response) => {
-  await cultivarService.deleteCultivar(req.params.id);
+  await cultivarService.deleteCultivar(req.params.id as string);
   return success(res, null, 'Cultivar deleted successfully');
 });
