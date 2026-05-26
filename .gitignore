@@ -52,8 +52,6 @@ coverage/
 *.temp
 .cache/
 
-# MongoDB data (if running locally)
-data/
 *.db
 
 # Optional npm cache directory
