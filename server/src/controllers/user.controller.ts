@@ -184,7 +184,7 @@ export const refreshAccessToken = asyncHandler(async (req: Request, res: Respons
   return success(res, { token: result.token, user: result.user }, 'Token refreshed successfully');
 });
 
-export const logoutUser = asyncHandler(async (_req: Request, res: Response) => {
+export const logoutUser = asyncHandler((_req: Request, res: Response) => {
   res.clearCookie(REFRESH_COOKIE, { ...REFRESH_COOKIE_OPTIONS, maxAge: undefined });
   return noContent(res);
 });
