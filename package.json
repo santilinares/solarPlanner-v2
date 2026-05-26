@@ -27,8 +27,8 @@
     "nodejs",
     "typescript"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Santiago Linares Oliveira",
+  "license": "MIT",
   "devDependencies": {
     "concurrently": "^9.1.0"
   },

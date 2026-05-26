@@ -3,7 +3,8 @@ import { ProjectModel } from '../models/project.model';
 import { PanelModel } from '../models/panel.model';
 import { UserUpdateProfileInput, UserQueryInput } from '../schemas/user.schema';
 import { UserResponse, UserListResponse } from '../types/user.types';
-import { FilterQuery, HydratedDocument } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
+type FilterQuery<_T> = Record<string, any>;
 import { emailService } from './email.service';
 
 /**

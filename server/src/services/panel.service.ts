@@ -1,4 +1,6 @@
-import { HydratedDocument, FilterQuery } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
+// Mongoose 9 removed FilterQuery export; Record<string, any> is assignable to its internal _QueryFilter
+type FilterQuery<_T> = Record<string, any>;
 import { PanelModel, IPanel } from '../models/panel.model';
 import { PanelCreateInput, PanelQueryInput, PanelUpdateInput } from '../schemas/panel.schema';
 import { PanelResponse, PanelListResponse } from '../types/panel.types';

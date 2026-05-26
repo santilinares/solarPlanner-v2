@@ -1,4 +1,5 @@
-import { HydratedDocument, FilterQuery, Types } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
+type FilterQuery<_T> = Record<string, any>;
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
 import { ProjectModel, IProject, IProductionPoint} from '../models/project.model';

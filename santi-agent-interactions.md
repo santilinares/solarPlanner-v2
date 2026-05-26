@@ -3726,3 +3726,40 @@ El usuario detectó que `configure-project` contenía dos pantallas funcionalmen
 
 ### AI reasoning
 El patrón Container/Presenter (Abramov 2015) fue la solución más directa para un God Component con dos modos de pantalla: en lugar de bifurcar toda la template con `@if (isViewMode())`, se crea un componente container independiente por cada ruta. Los sub-componentes presenters son puros por diseño — solo reciben `input()` y emiten `output()`, sin inyecciones de servicios — lo que los hace trivialmente testeables con `setInput()` y event spies. La extracción de `GeocodingService` aplica la Ley de Demeter: el componente no debe saber que la búsqueda de coordenadas implica HTTP. El uso de `display: contents` en el `:host` de `ConfigurePanelFormStepComponent` resolvió el reto de que ese presenter renderiza dos tarjetas que deben participar en el grid 2×2 del padre como si fueran children directos.
+
+---
+
+## May 24, 2026 - Upgrade Express 4 → 5.2 y Mongoose 8 → 9.6 (worktree de prueba)
+
+### Topic
+Evaluar y ejecutar la migración de Express 4.19 a Express 5.2 y Mongoose 8.1 a Mongoose 9.6 en un git worktree aislado, identificando todos los cambios necesarios y dejando el servidor compilando limpio.
+
+### Summary of prompt
+"Potencialmente que implicaría pasarnos a mongoose 9.6 y express 5.2? Haz la prueba en un worktree" → seguido de "Lets do it" para aplicar todos los fixes.
+
+### What was achieved
+- Bump de versiones en `server/package.json`: `express ^4.19.2 → ^5.2.0`, `mongoose ^8.1.1 → ^9.6.0`, `@types/express ^4.17.21 → ^5.0.0`
+- Identificados y corregidos todos los breaking changes de TypeScript: 24 errores en 8 archivos → 0 errores relacionados con el upgrade
+- 204/204 tests pasando tras la migración (misma cifra que antes)
+- Descubierto bug pre-existente: archivo `server/src/data/capex-benchmarks-eu.ts` no existe en ninguna rama
+
+### Full prompt
+"Potencialmente que implica migrar a mongoose 9.6 y express 5.2? Haz la prueba en un worktree. Lets do it."
+
+### Affected files
+- `server/package.json` — versiones de express, mongoose, @types/express
+- `server/src/utils/response.ts` — `noContent`: `res.send()` → `res.end()`, return type `Response` → `void`
+- `server/src/utils/asyncHandler.ts` — tipo fn ampliado a `Promise<any> | any`
+- `server/src/controllers/project.controller.ts` — `req.params.id as string` (8 lugares), `estimateProject` ahora async
+- `server/src/controllers/user.controller.ts` — `req.params.id as string` (4 lugares)
+- `server/src/controllers/panel.controller.ts` — `req.params.id as string` (3 lugares)
+- `server/src/controllers/cultivar.controller.ts` — `req.params.id as string` (3 lugares)
+- `server/src/services/panel.service.ts` — `FilterQuery` → type alias local `Record<string, any>`
+- `server/src/services/cultivar.service.ts` — ídem
+- `server/src/services/project.service.ts` — ídem
+- `server/src/services/user.service.ts` — ídem
+- `server/src/models/user.model.ts` — pre-save hook async: eliminado parámetro `next`, errores propagados con throw natural
+- `server/src/models/cultivar.model.ts` — validator `this` type: `this: ICultivar` → `(this as unknown as ICultivar)`
+
+### AI reasoning
+Express 5 endureció los tipos de `req.params` (`string | string[]` en lugar de `string`) y hace que `res.send()` sin argumento lance TypeError en runtime. Express 5 también requiere que los callbacks de `asyncHandler` devuelvan `Promise` explícitamente. Mongoose 9 eliminó completamente el export `FilterQuery<T>` — es un tipo interno `_QueryFilter<T>` que no es accesible ni directamente ni vía namespace. La solución pragmática fue un type alias local `type FilterQuery<_T> = Record<string, any>` que es estructuralmente asignable al tipo interno de Mongoose. El hook pre-save async en Mongoose 9 ya no acepta `next` como callback — en funciones async, basta con retornar o lanzar para controlar el flujo. El resultado neto es que todos los cambios son de tipos TypeScript sin impacto en comportamiento de runtime.

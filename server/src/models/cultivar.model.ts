@@ -42,8 +42,8 @@ const CultivarSchema = new Schema<ICultivar, CultivarModel, Record<string, never
       required: true,
       min: 0,
       validate: {
-        validator(this: ICultivar, value: number) {
-          return value >= this.minPanelHeight;
+        validator(value: number) {
+          return value >= (this as unknown as ICultivar).minPanelHeight;
         },
         message: 'maxPanelHeight must be >= minPanelHeight',
       },

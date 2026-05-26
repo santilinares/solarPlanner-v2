@@ -1,4 +1,5 @@
-import { HydratedDocument, FilterQuery } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
+type FilterQuery<_T> = Record<string, any>;
 import { CultivarModel, ICultivar } from '../models/cultivar.model';
 import {
   CultivarCreateInput,
