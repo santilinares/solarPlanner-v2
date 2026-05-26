@@ -67,7 +67,7 @@ export const getAdminDashboard = asyncHandler(async (_req: Request, res: Respons
  */
 export const getProjectById = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const project = await projectService.getProjectById(req.params.id as string, caller);
+  const project = await projectService.getProjectById(req.params.id, caller);
   return success(res, project);
 });
 
@@ -78,7 +78,7 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
  */
 export const updateProject = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const updatedProject = await projectService.updateProject(caller, req.params.id as string, req.body as ProjectUpdateInput);
+  const updatedProject = await projectService.updateProject(caller, req.params.id, req.body as ProjectUpdateInput);
   return success(res, updatedProject, 'Project updated successfully');
 });
 
@@ -90,7 +90,7 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
 
 export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const sunPath = await projectService.getSunPath(req.params.id as string, caller);
+  const sunPath = await projectService.getSunPath(req.params.id, caller);
   return success(res, sunPath);
 });
 
@@ -102,7 +102,7 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
 export const generatePlan = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   // TODO - Revisar que se mete en el PDF. Hay que actualizar alguna cosa?
-  const planData = await projectService.generatePlanData(req.params.id as string, caller);
+  const planData = await projectService.generatePlanData(req.params.id, caller);
   return success(res, planData);
 });
 
@@ -135,7 +135,7 @@ export const calculateFromPolygon = asyncHandler(async (req: Request, res: Respo
  */
 export const deleteProject = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.userId!;
-  await projectService.deleteProject(req.params.id as string, userId);
+  await projectService.deleteProject(req.params.id, userId);
   return success(res, null, 'Project deleted successfully');
 });
 
@@ -145,7 +145,7 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
  * @access  Private (Admin)
  */
 export const adminDeleteProject = asyncHandler(async (req: Request, res: Response) => {
-  await projectService.adminDeleteProject(req.params.id as string);
+  await projectService.adminDeleteProject(req.params.id);
   return success(res, null, 'Project deleted successfully');
 });
 
@@ -154,7 +154,7 @@ export const adminDeleteProject = asyncHandler(async (req: Request, res: Respons
  * @desc    Visitor quick estimate — no auth required
  * @access  Public
  */
-export const estimateProject = asyncHandler(async (req: Request, res: Response) => {
+export const estimateProject = asyncHandler((req: Request, res: Response) => {
   const { area } = req.body as { area: { lat: number; lon: number }[] };
   const result = projectService.estimateFromPolygon(area);
   return success(res, result);
@@ -167,7 +167,7 @@ export const estimateProject = asyncHandler(async (req: Request, res: Response) 
  */
 export const getProjectAnalytics = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const analytics = await projectService.getProjectAnalytics(req.params.id as string, caller);
+  const analytics = await projectService.getProjectAnalytics(req.params.id, caller);
   return success(res, analytics);
 });
 
@@ -180,7 +180,7 @@ export const refreshProduction = asyncHandler(async (req: Request, res: Response
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   const { forceFullRecalc } = req.body as { forceFullRecalc?: boolean };
   const result = await projectService.refreshProjectProductionOnDemand(
-    req.params.id as string,
+    req.params.id,
     caller,
     forceFullRecalc,
   );
