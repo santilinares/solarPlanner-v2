@@ -4,6 +4,28 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 27, 2026 - Fix: Remove unused LocationMapComponent import
+
+### Topic
+Resolve Angular compiler warning NG8113 for ConfigureProjectComponent.
+
+### Summary of Prompt
+User reported NG8113 indicating `LocationMapComponent` is not used in the template.
+
+### What Was Achieved
+- Removed the unused `LocationMapComponent` import from the component file to silence the warning.
+
+### Full Prompt
+> "▲ [WARNING] NG8113: LocationMapComponent is not used within the template of ConfigureProjectComponent"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Reasoning
+The map is now rendered by `ConfigureLocationStepComponent`, so the direct `LocationMapComponent` import was unused and triggered NG8113. Removing it keeps the component imports clean.
+
+---
+
 ## May 19, 2026 - Fusión de Settings en Profile + ThemeService (modo oscuro)
 
 ### Topic

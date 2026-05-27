@@ -43,7 +43,6 @@ import {
   OptimalConfigFromPolygonRequest,
   SunPathData,
 } from '@core/models';
-import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
 import { ConfigureLocationStepComponent } from './components/configure-location-step/configure-location-step.component';
 import { ConfigurePanelFormStepComponent } from './components/configure-panel-form-step/configure-panel-form-step.component';
 import { ConfigureReviewStepComponent } from './components/configure-review-step/configure-review-step.component';
@@ -87,7 +86,6 @@ export type ConfigFormValue = ReturnType<ConfigureProjectComponent['configForm']
     TooltipModule,
     ConfirmDialogModule,
     ToastModule,
-    LocationMapComponent,
     ConfigureLocationStepComponent,
     ConfigurePanelFormStepComponent,
     ConfigureReviewStepComponent,
