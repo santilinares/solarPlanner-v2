@@ -93,7 +93,8 @@ export class ProjectViewComponent implements OnInit {
     return { value, totalKwh, currency: data.currency ?? 'EUR', symbol };
   });
 
-  readonly hasTodayData = computed(() => (this.projectData()?.nextProd?.length ?? 0) > 0);
+  readonly hasTodayData = computed(() => (this.projectData()?.prodToday?.length ?? 0) > 0);
+  readonly hasNextProdData = computed(() => (this.projectData()?.nextProd?.length ?? 0) > 0);
   readonly hasPreviousProdData = computed(() => (this.projectData()?.previousProd?.length ?? 0) > 0);
 
   readonly todayChartOptions = computed((): Highcharts.Options => {
