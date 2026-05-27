@@ -35,7 +35,7 @@ describe('GeocodingService', () => {
 
     it('maps lat/lon strings and address to GeocodingResult', () => {
       let result: ReturnType<typeof service.search> extends import('rxjs').Observable<infer T> ? T : never;
-      service.search('Berlin').subscribe((r) => (result = r as typeof result));
+      service.search('Berlin').subscribe((r) => (result = r));
 
       const req = httpMock.expectOne((r) => r.url === NOMINATIM_URL);
       req.flush([
