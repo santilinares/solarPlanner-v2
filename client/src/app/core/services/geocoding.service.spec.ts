@@ -24,13 +24,22 @@ describe('GeocodingService', () => {
   describe('search()', () => {
     it('calls Nominatim with the encoded query and required params', () => {
       service.search('Madrid, Spain').subscribe();
-      const req = httpMock.expectOne((r) => r.url === NOMINATIM_URL);
+      const req = httpMock.expectOne(
+        (r) =>
+          r.urlWithParams.startsWith(`${NOMINATIM_URL}?`) &&
+          r.urlWithParams.includes('q=Madrid%2C%20Spain') &&
+          r.urlWithParams.includes('format=json') &&
+          r.urlWithParams.includes('limit=1') &&
+          r.urlWithParams.includes('addressdetails=1'),
+      );
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.get('q')).toBe('Madrid, Spain');
-      expect(req.request.params.get('format')).toBe('json');
-      expect(req.request.params.get('limit')).toBe('1');
-      expect(req.request.params.get('addressdetails')).toBe('1');
-      req.flush([]);
+      req.flush([
+        {
+          lat: '40.4168',
+          lon: '-3.7038',
+          address: { country: 'Spain', country_code: 'es' },
+        },
+      ]);
     });
 
     it('maps lat/lon strings and address to GeocodingResult', () => {

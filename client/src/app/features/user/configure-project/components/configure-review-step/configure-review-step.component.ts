@@ -4,13 +4,14 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
+import { TooltipModule } from 'primeng/tooltip';
 import { Coordinates, OptimalConfigResponse } from '@core/models';
 import { ConfigFormValue } from '../../configure-project.component';
 
 @Component({
   selector: 'app-configure-review-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, ButtonModule, TagModule, DividerModule, MessageModule],
+  imports: [DecimalPipe, ButtonModule, TagModule, DividerModule, MessageModule, TooltipModule],
   templateUrl: './configure-review-step.component.html',
   styleUrls: ['./configure-review-step.component.scss'],
 })

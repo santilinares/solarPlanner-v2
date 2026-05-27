@@ -2,13 +2,14 @@ import { Component, ChangeDetectionStrategy, input, output, signal } from '@angu
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { DividerModule } from 'primeng/divider';
+import { TooltipModule } from 'primeng/tooltip';
 import { Coordinates } from '@core/models';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
 
 @Component({
   selector: 'app-configure-location-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [InputTextModule, ButtonModule, DividerModule, LocationMapComponent],
+  imports: [InputTextModule, ButtonModule, DividerModule, TooltipModule, LocationMapComponent],
   templateUrl: './configure-location-step.component.html',
   styleUrls: ['./configure-location-step.component.scss'],
 })
