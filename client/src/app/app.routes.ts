@@ -63,8 +63,8 @@ export const routes: Routes = [
       },
       {
         path: ':id',
-        loadComponent: () => import('./features/user/configure-project/configure-project.component')
-          .then(m => m.ConfigureProjectComponent)
+        loadComponent: () => import('./features/user/project-view/project-view.component')
+          .then(m => m.ProjectViewComponent)
       },
       {
         path: ':id/configure',

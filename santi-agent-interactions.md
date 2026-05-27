@@ -4,6 +4,28 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 27, 2026 - Fix: Remove unused LocationMapComponent import
+
+### Topic
+Resolve Angular compiler warning NG8113 for ConfigureProjectComponent.
+
+### Summary of Prompt
+User reported NG8113 indicating `LocationMapComponent` is not used in the template.
+
+### What Was Achieved
+- Removed the unused `LocationMapComponent` import from the component file to silence the warning.
+
+### Full Prompt
+> "▲ [WARNING] NG8113: LocationMapComponent is not used within the template of ConfigureProjectComponent"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Reasoning
+The map is now rendered by `ConfigureLocationStepComponent`, so the direct `LocationMapComponent` import was unused and triggered NG8113. Removing it keeps the component imports clean.
+
+---
+
 ## May 19, 2026 - Fusión de Settings en Profile + ThemeService (modo oscuro)
 
 ### Topic
@@ -3683,6 +3705,49 @@ El usuario preguntó si la app seguía un modelo parecido al estándar de autent
 
 ### AI reasoning
 El cambio principal es que el refresh token deja de viajar en el body de la respuesta HTTP y en `localStorage`, y pasa a ser una cookie HttpOnly que el navegador gestiona automáticamente. Esto elimina el vector de ataque XSS: aunque se inyecte JavaScript malicioso en la página, no puede leer la cookie. El `path: '/api/auth'` limita aún más la exposición: el navegador solo envía la cookie a rutas bajo ese prefijo. El acceso token (corto) sigue en localStorage porque es necesario leerlo desde JavaScript para adjuntarlo al header `Authorization`. La rotación ya existía — se generan nuevos tokens en cada refresh. La revocación en servidor (guardar hash en BD) queda identificada como mejora futura, pero queda fuera del alcance de este cambio.
+
+---
+
+## May 23, 2026 - Refactorización Container/Presenter del God Component configure-project
+
+### Topic
+Descomponer el componente `configure-project` (God Component: 835 TS + 946 HTML + 935 SCSS) en componentes Container/Presenter bien delimitados, extraer `GeocodingService`, y producir documentación académica de la decisión para el TFG.
+
+### Summary of Prompt
+El usuario detectó que `configure-project` contenía dos pantallas funcionalmente distintas (vista y configuración) bajo una misma clase Angular, lo que hacía imposible testarlas de forma aislada. Solicitó una refactorización respaldada por buenas prácticas de frontend y fuentes académicas/industriales, con un documento Markdown que argumente la decisión.
+
+### What Was Achieved
+- **Separación de rutas (Fase 1):** La ruta `/projects/:id` (modo lectura) pasa a ser servida por el nuevo `ProjectViewComponent`. La ruta `/projects/:id/configure` mantiene `ConfigureProjectComponent` en modo edición puro. Cada container posee únicamente los servicios y señales que le corresponden.
+- **GeocodingService extraído (Fase 2):** Las llamadas HTTP a Nominatim, y las tablas de lookup `COUNTRY_CURRENCY` / `COUNTRY_TIMEZONE`, se mueven a un servicio singleton `GeocodingService` en `core/services/`. El componente ya no inyecta `HttpClient` directamente.
+- **Sub-componentes del stepper (Fase 3):** Tres presenters extraídos bajo `configure-project/components/`: `ConfigureLocationStepComponent`, `ConfigurePanelFormStepComponent` y `ConfigureReviewStepComponent`. Todos reciben estado vía `input()` y emiten eventos vía `output()`. Ninguno inyecta servicios.
+- **Sub-componentes del view (Fase 4):** Dos presenters bajo `project-view/components/`: `ProjectAnalyticsComponent` (métricas + gráfico de 25 años) y `ProductionChartsComponent` (valor económico + 3 gráficos de producción). Las opciones de gráficos Highcharts se computan en el container y llegan como `input()`.
+- **Specs (Fase 5):** `geocoding.service.spec.ts` cubre URL Nominatim, mapeo lat/lon, lookups de currency/timezone y error handling. `configure-review-step.component.spec.ts` cubre renderizado de datos del formValue, estado del botón Save y emisión de outputs.
+- **REFACTORING_DECISIONS.md:** Documento académico en `client/REFACTORING_DECISIONS.md` con justificación respaldada por Fowler (God Component), Martin (SRP), Abramov (Container/Presenter), Angular Style Guide, Lieberherr & Holland (Ley de Demeter) y Feathers (testabilidad).
+
+### Full Prompt
+> "Quiero hacer una refactorización del componente de configure-project para poder testearlo y modularizarlo, ya que contiene dos funcionalidades en una: view y configure y lo hace complicado de testear. Quiero que la refactorización esté respaldada por buenas prácticas para cuando ocurre con este tipo de componentes no solo de angular sino en general de frontend, ya que el problema está en el componente de angular, que aunque está dividido en .ts, .html y .scss es bastante grande y complejo. Refinemos un plan que podemos llevar a implementación"
+
+### Affected Files
+
+**Creados (15 ficheros):**
+- `client/src/app/features/user/project-view/project-view.component.ts / .html / .scss`
+- `client/src/app/features/user/project-view/components/project-analytics/project-analytics.component.ts / .html / .scss`
+- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.ts / .html / .scss`
+- `client/src/app/features/user/configure-project/components/configure-location-step/configure-location-step.component.ts / .html / .scss`
+- `client/src/app/features/user/configure-project/components/configure-panel-form-step/configure-panel-form-step.component.ts / .html / .scss`
+- `client/src/app/features/user/configure-project/components/configure-review-step/configure-review-step.component.ts / .html / .scss / .spec.ts`
+- `client/src/app/core/services/geocoding.service.ts / .spec.ts`
+- `client/REFACTORING_DECISIONS.md`
+
+**Modificados (5 ficheros):**
+- `client/src/app/app.routes.ts` — ruta `:id` apunta a `ProjectViewComponent`
+- `client/src/app/core/services/index.ts` — export de `GeocodingService`
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — eliminado view mode, HTTP, Highcharts; añadido sub-componentes y `GeocodingService`
+- `client/src/app/features/user/configure-project/configure-project.component.html` — eliminado bloque view mode; wired sub-componentes
+- `client/src/app/features/user/configure-project/configure-project.component.scss` — eliminados estilos de view mode
+
+### AI reasoning
+El patrón Container/Presenter (Abramov 2015) fue la solución más directa para un God Component con dos modos de pantalla: en lugar de bifurcar toda la template con `@if (isViewMode())`, se crea un componente container independiente por cada ruta. Los sub-componentes presenters son puros por diseño — solo reciben `input()` y emiten `output()`, sin inyecciones de servicios — lo que los hace trivialmente testeables con `setInput()` y event spies. La extracción de `GeocodingService` aplica la Ley de Demeter: el componente no debe saber que la búsqueda de coordenadas implica HTTP. El uso de `display: contents` en el `:host` de `ConfigurePanelFormStepComponent` resolvió el reto de que ese presenter renderiza dos tarjetas que deben participar en el grid 2×2 del padre como si fueran children directos.
 
 ---
 

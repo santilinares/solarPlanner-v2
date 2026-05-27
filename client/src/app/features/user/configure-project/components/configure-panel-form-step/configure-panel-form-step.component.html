@@ -1,0 +1,209 @@
+<!-- Panel & Installation card -->
+<div class="step-card panel-installation-card">
+  <div class="step-card-header">
+    <div class="step-card-icon panel-icon">
+      <i class="pi pi-sun"></i>
+    </div>
+    <div>
+      <h2>Panel & Installation</h2>
+      <p>Configure solar panel type, tilt, orientation and layout.</p>
+    </div>
+  </div>
+
+  <p-divider />
+
+  <form [formGroup]="formGroup()" class="form-grid">
+    <div class="form-field full-width">
+      <p-floatlabel variant="on">
+        <p-select
+          [options]="panelsWithLabel()"
+          optionLabel="displayLabel"
+          optionValue="id"
+          formControlName="panelId"
+          inputId="panelId"
+          [filter]="true"
+          filterBy="brand,model"
+          placeholder="Choose a panel"
+          class="w-full"
+        >
+          <ng-template #selectedItem let-selectedPanel>
+            @if (selectedPanel) {
+            <div class="panel-option">
+              <strong>{{ selectedPanel.brand }} {{ selectedPanel.model }}</strong>
+              <span class="panel-watts">{{ selectedPanel.wattPeak }}W</span>
+            </div>
+            }
+          </ng-template>
+          <ng-template #item let-panel>
+            <div class="panel-option">
+              <div>
+                <strong>{{ panel.brand }} {{ panel.model }}</strong>
+                <small class="panel-meta">
+                  {{ panel.wattPeak }}W · {{ panel.efficiency }}% eff · {{ panel.technology }}
+                </small>
+              </div>
+              <span class="panel-watts">{{ panel.wattPeak }}W</span>
+            </div>
+          </ng-template>
+        </p-select>
+        <label for="panelId">Solar Panel</label>
+      </p-floatlabel>
+    </div>
+
+    @if (selectedPanelData()) {
+    <div class="form-field full-width">
+      <div class="panel-info-card">
+        <div class="panel-info-surface">
+          <div class="panel-info-header">
+            <span class="panel-info-title">
+              <i class="pi pi-info-circle" aria-hidden="true"></i>
+              <strong>{{ selectedPanelName() }}</strong>
+            </span>
+            <p>{{ selectedPanelTechDimensions() }}</p>
+          </div>
+          <div class="panel-info-tags">
+            @for (entry of panelTagEntries(); track entry.label) {
+            <p-tag
+              [value]="entry.value"
+              [icon]="entry.icon"
+              [severity]="entry.severity"
+              [rounded]="true"
+              [attr.aria-label]="entry.label"
+              [pTooltip]="entry.label"
+            />
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="panelNumber" inputId="panelNumber" [showButtons]="true" [min]="1" [max]="9999" class="w-full" />
+        <label for="panelNumber">Number of Panels</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="tilt" inputId="tilt" [showButtons]="true" [min]="0" [max]="90" suffix="°" class="w-full" />
+        <label for="tilt">Tilt / Inclination</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-select
+          [options]="orientationOptions()"
+          optionLabel="label"
+          optionValue="value"
+          formControlName="direction"
+          inputId="direction"
+          placeholder="Select orientation"
+          class="w-full"
+        >
+          <ng-template #selectedItem let-opt>
+            @if (opt) { <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span> }
+          </ng-template>
+          <ng-template #item let-opt>
+            <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span>
+          </ng-template>
+        </p-select>
+        <label for="direction">Orientation / Direction</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="azimuth" inputId="azimuth" [showButtons]="true" [min]="0" [max]="360" suffix="°" class="w-full" />
+        <label for="azimuth">Azimuth</label>
+      </p-floatlabel>
+      <small class="field-hint">0° = North, 180° = South</small>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="rawSpacing" inputId="rawSpacing" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" [min]="0" suffix=" m" class="w-full" />
+        <label for="rawSpacing">Row Spacing</label>
+      </p-floatlabel>
+    </div>
+  </form>
+</div>
+
+<!-- Live Capacity Preview card -->
+<div class="step-card capacity-preview-card mt-card">
+  <div class="step-card-header">
+    <div class="step-card-icon capacity-icon">
+      <i class="pi pi-bolt"></i>
+    </div>
+    <div>
+      <h2>Live Capacity Preview</h2>
+      <p>Real-time estimation based on your configuration.</p>
+    </div>
+    <p-tag
+      [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+      [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+      [rounded]="true"
+      [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
+      class="config-badge"
+    />
+  </div>
+
+  <p-divider />
+
+  @if (isCalculating()) {
+    <div class="calculating-state">
+      <p-skeleton width="100%" height="3rem" borderRadius="12px" />
+      <p-skeleton width="100%" height="3rem" borderRadius="12px" />
+      <p-skeleton width="100%" height="4rem" borderRadius="12px" />
+    </div>
+  } @else if (selectedPanelData(); as sp) {
+    <div class="capacity-grid">
+      <div class="capacity-item">
+        <span class="capacity-label">Selected Panel</span>
+        <strong>{{ sp.brand }} {{ sp.model }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">Panel Power</span>
+        <strong>{{ sp.wattPeak }} W</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">Total Panels</span>
+        <strong>{{ panelNumber() || 0 }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">Project Total Area</span>
+        <strong>{{ projectTotalArea() | number: '1.0-0' }} m²</strong>
+      </div>
+      <div class="capacity-item highlight">
+        <span class="capacity-label">Total Capacity</span>
+        <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
+      </div>
+      @if (optimalConfig(); as oc) {
+        <div class="capacity-item">
+          <span class="capacity-label">Est. Annual Production</span>
+          <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
+        </div>
+        <div class="capacity-item">
+          <span class="capacity-label">Area Coverage</span>
+          <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
+        </div>
+      }
+    </div>
+    @if (!isUsingOptimalConfig() && optimalConfig()) {
+      <div class="optimal-hint">
+        <i class="pi pi-info-circle"></i>
+        <span>Custom configuration active.</span>
+        <button class="link-btn" (click)="applyOptimal.emit()">
+          Restore optimal ({{ optimalConfig()!.recommendedPanels }} panels)
+        </button>
+      </div>
+    }
+  } @else {
+    <div class="no-panel-message">
+      <i class="pi pi-info-circle"></i>
+      <span>Select a panel to see the capacity preview. Area: {{ projectTotalArea() | number: '1.0-0' }} m²</span>
+    </div>
+  }
+</div>

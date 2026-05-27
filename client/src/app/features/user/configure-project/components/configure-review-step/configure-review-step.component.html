@@ -1,0 +1,166 @@
+<div class="step-content">
+  <div class="review-grid">
+    <!-- Project & Metadata Summary -->
+    <div class="step-card review-card">
+      <div class="review-card-header">
+        <h3><i class="pi pi-file-edit"></i> Project & Metadata</h3>
+      </div>
+      <p-divider />
+      <div class="review-items">
+        <div class="review-item">
+          <span>Project Name</span>
+          <strong>{{ formValue().name || '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Country</span>
+          <strong>{{ formValue().country || '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Timezone</span>
+          <strong>{{ formValue().timezone || '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Currency</span>
+          <strong>{{ formValue().currency || '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Energy Price</span>
+          <strong>{{ formValue().price != null ? (formValue().price | number: '1.2-4') + '/kWh' : '—' }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location & Area Summary -->
+    <div class="step-card review-card">
+      <div class="review-card-header">
+        <h3><i class="pi pi-map-marker"></i> Location & Area</h3>
+        <p-button
+          icon="pi pi-pencil"
+          [rounded]="true"
+          [textContent]="true"
+          size="small"
+          pTooltip="Edit Location"
+          (onClick)="goToStep.emit(1)"
+        />
+      </div>
+      <p-divider />
+      <div class="review-items">
+        <div class="review-item">
+          <span>Coordinates</span>
+          <strong>{{ locationSummary() }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Installation Area</span>
+          <strong>{{ polygonCoords().length >= 3 ? polygonCoords().length + ' points defined' : 'Not defined' }}</strong>
+        </div>
+        @if (optimalConfig(); as oc) {
+          <div class="review-item">
+            <span>Area Coverage</span>
+            <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Panel & Installation Summary -->
+    <div class="step-card review-card">
+      <div class="review-card-header">
+        <h3><i class="pi pi-sun"></i> Panel & Installation</h3>
+        <p-button
+          icon="pi pi-pencil"
+          [rounded]="true"
+          [textContent]="true"
+          size="small"
+          pTooltip="Edit Panel Setup"
+          (onClick)="goToStep.emit(1)"
+        />
+      </div>
+      <p-divider />
+      <div class="review-items">
+        <div class="review-item">
+          <span>Solar Panel</span>
+          <strong>{{ selectedPanelLabel() }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Number of Panels</span>
+          <strong>{{ formValue().panelNumber || '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Tilt</span>
+          <strong>{{ formValue().tilt != null ? formValue().tilt + '°' : '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Direction</span>
+          <strong>{{ selectedDirectionLabel() }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Azimuth</span>
+          <strong>{{ formValue().azimuth != null ? formValue().azimuth + '°' : '—' }}</strong>
+        </div>
+        <div class="review-item">
+          <span>Row Spacing</span>
+          <strong>{{ formValue().rawSpacing != null ? formValue().rawSpacing + ' m' : '—' }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capacity Summary -->
+    <div class="step-card review-card">
+      <div class="review-card-header">
+        <h3><i class="pi pi-bolt"></i> Capacity</h3>
+        <p-tag
+          [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+          [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+          [rounded]="true"
+          [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
+        />
+      </div>
+      <p-divider />
+      <div class="review-items">
+        <div class="review-item">
+          <span>Total Capacity</span>
+          <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
+        </div>
+        @if (optimalConfig(); as oc) {
+          <div class="review-item">
+            <span>Est. Annual Production</span>
+            <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
+          </div>
+          <div class="review-item">
+            <span>Area Coverage</span>
+            <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Total capacity highlight -->
+  <div class="step-card total-capacity-card">
+    <div class="total-capacity-content">
+      <div class="capacity-sun-icon"><i class="pi pi-sun"></i></div>
+      <div class="capacity-info">
+        <span>Estimated Total Capacity</span>
+        <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
+      </div>
+    </div>
+  </div>
+
+  @if (saveError()) {
+    <p-message severity="error" [text]="saveError()!" class="w-full" />
+  }
+  @if (saveSuccess()) {
+    <p-message severity="success" text="Project updated successfully!" class="w-full" />
+  }
+
+  <div class="save-action">
+    <p-button
+      label="Save Changes"
+      icon="pi pi-check"
+      [rounded]="true"
+      [loading]="isSaving()"
+      [disabled]="!canSave()"
+      (onClick)="save.emit()"
+    />
+  </div>
+</div>
