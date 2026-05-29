@@ -13,7 +13,7 @@ import {
 } from '../../schemas/user.schema';
 
 describe('UserCreateSchema', () => {
-  const valid = { fullName: 'Jane Doe', email: 'Jane@Example.com', password: 'password123' };
+  const valid = { fullName: 'Jane Doe', email: 'Jane@Example.com', password: 'Password1!' };
 
   it('accepts valid input', () => {
     const result = UserCreateSchema.safeParse(valid);
@@ -35,6 +35,22 @@ describe('UserCreateSchema', () => {
 
   it('rejects password shorter than 8 chars', () => {
     expect(UserCreateSchema.safeParse({ ...valid, password: 'short' }).success).toBe(false);
+  });
+
+  it('rejects password without uppercase', () => {
+    expect(UserCreateSchema.safeParse({ ...valid, password: 'password1!' }).success).toBe(false);
+  });
+
+  it('rejects password without lowercase', () => {
+    expect(UserCreateSchema.safeParse({ ...valid, password: 'PASSWORD1!' }).success).toBe(false);
+  });
+
+  it('rejects password without number', () => {
+    expect(UserCreateSchema.safeParse({ ...valid, password: 'Password!!' }).success).toBe(false);
+  });
+
+  it('rejects password without special character', () => {
+    expect(UserCreateSchema.safeParse({ ...valid, password: 'Password123' }).success).toBe(false);
   });
 });
 
@@ -75,18 +91,22 @@ describe('UserUpdateProfileSchema', () => {
 });
 
 describe('UserChangePasswordSchema', () => {
-  const valid = { currentPassword: 'oldpassword', newPassword: 'newpassword' };
+  const valid = { currentPassword: 'OldPass1!', newPassword: 'NewPass1!' };
 
   it('accepts valid input', () => {
     expect(UserChangePasswordSchema.safeParse(valid).success).toBe(true);
   });
 
-  it('rejects short currentPassword', () => {
-    expect(UserChangePasswordSchema.safeParse({ ...valid, currentPassword: 'short' }).success).toBe(false);
+  it('rejects empty currentPassword', () => {
+    expect(UserChangePasswordSchema.safeParse({ ...valid, currentPassword: '' }).success).toBe(false);
   });
 
-  it('rejects short newPassword', () => {
+  it('rejects weak newPassword', () => {
     expect(UserChangePasswordSchema.safeParse({ ...valid, newPassword: 'short' }).success).toBe(false);
+  });
+
+  it('rejects newPassword without special character', () => {
+    expect(UserChangePasswordSchema.safeParse({ ...valid, newPassword: 'NewPass123' }).success).toBe(false);
   });
 });
 
@@ -106,7 +126,7 @@ describe('PasswordResetRequestSchema', () => {
 });
 
 describe('PasswordResetApplySchema', () => {
-  const valid = { token: 'some-jwt-token', newPassword: 'newpassword' };
+  const valid = { token: 'some-jwt-token', newPassword: 'NewPass1!' };
 
   it('accepts valid input', () => {
     expect(PasswordResetApplySchema.safeParse(valid).success).toBe(true);
@@ -118,6 +138,10 @@ describe('PasswordResetApplySchema', () => {
 
   it('rejects short newPassword', () => {
     expect(PasswordResetApplySchema.safeParse({ ...valid, newPassword: 'short' }).success).toBe(false);
+  });
+
+  it('rejects newPassword without special character', () => {
+    expect(PasswordResetApplySchema.safeParse({ ...valid, newPassword: 'NewPass123' }).success).toBe(false);
   });
 });
 

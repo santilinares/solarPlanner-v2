@@ -7,6 +7,7 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { getErrorMessage } from '@core/models';
+import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/password.validator';
 
 @Component({
   selector: 'app-reset-password',
@@ -28,15 +29,17 @@ import { getErrorMessage } from '@core/models';
             <label for="password">New Password</label>
             <p-password
               formControlName="password"
-              placeholder="Minimum 8 characters"
+              [placeholder]="passwordHint"
               [toggleMask]="true"
-              [feedback]="false"
+              [feedback]="true"
               class="w-full"
               inputclass="w-full"
+              [mediumRegex]="'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,})'"
+              [strongRegex]="'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{10,})'"
             ></p-password>
             @if (resetPasswordForm.get('password')?.invalid && resetPasswordForm.get('password')?.touched) {
               <small class="error-text">
-                <i class="pi pi-exclamation-circle"></i> Password must be at least 8 characters
+                <i class="pi pi-exclamation-circle"></i> {{ passwordHint }}
               </small>
             }
           </div>
@@ -216,12 +219,13 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
   loading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
+  readonly passwordHint = PASSWORD_HINT;
   private redirectTimeout?: ReturnType<typeof setTimeout>;
 
   token: string = '';
 
   resetPasswordForm: FormGroup = this.fb.group({
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required, strongPasswordValidator()]],
     confirmPassword: ['', Validators.required]
   }, { validators: this.passwordMatchValidator });
 

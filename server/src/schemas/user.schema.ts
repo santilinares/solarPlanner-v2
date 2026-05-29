@@ -1,8 +1,12 @@
 import { z } from 'zod';
 
-/**
- * User authentication and profile validation schemas
- */
+const strongPassword = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/\d/, 'Password must contain at least one number')
+  .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character');
 
 // Enums
 /**
@@ -41,7 +45,7 @@ export const AuthMethodEnum = z.enum(['local', 'google']);
 export const UserCreateSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(120),
   email: z.string().email('Valid email is required').toLowerCase(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: strongPassword,
 });
 
 /** Type inferred from UserCreateSchema - used for user registration */
@@ -91,8 +95,8 @@ export type UserUpdateProfileInput = z.infer<typeof UserUpdateProfileSchema>;
  * - newPassword: Minimum 8 characters
  */
 export const UserChangePasswordSchema = z.object({
-  currentPassword: z.string().min(8),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+  currentPassword: z.string().min(1),
+  newPassword: strongPassword,
 });
 
 /** Type inferred from UserChangePasswordSchema - used for changing password */
@@ -120,7 +124,7 @@ export type PasswordResetRequestInput = z.infer<typeof PasswordResetRequestSchem
  */
 export const PasswordResetApplySchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+  newPassword: strongPassword,
 });
 
 /** Type inferred from PasswordResetApplySchema - used for applying password reset */

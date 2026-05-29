@@ -13,6 +13,7 @@ import {
   AbstractControl,
   ValidationErrors,
 } from '@angular/forms';
+import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/password.validator';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DividerModule } from 'primeng/divider';
@@ -121,13 +122,16 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
                 <p-password
                   inputId="newPassword"
                   formControlName="newPassword"
-                  placeholder="At least 8 characters"
+                  [placeholder]="passwordHint"
                   [toggleMask]="true"
+                  [feedback]="true"
+                  [mediumRegex]="'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{8,})'"
+                  [strongRegex]="'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{10,})'"
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
                 @if (passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched) {
-                  <small class="field-error">Password must be at least 8 characters.</small>
+                  <small class="field-error">{{ passwordHint }}</small>
                 }
               </div>
               <div class="field">
@@ -343,6 +347,7 @@ export class ProfileComponent implements OnInit {
   readonly savingPassword = signal(false);
   readonly displayName = signal('');
   readonly avatarInitial = signal('?');
+  readonly passwordHint = PASSWORD_HINT;
 
   readonly profileForm = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(1)]],
@@ -351,7 +356,7 @@ export class ProfileComponent implements OnInit {
   readonly passwordForm = this.fb.group(
     {
       currentPassword: ['', Validators.required],
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
+      newPassword: ['', [Validators.required, strongPasswordValidator()]],
       confirmPassword: ['', Validators.required],
     },
     { validators: passwordsMatchValidator }
