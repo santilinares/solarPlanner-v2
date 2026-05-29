@@ -3785,3 +3785,34 @@ Evaluar y ejecutar la migración de Express 4.19 a Express 5.2 y Mongoose 8.1 a 
 
 ### AI reasoning
 Express 5 endureció los tipos de `req.params` (`string | string[]` en lugar de `string`) y hace que `res.send()` sin argumento lance TypeError en runtime. Express 5 también requiere que los callbacks de `asyncHandler` devuelvan `Promise` explícitamente. Mongoose 9 eliminó completamente el export `FilterQuery<T>` — es un tipo interno `_QueryFilter<T>` que no es accesible ni directamente ni vía namespace. La solución pragmática fue un type alias local `type FilterQuery<_T> = Record<string, any>` que es estructuralmente asignable al tipo interno de Mongoose. El hook pre-save async en Mongoose 9 ya no acepta `next` como callback — en funciones async, basta con retornar o lanzar para controlar el flujo. El resultado neto es que todos los cambios son de tipos TypeScript sin impacto en comportamiento de runtime.
+
+---
+
+## May 27, 2026 - Dark mode: detección automática por preferencia del sistema
+
+### Topic
+Reemplazar el toggle manual de modo oscuro por detección automática de `prefers-color-scheme`, eliminando el toggle del perfil.
+
+### Summary of prompt
+El usuario reportó que el toggle de modo oscuro solo afectaba a unos pocos componentes PrimeNG y que el resto de la UI no cambiaba. Quería que el modo oscuro funcionase automáticamente igual que en Comet (navegador de Perplexity), siguiendo la preferencia del sistema operativo/navegador sin toggle manual.
+
+### What was achieved
+- Eliminado el toggle manual de modo oscuro de la sección "Preferences" del perfil de usuario
+- PrimeNG configurado con `darkModeSelector: 'system'` para que use `@media (prefers-color-scheme: dark)` nativo
+- `theme-dark.scss` actualizado de `:root.dark-mode {}` a `@media (prefers-color-scheme: dark) { :root {} }`
+- `ThemeService` simplificado: eliminados `toggle()`, `localStorage`, y la manipulación de clase DOM; ahora solo expone `isDarkMode` como signal reactivo que lee `matchMedia` y se actualiza automáticamente cuando el SO cambia
+- Eliminados imports y código huérfano (`ToggleSwitchModule`, inyección de `themeService`, estilos `.preferences-section`, `.pref-row`, `.pref-info`) del `ProfileComponent`
+
+### Full prompt
+> "En el apartado de usuario, en el perfil, la funcionalidad para cambiar el tema no funciona muy bien, solamente afecta a unos pocos componentes que cambian su contraste. Yo lo que quiero es que si el navegador esta en modo noche, haga esos cambios automaticos, como ocurre en comet, el navegador de perplexity ai."
+> "Me gustaría que el toggle manual se comportase como lo que hace cuando detecta en el navegador Comet que está seleccionado el modo dark (o light)"
+> "Vamos a quitar el toggle y ya está jeje. Creo que esto es un dolor de cabeza que no nos merece la pena"
+
+### Affected files
+- `client/src/app/app.config.ts` — `darkModeSelector: '.dark-mode'` → `darkModeSelector: 'system'`
+- `client/src/styles/theme-dark.scss` — `:root.dark-mode {}` → `@media (prefers-color-scheme: dark) { :root {} }`
+- `client/src/app/core/services/theme.service.ts` — simplificado a matchMedia reactivo, eliminado toggle/localStorage
+- `client/src/app/features/user/profile/profile.component.ts` — eliminados sección Preferences, ThemeService, ToggleSwitchModule
+
+### AI reasoning
+La raíz del problema era que `ThemeService` solo leía `localStorage` y nunca consultaba `prefers-color-scheme`, por lo que el sistema operativo nunca tenía efecto. PrimeNG ya soporta `darkModeSelector: 'system'` que delega el modo oscuro completamente a una media query CSS nativa, sin necesitar ninguna clase JS en el DOM. Esto es más fiable (funciona antes de que Angular inicialice) y elimina la complejidad de mantener sincronizados JS y CSS. Los 4 archivos SCSS con colores hardcodeados (`#f59e0b` ámbar, `#22c55e` verde, `#6366f1` índigo) son colores semánticos de indicadores de gráficas (solar, electricidad) que no forman parte de la interfaz y se ven correctamente en ambos modos.
