@@ -156,7 +156,7 @@ const VALID_FORM = {
   firstName: 'John',
   lastName: 'Doe',
   email: 'john@test.com',
-  password: 'password123',
+  password: 'Password123*',
 };
 
 describe('RegisterComponent – onSubmit', () => {

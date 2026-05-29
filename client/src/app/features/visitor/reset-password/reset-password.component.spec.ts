@@ -14,7 +14,7 @@ function makeRoute(queryToken: string | null, paramToken: string | null) {
   };
 }
 
-const VALID_FORM = { password: 'newPassword1', confirmPassword: 'newPassword1' };
+const VALID_FORM = { password: 'Password123*', confirmPassword: 'Password123*' };
 
 describe('ResetPasswordComponent', () => {
   let component: ResetPasswordComponent;
