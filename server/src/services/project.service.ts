@@ -732,21 +732,26 @@ export class ProjectService {
   // ---------------------------------------------------------------------------
 
   async calculateOptimalConfig(data: OptimalConfigInput): Promise<OptimalConfigResponse> {
-    const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak } = data;
+    const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak, azimuth } = data;
 
     const W = panelWidth;
     const H = panelHeight;
     const tiltRad = (tilt * Math.PI) / 180;
 
-    // Shadow-based row spacing: d = H × sin(α) / tan(β) where β = 90° − |lat| − 23.45°
-    // TODO - Formula assumes south-facing panels; azimuth should be factored in
+    // Shadow-based row spacing: d = H × sin(α) / tan(β) × |cos(φ)|
+    // β = 90° − |lat| − 23.45° (solar elevation at winter solstice noon)
+    // φ = deviation from south (compass azimuth − 180°)
+    // The N-S shadow component shrinks as the panel turns away from south,
+    // so rows can be placed closer for east/west-facing orientations.
     const betaDeg = 90 - Math.abs(latitude) - 23.45;
+    const azimuthDevRad = ((azimuth ?? 180) - 180) * (Math.PI / 180);
+    const nsShadowFactor = Math.abs(Math.cos(azimuthDevRad));
     let recommendedRowSpacing: number;
     if (betaDeg <= 0) {
-      recommendedRowSpacing = H * 3;
+      recommendedRowSpacing = H * 3 * nsShadowFactor;
     } else {
       const betaRad = (betaDeg * Math.PI) / 180;
-      recommendedRowSpacing = (H * Math.sin(tiltRad)) / Math.tan(betaRad);
+      recommendedRowSpacing = ((H * Math.sin(tiltRad)) / Math.tan(betaRad)) * nsShadowFactor;
     }
     recommendedRowSpacing = Math.max(recommendedRowSpacing, 0.6);
     recommendedRowSpacing = Math.round(recommendedRowSpacing * 100) / 100;
