@@ -30,7 +30,8 @@ describe('GeocodingService', () => {
           r.urlWithParams.includes('q=Madrid%2C%20Spain') &&
           r.urlWithParams.includes('format=json') &&
           r.urlWithParams.includes('limit=1') &&
-          r.urlWithParams.includes('addressdetails=1'),
+          r.urlWithParams.includes('addressdetails=1') &&
+          r.urlWithParams.includes('accept-language=en'),
       );
       expect(req.request.method).toBe('GET');
       req.flush([
@@ -46,7 +47,15 @@ describe('GeocodingService', () => {
       let result: ReturnType<typeof service.search> extends import('rxjs').Observable<infer T> ? T : never;
       service.search('Berlin').subscribe((r) => (result = r));
 
-      const req = httpMock.expectOne((r) => r.url === NOMINATIM_URL);
+      const req = httpMock.expectOne(
+        (r) =>
+          r.urlWithParams.startsWith(`${NOMINATIM_URL}?`) &&
+          r.urlWithParams.includes('q=Berlin') &&
+          r.urlWithParams.includes('format=json') &&
+          r.urlWithParams.includes('limit=1') &&
+          r.urlWithParams.includes('addressdetails=1') &&
+          r.urlWithParams.includes('accept-language=en'),
+      );
       req.flush([
         {
           lat: '52.5200',
@@ -68,7 +77,17 @@ describe('GeocodingService', () => {
           done();
         },
       });
-      httpMock.expectOne((r) => r.url === NOMINATIM_URL).flush([]);
+      httpMock
+        .expectOne(
+          (r) =>
+            r.urlWithParams.startsWith(`${NOMINATIM_URL}?`) &&
+            r.urlWithParams.includes('q=xxxxxxxxxnoplace') &&
+            r.urlWithParams.includes('format=json') &&
+            r.urlWithParams.includes('limit=1') &&
+            r.urlWithParams.includes('addressdetails=1') &&
+            r.urlWithParams.includes('accept-language=en'),
+        )
+        .flush([]);
     });
 
     it('propagates HTTP errors', (done) => {
@@ -79,7 +98,15 @@ describe('GeocodingService', () => {
         },
       });
       httpMock
-        .expectOne((r) => r.url === NOMINATIM_URL)
+        .expectOne(
+          (r) =>
+            r.urlWithParams.startsWith(`${NOMINATIM_URL}?`) &&
+            r.urlWithParams.includes('q=anywhere') &&
+            r.urlWithParams.includes('format=json') &&
+            r.urlWithParams.includes('limit=1') &&
+            r.urlWithParams.includes('addressdetails=1') &&
+            r.urlWithParams.includes('accept-language=en'),
+        )
         .flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
     });
   });
