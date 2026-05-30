@@ -9,6 +9,7 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
 import { RegisterRequest, getErrorMessage } from '@core/models';
+import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/password.validator';
 import { environment } from '@environments/environment';
 
 @Component({
@@ -86,7 +87,7 @@ import { environment } from '@environments/environment';
             <label for="password">Password</label>
             <p-password
               formControlName="password"
-              placeholder="Minimum 8 characters"
+              [placeholder]="passwordHint"
               [toggleMask]="true"
               [feedback]="true"
               class="w-full"
@@ -96,7 +97,7 @@ import { environment } from '@environments/environment';
             ></p-password>
             @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
                 <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Password must be at least 8 characters
+                <i class="pi pi-exclamation-circle"></i> {{ passwordHint }}
               </small>
             }
           </div>
@@ -326,13 +327,14 @@ export class RegisterComponent implements OnDestroy {
   googleLoading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
+  readonly passwordHint = PASSWORD_HINT;
   private redirectTimeout?: ReturnType<typeof setTimeout>;
 
   registerForm: FormGroup = this.fb.group({
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required, strongPasswordValidator()]],
   });
 
   signInWithGoogle(): void {

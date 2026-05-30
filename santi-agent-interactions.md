@@ -4,6 +4,40 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## May 27, 2026 - Enforce strong password policy across client and server
+
+### Topic
+Enforce strict password requirements: minimum 8 characters, uppercase, lowercase, number and special character.
+
+### Summary of Prompt
+User requested that passwords require special characters, uppercase, lowercase and numbers in addition to the existing 8-character minimum. Also requested renaming the worktree branch to "more-strict-passwords".
+
+### What Was Achieved
+- Created `client/src/app/core/validators/password.validator.ts` with a reusable `strongPasswordValidator()` Angular validator and a shared `PASSWORD_HINT` constant.
+- Exported the validator from `core/index.ts`.
+- Updated `register.component.ts`, `reset-password.component.ts` and `profile.component.ts` to use `strongPasswordValidator()` instead of `Validators.minLength(8)`. Placeholder and error text now show the shared hint.
+- Added `[feedback]="true"` with strength regexes to all password fields that lacked it.
+- Updated `server/src/schemas/user.schema.ts` to define a shared `strongPassword` Zod refinement (uppercase, lowercase, number, special char + min 8) applied to `UserCreateSchema`, `UserChangePasswordSchema.newPassword` and `PasswordResetApplySchema.newPassword`. `currentPassword` in change-password was relaxed to `min(1)` so existing passwords always authenticate.
+- Updated `server/src/`__tests__`/schemas/user.schema.test.ts` to use compliant passwords and added new test cases for each missing character class.
+- Renamed the git branch from `claude/goofy-pasteur-58f0e5` to `claude/more-strict-passwords`.
+
+### Full Prompt
+> "Quiero Modificar el código para que la contraseña necesite tener caracteres especiales, mayus y minus y números además de la longitud de 8 chars. Dale a este worktree un nombre (si puedes) y que sea: 'more-strict-passwords'"
+
+### Affected Files
+- `client/src/app/core/validators/password.validator.ts` (new)
+- `client/src/app/core/index.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `client/src/app/features/user/profile/profile.component.ts`
+- `server/src/schemas/user.schema.ts`
+- `server/src/__tests__/schemas/user.schema.test.ts`
+
+### Reasoning
+The previous validation only enforced minimum length, making passwords like `password123` or `abc12345` acceptable. Adding regex checks on each character class at both the Zod layer (server, authoritative) and the Angular validator layer (client, UX feedback) ensures the policy is enforced end-to-end. `currentPassword` is intentionally left with only `min(1)` to avoid locking out users who registered under the old policy — the new rules only apply when setting or changing a password.
+
+---
+
 ## May 27, 2026 - Fix: Remove unused LocationMapComponent import
 
 ### Topic
