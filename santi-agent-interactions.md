@@ -3819,3 +3819,27 @@ Evaluar y ejecutar la migración de Express 4.19 a Express 5.2 y Mongoose 8.1 a 
 
 ### AI reasoning
 Express 5 endureció los tipos de `req.params` (`string | string[]` en lugar de `string`) y hace que `res.send()` sin argumento lance TypeError en runtime. Express 5 también requiere que los callbacks de `asyncHandler` devuelvan `Promise` explícitamente. Mongoose 9 eliminó completamente el export `FilterQuery<T>` — es un tipo interno `_QueryFilter<T>` que no es accesible ni directamente ni vía namespace. La solución pragmática fue un type alias local `type FilterQuery<_T> = Record<string, any>` que es estructuralmente asignable al tipo interno de Mongoose. El hook pre-save async en Mongoose 9 ya no acepta `next` como callback — en funciones async, basta con retornar o lanzar para controlar el flujo. El resultado neto es que todos los cambios son de tipos TypeScript sin impacto en comportamiento de runtime.
+
+---
+
+## May 29, 2026 - Feature: Deshabilitar toggle manual de dark/light mode
+
+### Topic
+Eliminar el botón de alternancia de tema y delegar el modo oscuro/claro exclusivamente a la preferencia del sistema operativo (media query `prefers-color-scheme`).
+
+### Summary of prompt
+El usuario quería desactivar la funcionalidad de cambio manual entre modo oscuro y claro, dejando únicamente que la aplicación respete lo que el navegador/SO tenga configurado por defecto.
+
+### What was achieved
+- `ThemeService` simplificado: elimina la persistencia en `localStorage` y el método `toggle()`. Ahora lee `window.matchMedia('(prefers-color-scheme: dark)').matches` al iniciar y registra un listener para que el tema se actualice automáticamente si el usuario cambia la preferencia del sistema en tiempo real.
+- Sección "Preferences" completa eliminada de `ProfileComponent`: bloque HTML del toggle, import de `ToggleSwitchModule`, import de `FormsModule` (solo necesario para el toggle), import de `ThemeService`, propiedad inyectada `themeService`, módulos `DividerModule` y `ToggleSwitchModule` del array `imports`, y todos los estilos CSS relacionados (`.preferences-section`, `.pref-row`, `.pref-info`).
+
+### Full prompt
+> Tengo ahora mismo integrado en develop una funcionalidad para cambiar de modo noche a modo light y viceversa. Quiero desactivar esa función, es decir el botón que obliga a hacer el cambio, por tanto, sólamente quedaría lo que pille por defecto del navegador.
+
+### Affected files
+- `client/src/app/core/services/theme.service.ts` — reescrito para usar `prefers-color-scheme` sin localStorage ni toggle público
+- `client/src/app/features/user/profile/profile.component.ts` — eliminado toggle de tema, imports y estilos asociados
+
+### AI reasoning
+El `ThemeService` original usaba `localStorage` para persistir la preferencia y exponía un método `toggle()` que el componente de perfil llamaba. Al eliminar el control manual, la fuente de verdad pasa a ser `window.matchMedia('(prefers-color-scheme: dark)')`. Se añade un `addEventListener('change', ...)` para que la clase `.dark-mode` en `document.documentElement` se sincronice automáticamente si el usuario cambia la preferencia del SO mientras tiene la app abierta — sin necesidad de recargar la página. En el componente de perfil, la sección "Preferences" completa pierde sentido y se eliminó junto con todos los imports y estilos que solo existían para soportarla.
