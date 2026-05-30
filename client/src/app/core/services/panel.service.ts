@@ -49,7 +49,6 @@ export class PanelService {
 
   /**
    * Update panel (admin only)
-   * TODO: Server doesn't have update endpoint yet
    */
   updatePanel(id: string, data: PanelUpdateRequest): Observable<Panel> {
     return this.http.put<Panel>(`${this.apiUrl}/${id}`, data);

@@ -830,31 +830,32 @@ export class ProjectService {
     if (!geo.lat || !geo.lon) throw new Error('Project has no defined area polygon');
 
     const latitude = geo.lat;
+    const longitude = geo.lon;
     return {
       latitude,
-      summerSolstice: this.calculateSunPosition(latitude, 23.5),
-      winterSolstice: this.calculateSunPosition(latitude, -23.5),
-      equinox: this.calculateSunPosition(latitude, 0),
+      summerSolstice: this.calculateSunPosition(latitude, longitude, 23.5),
+      winterSolstice: this.calculateSunPosition(latitude, longitude, -23.5),
+      equinox: this.calculateSunPosition(latitude, longitude, 0),
     };
   }
 
-  private calculateSunPosition(latitude: number, declination: number) {
+  private calculateSunPosition(latitude: number, longitude: number, declination: number) {
     const latRad = (latitude * Math.PI) / 180;
     const decRad = (declination * Math.PI) / 180;
 
-    // TODO - Revisar: noonAltitude = 90 - |latitude - declination| is more accurate
-    const noonAltitude = 90 - latitude + declination;
+    const noonAltitude = 90 - Math.abs(latitude - declination);
 
     const cosHourAngle = -Math.tan(latRad) * Math.tan(decRad);
     const hourAngle = Math.acos(Math.max(-1, Math.min(1, cosHourAngle)));
     const daylightHours = (2 * hourAngle * 180) / Math.PI / 15;
 
+    const solarNoon = 12 - longitude / 15;
+
     return {
       noonAltitude: Math.max(0, noonAltitude),
       daylightHours,
-      // TODO - sunrise/sunset assume solar noon at 12:00 UTC (only exact at meridian 0°)
-      sunrise: 12 - daylightHours / 2,
-      sunset: 12 + daylightHours / 2,
+      sunrise: solarNoon - daylightHours / 2,
+      sunset: solarNoon + daylightHours / 2,
     };
   }
 
