@@ -30,9 +30,6 @@ export function createApp(): Application {
     });
   });
 
-  // TODO: Metrics endpoint (Prometheus format)
-  // app.get('/metrics', metricsHandler);
-
   // API routes
   app.use('/api', routes);
 

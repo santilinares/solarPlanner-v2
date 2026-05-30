@@ -222,7 +222,5 @@ ProjectSchema.index({ country: 1 });
 ProjectSchema.index({ installDate: 1 });
 ProjectSchema.index({ name: 'text' }); // Text search on name
 
-// TODO: Consider geospatial index for area coordinates if proximity queries needed
-// ProjectSchema.index({ 'area': '2dsphere' });
 
 export const ProjectModel = mongoose.model<IProject, ProjectModel>('Projects', ProjectSchema);
