@@ -3846,6 +3846,42 @@ El `ThemeService` original usaba `localStorage` para persistir la preferencia y 
 
 ---
 
+## May 30, 2026 - Resolución de TODOs de dificultad media (#9, #6, #7)
+
+### Topic
+Implementación de los tres primeros TODOs de dificultad media en ramas feature independientes.
+
+### Summary of Prompt
+El usuario indicó el orden de implementación: TODO #9 (peak sun hours), TODO #6 (separación de filas con azimut), TODO #7 (transacción MongoDB). Se para antes del TODO #8 para discutirlo.
+
+### What Was Achieved
+
+**Rama `feature/solve-todos-medium-peak-sun-hours` (TODO #9):**
+- `calculateOptimalConfig` recibe ahora un `projectId` opcional. Cuando se proporciona, busca `pvgisRef.yearlyPOAIrradiation` del proyecto en BD y calcula `peakSunHours = POA / 365` — dato real de PVGIS en vez de `5.5 - |lat| × 0.02`. Fallback a la fórmula empírica para estimaciones standalone sin ID de proyecto.
+- El controlador `calculateOptimalConfig` ya pasaba `req.params.id` sin usarlo — ahora se lo pasa al servicio.
+
+**Rama `feature/solve-todos-medium-row-spacing` (TODO #6):**
+- La fórmula de separación de filas incluye el factor `|cos(azimut - 180°)|` que proyecta la sombra en el eje N-S. Paneles sur (180°): factor 1.0 sin cambio. Paneles este/oeste (90°/270°): factor 0, separación reducida al mínimo de acceso 0.6m.
+- `OptimalConfigSchema` gana campo `azimuth` opcional (0–360°, convenio brújula).
+- Dos nuevos tests verifican la reducción para paneles este-orientados y la invarianza sur.
+
+**Rama `feature/solve-todos-medium-db-transaction` (TODO #7):**
+- `createProject` refactorizado: las tres llamadas externas (ENTSO-E, Open-Meteo, PVGIS) se hacen ANTES de cualquier escritura en BD. La sesión MongoDB cubre solo `create` + `findByIdAndUpdate` — operaciones rápidas.
+- `session.withTransaction()` garantiza que si el update falla, el create se revierte automáticamente. No quedan documentos huérfanos.
+- Panel buscado una sola vez (validación) y reutilizado para producción — elimina un round-trip redundante.
+- Test actualizado: mock de `startSession` via `importOriginal` para preservar `Types.ObjectId` en runtime; mock de `create` en forma de array `[{...}]`.
+
+### Full Prompt
+> "Lo haremos en este orden: primero el TODO 9, luego el TODO 6, luego el TODO 7 y finalmente pararemos a ver como hacemos lo del TODO 8"
+
+### Affected Files
+- `server/src/services/project.service.ts` (TODO #9 + #7)
+- `server/src/controllers/project.controller.ts` (TODO #9)
+- `server/src/schemas/project.schema.ts` (TODO #6)
+- `server/src/__tests__/services/project.service.test.ts` (TODO #6 + #7)
+
+### Reasoning
+Para el TODO #7: el patrón correcto con transacciones MongoDB es hacer todo el trabajo costoso (IO externo) FUERA de la transacción. Meter las llamadas HTTP dentro de una sesión habría agotado el timeout de 60s con cualquier API lenta. Para el TODO #9: `calculateOptimalConfig` ya tenía `/:id` en la URL pero el controlador nunca lo usaba — pasarlo al servicio para un `.select('pvgisRef').lean()` es barato y da irradiación real sin llamadas extra.
 ## May 30, 2026 - Resolución de TODOs marcados en el código (triviales y bajos)
 
 ### Topic

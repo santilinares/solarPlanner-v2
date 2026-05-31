@@ -1,4 +1,4 @@
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, startSession } from 'mongoose';
 type FilterQuery<_T> = Record<string, any>;
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
@@ -214,29 +214,20 @@ export class ProjectService {
    * fetches initial production data from Open-Meteo.
    */
   async createProject(userId: string, data: ProjectCreateInput): Promise<ProjectResponse> {
+    // 1. Validate referenced documents (panel reused below to avoid a second DB round-trip)
+    let panel: Awaited<ReturnType<typeof PanelModel.findById>> | null = null;
     if (data.panelId) {
-      const panel = await PanelModel.findById(data.panelId);
+      panel = await PanelModel.findById(data.panelId);
       if (!panel) throw new Error('Panel not found');
     }
-
     if (data.projectType === 'agrivoltaic' && data.cultivarId) {
       const cultivar = await CultivarModel.findById(data.cultivarId);
       if (!cultivar) throw new Error('Cultivar not found');
     }
 
-    // TODO - [SEVERIDAD MEDIA] El documento se crea en BD antes de completar las integraciones externas.
-    // Si el update posterior falla, el proyecto queda creado pero sin datos de producción ni ubicación.
-    // Considerar una transacción MongoDB para hacer create + update atómicos.
-    const project = await ProjectModel.create({
-      ...data,
-      panel: data.panelId,
-      cultivar: data.projectType === 'agrivoltaic' ? data.cultivarId : undefined,
-      owner: userId,
-    });
-
+    // 2. Geospatial + country + timezone (synchronous, no network)
     const geo = calculateGeospatialFields(data.area);
     const { lat, lon } = geo;
-
     console.info(`[Project Creation] Starting API integrations for (${lat}, ${lon})`);
 
     let resolvedCountry: { name: string; code: string } | undefined;
@@ -256,7 +247,7 @@ export class ProjectService {
       console.warn('[Project Creation] Timezone resolution error:', error);
     }
 
-    // Fetch electricity price (ENTSO-E if key is set, else undefined)
+    // 3. External API calls — completed before the DB transaction so the session stays short
     const priceData = await this.fetchElectricityPrice(resolvedCountry?.code ?? '').catch(
       (error: unknown) => {
         console.warn('[Project Creation] Price lookup error:', error);
@@ -264,46 +255,42 @@ export class ProjectService {
       },
     );
 
-    // Fetch initial production data (Open-Meteo) and PVGIS reference if panel + location exist
     let productionData = { prodToday: [] as IProductionPoint[], nextProd: [] as IProductionPoint[], previousProd: [] as IProductionPoint[] };
     let pvgisResult: PvgisAnnualResult | undefined;
 
-    if (lat && lon && data.panelId) {
+    if (lat && lon && panel) {
       try {
-        const panel = await PanelModel.findById(data.panelId);
-        if (panel) {
-          productionData = await productionService.computeProductionData(
-            {
-              lat,
-              lon,
-              tilt: data.tilt,
-              azimuth: undefined, // azimuth not in create schema, defaults to south
-              panelNumber: data.panelNumber,
-              installDate: new Date(),
-              dcAcRatio: data.dcAcRatio,
-              systemLosses: data.systemLosses,
-            },
-            panel,
-          );
-          console.info(`[Project Creation] Production data: today=${productionData.prodToday.length}pts, prev=${productionData.previousProd.length}pts, next=${productionData.nextProd.length}pts`);
+        productionData = await productionService.computeProductionData(
+          {
+            lat,
+            lon,
+            tilt: data.tilt,
+            azimuth: undefined, // azimuth not in create schema, defaults to south
+            panelNumber: data.panelNumber,
+            installDate: new Date(),
+            dcAcRatio: data.dcAcRatio,
+            systemLosses: data.systemLosses,
+          },
+          panel,
+        );
+        console.info(`[Project Creation] Production data: today=${productionData.prodToday.length}pts, prev=${productionData.previousProd.length}pts, next=${productionData.nextProd.length}pts`);
 
-          // PVGIS reference — called once per project creation, no API key required.
-          // Provides annual/monthly production estimate for ROI/payback calculations.
-          try {
-            const peakpowerKw = (data.panelNumber * panel.wattPeak) / 1000;
-            const systemLossPct = computeTotalSystemLossPct(data.systemLosses);
-            pvgisResult = await pvgisService.fetchAnnualProduction(
-              lat,
-              lon,
-              peakpowerKw,
-              systemLossPct,
-              data.tilt,
-              undefined, // azimuth not in create schema, defaults to south
-            );
-            console.info(`[Project Creation] PVGIS: ${pvgisResult.yearlyKwh.toFixed(0)} kWh/year, ${pvgisResult.yearlyKwhPerKwp.toFixed(0)} kWh/kWp`);
-          } catch (pvgisError) {
-            console.warn('[Project Creation] PVGIS lookup skipped:', pvgisError);
-          }
+        // PVGIS reference — called once per project creation, no API key required.
+        // Provides annual/monthly production estimate for ROI/payback calculations.
+        try {
+          const peakpowerKw = (data.panelNumber * panel.wattPeak) / 1000;
+          const systemLossPct = computeTotalSystemLossPct(data.systemLosses);
+          pvgisResult = await pvgisService.fetchAnnualProduction(
+            lat,
+            lon,
+            peakpowerKw,
+            systemLossPct,
+            data.tilt,
+            undefined, // azimuth not in create schema, defaults to south
+          );
+          console.info(`[Project Creation] PVGIS: ${pvgisResult.yearlyKwh.toFixed(0)} kWh/year, ${pvgisResult.yearlyKwhPerKwp.toFixed(0)} kWh/kWp`);
+        } catch (pvgisError) {
+          console.warn('[Project Creation] PVGIS lookup skipped:', pvgisError);
         }
       } catch (error) {
         console.warn('[Project Creation] Production data error:', error);
@@ -321,30 +308,56 @@ export class ProjectService {
         }
       : undefined;
 
-    const updatedProject = await ProjectModel.findByIdAndUpdate(
-      project._id,
-      {
-        lat: geo.lat,
-        lon: geo.lon,
-        surface: geo.surface,
-        country: resolvedCountry?.name,
-        countryCode: resolvedCountry?.code,
-        timezone: resolvedTimezone,
-        currency: priceData.currency,
-        price: priceData.price,
-        prodToday: productionData.prodToday,
-        nextProd: productionData.nextProd,
-        previousProd: productionData.previousProd,
-        lastRefreshedAt: hasProduction ? new Date() : undefined,
-        ...(pvgisRef && { pvgisRef }),
-      },
-      { new: true },
-    );
+    const enrichedFields = {
+      lat: geo.lat,
+      lon: geo.lon,
+      surface: geo.surface,
+      country: resolvedCountry?.name,
+      countryCode: resolvedCountry?.code,
+      timezone: resolvedTimezone,
+      currency: priceData.currency,
+      price: priceData.price,
+      prodToday: productionData.prodToday,
+      nextProd: productionData.nextProd,
+      previousProd: productionData.previousProd,
+      lastRefreshedAt: hasProduction ? new Date() : undefined,
+      ...(pvgisRef && { pvgisRef }),
+    };
 
-    if (!updatedProject) throw new Error('Failed to update project with external data');
+    // 4. Atomic create + update in a single MongoDB transaction.
+    // All external data is already collected; the session only covers fast DB writes.
+    // If findByIdAndUpdate fails, the session rollback removes the newly created document.
+    const session = await startSession();
+    let finalProject!: HydratedDocument<IProject>;
 
-    console.info(`[Project Creation] ✅ Project ${updatedProject._id.toString()} created`);
+    try {
+      await session.withTransaction(async () => {
+        const [created] = await ProjectModel.create(
+          [{
+            ...data,
+            panel: data.panelId,
+            cultivar: data.projectType === 'agrivoltaic' ? data.cultivarId : undefined,
+            owner: userId,
+          }],
+          { session },
+        );
 
+        const updated = await ProjectModel.findByIdAndUpdate(
+          created._id,
+          enrichedFields,
+          { new: true, session },
+        );
+
+        if (!updated) throw new Error('Failed to update project with external data');
+        finalProject = updated;
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    console.info(`[Project Creation] ✅ Project ${finalProject._id.toString()} created`);
+
+    // Fire-and-forget welcome email (outside the transaction — not critical path)
     UserModel.findById(userId)
       .then((user) => {
         if (user) {
@@ -360,7 +373,7 @@ export class ProjectService {
         console.error('Failed to fetch user for project created email:', err);
       });
 
-    return transformProjectToResponse(updatedProject);
+    return transformProjectToResponse(finalProject);
   }
 
   /**

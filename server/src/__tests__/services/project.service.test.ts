@@ -17,6 +17,7 @@ const {
   mockCultivarFindById,
   mockUserFindById,
   mockSendProjectCreatedEmail,
+  mockStartSession,
 } = vi.hoisted(() => ({
   mockProjectCreate: vi.fn(),
   mockProjectFindById: vi.fn(),
@@ -29,6 +30,7 @@ const {
   mockCultivarFindById: vi.fn(),
   mockUserFindById: vi.fn(),
   mockSendProjectCreatedEmail: vi.fn(),
+  mockStartSession: vi.fn(),
 }));
 
 vi.mock('../../models/project.model', () => ({
@@ -58,6 +60,11 @@ vi.mock('../../models/user.model', () => ({
 vi.mock('../../services/email.service', () => ({
   emailService: { sendProjectCreatedEmail: mockSendProjectCreatedEmail },
 }));
+
+vi.mock('mongoose', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('mongoose')>();
+  return { ...actual, startSession: mockStartSession };
+});
 
 vi.mock('geolib', () => ({
   getCenter: vi.fn(() => ({ latitude: 40.4, longitude: -3.7 })),
@@ -171,6 +178,13 @@ describe('ProjectService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ProjectService();
+
+    // Mock MongoDB session: withTransaction executes the callback immediately
+    const mockSession = {
+      withTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+      endSession: vi.fn().mockResolvedValue(undefined),
+    };
+    mockStartSession.mockResolvedValue(mockSession);
   });
 
   // ---------- createProject ----------
@@ -179,7 +193,8 @@ describe('ProjectService', () => {
     it('creates a project and returns a response', async () => {
       const mockProject = makeMockProject();
       mockPanelFindById.mockResolvedValue(makeMockPanel());
-      mockProjectCreate.mockResolvedValue(mockProject);
+      // create() is now called with an array (session form) and returns an array
+      mockProjectCreate.mockResolvedValue([mockProject]);
       mockProjectFindByIdAndUpdate.mockResolvedValue(mockProject);
       // fire-and-forget user lookup
       mockUserFindById.mockResolvedValue(null);
@@ -195,7 +210,8 @@ describe('ProjectService', () => {
       });
 
       expect(mockProjectCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ owner: USER_ID, panel: PANEL_ID })
+        [expect.objectContaining({ owner: USER_ID, panel: PANEL_ID })],
+        expect.objectContaining({ session: expect.anything() }),
       );
       expect(result._id).toBe(PROJECT_ID);
     });
