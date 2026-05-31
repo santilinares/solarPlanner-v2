@@ -3882,3 +3882,44 @@ El usuario indicó el orden de implementación: TODO #9 (peak sun hours), TODO #
 
 ### Reasoning
 Para el TODO #7: el patrón correcto con transacciones MongoDB es hacer todo el trabajo costoso (IO externo) FUERA de la transacción. Meter las llamadas HTTP dentro de una sesión habría agotado el timeout de 60s con cualquier API lenta. Para el TODO #9: `calculateOptimalConfig` ya tenía `/:id` en la URL pero el controlador nunca lo usaba — pasarlo al servicio para un `.select('pvgisRef').lean()` es barato y da irradiación real sin llamadas extra.
+## May 30, 2026 - Resolución de TODOs marcados en el código (triviales y bajos)
+
+### Topic
+Auditoría y resolución sistemática de todos los comentarios TODO del proyecto, comenzando por los de dificultad trivial y baja, organizados en ramas feature independientes.
+
+### Summary of Prompt
+El usuario solicitó inspeccionar todos los TODOs del proyecto y crear una tabla de análisis (fichero, problema, comentario, solución propuesta, interacción requerida, delegabilidad a IA, dificultad y alternativas con las APIs ya integradas). Tras la revisión, se aprobó una organización de ramas con una rama base `feature/solve-todos` desde `develop`, sub-ramas para triviales, bajos y una rama por cada medio. Se implementaron las dos primeras ramas.
+
+### What Was Achieved
+
+**Rama `feature/solve-todos-trivial` (5 cambios):**
+- `direction` en `ProjectCreateSchema` ahora es `z.enum([...8 direcciones...])` en vez de `z.string()`, rechazando valores inválidos en la capa HTTP.
+- `panelId` y `cultivarId` validados como MongoDB ObjectId reutilizando `ObjectIdSchema` de `user.schema.ts`, evitando `CastError` de Mongoose.
+- Eliminado índice geoespacial `2dsphere` comentado de `project.model.ts` (no necesario para el TFG).
+- Eliminado stub comentado de endpoint Prometheus `/metrics` de `app.ts`.
+- Eliminado bloque comentado de `pino-pretty` de `logger.ts`.
+
+**Rama `feature/solve-todos-low` (3 cambios):**
+- Corregida la fórmula `noonAltitude` en `calculateSunPosition`: `90 - (lat - dec)` → `90 - |lat - dec|`, que es correcta para ambos hemisferios.
+- Añadida corrección de longitud al cálculo de `sunrise`/`sunset`: `solarNoon = 12 - longitude/15`, eliminando el sesgo UTC+0 que era exacto solo en el meridiano de Greenwich. La longitud ya se calculaba en `getSunPath` pero no se pasaba a `calculateSunPosition`.
+- Eliminado comentario `TODO` obsoleto de `client/panel.service.ts`: el endpoint `PUT /panels/:id` ya estaba implementado en el servidor.
+
+### Full Prompt
+> "Quiero que inspecciones todos los TODOs que hay marcados en el proyecto y en una tabla me indiques en que fichero se encuentra, cual es el problema, que dice el comentario del todo, como podría solucionarse, si requiere de mi interacción porque puede llevarse a cabo de diversas maneras, o si puede delegarse a un agente de IA y que tan complicado es."
+> 
+> (Seguido de aprobación del plan de ramas y solicitud de implementación empezando por triviales y bajos.)
+
+### Affected Files
+
+**feature/solve-todos-trivial:**
+- `server/src/schemas/project.schema.ts` — direction enum, ObjectId imports
+- `server/src/models/project.model.ts` — índice geoespacial eliminado
+- `server/src/app.ts` — stub Prometheus eliminado
+- `server/src/utils/logger.ts` — bloque pino-pretty eliminado
+
+**feature/solve-todos-low:**
+- `server/src/services/project.service.ts` — fórmula noonAltitude + sunrise/sunset + longitud
+- `client/src/app/core/services/panel.service.ts` — TODO obsoleto eliminado
+
+### Reasoning
+Se detectó durante la auditoría que varios TODOs podían resolverse mejor usando datos de las APIs ya integradas. El más relevante: `peakSunHours` usaba una fórmula empírica hardcoded, pero PVGIS ya devuelve `H(i)_y` (irradiación anual sobre plano inclinado) almacenado en `pvgisRef.yearlyPOAIrradiation` — `psh = yearlyPOAIrradiation / 365` sin ninguna llamada extra. Para `sunrise`/`sunset`, Open-Meteo tiene parámetros `daily=sunrise,sunset` que darían mayor precisión, pero se optó por la corrección matemática de longitud como solución proporcional al alcance de una rama "low". Los 5 TODOs triviales eran en su mayoría dead code y validaciones ausentes, ninguno requería decisión de negocio salvo los que se consultaron al usuario (#11, #12, #13 — todos con respuesta "borrar").
