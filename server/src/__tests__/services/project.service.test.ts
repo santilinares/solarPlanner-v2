@@ -18,6 +18,10 @@ const {
   mockUserFindById,
   mockSendProjectCreatedEmail,
   mockStartSession,
+  mockComputeProductionData,
+  mockComputeTodayAndForecast,
+  mockFetchAnnualProduction,
+  mockComputeTotalSystemLossPct,
 } = vi.hoisted(() => ({
   mockProjectCreate: vi.fn(),
   mockProjectFindById: vi.fn(),
@@ -31,6 +35,10 @@ const {
   mockUserFindById: vi.fn(),
   mockSendProjectCreatedEmail: vi.fn(),
   mockStartSession: vi.fn(),
+  mockComputeProductionData: vi.fn(),
+  mockComputeTodayAndForecast: vi.fn(),
+  mockFetchAnnualProduction: vi.fn(),
+  mockComputeTotalSystemLossPct: vi.fn(),
 }));
 
 vi.mock('../../models/project.model', () => ({
@@ -59,6 +67,18 @@ vi.mock('../../models/user.model', () => ({
 
 vi.mock('../../services/email.service', () => ({
   emailService: { sendProjectCreatedEmail: mockSendProjectCreatedEmail },
+}));
+
+vi.mock('../../services/production.service', () => ({
+  productionService: {
+    computeProductionData: mockComputeProductionData,
+    computeTodayAndForecast: mockComputeTodayAndForecast,
+  },
+  computeTotalSystemLossPct: mockComputeTotalSystemLossPct,
+}));
+
+vi.mock('../../services/pvgis.service', () => ({
+  pvgisService: { fetchAnnualProduction: mockFetchAnnualProduction },
 }));
 
 vi.mock('mongoose', async (importOriginal) => {
@@ -185,6 +205,23 @@ describe('ProjectService', () => {
       endSession: vi.fn().mockResolvedValue(undefined),
     };
     mockStartSession.mockResolvedValue(mockSession);
+    mockComputeProductionData.mockResolvedValue({
+      prodToday: [{ dateTime: new Date('2024-01-02T12:00:00Z'), pv: 4 }],
+      previousProd: [{ dateTime: new Date('2024-01-01T12:00:00Z'), pv: 8 }],
+      nextProd: [{ dateTime: new Date('2024-01-03T12:00:00Z'), pv: 9 }],
+    });
+    mockComputeTodayAndForecast.mockResolvedValue({
+      prodToday: [{ dateTime: new Date('2024-01-02T12:00:00Z'), pv: 4 }],
+      nextProd: [{ dateTime: new Date('2024-01-03T12:00:00Z'), pv: 9 }],
+    });
+    mockFetchAnnualProduction.mockResolvedValue({
+      yearlyKwh: 5200,
+      yearlyKwhPerKwp: 1405,
+      monthlyKwh: [280, 320, 410, 470, 520, 560, 590, 550, 480, 390, 310, 250],
+      systemLossPercent: 10,
+      yearlyPOAIrradiation: 1700,
+    });
+    mockComputeTotalSystemLossPct.mockReturnValue(10);
   });
 
   // ---------- createProject ----------
@@ -327,6 +364,35 @@ describe('ProjectService', () => {
       );
 
       expect(result.name).toBe('Updated Name');
+    });
+
+    it('maps panelId updates to the panel field and refreshes derived solar data', async () => {
+      const newPanelId = '507f1f77bcf86cd799439099';
+      const mockProject = makeMockProject();
+      const updatedProject = makeMockProject({
+        panel: { ...makeMockPanel({ _id: { toString: () => newPanelId } }) },
+      });
+      mockProjectFindById.mockResolvedValue(mockProject);
+      mockPanelFindById.mockResolvedValue(makeMockPanel({ _id: { toString: () => newPanelId } }));
+      mockProjectFindByIdAndUpdate.mockResolvedValue(updatedProject);
+
+      await service.updateProject(
+        { userId: USER_ID, role: 'user' },
+        PROJECT_ID,
+        { panelId: newPanelId, panelNumber: 12 },
+      );
+
+      expect(mockProjectFindByIdAndUpdate).toHaveBeenCalledWith(
+        PROJECT_ID,
+        expect.objectContaining({
+          panel: newPanelId,
+          panelNumber: 12,
+          prodToday: expect.any(Array),
+          pvgisRef: expect.objectContaining({ yearlyKwh: 5200 }),
+        }),
+        { new: true },
+      );
+      expect(mockProjectFindByIdAndUpdate.mock.calls[0][1]).not.toHaveProperty('panelId');
     });
 
     it('allows admin to update any project', async () => {
@@ -660,6 +726,36 @@ describe('ProjectService', () => {
       await expect(
         service.calculateFromPolygon({ area: SAMPLE_AREA, panelId: 'bad-panel', tilt: 30 })
       ).rejects.toThrow('Panel not found');
+    });
+  });
+
+  // ---------- previewProjectConfig ----------
+
+  describe('previewProjectConfig', () => {
+    it('returns preview metrics without mutating the project', async () => {
+      const populateMock = vi.fn().mockResolvedValue(makeMockProject({
+        price: 0.2,
+        currency: 'EUR',
+        pvgisRef: {
+          yearlyKwh: 5000,
+          yearlyKwhPerKwp: 1351,
+          monthlyKwh: [250, 300, 400, 470, 530, 570, 600, 560, 480, 390, 290, 240],
+          yearlyPOAIrradiation: 1700,
+        },
+      }));
+      mockProjectFindById.mockReturnValue({ populate: populateMock });
+
+      const result = await service.previewProjectConfig(
+        PROJECT_ID,
+        { userId: USER_ID, role: 'user' },
+        { panelNumber: 12, tilt: 25, azimuth: 180 },
+      );
+
+      expect(result.current.panelNumber).toBe(10);
+      expect(result.preview.panelNumber).toBe(12);
+      expect(result.preview.capacityKw).toBeGreaterThan(result.current.capacityKw);
+      expect(result.preview.monthlyProductionKwh).toHaveLength(12);
+      expect(mockProjectFindByIdAndUpdate).not.toHaveBeenCalled();
     });
   });
 

@@ -15,6 +15,7 @@ import {
   estimateProject,
   refreshProduction,
   getProjectAnalytics,
+  previewProjectConfig,
 } from '../controllers/project.controller';
 import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
@@ -26,6 +27,7 @@ import {
   OptimalConfigFromPolygonSchema,
   EstimateSchema,
   RefreshProductionSchema,
+  ProjectConfigPreviewSchema,
 } from '../schemas/project.schema';
 
 const router = Router();
@@ -62,6 +64,13 @@ router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
 router.get('/:id', verifyUserJwtToken, getProjectById);
 
 router.put('/:id', verifyUserJwtToken, validateBody(ProjectUpdateSchema), updateProject);
+
+router.post(
+  '/:id/config-preview',
+  verifyUserJwtToken,
+  validateBody(ProjectConfigPreviewSchema),
+  previewProjectConfig,
+);
 
 router.delete('/:id', verifyUserJwtToken, deleteProject);
 

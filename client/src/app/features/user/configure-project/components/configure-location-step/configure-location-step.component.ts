@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { DividerModule } from 'primeng/divider';
@@ -9,7 +10,7 @@ import { LocationMapComponent } from '@shared/components/location-map/location-m
 @Component({
   selector: 'app-configure-location-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [InputTextModule, ButtonModule, DividerModule, TooltipModule, LocationMapComponent],
+  imports: [DecimalPipe, InputTextModule, ButtonModule, DividerModule, TooltipModule, LocationMapComponent],
   templateUrl: './configure-location-step.component.html',
   styleUrls: ['./configure-location-step.component.scss'],
 })
@@ -20,6 +21,7 @@ export class ConfigureLocationStepComponent {
   readonly mapCenter = input<Coordinates | null>(null);
   readonly isSearching = input<boolean>(false);
   readonly searchError = input<string | null>(null);
+  readonly areaLabel = input<string>('0 m²');
 
   readonly polygonChange = output<Coordinates[]>();
   readonly addressSearch = output<string>();

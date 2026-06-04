@@ -62,5 +62,15 @@
       <i class="pi pi-check-circle"></i>
       <span>Polygon defined with {{ polygonCoords().length }} points</span>
     </div>
+    <div class="location-metrics">
+      <div>
+        <span>Area</span>
+        <strong>{{ areaLabel() }}</strong>
+      </div>
+      <div>
+        <span>Centroid</span>
+        <strong>{{ mapLat() != null && mapLng() != null ? (mapLat() | number: '1.4-4') + ', ' + (mapLng() | number: '1.4-4') : '—' }}</strong>
+      </div>
+    </div>
   }
 </div>

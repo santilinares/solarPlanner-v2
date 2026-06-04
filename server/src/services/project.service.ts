@@ -17,6 +17,7 @@ import {
   OptimalConfigFromPolygonInput,
   ProjectUpdateInput,
   GeoPointInput,
+  ProjectConfigPreviewInput,
 } from '../schemas/project.schema';
 import {
   ProjectResponse,
@@ -26,6 +27,8 @@ import {
   ProjectAnalytics,
   CallerContext,
   PvgisRefResponse,
+  ProjectConfigPreview,
+  ProjectPanelSummary,
 } from '../types/project.types';
 import { getCapexPerKwp } from './capex-benchmark.service';
 import { CapexSegment } from '../data/capex-benchmarks-eu';
@@ -96,6 +99,39 @@ const resolvePopulatedPanel = (panelField: unknown): IPanel | null => {
   if (!panelField || typeof panelField !== 'object') return null;
   if ('wattPeak' in panelField) return panelField as IPanel;
   return null;
+};
+
+const resolvePanelId = (panelField: unknown): string | undefined => {
+  if (!panelField) return undefined;
+  if (typeof panelField === 'string') return panelField;
+  if (typeof panelField === 'object') {
+    const maybePanel = panelField as { _id?: { toString(): string }; toString?: () => string };
+    return maybePanel._id?.toString?.() ?? maybePanel.toString?.();
+  }
+  return undefined;
+};
+
+const buildPanelSummary = (panelField: unknown): string | ProjectPanelSummary | undefined => {
+  const id = resolvePanelId(panelField);
+  const panel = resolvePopulatedPanel(panelField);
+  if (!panel) return id;
+  const panelDoc = panel as IPanel & { _id?: { toString(): string } };
+  return {
+    _id: panelDoc._id?.toString?.() ?? id ?? '',
+    id: panelDoc._id?.toString?.() ?? id ?? '',
+    brand: panel.brand,
+    model: panel.model,
+    wattPeak: panel.wattPeak,
+    dimensions: panel.dimensions,
+    efficiency: panel.efficiency,
+    warranty: panel.warranty,
+    price: panel.price,
+    technology: panel.technology,
+    bifacial: panel.bifacial,
+    bifacialityFactor: panel.bifacialityFactor,
+    degradationFirstYear: panel.degradationFirstYear,
+    degradationAnnual: panel.degradationAnnual,
+  };
 };
 
 /**
@@ -170,7 +206,7 @@ const transformProjectToResponse = (project: HydratedDocument<IProject>): Projec
     rawSpacing: project.rawSpacing,
     panelNumber: project.panelNumber,
     dcAcRatio: project.dcAcRatio,
-    panel: project.panel?._id.toString(),
+    panel: buildPanelSummary(project.panel),
     cultivar: project.cultivar?._id?.toString(),
     owner: ownerData,
     prodToday: project.prodToday,
@@ -432,10 +468,84 @@ export class ProjectService {
       throw new Error('Not authorized');
     }
 
+    let nextPanel: IPanel | null = resolvePopulatedPanel(project.panel);
+    if (data.panelId) {
+      nextPanel = await PanelModel.findById(data.panelId);
+      if (!nextPanel) throw new Error('Panel not found');
+    } else if (!nextPanel && project.panel) {
+      nextPanel = await PanelModel.findById(project.panel);
+    }
+
     const geo = data.area ? calculateGeospatialFields(data.area) : {};
+    const { panelId, cultivarId, ...rest } = data;
+    const updatePayload: Record<string, unknown> = { ...rest, ...geo };
+    if (panelId) updatePayload.panel = panelId;
+    if (cultivarId) updatePayload.cultivar = cultivarId;
+
+    const solarImpactingFields = [
+      'area',
+      'panelId',
+      'panelNumber',
+      'tilt',
+      'azimuth',
+      'dcAcRatio',
+      'systemLosses',
+      'albedo',
+    ] as const;
+    const shouldRecalculateSolar = solarImpactingFields.some((field) => data[field] !== undefined);
+
+    if (shouldRecalculateSolar && nextPanel) {
+      const lat = geo.lat ?? project.lat;
+      const lon = geo.lon ?? project.lon;
+      if (lat && lon) {
+        const params: ProjectProductionParams = {
+          lat,
+          lon,
+          tilt: data.tilt ?? project.tilt,
+          azimuth: data.azimuth ?? project.azimuth,
+          panelNumber: data.panelNumber ?? project.panelNumber,
+          installDate: project.installDate,
+          albedo: data.albedo ?? project.albedo,
+          dcAcRatio: data.dcAcRatio ?? project.dcAcRatio,
+          systemLosses: data.systemLosses ?? project.systemLosses,
+        };
+
+        try {
+          const production = await productionService.computeProductionData(params, nextPanel);
+          updatePayload.prodToday = production.prodToday;
+          updatePayload.previousProd = production.previousProd;
+          updatePayload.nextProd = production.nextProd;
+          updatePayload.lastRefreshedAt = new Date();
+        } catch (error) {
+          console.warn(`[Project Update] Production refresh skipped for ${projectId}:`, error);
+        }
+
+        try {
+          const peakpowerKw = (params.panelNumber * nextPanel.wattPeak) / 1000;
+          const systemLossPct = computeTotalSystemLossPct(params.systemLosses);
+          const pvgisResult = await pvgisService.fetchAnnualProduction(
+            lat,
+            lon,
+            peakpowerKw,
+            systemLossPct,
+            params.tilt,
+            params.azimuth,
+          );
+          updatePayload.pvgisRef = {
+            yearlyKwh: pvgisResult.yearlyKwh,
+            yearlyKwhPerKwp: pvgisResult.yearlyKwhPerKwp,
+            monthlyKwh: pvgisResult.monthlyKwh,
+            yearlyPOAIrradiation: pvgisResult.yearlyPOAIrradiation,
+          };
+        } catch (error) {
+          console.warn(`[Project Update] PVGIS refresh skipped for ${projectId}:`, error);
+        }
+      }
+    }
+
     const updated = await ProjectModel.findByIdAndUpdate(
       projectId,
-      { ...data, ...geo },
+      updatePayload,
       { new: true },
     );
 
@@ -744,7 +854,7 @@ export class ProjectService {
   // Solar calculations
   // ---------------------------------------------------------------------------
 
-  async calculateOptimalConfig(data: OptimalConfigInput): Promise<OptimalConfigResponse> {
+  async calculateOptimalConfig(data: OptimalConfigInput, projectId?: string): Promise<OptimalConfigResponse> {
     const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak, azimuth } = data;
 
     const W = panelWidth;
@@ -805,7 +915,7 @@ export class ProjectService {
   }
 
   async calculateFromPolygon(data: OptimalConfigFromPolygonInput): Promise<OptimalConfigResponse> {
-    const { area, panelId, tilt } = data;
+    const { area, panelId, tilt, azimuth } = data;
 
     const panel = await PanelModel.findById(panelId);
     if (!panel) throw new Error('Panel not found');
@@ -824,7 +934,109 @@ export class ProjectService {
       tilt,
       latitude: center.latitude,
       wattPeak: panel.wattPeak,
+      azimuth,
     });
+  }
+
+  async previewProjectConfig(
+    projectId: string,
+    caller: CallerContext,
+    data: ProjectConfigPreviewInput,
+  ): Promise<ProjectConfigPreview> {
+    const project = await ProjectModel.findById(projectId).populate('panel');
+    if (!project) throw new Error('Project not found');
+
+    if (caller.role !== 'admin' && project.owner?.toString() !== caller.userId) {
+      throw new Error('Not authorized');
+    }
+
+    const warnings: string[] = [];
+    const geo = data.area ? calculateGeospatialFields(data.area) : {};
+    const lat = geo.lat ?? project.lat;
+    const surface = geo.surface ?? project.surface ?? 0;
+
+    let previewPanel = resolvePopulatedPanel(project.panel);
+    if (data.panelId) {
+      previewPanel = await PanelModel.findById(data.panelId);
+      if (!previewPanel) throw new Error('Panel not found');
+    }
+
+    const currentPanel = resolvePopulatedPanel(project.panel);
+    const previewPanelNumber = data.panelNumber ?? project.panelNumber;
+    const previewTilt = data.tilt ?? project.tilt;
+    const previewAzimuth = data.azimuth ?? project.azimuth;
+    const price = data.price ?? project.price;
+    const currency = data.currency ?? project.currency;
+
+    const capacityKw = (panel: IPanel | null, count: number) =>
+      panel ? (panel.wattPeak * count) / 1000 : 0;
+    const coveragePct = (panel: IPanel | null, count: number) => {
+      if (!panel || !surface) return null;
+      const panelArea = (panel.dimensions.width / 1000) * (panel.dimensions.height / 1000);
+      return Math.min(100, (panelArea * count * 100) / surface);
+    };
+    const annualProduction = (capacity: number, fallback?: number | null) => {
+      if (capacity <= 0) return null;
+      if (project.pvgisRef?.yearlyKwhPerKwp) return project.pvgisRef.yearlyKwhPerKwp * capacity;
+      if (fallback != null) return fallback;
+      if (lat != null) return capacity * (5.5 - Math.abs(lat) * 0.02) * 365 * 0.85;
+      return null;
+    };
+    const annualSavings = (production: number | null) =>
+      production != null && price != null ? production * price : null;
+
+    let optimal: OptimalConfigResponse | null = null;
+    if (previewPanel && surface > 0 && lat != null) {
+      optimal = await this.calculateOptimalConfig(
+        {
+          surfaceArea: surface,
+          panelWidth: previewPanel.dimensions.width / 1000,
+          panelHeight: previewPanel.dimensions.height / 1000,
+          tilt: previewTilt,
+          latitude: lat,
+          wattPeak: previewPanel.wattPeak,
+          azimuth: previewAzimuth,
+        },
+        projectId,
+      );
+    } else {
+      warnings.push('Select a panel and valid area to calculate optimal configuration.');
+    }
+
+    const currentCapacityKw = capacityKw(currentPanel, project.panelNumber);
+    const previewCapacityKw = capacityKw(previewPanel, previewPanelNumber);
+    const currentAnnualProduction = project.pvgisRef?.yearlyKwh ?? annualProduction(currentCapacityKw);
+    const previewAnnualProduction = annualProduction(previewCapacityKw, optimal?.estimatedProduction ?? null);
+    const monthlyProductionKwh =
+      project.pvgisRef?.monthlyKwh && currentCapacityKw > 0
+        ? project.pvgisRef.monthlyKwh.map((v) => (v / currentCapacityKw) * previewCapacityKw)
+        : null;
+
+    if (!project.pvgisRef) warnings.push('PVGIS reference is unavailable; preview uses a simplified production estimate.');
+    if (price == null) warnings.push('Set an energy price to preview annual savings.');
+
+    return {
+      current: {
+        panelNumber: project.panelNumber,
+        capacityKw: currentCapacityKw,
+        annualProductionKwh: currentAnnualProduction,
+        annualSavings: annualSavings(currentAnnualProduction),
+        coverage: coveragePct(currentPanel, project.panelNumber),
+        rowSpacing: project.rawSpacing ?? null,
+      },
+      preview: {
+        panelNumber: previewPanelNumber,
+        capacityKw: previewCapacityKw,
+        annualProductionKwh: previewAnnualProduction,
+        annualSavings: annualSavings(previewAnnualProduction),
+        coverage: coveragePct(previewPanel, previewPanelNumber),
+        rowSpacing: data.rawSpacing ?? optimal?.recommendedRowSpacing ?? project.rawSpacing ?? null,
+        monthlyProductionKwh,
+      },
+      optimal,
+      currency,
+      warnings,
+    };
   }
 
   estimateFromPolygon(

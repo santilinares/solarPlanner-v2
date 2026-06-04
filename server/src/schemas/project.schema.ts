@@ -203,10 +203,29 @@ export const OptimalConfigFromPolygonSchema = z.object({
   area: z.array(GeoPointSchema).min(3),
   panelId: z.string(),
   tilt: z.number().min(0).max(90),
+  azimuth: z.number().min(0).max(360).optional(),
 });
 
 /** Type inferred from OptimalConfigFromPolygonSchema */
 export type OptimalConfigFromPolygonInput = z.infer<typeof OptimalConfigFromPolygonSchema>;
+
+export const ProjectConfigPreviewSchema = ProjectUpdateSchema.pick({
+  area: true,
+  panelId: true,
+  panelNumber: true,
+  tilt: true,
+  azimuth: true,
+  rawSpacing: true,
+  price: true,
+  currency: true,
+  installationCost: true,
+  segment: true,
+  dcAcRatio: true,
+  systemLosses: true,
+  albedo: true,
+}).partial();
+
+export type ProjectConfigPreviewInput = z.infer<typeof ProjectConfigPreviewSchema>;
 
 /**
  * Visitor quick estimate schema

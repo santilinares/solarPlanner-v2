@@ -160,6 +160,7 @@
                   [mapCenter]="mapCenter()"
                   [isSearching]="isSearching()"
                   [searchError]="searchError()"
+                  [areaLabel]="polygonAreaLabel()"
                   (polygonChange)="onPolygonChange($event)"
                   (addressSearch)="searchAddress($event)"
                 />
@@ -175,30 +176,46 @@
                   [totalCapacityKw]="totalCapacityKw()"
                   [projectTotalArea]="projectTotalArea()"
                   [optimalConfig]="optimalConfig()"
+                  [configPreview]="configPreview()"
                   [isCalculating]="isCalculating()"
+                  [isPreviewLoading]="isPreviewLoading()"
                   [isUsingOptimalConfig]="isUsingOptimalConfig()"
                   [panelNumber]="formValue().panelNumber ?? null"
+                  [segmentOptions]="segmentOptions"
+                  [monthlyProductionChartOptions]="monthlyProductionChartOptions()"
+                  [comparisonChartOptions]="comparisonChartOptions()"
                   (applyOptimal)="applyOptimalConfig()"
                 />
 
-                <!-- ── 3D View Placeholder (bottom-left) ── -->
+                <!-- ── Layout Insight (bottom-left) ── -->
                 <div class="step-card placeholder-3d-card">
                 <div class="step-card-header">
                     <div class="step-card-icon threedee-icon">
-                    <i class="pi pi-box"></i>
+                    <span class="material-symbols-outlined">straighten</span>
                     </div>
                     <div>
-                    <h2>3D Installation View</h2>
-                    <p>Visual preview of the planned installation.</p>
+                    <h2>Layout Insight</h2>
+                    <p>Area use and spacing signals for the planned layout.</p>
                     </div>
                 </div>
                 <p-divider />
-                <div class="placeholder-content">
-                    <i class="pi pi-box placeholder-main-icon"></i>
-                    <span class="placeholder-title">Coming Soon</span>
-                    <span class="placeholder-text">
-                    Interactive 3D preview of your solar panel installation will appear here.
-                    </span>
+                <div class="layout-insight-grid">
+                    <div>
+                      <span>Polygon Area</span>
+                      <strong>{{ polygonAreaLabel() }}</strong>
+                    </div>
+                    <div>
+                      <span>Recommended Spacing</span>
+                      <strong>{{ configPreview()?.preview?.rowSpacing != null ? (configPreview()!.preview.rowSpacing | number: '1.1-2') + ' m' : '—' }}</strong>
+                    </div>
+                    <div>
+                      <span>Preview Coverage</span>
+                      <strong>{{ configPreview()?.preview?.coverage != null ? (configPreview()!.preview.coverage | number: '1.0-1') + '%' : '—' }}</strong>
+                    </div>
+                    <div>
+                      <span>Panel Count</span>
+                      <strong>{{ formValue().panelNumber ?? 0 }}</strong>
+                    </div>
                 </div>
                 </div>
             </div>
@@ -225,6 +242,14 @@
                   <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
                 </div>
               } @else if (sunPathData(); as sp) {
+                <div class="sun-chart">
+                  <highcharts-chart
+                    [Highcharts]="Highcharts"
+                    [options]="sunPathChartOptions()"
+                    [oneToOne]="true"
+                    style="width: 100%; height: 260px; display: block;"
+                  />
+                </div>
                 <div class="sun-path-table">
                   <div class="sun-path-row sun-path-header">
                     <span></span>
@@ -280,6 +305,10 @@
                 [locationSummary]="locationSummary()"
                 [polygonCoords]="polygonCoords()"
                 [optimalConfig]="optimalConfig()"
+                [configPreview]="configPreview()"
+                [reviewChanges]="reviewChanges()"
+                [annualProductionDelta]="annualProductionDelta()"
+                [annualSavingsDelta]="annualSavingsDelta()"
                 [isUsingOptimalConfig]="isUsingOptimalConfig()"
                 [totalCapacityKw]="totalCapacityKw()"
                 [selectedPanelLabel]="selectedPanelLabel()"

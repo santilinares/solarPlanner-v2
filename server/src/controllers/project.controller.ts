@@ -8,6 +8,7 @@ import {
   ProjectUpdateInput,
   OptimalConfigInput,
   OptimalConfigFromPolygonInput,
+  ProjectConfigPreviewInput,
 } from '../schemas/project.schema';
 import { CallerContext } from '../types/project.types';
 
@@ -129,6 +130,21 @@ export const calculateFromPolygon = asyncHandler(async (req: Request, res: Respo
 });
 
 /**
+ * @route   POST /projects/:id/config-preview
+ * @desc    Calculate non-mutating configuration preview for project
+ * @access  Private
+ */
+export const previewProjectConfig = asyncHandler(async (req: Request, res: Response) => {
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const preview = await projectService.previewProjectConfig(
+    req.params.id,
+    caller,
+    req.body as ProjectConfigPreviewInput,
+  );
+  return success(res, preview);
+});
+
+/**
  * @route   DELETE /projects/:id
  * @desc    Delete project (owner only)
  * @access  Private
@@ -186,4 +202,3 @@ export const refreshProduction = asyncHandler(async (req: Request, res: Response
   );
   return success(res, result, 'Production data refreshed successfully');
 });
-

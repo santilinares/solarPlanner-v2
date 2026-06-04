@@ -24,6 +24,14 @@
           <span class="capacity-label">Performance Ratio</span>
           <strong>{{ a.performanceRatio != null ? (a.performanceRatio | number: '1.1-1') + ' %' : '—' }}</strong>
         </div>
+        <div class="capacity-item">
+          <span class="capacity-label">Payback</span>
+          <strong>{{ a.paybackYears != null ? (a.paybackYears | number: '1.1-1') + ' years' : '—' }}</strong>
+        </div>
+        <div class="capacity-item">
+          <span class="capacity-label">25-Year ROI</span>
+          <strong>{{ a.roi25Years != null ? (a.roi25Years | number: '1.0-0') + ' %' : '—' }}</strong>
+        </div>
       </div>
     </div>
 
@@ -62,7 +70,7 @@
         <div class="step-card-icon chart-icon-forecast"><i class="pi pi-calendar-plus"></i></div>
         <div>
           <h2>25-Year Savings Projection</h2>
-          <p>Annual savings with panel degradation applied (NREL PVWatts V5).</p>
+          <p>Annual and cumulative savings with degradation and installation cost context.</p>
         </div>
       </div>
       <p-divider />

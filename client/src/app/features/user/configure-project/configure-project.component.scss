@@ -519,6 +519,34 @@
     gap: 0.75rem;
     text-align: center;
     }
+
+    .material-symbols-outlined {
+    font-size: 1.35rem;
+    line-height: 1;
+    }
+
+    .layout-insight-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    }
+    .layout-insight-grid div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem;
+    border-radius: 0.75rem;
+    background: var(--p-content-hover-background);
+    }
+    .layout-insight-grid span {
+    color: var(--p-text-muted-color);
+    font-size: 0.8rem;
+    font-weight: 600;
+    }
+    .layout-insight-grid strong {
+    color: var(--p-text-color);
+    font-weight: 800;
+    }
     .placeholder-main-icon {
     font-size: 3.5rem;
     color: var(--p-indigo-400);
@@ -727,6 +755,15 @@
     grid-template-columns: 1fr;
     gap: 0;
     }
+    .sun-chart {
+    min-width: 0;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--p-content-border-color);
+    padding: 0.75rem;
+    background: var(--p-surface-0);
+    }
     .sun-path-row {
     display: grid;
     grid-template-columns: 1.6fr 1fr 1fr 1fr;
@@ -799,6 +836,9 @@
     .capacity-info strong {
         font-size: 1.5rem;
     }
+    .layout-insight-grid {
+        grid-template-columns: 1fr;
+    }
     .configure-sticky-header {
         margin: -1rem -1rem 1rem;
         padding: 0.5rem 1rem;
@@ -839,4 +879,3 @@
         transform: rotate(360deg);
     }
     }
-

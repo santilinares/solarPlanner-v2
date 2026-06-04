@@ -21,7 +21,7 @@ import { CardModule } from 'primeng/card';
 
 import { ProjectService } from '@core/services/project.service';
 import { FileService } from '@core/services/file.service';
-import { ProjectResponse, SunPathData, PlanData, ProjectAnalytics } from '@core/models';
+import { ProjectResponse, SunPathData, PlanData, ProjectAnalytics, ProjectPanelSummary } from '@core/models';
 import { ProjectAnalyticsComponent } from './components/project-analytics/project-analytics.component';
 import { ProductionChartsComponent, EconomicValue } from './components/production-charts/production-charts.component';
 
@@ -37,6 +37,7 @@ import { ProductionChartsComponent, EconomicValue } from './components/productio
     TagModule,
     ToastModule,
     CardModule,
+    HighchartsChartModule,
     ProjectAnalyticsComponent,
     ProductionChartsComponent,
   ],
@@ -97,6 +98,33 @@ export class ProjectViewComponent implements OnInit {
   readonly hasNextProdData = computed(() => (this.projectData()?.nextProd?.length ?? 0) > 0);
   readonly hasPreviousProdData = computed(() => (this.projectData()?.previousProd?.length ?? 0) > 0);
 
+  readonly projectPanel = computed<ProjectPanelSummary | null>(() => {
+    const panel = this.projectData()?.panel;
+    return panel && typeof panel !== 'string' ? panel : null;
+  });
+
+  readonly totalCapacityKw = computed(() => {
+    const project = this.projectData();
+    const panel = this.projectPanel();
+    return project && panel ? (panel.wattPeak * project.panelNumber) / 1000 : 0;
+  });
+
+  readonly todayProductionKwh = computed(() =>
+    (this.projectData()?.prodToday ?? []).reduce((sum, point) => sum + point.pv, 0)
+  );
+
+  readonly freshnessLabel = computed(() => {
+    const refreshed = this.projectData()?.lastRefreshedAt;
+    if (!refreshed) return 'Production data not refreshed yet';
+    return `Last refreshed ${new Date(refreshed).toLocaleString()}`;
+  });
+
+  readonly isProductionStale = computed(() => {
+    const refreshed = this.projectData()?.lastRefreshedAt;
+    if (!refreshed) return true;
+    return Date.now() - new Date(refreshed).getTime() > 6 * 60 * 60 * 1000;
+  });
+
   readonly todayChartOptions = computed((): Highcharts.Options => {
     const prodToday = this.projectData()?.prodToday ?? [];
     return {
@@ -147,13 +175,39 @@ export class ProjectViewComponent implements OnInit {
   readonly savingsChartOptions = computed((): Highcharts.Options => {
     const perYear = this.analytics()?.annualSavingsPerYear;
     if (!perYear) return {};
+    let cumulative = 0;
+    const cumulativeSavings = perYear.map((value) => {
+      cumulative += value;
+      return cumulative;
+    });
+    const installCost = this.analytics()?.installationCostUsed;
     return {
       ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
+      chart: { ...this.CHART_THEME.chart, reflow: true },
       xAxis: { categories: perYear.map((_, i) => `Y${i + 1}`), title: { text: 'Year' } },
       yAxis: { title: { text: this.projectData()?.currency ?? 'EUR' }, min: 0 },
       tooltip: { valueDecimals: 2, valueSuffix: ` ${this.projectData()?.currency ?? 'EUR'}` },
-      series: [{ type: 'column', name: 'Annual Savings', data: perYear, color: '#22c55e', borderRadius: 4 }],
+      legend: { enabled: true },
+      series: [
+        { type: 'column', name: 'Annual Savings', data: perYear, color: '#22c55e', borderRadius: 4 },
+        { type: 'spline', name: 'Cumulative Savings', data: cumulativeSavings, color: '#0ea5e9' },
+        ...(installCost != null
+          ? [{ type: 'line' as const, name: 'Installation Cost', data: perYear.map(() => installCost), color: '#ef4444', dashStyle: 'Dash' as const }]
+          : []),
+      ],
+    };
+  });
+
+  readonly monthlyProductionChartOptions = computed((): Highcharts.Options => {
+    const monthly = this.projectData()?.pvgisRef?.monthlyKwh;
+    if (!monthly?.length) return {};
+    return {
+      ...this.CHART_THEME,
+      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
+      xAxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+      yAxis: { title: { text: 'kWh/month' }, min: 0 },
+      tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
+      series: [{ type: 'column', name: 'Monthly Production', data: monthly, color: '#f59e0b', borderRadius: 4 }],
     };
   });
 

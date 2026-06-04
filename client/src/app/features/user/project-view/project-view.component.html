@@ -75,6 +75,60 @@
     @if (project.price != null) {
       <p-tag [value]="(project.price | number: '1.2-4') + ' /kWh'" icon="pi pi-bolt" [rounded]="true" severity="warn" />
     }
+    <p-tag
+      [value]="freshnessLabel()"
+      [icon]="isProductionStale() ? 'pi pi-exclamation-triangle' : 'pi pi-refresh'"
+      [severity]="isProductionStale() ? 'warn' : 'success'"
+      [rounded]="true"
+    />
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">solar_power</span>
+      <div><small>Total Capacity</small><strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">wb_sunny</span>
+      <div><small>Annual Production</small><strong>{{ project.pvgisRef?.yearlyKwh != null ? (project.pvgisRef?.yearlyKwh | number: '1.0-0') + ' kWh' : '—' }}</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">battery_charging_full</span>
+      <div><small>Today</small><strong>{{ todayProductionKwh() | number: '1.1-1' }} kWh</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">payments</span>
+      <div><small>Annual Savings</small><strong>{{ analytics()?.annualSavingsEur != null ? getCurrencySymbol(project.currency ?? 'EUR') + ' ' + (analytics()!.annualSavingsEur | number: '1.0-0') : '—' }}</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">speed</span>
+      <div><small>Payback</small><strong>{{ analytics()?.paybackYears != null ? (analytics()!.paybackYears | number: '1.1-1') + ' yrs' : '—' }}</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">monitoring</span>
+      <div><small>25-Year ROI</small><strong>{{ analytics()?.roi25Years != null ? (analytics()!.roi25Years | number: '1.0-0') + '%' : '—' }}</strong></div>
+    </div>
+  </div>
+
+  <div class="view-card project-summary-card">
+    <div class="step-card-header">
+      <div class="step-card-icon capacity-icon"><span class="material-symbols-outlined">tune</span></div>
+      <div>
+        <h2>Project Summary</h2>
+        <p>Core location, layout and system assumptions.</p>
+      </div>
+    </div>
+    <p-divider />
+    <div class="summary-grid">
+      <div><span>Location</span><strong>{{ project.country || '—' }}</strong></div>
+      <div><span>Area</span><strong>{{ project.surface != null ? (project.surface | number: '1.0-0') + ' m²' : '—' }}</strong></div>
+      <div><span>Panel</span><strong>{{ projectPanel() ? projectPanel()!.brand + ' ' + projectPanel()!.model : '—' }}</strong></div>
+      <div><span>Panel Count</span><strong>{{ project.panelNumber }}</strong></div>
+      <div><span>Tilt</span><strong>{{ project.tilt }}°</strong></div>
+      <div><span>Azimuth</span><strong>{{ project.azimuth != null ? project.azimuth + '°' : '—' }}</strong></div>
+      <div><span>Row Spacing</span><strong>{{ project.rawSpacing != null ? project.rawSpacing + ' m' : '—' }}</strong></div>
+      <div><span>System Losses</span><strong>{{ project.systemLosses ? 'Configured' : 'Defaults' }}</strong></div>
+    </div>
   </div>
 
   <!-- Sun Path card -->
@@ -148,6 +202,25 @@
       [hasTodayData]="hasTodayData()"
       [hasPreviousProdData]="hasPreviousProdData()"
     />
+  }
+
+  @if (project.pvgisRef?.monthlyKwh?.length) {
+    <div class="view-card chart-card mt-4">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">wb_sunny</span></div>
+        <div>
+          <h2>Monthly Production Estimate</h2>
+          <p>PVGIS long-term monthly reference for this configuration.</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="monthlyProductionChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 300px; display: block; overflow: hidden;"
+      />
+    </div>
   }
 
   <!-- Analytics section -->

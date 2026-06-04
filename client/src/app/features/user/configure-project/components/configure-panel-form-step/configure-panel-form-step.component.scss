@@ -64,6 +64,12 @@
 .w-full { width: 100%; }
 .mr-2 { margin-right: 0.5rem; }
 
+.material-symbols-outlined {
+  font-size: 1.15rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .field-hint {
   color: var(--p-text-muted-color);
   font-size: 0.8rem;
@@ -136,6 +142,9 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
+.impact-grid {
+  align-items: stretch;
+}
 .capacity-item {
   display: flex;
   flex-direction: column;
@@ -178,6 +187,61 @@
   font-size: 0.88rem;
 }
 
+.advanced-grid,
+.loss-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.loss-grid {
+  margin-top: 1rem;
+}
+
+:host ::ng-deep .p-fieldset {
+  border-radius: 1rem;
+  background: var(--p-surface-50);
+}
+
+.preview-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--p-sky-100) 45%, var(--p-surface-0));
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+.preview-warnings span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.chart-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.mini-chart {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--p-surface-0);
+}
+.mini-chart h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--p-text-color);
+}
+
 .optimal-hint {
   display: flex;
   align-items: center;
@@ -204,4 +268,6 @@
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
   .capacity-grid { grid-template-columns: 1fr; }
+  .advanced-grid,
+  .loss-grid { grid-template-columns: 1fr; }
 }

@@ -13,6 +13,8 @@ import {
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
   ProjectAnalytics,
+  ProjectConfigPreview,
+  ProjectConfigPreviewRequest,
 } from '../models';
 
 export interface ProjectFilters {
@@ -126,6 +128,13 @@ export class ProjectService {
    */
   calculateOptimalConfig(data: OptimalConfigFromPolygonRequest): Observable<OptimalConfigResponse> {
     return this.http.post<OptimalConfigResponse>(`${this.apiUrl}/calculate`, data);
+  }
+
+  /**
+   * Preview project configuration changes without saving
+   */
+  previewConfig(id: string, data: ProjectConfigPreviewRequest): Observable<ProjectConfigPreview> {
+    return this.http.post<ProjectConfigPreview>(`${this.apiUrl}/${id}/config-preview`, data);
   }
 
   /**

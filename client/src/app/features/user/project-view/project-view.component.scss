@@ -92,6 +92,11 @@
   flex-wrap: wrap;
 }
 
+.material-symbols-outlined {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 /* ─── Info Strip ─── */
 .info-strip {
   display: flex;
@@ -100,6 +105,71 @@
   padding: 0.75rem 0;
   flex-wrap: wrap;
   margin-bottom: 0.5rem;
+}
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0 1.5rem;
+}
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--p-content-background);
+  box-shadow: 0 0.0625rem 0.1875rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
+}
+.kpi-card .material-symbols-outlined {
+  color: var(--p-primary-color);
+  flex-shrink: 0;
+}
+.kpi-card div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.kpi-card small {
+  color: var(--p-text-muted-color);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.kpi-card strong {
+  color: var(--p-text-color);
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.project-summary-card {
+  margin-top: 1rem;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.summary-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  background: var(--p-content-hover-background);
+}
+.summary-grid span {
+  color: var(--p-text-muted-color);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.summary-grid strong {
+  color: var(--p-text-color);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
 }
 
 /* ─── View Cards ─── */
@@ -323,12 +393,22 @@
   .charts-pair-grid {
     grid-template-columns: 1fr;
   }
+  .kpi-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 768px) {
   .view-page {
     padding: 1rem;
   }
   .capacity-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-strip,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
   .sun-path-row {

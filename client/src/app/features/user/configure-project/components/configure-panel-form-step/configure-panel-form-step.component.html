@@ -128,18 +128,88 @@
         <label for="rawSpacing">Row Spacing</label>
       </p-floatlabel>
     </div>
+
+    <div class="form-field full-width">
+      <p-fieldset legend="Advanced assumptions" [toggleable]="true" [collapsed]="true">
+        <div class="advanced-grid">
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="installationCost" inputId="installationCost" mode="decimal" [min]="0" [maxFractionDigits]="0" class="w-full" />
+              <label for="installationCost">Installation Cost</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-select [options]="segmentOptions()" optionLabel="label" optionValue="value" formControlName="segment" inputId="segment" class="w-full" />
+              <label for="segment">Segment</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="dcAcRatio" inputId="dcAcRatio" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" [min]="0.5" [max]="3" class="w-full" />
+              <label for="dcAcRatio">DC:AC Ratio</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="albedo" inputId="albedo" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [min]="0" [max]="1" class="w-full" />
+              <label for="albedo">Albedo</label>
+            </p-floatlabel>
+          </div>
+        </div>
+
+        <div formGroupName="systemLosses" class="loss-grid">
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="inverterEfficiency" inputId="inverterEfficiency" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="3" [min]="0" [max]="1" class="w-full" />
+              <label for="inverterEfficiency">Inverter Efficiency</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="dcWiring" inputId="dcWiring" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="dcWiring">DC Wiring</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="acWiring" inputId="acWiring" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="acWiring">AC Wiring</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="mismatch" inputId="mismatch" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="mismatch">Mismatch</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="soiling" inputId="soiling" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="soiling">Soiling</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="shadingStatic" inputId="shadingStatic" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="shadingStatic">Static Shading</label>
+            </p-floatlabel>
+          </div>
+        </div>
+      </p-fieldset>
+    </div>
   </form>
 </div>
 
-<!-- Live Capacity Preview card -->
+<!-- Impact Preview card -->
 <div class="step-card capacity-preview-card mt-card">
   <div class="step-card-header">
     <div class="step-card-icon capacity-icon">
       <i class="pi pi-bolt"></i>
     </div>
     <div>
-      <h2>Live Capacity Preview</h2>
-      <p>Real-time estimation based on your configuration.</p>
+      <h2>Impact Preview</h2>
+      <p>Current design compared with the live configuration.</p>
     </div>
     <p-tag
       [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
@@ -152,45 +222,59 @@
 
   <p-divider />
 
-  @if (isCalculating()) {
+  @if (isCalculating() || isPreviewLoading()) {
     <div class="calculating-state">
       <p-skeleton width="100%" height="3rem" borderRadius="12px" />
       <p-skeleton width="100%" height="3rem" borderRadius="12px" />
       <p-skeleton width="100%" height="4rem" borderRadius="12px" />
     </div>
   } @else if (selectedPanelData(); as sp) {
-    <div class="capacity-grid">
+    @if (configPreview(); as preview) {
+    <div class="capacity-grid impact-grid">
       <div class="capacity-item">
-        <span class="capacity-label">Selected Panel</span>
-        <strong>{{ sp.brand }} {{ sp.model }}</strong>
+        <span class="capacity-label">Current Panels</span>
+        <strong>{{ preview.current.panelNumber }}</strong>
       </div>
       <div class="capacity-item">
-        <span class="capacity-label">Panel Power</span>
-        <strong>{{ sp.wattPeak }} W</strong>
+        <span class="capacity-label">Preview Panels</span>
+        <strong>{{ preview.preview.panelNumber }}</strong>
       </div>
       <div class="capacity-item">
-        <span class="capacity-label">Total Panels</span>
-        <strong>{{ panelNumber() || 0 }}</strong>
+        <span class="capacity-label">Current Capacity</span>
+        <strong>{{ preview.current.capacityKw | number: '1.1-2' }} kW</strong>
       </div>
       <div class="capacity-item">
-        <span class="capacity-label">Project Total Area</span>
-        <strong>{{ projectTotalArea() | number: '1.0-0' }} m²</strong>
+        <span class="capacity-label">Preview Capacity</span>
+        <strong>{{ preview.preview.capacityKw | number: '1.1-2' }} kW</strong>
       </div>
       <div class="capacity-item highlight">
-        <span class="capacity-label">Total Capacity</span>
-        <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
+        <span class="capacity-label">Annual Production</span>
+        <strong>{{ preview.preview.annualProductionKwh != null ? (preview.preview.annualProductionKwh | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
       </div>
-      @if (optimalConfig(); as oc) {
-        <div class="capacity-item">
-          <span class="capacity-label">Est. Annual Production</span>
-          <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
-        </div>
-        <div class="capacity-item">
-          <span class="capacity-label">Area Coverage</span>
-          <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
-        </div>
-      }
+      <div class="capacity-item">
+        <span class="capacity-label">Annual Savings</span>
+        <strong>{{ preview.preview.annualSavings != null ? (preview.preview.annualSavings | number: '1.0-0') + ' ' + (preview.currency ?? '') : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">Coverage</span>
+        <strong>{{ preview.preview.coverage != null ? (preview.preview.coverage | number: '1.0-1') + '%' : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">Recommended Spacing</span>
+        <strong>{{ preview.preview.rowSpacing != null ? (preview.preview.rowSpacing | number: '1.1-2') + ' m' : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">Project Area</span>
+        <strong>{{ projectTotalArea() | number: '1.0-0' }} m²</strong>
+      </div>
     </div>
+    @if (preview.warnings.length) {
+      <div class="preview-warnings">
+        @for (warning of preview.warnings; track warning) {
+          <span><i class="pi pi-info-circle"></i>{{ warning }}</span>
+        }
+      </div>
+    }
     @if (!isUsingOptimalConfig() && optimalConfig()) {
       <div class="optimal-hint">
         <i class="pi pi-info-circle"></i>
@@ -198,6 +282,22 @@
         <button class="link-btn" (click)="applyOptimal.emit()">
           Restore optimal ({{ optimalConfig()!.recommendedPanels }} panels)
         </button>
+      </div>
+    }
+    <div class="chart-stack">
+      <div class="mini-chart">
+        <h3><span class="material-symbols-outlined">monitoring</span> Current vs Preview</h3>
+        <highcharts-chart [Highcharts]="Highcharts" [options]="comparisonChartOptions()" [oneToOne]="true" style="width: 100%; height: 260px; display: block;" />
+      </div>
+      <div class="mini-chart">
+        <h3><span class="material-symbols-outlined">wb_sunny</span> Monthly Estimate</h3>
+        <highcharts-chart [Highcharts]="Highcharts" [options]="monthlyProductionChartOptions()" [oneToOne]="true" style="width: 100%; height: 260px; display: block;" />
+      </div>
+    </div>
+    } @else {
+      <div class="no-panel-message">
+        <i class="pi pi-info-circle"></i>
+        <span>Preview data is unavailable for this configuration.</span>
       </div>
     }
   } @else {

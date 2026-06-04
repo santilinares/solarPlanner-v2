@@ -48,6 +48,21 @@ export interface ProjectCreateRequest {
   panelId?: string;
   rawSpacing?: number;
   cultivarId?: string;
+  dcAcRatio?: number;
+  systemLosses?: SystemLosses;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  albedo?: number;
+}
+
+export interface SystemLosses {
+  inverterEfficiency?: number;
+  dcWiring?: number;
+  acWiring?: number;
+  mismatch?: number;
+  soiling?: number;
+  degradationExtra?: number;
+  shadingStatic?: number;
 }
 
 export interface ProjectUpdateRequest {
@@ -66,6 +81,8 @@ export interface ProjectUpdateRequest {
   installationCost?: number;
   segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
   albedo?: number;
+  dcAcRatio?: number;
+  systemLosses?: SystemLosses;
 }
 
 // Simplified Panel reference for project
@@ -193,7 +210,7 @@ export interface ProjectResponse {
   azimuth?: number;
   rawSpacing?: number;
   panelNumber: number;
-  panel?: string;
+  panel?: string | ProjectPanelSummary;
   cultivar?: string;
   owner?: string;
   pvgisRef?: {
@@ -206,9 +223,20 @@ export interface ProjectResponse {
   nextProd?: ProductionPoint[];
   previousProd?: ProductionPoint[];
   totalProd?: number;
+  lastRefreshedAt?: string;
+  dcAcRatio?: number;
+  systemLosses?: SystemLosses;
   installDate: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectPanelSummary extends Panel {
+  _id: string;
+  bifacial?: boolean;
+  bifacialityFactor?: number;
+  degradationFirstYear?: number;
+  degradationAnnual?: number;
 }
 
 /**
@@ -228,6 +256,40 @@ export interface OptimalConfigFromPolygonRequest {
   area: GeoPoint[];
   panelId: string;
   tilt: number;
+  azimuth?: number;
+}
+
+export interface ProjectConfigPreviewRequest {
+  area?: GeoPoint[];
+  panelId?: string;
+  panelNumber?: number;
+  tilt?: number;
+  azimuth?: number;
+  rawSpacing?: number;
+  price?: number;
+  currency?: string;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  dcAcRatio?: number;
+  albedo?: number;
+  systemLosses?: SystemLosses;
+}
+
+export interface ProjectConfigPreview {
+  current: ProjectConfigPreviewMetrics;
+  preview: ProjectConfigPreviewMetrics & { monthlyProductionKwh: number[] | null };
+  optimal: OptimalConfigResponse | null;
+  currency?: string;
+  warnings: string[];
+}
+
+export interface ProjectConfigPreviewMetrics {
+  panelNumber: number;
+  capacityKw: number;
+  annualProductionKwh: number | null;
+  annualSavings: number | null;
+  coverage: number | null;
+  rowSpacing: number | null;
 }
 
 export interface ProjectAnalytics {
