@@ -1,4 +1,4 @@
-import { HydratedDocument, Types } from 'mongoose';
+import { HydratedDocument, Types, startSession } from 'mongoose';
 type FilterQuery<_T> = Record<string, any>;
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
@@ -214,29 +214,20 @@ export class ProjectService {
    * fetches initial production data from Open-Meteo.
    */
   async createProject(userId: string, data: ProjectCreateInput): Promise<ProjectResponse> {
+    // 1. Validate referenced documents (panel reused below to avoid a second DB round-trip)
+    let panel: Awaited<ReturnType<typeof PanelModel.findById>> | null = null;
     if (data.panelId) {
-      const panel = await PanelModel.findById(data.panelId);
+      panel = await PanelModel.findById(data.panelId);
       if (!panel) throw new Error('Panel not found');
     }
-
     if (data.projectType === 'agrivoltaic' && data.cultivarId) {
       const cultivar = await CultivarModel.findById(data.cultivarId);
       if (!cultivar) throw new Error('Cultivar not found');
     }
 
-    // TODO - [SEVERIDAD MEDIA] El documento se crea en BD antes de completar las integraciones externas.
-    // Si el update posterior falla, el proyecto queda creado pero sin datos de producción ni ubicación.
-    // Considerar una transacción MongoDB para hacer create + update atómicos.
-    const project = await ProjectModel.create({
-      ...data,
-      panel: data.panelId,
-      cultivar: data.projectType === 'agrivoltaic' ? data.cultivarId : undefined,
-      owner: userId,
-    });
-
+    // 2. Geospatial + country + timezone (synchronous, no network)
     const geo = calculateGeospatialFields(data.area);
     const { lat, lon } = geo;
-
     console.info(`[Project Creation] Starting API integrations for (${lat}, ${lon})`);
 
     let resolvedCountry: { name: string; code: string } | undefined;
@@ -256,7 +247,7 @@ export class ProjectService {
       console.warn('[Project Creation] Timezone resolution error:', error);
     }
 
-    // Fetch electricity price (ENTSO-E if key is set, else undefined)
+    // 3. External API calls — completed before the DB transaction so the session stays short
     const priceData = await this.fetchElectricityPrice(resolvedCountry?.code ?? '').catch(
       (error: unknown) => {
         console.warn('[Project Creation] Price lookup error:', error);
@@ -264,46 +255,42 @@ export class ProjectService {
       },
     );
 
-    // Fetch initial production data (Open-Meteo) and PVGIS reference if panel + location exist
     let productionData = { prodToday: [] as IProductionPoint[], nextProd: [] as IProductionPoint[], previousProd: [] as IProductionPoint[] };
     let pvgisResult: PvgisAnnualResult | undefined;
 
-    if (lat && lon && data.panelId) {
+    if (lat && lon && panel) {
       try {
-        const panel = await PanelModel.findById(data.panelId);
-        if (panel) {
-          productionData = await productionService.computeProductionData(
-            {
-              lat,
-              lon,
-              tilt: data.tilt,
-              azimuth: undefined, // azimuth not in create schema, defaults to south
-              panelNumber: data.panelNumber,
-              installDate: new Date(),
-              dcAcRatio: data.dcAcRatio,
-              systemLosses: data.systemLosses,
-            },
-            panel,
-          );
-          console.info(`[Project Creation] Production data: today=${productionData.prodToday.length}pts, prev=${productionData.previousProd.length}pts, next=${productionData.nextProd.length}pts`);
+        productionData = await productionService.computeProductionData(
+          {
+            lat,
+            lon,
+            tilt: data.tilt,
+            azimuth: undefined, // azimuth not in create schema, defaults to south
+            panelNumber: data.panelNumber,
+            installDate: new Date(),
+            dcAcRatio: data.dcAcRatio,
+            systemLosses: data.systemLosses,
+          },
+          panel,
+        );
+        console.info(`[Project Creation] Production data: today=${productionData.prodToday.length}pts, prev=${productionData.previousProd.length}pts, next=${productionData.nextProd.length}pts`);
 
-          // PVGIS reference — called once per project creation, no API key required.
-          // Provides annual/monthly production estimate for ROI/payback calculations.
-          try {
-            const peakpowerKw = (data.panelNumber * panel.wattPeak) / 1000;
-            const systemLossPct = computeTotalSystemLossPct(data.systemLosses);
-            pvgisResult = await pvgisService.fetchAnnualProduction(
-              lat,
-              lon,
-              peakpowerKw,
-              systemLossPct,
-              data.tilt,
-              undefined, // azimuth not in create schema, defaults to south
-            );
-            console.info(`[Project Creation] PVGIS: ${pvgisResult.yearlyKwh.toFixed(0)} kWh/year, ${pvgisResult.yearlyKwhPerKwp.toFixed(0)} kWh/kWp`);
-          } catch (pvgisError) {
-            console.warn('[Project Creation] PVGIS lookup skipped:', pvgisError);
-          }
+        // PVGIS reference — called once per project creation, no API key required.
+        // Provides annual/monthly production estimate for ROI/payback calculations.
+        try {
+          const peakpowerKw = (data.panelNumber * panel.wattPeak) / 1000;
+          const systemLossPct = computeTotalSystemLossPct(data.systemLosses);
+          pvgisResult = await pvgisService.fetchAnnualProduction(
+            lat,
+            lon,
+            peakpowerKw,
+            systemLossPct,
+            data.tilt,
+            undefined, // azimuth not in create schema, defaults to south
+          );
+          console.info(`[Project Creation] PVGIS: ${pvgisResult.yearlyKwh.toFixed(0)} kWh/year, ${pvgisResult.yearlyKwhPerKwp.toFixed(0)} kWh/kWp`);
+        } catch (pvgisError) {
+          console.warn('[Project Creation] PVGIS lookup skipped:', pvgisError);
         }
       } catch (error) {
         console.warn('[Project Creation] Production data error:', error);
@@ -321,30 +308,56 @@ export class ProjectService {
         }
       : undefined;
 
-    const updatedProject = await ProjectModel.findByIdAndUpdate(
-      project._id,
-      {
-        lat: geo.lat,
-        lon: geo.lon,
-        surface: geo.surface,
-        country: resolvedCountry?.name,
-        countryCode: resolvedCountry?.code,
-        timezone: resolvedTimezone,
-        currency: priceData.currency,
-        price: priceData.price,
-        prodToday: productionData.prodToday,
-        nextProd: productionData.nextProd,
-        previousProd: productionData.previousProd,
-        lastRefreshedAt: hasProduction ? new Date() : undefined,
-        ...(pvgisRef && { pvgisRef }),
-      },
-      { new: true },
-    );
+    const enrichedFields = {
+      lat: geo.lat,
+      lon: geo.lon,
+      surface: geo.surface,
+      country: resolvedCountry?.name,
+      countryCode: resolvedCountry?.code,
+      timezone: resolvedTimezone,
+      currency: priceData.currency,
+      price: priceData.price,
+      prodToday: productionData.prodToday,
+      nextProd: productionData.nextProd,
+      previousProd: productionData.previousProd,
+      lastRefreshedAt: hasProduction ? new Date() : undefined,
+      ...(pvgisRef && { pvgisRef }),
+    };
 
-    if (!updatedProject) throw new Error('Failed to update project with external data');
+    // 4. Atomic create + update in a single MongoDB transaction.
+    // All external data is already collected; the session only covers fast DB writes.
+    // If findByIdAndUpdate fails, the session rollback removes the newly created document.
+    const session = await startSession();
+    let finalProject!: HydratedDocument<IProject>;
 
-    console.info(`[Project Creation] ✅ Project ${updatedProject._id.toString()} created`);
+    try {
+      await session.withTransaction(async () => {
+        const [created] = await ProjectModel.create(
+          [{
+            ...data,
+            panel: data.panelId,
+            cultivar: data.projectType === 'agrivoltaic' ? data.cultivarId : undefined,
+            owner: userId,
+          }],
+          { session },
+        );
 
+        const updated = await ProjectModel.findByIdAndUpdate(
+          created._id,
+          enrichedFields,
+          { new: true, session },
+        );
+
+        if (!updated) throw new Error('Failed to update project with external data');
+        finalProject = updated;
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    console.info(`[Project Creation] ✅ Project ${finalProject._id.toString()} created`);
+
+    // Fire-and-forget welcome email (outside the transaction — not critical path)
     UserModel.findById(userId)
       .then((user) => {
         if (user) {
@@ -360,7 +373,7 @@ export class ProjectService {
         console.error('Failed to fetch user for project created email:', err);
       });
 
-    return transformProjectToResponse(updatedProject);
+    return transformProjectToResponse(finalProject);
   }
 
   /**
@@ -764,8 +777,16 @@ export class ProjectService {
     const panelWatts = wattPeak ?? 300;
     const estimatedCapacity = (recommendedPanels * panelWatts) / 1000;
 
-    // TODO - Replace with API-based peak sun hours
-    const peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+    // Use real irradiation from PVGIS (H(i)_y ÷ 365) when the project has it stored;
+    // fall back to the empirical formula for standalone estimates without a project context.
+    let peakSunHours: number;
+    if (projectId) {
+      const proj = await ProjectModel.findById(projectId).select('pvgisRef').lean();
+      const poa = proj?.pvgisRef?.yearlyPOAIrradiation;
+      peakSunHours = poa ? poa / 365 : 5.5 - Math.abs(latitude) * 0.02;
+    } else {
+      peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+    }
     const systemEfficiency = 0.85;
     const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency;
 
@@ -835,31 +856,32 @@ export class ProjectService {
     if (!geo.lat || !geo.lon) throw new Error('Project has no defined area polygon');
 
     const latitude = geo.lat;
+    const longitude = geo.lon;
     return {
       latitude,
-      summerSolstice: this.calculateSunPosition(latitude, 23.5),
-      winterSolstice: this.calculateSunPosition(latitude, -23.5),
-      equinox: this.calculateSunPosition(latitude, 0),
+      summerSolstice: this.calculateSunPosition(latitude, longitude, 23.5),
+      winterSolstice: this.calculateSunPosition(latitude, longitude, -23.5),
+      equinox: this.calculateSunPosition(latitude, longitude, 0),
     };
   }
 
-  private calculateSunPosition(latitude: number, declination: number) {
+  private calculateSunPosition(latitude: number, longitude: number, declination: number) {
     const latRad = (latitude * Math.PI) / 180;
     const decRad = (declination * Math.PI) / 180;
 
-    // TODO - Revisar: noonAltitude = 90 - |latitude - declination| is more accurate
-    const noonAltitude = 90 - latitude + declination;
+    const noonAltitude = 90 - Math.abs(latitude - declination);
 
     const cosHourAngle = -Math.tan(latRad) * Math.tan(decRad);
     const hourAngle = Math.acos(Math.max(-1, Math.min(1, cosHourAngle)));
     const daylightHours = (2 * hourAngle * 180) / Math.PI / 15;
 
+    const solarNoon = 12 - longitude / 15;
+
     return {
       noonAltitude: Math.max(0, noonAltitude),
       daylightHours,
-      // TODO - sunrise/sunset assume solar noon at 12:00 UTC (only exact at meridian 0°)
-      sunrise: 12 - daylightHours / 2,
-      sunset: 12 + daylightHours / 2,
+      sunrise: solarNoon - daylightHours / 2,
+      sunset: solarNoon + daylightHours / 2,
     };
   }
 
