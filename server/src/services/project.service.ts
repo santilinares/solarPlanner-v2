@@ -744,7 +744,7 @@ export class ProjectService {
   // Solar calculations
   // ---------------------------------------------------------------------------
 
-  async calculateOptimalConfig(data: OptimalConfigInput): Promise<OptimalConfigResponse> {
+  async calculateOptimalConfig(data: OptimalConfigInput, projectId?: string): Promise<OptimalConfigResponse> {
     const { surfaceArea, panelWidth, panelHeight, tilt, latitude, wattPeak } = data;
 
     const W = panelWidth;
@@ -772,8 +772,16 @@ export class ProjectService {
     const panelWatts = wattPeak ?? 300;
     const estimatedCapacity = (recommendedPanels * panelWatts) / 1000;
 
-    // TODO - Replace with API-based peak sun hours
-    const peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+    // Use real irradiation from PVGIS (H(i)_y ÷ 365) when the project has it stored;
+    // fall back to the empirical formula for standalone estimates without a project context.
+    let peakSunHours: number;
+    if (projectId) {
+      const proj = await ProjectModel.findById(projectId).select('pvgisRef').lean();
+      const poa = proj?.pvgisRef?.yearlyPOAIrradiation;
+      peakSunHours = poa ? poa / 365 : 5.5 - Math.abs(latitude) * 0.02;
+    } else {
+      peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+    }
     const systemEfficiency = 0.85;
     const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency;
 
