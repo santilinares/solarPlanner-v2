@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ObjectIdSchema } from './user.schema';
 import { ProductionPointSchema } from './production.schema';
 
 /**
@@ -71,16 +72,14 @@ export const ProjectCreateSchema = z.object({
     .min(3, 'Area polygon requires at least 3 points')
     .max(1000, 'Area polygon cannot exceed 1000 points'),
   tilt: z.number().min(0).max(90, 'Tilt must be between 0 and 90 degrees'),
-  // TODO - [SEVERIDAD BAJA] direction acepta cualquier string sin validar que sea una dirección cardinal válida.
-  // Considerar usar z.enum(['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'])
-  direction: z.string().min(1, 'Direction is required (e.g., "south")'),
+  direction: z.enum(
+    ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'],
+    { errorMap: () => ({ message: 'Direction must be a cardinal direction (e.g., "south", "northeast")' }) }
+  ),
   rawSpacing: z.number().positive().optional(),
   panelNumber: z.number().int().positive('Panel number must be a positive integer'),
-  // TODO - [SEVERIDAD BAJA] panelId y cultivarId aceptan cualquier string sin validar formato ObjectId.
-  // Si se envía un valor inválido, Mongoose lanza un CastError. Hay un ObjectIdSchema definido en user.schema.ts
-  // que podría reutilizarse aquí: panelId: ObjectIdSchema.optional()
-  panelId: z.string().optional(), // Reference to Panel document
-  cultivarId: z.string().optional(), // Reference to Cultivar document (agrivoltaic only)
+  panelId: ObjectIdSchema.optional(),
+  cultivarId: ObjectIdSchema.optional(),
   dcAcRatio: z.number().min(0.5).max(3).optional(), // DC:AC ratio for inverter clipping
   systemLosses: SystemLossesZodSchema,
   installationCost: z.number().positive().optional(),
@@ -169,6 +168,7 @@ export const OptimalConfigSchema = z.object({
   tilt: z.number().min(0).max(90),
   latitude: z.number().min(-90).max(90),
   wattPeak: z.number().positive().optional(),
+  azimuth: z.number().min(0).max(360).optional(),
 });
 
 /** Type inferred from OptimalConfigSchema - used for optimal configuration calculations */

@@ -112,7 +112,7 @@ export const generatePlan = asyncHandler(async (req: Request, res: Response) => 
  * @access  Private
  */
 export const calculateOptimalConfig = asyncHandler(async (req: Request, res: Response) => {
-  const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput);
+  const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput, req.params.id);
   return success(res, config);
 });
 
