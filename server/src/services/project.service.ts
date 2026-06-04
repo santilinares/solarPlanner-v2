@@ -1,9 +1,16 @@
 import { HydratedDocument, FilterQuery } from 'mongoose';
 import { getCenter, getAreaOfPolygon } from 'geolib';
+import axios from 'axios';
 import { ProjectModel, IProject } from '../models/project.model';
 import { PanelModel, IPanel } from '../models/panel.model';
 import { ProjectCreateInput, ProjectQueryInput, OptimalConfigInput } from '../schemas/project.schema';
-import { ProjectResponse, ProjectListResponse, DashboardStats, OptimalConfigResponse } from '../types/project.types';
+import {
+  DashboardStats,
+  EnergyPriceSuggestionResponse,
+  OptimalConfigResponse,
+  ProjectListResponse,
+  ProjectResponse
+} from '../types/project.types';
 
 /**
  * Project Service
@@ -37,6 +44,22 @@ interface PlanData {
   estimatedAnnualProduction: number;
   generatedAt: string;
 }
+
+const ENTSOE_DOMAIN_BY_COUNTRY: Record<string, string> = {
+  ES: '10YES-REE------0',
+  PT: '10YPT-REN------W',
+  FR: '10YFR-RTE------C',
+  DE: '10Y1001A1001A83F',
+  IT: '10YIT-GRTN-----B',
+};
+
+const FALLBACK_PRICE_BY_COUNTRY: Record<string, number> = {
+  ES: 0.22,
+  PT: 0.21,
+  FR: 0.20,
+  DE: 0.30,
+  IT: 0.28,
+};
 
 /**
  * Transform project document to response format
@@ -353,6 +376,77 @@ export class ProjectService {
   }
 
   /**
+   * Suggest editable energy price from ENTSO-E day-ahead market data.
+   * ENTSO-E returns EUR/MWh, while projects store EUR/kWh.
+   */
+  async getEnergyPriceSuggestion(country: string): Promise<EnergyPriceSuggestionResponse> {
+    const normalizedCountry = country.trim().toUpperCase() || 'ES';
+    const currency = 'EUR';
+    const fallbackPrice = FALLBACK_PRICE_BY_COUNTRY[normalizedCountry] ?? 0.22;
+    const domain = ENTSOE_DOMAIN_BY_COUNTRY[normalizedCountry];
+    const token = process.env.ENTSOE_API_TOKEN;
+
+    if (!domain || !token) {
+      return {
+        price: fallbackPrice,
+        currency,
+        country: normalizedCountry,
+        source: 'fallback',
+        message: 'Using a regional default because ENTSO-E is not configured for this country.',
+      };
+    }
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setUTCDate(today.getUTCDate() + 1);
+    const periodStart = this.formatEntsoeDate(today);
+    const periodEnd = this.formatEntsoeDate(tomorrow);
+
+    try {
+      const response = await axios.get<string>('https://web-api.tp.entsoe.eu/api', {
+        params: {
+          securityToken: token,
+          documentType: 'A44',
+          in_Domain: domain,
+          out_Domain: domain,
+          periodStart,
+          periodEnd,
+        },
+        timeout: 7000,
+        responseType: 'text',
+      });
+
+      const prices = [...response.data.matchAll(/<price\.amount>([\d.]+)<\/price\.amount>/g)]
+        .map((match) => Number(match[1]))
+        .filter((price) => Number.isFinite(price));
+
+      if (prices.length === 0) {
+        throw new Error('ENTSO-E response did not include price points');
+      }
+
+      const averageEurMwh = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+
+      return {
+        price: Number((averageEurMwh / 1000).toFixed(4)),
+        currency,
+        country: normalizedCountry,
+        source: 'entsoe',
+        period: `${periodStart}-${periodEnd}`,
+        message: 'Suggested from ENTSO-E day-ahead market data. The user should still verify it against their bill.',
+      };
+    } catch {
+      return {
+        price: fallbackPrice,
+        currency,
+        country: normalizedCountry,
+        source: 'fallback',
+        period: `${periodStart}-${periodEnd}`,
+        message: 'ENTSO-E price lookup was unavailable, so a regional default is shown.',
+      };
+    }
+  }
+
+  /**
    * Get sun path data for project location
    * @param projectId Project ID
    * @returns Sun path calculations
@@ -400,6 +494,13 @@ export class ProjectService {
       sunrise: 12 - daylightHours / 2,
       sunset: 12 + daylightHours / 2,
     };
+  }
+
+  private formatEntsoeDate(date: Date): string {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}${month}${day}0000`;
   }
 
   /**

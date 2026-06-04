@@ -6,6 +6,7 @@ import {
   getAdminDashboard,
   getProjectById,
   getSunPath,
+  getEnergyPriceSuggestion,
   generatePlan,
   calculateOptimalConfig,
   deleteProject,
@@ -53,6 +54,8 @@ router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
  * Admin routes (must come before /:id route)
  */
 router.get('/admin/summary', verifyAdminJwtToken, getAdminSummary);
+
+router.get('/energy-price/entsoe', verifyUserJwtToken, getEnergyPriceSuggestion);
 
 router.get('/:id', verifyUserJwtToken, getProjectById);
 

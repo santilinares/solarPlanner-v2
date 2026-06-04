@@ -51,3 +51,12 @@ export interface OptimalConfigResponse {
   estimatedProduction: number; // kWh/year
   coverage: number; // percentage
 }
+
+export interface EnergyPriceSuggestionResponse {
+  price: number;
+  currency: string;
+  country: string;
+  source: 'entsoe' | 'fallback';
+  period?: string;
+  message: string;
+}

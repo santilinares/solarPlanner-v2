@@ -88,6 +88,17 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
+ * @route   GET /projects/energy-price/entsoe
+ * @desc    Suggest editable electricity price from ENTSO-E day-ahead data
+ * @access  Private
+ */
+export const getEnergyPriceSuggestion = asyncHandler(async (req: Request, res: Response) => {
+  const country = typeof req.query.country === 'string' ? req.query.country : 'ES';
+  const suggestion = await projectService.getEnergyPriceSuggestion(country);
+  return success(res, suggestion);
+});
+
+/**
  * @route   GET /projects/:id/plan
  * @desc    Generate plan data for PDF
  * @access  Private

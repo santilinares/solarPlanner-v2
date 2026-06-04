@@ -1,41 +1,33 @@
 // Panel domain model
 export interface Panel {
-  id: string;
-  brand: string;
-  model: string;
-  wattPeak: number;
-  dimensions: PanelDimensions;
-  temperatureCoefficient: number;
-  efficiency: number;
-  warranty: number;
-  price: number;
-  createdAt: Date;
-  updatedAt: Date;
+  _id: string;
+  name: string;
+  capacity: number;
+  height: number;
+  width: number;
+  technology: PanelTechnology;
+  type: 'global' | 'personal';
+  owner?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface PanelDimensions {
-  width: number;
-  height: number;
-}
+export type PanelTechnology = 'monocrystalline' | 'polycrystalline' | 'thin-film' | 'bifacial';
 
 export interface PanelCreateRequest {
-  brand: string;
-  model: string;
-  wattPeak: number;
-  dimensions: PanelDimensions;
-  temperatureCoefficient: number;
-  efficiency: number;
-  warranty: number;
-  price: number;
+  name: string;
+  capacity: number;
+  height: number;
+  width: number;
+  technology: PanelTechnology;
+  type: 'global' | 'personal';
 }
 
 export interface PanelUpdateRequest {
-  brand?: string;
-  model?: string;
-  wattPeak?: number;
-  dimensions?: PanelDimensions;
-  temperatureCoefficient?: number;
-  efficiency?: number;
-  warranty?: number;
-  price?: number;
+  name?: string;
+  capacity?: number;
+  height?: number;
+  width?: number;
+  technology?: PanelTechnology;
+  type?: 'global' | 'personal';
 }

@@ -22,9 +22,14 @@ export const ProjectCreateSchema = z.object({
     .max(1000, 'Area polygon cannot exceed 1000 points'),
   tilt: z.number().min(0).max(90, 'Tilt must be between 0 and 90 degrees'),
   direction: z.string().min(1, 'Direction is required (e.g., "south")'),
+  azimuth: z.number().min(0).max(360).optional(),
   rawSpacing: z.number().positive().optional(),
   panelNumber: z.number().int().positive('Panel number must be a positive integer'),
   panelId: z.string().optional(), // Reference to Panel document
+  country: z.string().optional(),
+  timezone: z.string().optional(),
+  currency: z.string().optional(),
+  price: z.number().nonnegative().optional(),
 });
 
 export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;

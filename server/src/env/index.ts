@@ -28,6 +28,7 @@ const envSchema = z.object({
   // External APIs (optional for initial setup)
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   SOLCAST_API_KEY: z.string().optional(),
+  ENTSOE_API_TOKEN: z.string().optional(),
 
   // Refresh tokens (deferred - optional)
   REFRESH_TOKEN_SECRET: z.string().optional(),
