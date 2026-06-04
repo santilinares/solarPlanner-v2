@@ -3843,3 +3843,83 @@ El usuario quería desactivar la funcionalidad de cambio manual entre modo oscur
 
 ### AI reasoning
 El `ThemeService` original usaba `localStorage` para persistir la preferencia y exponía un método `toggle()` que el componente de perfil llamaba. Al eliminar el control manual, la fuente de verdad pasa a ser `window.matchMedia('(prefers-color-scheme: dark)')`. Se añade un `addEventListener('change', ...)` para que la clase `.dark-mode` en `document.documentElement` se sincronice automáticamente si el usuario cambia la preferencia del SO mientras tiene la app abierta — sin necesidad de recargar la página. En el componente de perfil, la sección "Preferences" completa pierde sentido y se eliminó junto con todos los imports y estilos que solo existían para soportarla.
+
+---
+
+## May 30, 2026 - Resolución de TODOs de dificultad media (#9, #6, #7)
+
+### Topic
+Implementación de los tres primeros TODOs de dificultad media en ramas feature independientes.
+
+### Summary of Prompt
+El usuario indicó el orden de implementación: TODO #9 (peak sun hours), TODO #6 (separación de filas con azimut), TODO #7 (transacción MongoDB). Se para antes del TODO #8 para discutirlo.
+
+### What Was Achieved
+
+**Rama `feature/solve-todos-medium-peak-sun-hours` (TODO #9):**
+- `calculateOptimalConfig` recibe ahora un `projectId` opcional. Cuando se proporciona, busca `pvgisRef.yearlyPOAIrradiation` del proyecto en BD y calcula `peakSunHours = POA / 365` — dato real de PVGIS en vez de `5.5 - |lat| × 0.02`. Fallback a la fórmula empírica para estimaciones standalone sin ID de proyecto.
+- El controlador `calculateOptimalConfig` ya pasaba `req.params.id` sin usarlo — ahora se lo pasa al servicio.
+
+**Rama `feature/solve-todos-medium-row-spacing` (TODO #6):**
+- La fórmula de separación de filas incluye el factor `|cos(azimut - 180°)|` que proyecta la sombra en el eje N-S. Paneles sur (180°): factor 1.0 sin cambio. Paneles este/oeste (90°/270°): factor 0, separación reducida al mínimo de acceso 0.6m.
+- `OptimalConfigSchema` gana campo `azimuth` opcional (0–360°, convenio brújula).
+- Dos nuevos tests verifican la reducción para paneles este-orientados y la invarianza sur.
+
+**Rama `feature/solve-todos-medium-db-transaction` (TODO #7):**
+- `createProject` refactorizado: las tres llamadas externas (ENTSO-E, Open-Meteo, PVGIS) se hacen ANTES de cualquier escritura en BD. La sesión MongoDB cubre solo `create` + `findByIdAndUpdate` — operaciones rápidas.
+- `session.withTransaction()` garantiza que si el update falla, el create se revierte automáticamente. No quedan documentos huérfanos.
+- Panel buscado una sola vez (validación) y reutilizado para producción — elimina un round-trip redundante.
+- Test actualizado: mock de `startSession` via `importOriginal` para preservar `Types.ObjectId` en runtime; mock de `create` en forma de array `[{...}]`.
+
+### Full Prompt
+> "Lo haremos en este orden: primero el TODO 9, luego el TODO 6, luego el TODO 7 y finalmente pararemos a ver como hacemos lo del TODO 8"
+
+### Affected Files
+- `server/src/services/project.service.ts` (TODO #9 + #7)
+- `server/src/controllers/project.controller.ts` (TODO #9)
+- `server/src/schemas/project.schema.ts` (TODO #6)
+- `server/src/__tests__/services/project.service.test.ts` (TODO #6 + #7)
+
+### Reasoning
+Para el TODO #7: el patrón correcto con transacciones MongoDB es hacer todo el trabajo costoso (IO externo) FUERA de la transacción. Meter las llamadas HTTP dentro de una sesión habría agotado el timeout de 60s con cualquier API lenta. Para el TODO #9: `calculateOptimalConfig` ya tenía `/:id` en la URL pero el controlador nunca lo usaba — pasarlo al servicio para un `.select('pvgisRef').lean()` es barato y da irradiación real sin llamadas extra.
+## May 30, 2026 - Resolución de TODOs marcados en el código (triviales y bajos)
+
+### Topic
+Auditoría y resolución sistemática de todos los comentarios TODO del proyecto, comenzando por los de dificultad trivial y baja, organizados en ramas feature independientes.
+
+### Summary of Prompt
+El usuario solicitó inspeccionar todos los TODOs del proyecto y crear una tabla de análisis (fichero, problema, comentario, solución propuesta, interacción requerida, delegabilidad a IA, dificultad y alternativas con las APIs ya integradas). Tras la revisión, se aprobó una organización de ramas con una rama base `feature/solve-todos` desde `develop`, sub-ramas para triviales, bajos y una rama por cada medio. Se implementaron las dos primeras ramas.
+
+### What Was Achieved
+
+**Rama `feature/solve-todos-trivial` (5 cambios):**
+- `direction` en `ProjectCreateSchema` ahora es `z.enum([...8 direcciones...])` en vez de `z.string()`, rechazando valores inválidos en la capa HTTP.
+- `panelId` y `cultivarId` validados como MongoDB ObjectId reutilizando `ObjectIdSchema` de `user.schema.ts`, evitando `CastError` de Mongoose.
+- Eliminado índice geoespacial `2dsphere` comentado de `project.model.ts` (no necesario para el TFG).
+- Eliminado stub comentado de endpoint Prometheus `/metrics` de `app.ts`.
+- Eliminado bloque comentado de `pino-pretty` de `logger.ts`.
+
+**Rama `feature/solve-todos-low` (3 cambios):**
+- Corregida la fórmula `noonAltitude` en `calculateSunPosition`: `90 - (lat - dec)` → `90 - |lat - dec|`, que es correcta para ambos hemisferios.
+- Añadida corrección de longitud al cálculo de `sunrise`/`sunset`: `solarNoon = 12 - longitude/15`, eliminando el sesgo UTC+0 que era exacto solo en el meridiano de Greenwich. La longitud ya se calculaba en `getSunPath` pero no se pasaba a `calculateSunPosition`.
+- Eliminado comentario `TODO` obsoleto de `client/panel.service.ts`: el endpoint `PUT /panels/:id` ya estaba implementado en el servidor.
+
+### Full Prompt
+> "Quiero que inspecciones todos los TODOs que hay marcados en el proyecto y en una tabla me indiques en que fichero se encuentra, cual es el problema, que dice el comentario del todo, como podría solucionarse, si requiere de mi interacción porque puede llevarse a cabo de diversas maneras, o si puede delegarse a un agente de IA y que tan complicado es."
+> 
+> (Seguido de aprobación del plan de ramas y solicitud de implementación empezando por triviales y bajos.)
+
+### Affected Files
+
+**feature/solve-todos-trivial:**
+- `server/src/schemas/project.schema.ts` — direction enum, ObjectId imports
+- `server/src/models/project.model.ts` — índice geoespacial eliminado
+- `server/src/app.ts` — stub Prometheus eliminado
+- `server/src/utils/logger.ts` — bloque pino-pretty eliminado
+
+**feature/solve-todos-low:**
+- `server/src/services/project.service.ts` — fórmula noonAltitude + sunrise/sunset + longitud
+- `client/src/app/core/services/panel.service.ts` — TODO obsoleto eliminado
+
+### Reasoning
+Se detectó durante la auditoría que varios TODOs podían resolverse mejor usando datos de las APIs ya integradas. El más relevante: `peakSunHours` usaba una fórmula empírica hardcoded, pero PVGIS ya devuelve `H(i)_y` (irradiación anual sobre plano inclinado) almacenado en `pvgisRef.yearlyPOAIrradiation` — `psh = yearlyPOAIrradiation / 365` sin ninguna llamada extra. Para `sunrise`/`sunset`, Open-Meteo tiene parámetros `daily=sunrise,sunset` que darían mayor precisión, pero se optó por la corrección matemática de longitud como solución proporcional al alcance de una rama "low". Los 5 TODOs triviales eran en su mayoría dead code y validaciones ausentes, ninguno requería decisión de negocio salvo los que se consultaron al usuario (#11, #12, #13 — todos con respuesta "borrar").
