@@ -620,6 +620,22 @@ describe('ProjectService', () => {
 
       expect(result.recommendedPanels).toBe(0);
     });
+
+    it('reduces row spacing for east-facing panels (azimuth 90°)', async () => {
+      const south = await service.calculateOptimalConfig({ ...baseInput, azimuth: 180 });
+      const east  = await service.calculateOptimalConfig({ ...baseInput, azimuth: 90  });
+
+      // East-facing panels cast shadows eastward, not northward — N-S component → 0
+      expect(east.recommendedRowSpacing).toBeLessThan(south.recommendedRowSpacing);
+      expect(east.recommendedRowSpacing).toBeGreaterThanOrEqual(0.6);
+    });
+
+    it('applies no reduction for south-facing panels (azimuth 180°)', async () => {
+      const withAzimuth    = await service.calculateOptimalConfig({ ...baseInput, azimuth: 180 });
+      const withoutAzimuth = await service.calculateOptimalConfig(baseInput);
+
+      expect(withAzimuth.recommendedRowSpacing).toBe(withoutAzimuth.recommendedRowSpacing);
+    });
   });
 
   // ---------- calculateFromPolygon ----------
