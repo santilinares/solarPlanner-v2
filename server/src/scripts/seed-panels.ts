@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import mongoose from 'mongoose';
-import Panel from '../models/panels.model';
-import { logger } from '../utils/logger';
+import { PanelModel } from '../models/panel.model';
+import logger from '../utils/logger';
 
 // Type mapping from CEC to our schema
 function mapPVModTechToType(pvModTech: string): string {
@@ -42,7 +42,7 @@ async function seedPanels() {
     // Load JSON
     const jsonPath = join(__dirname, '../data/cec-panels-subset.json');
     const jsonContent = readFileSync(jsonPath, 'utf-8');
-    const records: CECPanelRecord[] = JSON.parse(jsonContent);
+    const records = JSON.parse(jsonContent) as CECPanelRecord[];
 
     logger.info(`Loaded ${records.length} panels from CEC subset`);
 
@@ -68,7 +68,7 @@ async function seedPanels() {
         degradationAnnual: 0.5,
       };
 
-      const result = await Panel.updateOne(
+      const result = await PanelModel.updateOne(
         { brand: rec.Manufacturer, model: rec.Model },
         { $set: panelData },
         { upsert: true }
@@ -91,4 +91,4 @@ async function seedPanels() {
   }
 }
 
-seedPanels();
+void seedPanels();

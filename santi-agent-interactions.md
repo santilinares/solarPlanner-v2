@@ -4,6 +4,31 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## June 7, 2026 - Fix seed-panels TypeScript imports and lint noise
+
+### Topic
+Fix the panel seeding script so it uses the real model and logger exports and no longer triggers TypeScript or ESLint errors.
+
+### Summary of Prompt
+User reported multiple TypeScript and ESLint errors in `server/src/scripts/seed-panels.ts`, including a missing `panels.model` import, an incorrect named logger import, unsafe `any` usage from JSON parsing and model access, and a floating promise at the script entry point.
+
+### What Was Achieved
+- Replaced the broken `../models/panels.model` import with `PanelModel` from `../models/panel.model`.
+- Switched the logger import to the default export from `../utils/logger`.
+- Typed the parsed CEC JSON records as `CECPanelRecord[]`.
+- Updated the upsert call to use `PanelModel.updateOne(...)` with proper typing.
+- Marked the entry invocation as `void seedPanels();` to satisfy the no-floating-promises rule.
+
+### Full Prompt
+> "Fix the typescript issues in this file: [seed-panels.ts diagnostics]"
+
+### Affected Files
+- `server/src/scripts/seed-panels.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+The first TypeScript error exposed the actual root cause: the script referenced a non-existent model file name. Once the import was corrected to the existing `panel.model.ts`, the remaining lint warnings were handled by aligning the logger import with the module's default export, narrowing the JSON parse result to the script's record type, and making the top-level async call explicitly ignored.
+
 ## May 27, 2026 - Enforce strong password policy across client and server
 
 ### Topic
