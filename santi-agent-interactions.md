@@ -3975,3 +3975,32 @@ El usuario pidió examinar `add-project`, `project.controller.ts`, `project.serv
 
 ### Reasoning
 El problema principal era de consistencia: el frontend calculaba spacing, máximos y producción con fórmulas locales mientras el backend ya tenía el cálculo físico más completo. Se eliminó esa duplicación en el alta y se guardó un baseline óptimo recibido del backend para distinguir `Optimal` vs `Custom`. El precio energético se separó en su propio paso porque afecta la interpretación económica, no la geometría del sitio. ENTSO-E se trata explícitamente como sugerencia porque el precio real de factura puede incluir peajes, impuestos o contratos que el mercado diario no representa. Durante la validación se detectó además que `country-reverse-geocoding` puede devolver códigos alpha-3 como `ESP`; se normalizó a alpha-2 para que ENTSO-E reciba `ES`.
+
+---
+
+## June 7, 2026 - Seguimiento de errores en runtime del wizard y gráficos
+
+### Topic
+Diagnóstico de error 400 en `GET /api/projects/electricity-price` y warning de accesibilidad de Highcharts.
+
+### Summary of Prompt
+El usuario reportó que al ejecutar la app veía `400 Bad Request` en `/api/projects/electricity-price?countryCode=ES` y pegó un warning de Highcharts sobre el módulo `accessibility.js`.
+
+### What Was Achieved
+- Se revisó que en el código actual la ruta `/projects/electricity-price` está definida antes de `/:id`, por lo que el 400 apunta a un backend viejo aún en ejecución que interpreta `electricity-price` como un ID de proyecto.
+- Se añadió el módulo oficial de accesibilidad de Highcharts en `ProductionChartsComponent`, eliminando el warning sin desactivar accesibilidad.
+- Se verificó con `npm run typecheck` en cliente.
+
+### Full Prompt
+> "I am running the project and I am seeing issues with some api calls:
+> http://127.0.0.1:1235/api/projects/electricity-price?countryCode=ES 400 (Bad Request)
+> [...]
+> and then this other:
+> (pasted text)"
+
+### Affected Files
+- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El 400 encaja con una instancia de backend que no ha cargado la nueva ruta: sin esa ruta, Express matchea `/electricity-price` como `/:id`, Mongoose intenta castear ese string como ObjectId y el middleware devuelve `Invalid ID format` con status 400. El warning de Highcharts sí era una mejora directa del frontend; importar `highcharts/modules/accessibility` es preferible a silenciarlo con `accessibility.enabled = false`.
