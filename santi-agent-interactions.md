@@ -4004,3 +4004,35 @@ El usuario reportó que al ejecutar la app veía `400 Bad Request` en `/api/proj
 
 ### Reasoning
 El 400 encaja con una instancia de backend que no ha cargado la nueva ruta: sin esa ruta, Express matchea `/electricity-price` como `/:id`, Mongoose intenta castear ese string como ObjectId y el middleware devuelve `Invalid ID format` con status 400. El warning de Highcharts sí era una mejora directa del frontend; importar `highcharts/modules/accessibility` es preferible a silenciarlo con `accessibility.enabled = false`.
+
+---
+
+## June 7, 2026 - Ruta de precio energético sin colisión y fallback frontend
+
+### Topic
+Corrección adicional del error `400 Bad Request` en la sugerencia de precio energético durante `add-project`.
+
+### Summary of Prompt
+El usuario seguía viendo `GET /api/projects/electricity-price?countryCode=ES 400 (Bad Request)` desde `fetchEnergyPriceSuggestion` al resolver la ubicación en el wizard.
+
+### What Was Achieved
+- Se añadió una ruta alias más explícita: `GET /api/projects/pricing/electricity`.
+- El cliente ahora usa `/projects/pricing/electricity` en vez de `/projects/electricity-price`, reduciendo riesgo de colisión con rutas dinámicas `/:id`.
+- `ProjectService.getElectricityPriceSuggestion()` captura errores HTTP y devuelve `{ price: null, currency: null, source: 'unavailable' }`, para que el wizard mantenga el precio editable aunque el backend viejo o ENTSO-E fallen.
+- Se añadieron tests del servicio Angular para endpoint correcto y fallback en error 400.
+- Se verificó con `npm run typecheck`, `npm test -- project.service.spec.ts --runInBand` y `npm run build` en server.
+
+### Full Prompt
+> "add-project.component.ts:512
+> GET http://127.0.0.1:1235/api/projects/electricity-price?countryCode=ES 400 (Bad Request)
+> fetchEnergyPriceSuggestion @ add-project.component.ts:512
+> [...]"
+
+### Affected Files
+- `client/src/app/core/services/project.service.ts`
+- `client/src/app/core/services/project.service.spec.ts`
+- `server/src/routes/project.routes.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Aunque el código actual tenía `/electricity-price` antes de `/:id`, una ruta más específica bajo `/pricing/electricity` evita ambigüedades y facilita distinguir endpoints auxiliares de recursos de proyecto. El fallback frontend es necesario porque ENTSO-E es una sugerencia, no un bloqueo de creación: si la sugerencia falla, el usuario debe poder seguir usando o editando el precio por defecto.

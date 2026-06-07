@@ -60,6 +60,7 @@ router.get('/dashboard', verifyUserJwtToken, getUserDashboard);
 
 router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
 
+router.get('/pricing/electricity', verifyUserJwtToken, getElectricityPriceSuggestion);
 router.get('/electricity-price', verifyUserJwtToken, getElectricityPriceSuggestion);
 
 router.get('/:id', verifyUserJwtToken, getProjectById);
