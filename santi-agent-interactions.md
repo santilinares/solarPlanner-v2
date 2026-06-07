@@ -3923,3 +3923,55 @@ El usuario solicitó inspeccionar todos los TODOs del proyecto y crear una tabla
 
 ### Reasoning
 Se detectó durante la auditoría que varios TODOs podían resolverse mejor usando datos de las APIs ya integradas. El más relevante: `peakSunHours` usaba una fórmula empírica hardcoded, pero PVGIS ya devuelve `H(i)_y` (irradiación anual sobre plano inclinado) almacenado en `pvgisRef.yearlyPOAIrradiation` — `psh = yearlyPOAIrradiation / 365` sin ninguna llamada extra. Para `sunrise`/`sunset`, Open-Meteo tiene parámetros `daily=sunrise,sunset` que darían mayor precisión, pero se optó por la corrección matemática de longitud como solución proporcional al alcance de una rama "low". Los 5 TODOs triviales eran en su mayoría dead code y validaciones ausentes, ninguno requería decisión de negocio salvo los que se consultaron al usuario (#11, #12, #13 — todos con respuesta "borrar").
+
+---
+
+## June 6, 2026 - Rediseño del wizard de creación de proyectos solares
+
+### Topic
+Refactor UX del componente `add-project` para creación roof-only, sugerencia ENTSO-E de precio energético y cálculo óptimo consistente desde backend.
+
+### Summary of Prompt
+El usuario pidió examinar `add-project`, `project.controller.ts`, `project.service.ts` y el modelo de proyecto para mejorar la experiencia de creación: recolocar el precio energético, integrarlo con ENTSO-E como sugerencia editable, retirar agrivoltaica de esta versión, unificar los cálculos de configuración óptima y embellecer la página de review.
+
+### What Was Achieved
+- `add-project` pasa a un wizard de 5 pasos: proyecto, ubicación/área, precio energético, instalación y review.
+- Se oculta agrivoltaica del alta de proyecto: sin tipo de instalación, cultivos, altura mínima ni review agrivoltaica, manteniendo compatibilidad backend/modelo para datos existentes.
+- Se añadió `GET /api/projects/electricity-price?countryCode=ES` para sugerir precio ENTSO-E y se permite que el usuario lo sobrescriba antes de crear.
+- `ProjectCreateSchema` y el modelo cliente aceptan `country`, `countryCode`, `timezone`, `currency`, `price` y `azimuth` en el cálculo desde polígono.
+- `createProject` preserva el precio del usuario; solo consulta ENTSO-E cuando no hay precio en el payload.
+- El cálculo óptimo del wizard usa `/projects/calculate` como fuente única para paneles recomendados, separación de filas y producción anual estimada.
+- La review se rediseñó con tarjetas compactas y botones de edición por sección.
+- Se añadieron pruebas server para schema/precio/cálculo y una spec cliente para lógica del wizard.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Add Project Wizard UX And Calculation Plan
+> 
+> ## Summary
+> Refactor the add-project flow into a clearer roof-only wizard for this version, remove agrivoltaic UI/dependencies from the component, integrate ENTSO-E as a suggested electricity price before project creation, and make optimal configuration calculations come from one backend source of truth.
+> 
+> [...]"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/core/models/index.ts`
+- `client/src/app/core/services/project.service.ts`
+- `client/jest.config.js`
+- `client/package.json`
+- `client/package-lock.json`
+- `server/src/controllers/project.controller.ts`
+- `server/src/routes/project.routes.ts`
+- `server/src/schemas/project.schema.ts`
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/schemas/project.schema.test.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `server/src/controllers/user.controller.ts`
+
+### Reasoning
+El problema principal era de consistencia: el frontend calculaba spacing, máximos y producción con fórmulas locales mientras el backend ya tenía el cálculo físico más completo. Se eliminó esa duplicación en el alta y se guardó un baseline óptimo recibido del backend para distinguir `Optimal` vs `Custom`. El precio energético se separó en su propio paso porque afecta la interpretación económica, no la geometría del sitio. ENTSO-E se trata explícitamente como sugerencia porque el precio real de factura puede incluir peajes, impuestos o contratos que el mercado diario no representa. Durante la validación se detectó además que `country-reverse-geocoding` puede devolver códigos alpha-3 como `ESP`; se normalizó a alpha-2 para que ENTSO-E reciba `ES`.

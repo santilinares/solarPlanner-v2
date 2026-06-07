@@ -94,7 +94,7 @@ export const listUsers = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
-  const user = await userService.getUserById(req.params.id);
+  const user = await userService.getUserById(req.params.id as string);
   return success(res, user);
 });
 
@@ -104,7 +104,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  await userService.deleteUser(req.params.id);
+  await userService.deleteUser(req.params.id as string);
   return success(res, null, 'User deleted successfully');
 });
 
@@ -114,7 +114,7 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
-  const user = await userService.updateUserRole(req.params.id, (req.body as UserUpdateRoleInput).role);
+  const user = await userService.updateUserRole(req.params.id as string, (req.body as UserUpdateRoleInput).role);
   return success(res, user, 'User role updated successfully');
 });
 
@@ -127,7 +127,7 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
   if (req.userRole !== 'admin' && req.userId !== req.params.id) {
     return forbidden(res, 'Not authorized to update this profile');
   }
-  const user = await userService.updateProfile(req.params.id, req.body as UserUpdateProfileInput);
+  const user = await userService.updateProfile(req.params.id as string, req.body as UserUpdateProfileInput);
   return success(res, user, 'Profile updated successfully');
 });
 
@@ -141,7 +141,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     return forbidden(res, 'Not authorized to change this password');
   }
   const { currentPassword, newPassword } = req.body as UserChangePasswordInput;
-  await userService.changePassword(req.params.id, currentPassword, newPassword);
+  await userService.changePassword(req.params.id as string, currentPassword, newPassword);
   return success(res, null, 'Password changed successfully');
 });
 

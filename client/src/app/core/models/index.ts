@@ -24,6 +24,7 @@ export {
   ProjectResponse,
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
+  ElectricityPriceSuggestion,
   ProjectAnalytics,
 } from './project.model';
 

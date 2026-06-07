@@ -13,6 +13,7 @@ import {
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
   ProjectAnalytics,
+  ElectricityPriceSuggestion,
 } from '../models';
 
 export interface ProjectFilters {
@@ -126,6 +127,15 @@ export class ProjectService {
    */
   calculateOptimalConfig(data: OptimalConfigFromPolygonRequest): Observable<OptimalConfigResponse> {
     return this.http.post<OptimalConfigResponse>(`${this.apiUrl}/calculate`, data);
+  }
+
+  /**
+   * Suggest a country-level electricity price from ENTSO-E.
+   */
+  getElectricityPriceSuggestion(countryCode: string): Observable<ElectricityPriceSuggestion> {
+    return this.http.get<ElectricityPriceSuggestion>(`${this.apiUrl}/electricity-price`, {
+      params: { countryCode },
+    });
   }
 
   /**

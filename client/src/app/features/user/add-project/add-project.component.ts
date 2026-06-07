@@ -7,44 +7,42 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { Router, NavigationStart } from '@angular/router';
+import { DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { DecimalPipe } from '@angular/common';
+import { NavigationStart, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
-import { SelectModule } from 'primeng/select';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
-import { Subscription } from 'rxjs';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
+import { TextareaModule } from 'primeng/textarea';
 
+import { Coordinates, GeoPoint, OptimalConfigFromPolygonRequest, OptimalConfigResponse, Panel, ProjectCreateRequest } from '@core/models';
+import { PanelListResponse, PanelService } from '@core/services/panel.service';
 import { ProjectService } from '@core/services/project.service';
-import { PanelService, PanelListResponse } from '@core/services/panel.service';
-import { CultivarService } from '@core/services/cultivar.service';
-import {
-  Panel,
-  OptimalConfigResponse,
-  OptimalConfigFromPolygonRequest,
-  ProjectCreateRequest,
-  Coordinates,
-  GeoPoint,
-} from '@core/models';
-import { Cultivar, CultivarListResponse } from '@core/models/cultivar.model';
 import { HasUnsavedWork } from '@core/guards/unsaved-changes.guard';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
-
-type SpacingWarning = { type: 'ok' | 'warning' | 'error'; message: string; recommended?: string };
 
 interface StepDef {
   label: string;
   icon: string;
 }
+
+interface OptimalBaseline {
+  panelCount: number;
+  rowSpacing: number;
+  config: OptimalConfigResponse;
+}
+
+type PriceSource = 'entsoe' | 'default' | 'manual' | 'unavailable';
 
 @Component({
   selector: 'app-add-project',
@@ -52,18 +50,18 @@ interface StepDef {
   styleUrls: ['./add-project.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     DecimalPipe,
+    FormsModule,
     ButtonModule,
-    InputTextModule,
-    TextareaModule,
-    SelectModule,
-    InputNumberModule,
     ConfirmDialogModule,
-    TagModule,
     DividerModule,
     IconFieldModule,
     InputIconModule,
+    InputNumberModule,
+    InputTextModule,
+    SelectModule,
+    TagModule,
+    TextareaModule,
     LocationMapComponent,
   ],
   providers: [ConfirmationService],
@@ -74,227 +72,154 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
-  private readonly cultivarService = inject(CultivarService);
 
   private navigationSubscription?: Subscription;
-  private pendingNavigationUrl?: string;
 
-  // ── Step management ──────────────────────────────
-  activeStep = signal(0);
+  readonly activeStep = signal(0);
+  readonly steps: StepDef[] = [
+    { label: 'Project', icon: 'description' },
+    { label: 'Site', icon: 'map' },
+    { label: 'Energy Price', icon: 'bolt' },
+    { label: 'Installation', icon: 'solar_power' },
+    { label: 'Review', icon: 'fact_check' },
+  ];
 
-  steps = computed<StepDef[]>(() => [
-    { label: 'Project Details', icon: 'pi pi-file' },
-    { label: 'Location & Area', icon: 'pi pi-map-marker' },
-    {
-      label: this.projectType() === 'agrivoltaic' ? 'Agrivoltaic Config' : 'Roof Config',
-      icon: 'pi pi-cog',
-    },
-    { label: 'Review', icon: 'pi pi-list-check' },
-  ]);
-
-  stepNextLabel = computed(() => {
-    const nextStep = this.steps()[this.activeStep() + 1];
+  readonly stepNextLabel = computed(() => {
+    const nextStep = this.steps[this.activeStep() + 1];
     return nextStep ? `Next: ${nextStep.label}` : 'Next';
   });
 
-  // ── Step 1: Project Info ─────────────────────────
-  projectName = signal('');
-  projectDescription = signal('');
-  projectType = signal<'roof' | 'agrivoltaic' | null>(null);
+  readonly projectName = signal('');
+  readonly projectDescription = signal('');
 
-  // ── Step 2: Location & Area ──────────────────────
-  addressQuery = signal('');
-  isSearching = signal(false);
-  isLocating = signal(false);
-  searchError = signal<string | null>(null);
-  mapCenter = signal<Coordinates | null>(null);
-  drawnPolygonPoints = signal<Coordinates[]>([]);
-  hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
-  detectedCountry = signal('');
-  detectedTimezone = signal('');
-  addressResult = signal('');
-  addressLat = signal(0);
-  addressLng = signal(0);
-  hasValidLocation = computed(
+  readonly addressQuery = signal('');
+  readonly isSearching = signal(false);
+  readonly isLocating = signal(false);
+  readonly searchError = signal<string | null>(null);
+  readonly mapCenter = signal<Coordinates | null>(null);
+  readonly drawnPolygonPoints = signal<Coordinates[]>([]);
+  readonly addressResult = signal('');
+  readonly addressLat = signal(0);
+  readonly addressLng = signal(0);
+  readonly detectedCountry = signal('');
+  readonly detectedCountryCode = signal('');
+  readonly detectedTimezone = signal('');
+
+  readonly energyPrice = signal<number | null>(0.12);
+  readonly currency = signal('EUR');
+  readonly priceSuggestion = signal<number | null>(null);
+  readonly priceSource = signal<PriceSource>('default');
+  readonly isFetchingPrice = signal(false);
+  readonly priceError = signal<string | null>(null);
+  readonly userEditedPrice = signal(false);
+
+  readonly panels = signal<Panel[]>([]);
+  readonly selectedPanelId = signal<string | null>(null);
+  readonly panelCount = signal(1);
+  readonly tiltAngle = signal(30);
+  readonly selectedDirection = signal('south');
+  readonly rowSpacing = signal<number | null>(null);
+  readonly optimalConfig = signal<OptimalConfigResponse | null>(null);
+  readonly optimalBaseline = signal<OptimalBaseline | null>(null);
+  readonly isCalculating = signal(false);
+  readonly calculationError = signal<string | null>(null);
+  readonly isSubmitting = signal(false);
+
+  readonly directionOptions = [
+    { label: 'South', value: 'south', azimuth: 180 },
+    { label: 'South-East', value: 'southeast', azimuth: 135 },
+    { label: 'South-West', value: 'southwest', azimuth: 225 },
+    { label: 'East', value: 'east', azimuth: 90 },
+    { label: 'West', value: 'west', azimuth: 270 },
+  ];
+
+  readonly panelOptions = computed(() =>
+    this.panels().map((panel) => ({
+      label: `${panel.brand} ${panel.model} (${panel.wattPeak}W)`,
+      value: panel._id ?? panel.id,
+    })),
+  );
+
+  readonly selectedPanelData = computed(() =>
+    this.panels().find((panel) => (panel._id ?? panel.id) === this.selectedPanelId()) ?? null,
+  );
+
+  readonly hasValidLocation = computed(
     () =>
       this.addressResult().trim().length > 0 &&
       Number.isFinite(this.addressLat()) &&
-      Number.isFinite(this.addressLng())
-  );
-  energyPrice = signal(0.12);
-
-  // ── Step 3: Configuration ────────────────────────
-  panels = signal<Panel[]>([]);
-  cultivars = signal<Cultivar[]>([]);
-  selectedPanelId = signal<string | null>(null);
-  selectedCultivarId = signal<string | null>(null);
-  panelCount = signal(20);
-  tiltAngle = signal(30);
-  selectedDirection = signal('south');
-  rowSpacing = signal(1.5);
-  minHeight = signal(3.0);
-  estimation = signal<OptimalConfigResponse | null>(null);
-  isCalculating = signal(false);
-
-  directionOptions = [
-    { label: 'South', value: 'south' },
-    { label: 'South-East', value: 'southeast' },
-    { label: 'South-West', value: 'southwest' },
-    { label: 'East', value: 'east' },
-    { label: 'West', value: 'west' },
-  ];
-
-  panelOptions = computed(() =>
-    this.panels().map((p) => ({
-      label: `${p.brand} — ${p.model}`,
-      value: p._id,
-      wattPeak: p.wattPeak,
-    }))
+      Number.isFinite(this.addressLng()),
   );
 
-  cultivarOptions = computed(() =>
-    this.cultivars().map((c) => ({
-      label: c.name,
-      value: c._id,
-      category: c.category,
-    }))
-  );
+  readonly hasDrawnArea = computed(() => this.drawnPolygonPoints().length >= 3);
+  readonly polygonArea = computed(() => this.optimalConfig()?.surfaceArea ?? 0);
 
-  selectedPanelData = computed(() =>
-    this.panels().find((p) => p._id === this.selectedPanelId())
-  );
+  readonly totalPowerKWp = computed(() => {
+    const panel = this.selectedPanelData();
+    return panel ? (this.panelCount() * panel.wattPeak) / 1000 : 0;
+  });
 
-  selectedCultivarData = computed(() =>
-    this.cultivars().find((c) => c._id === this.selectedCultivarId())
-  );
-
-  // ── Derived computations ─────────────────────────
-  panelWidthM = computed(() => (this.selectedPanelData()?.dimensions.width ?? 0) / 1000);
-  panelHeightM = computed(() => (this.selectedPanelData()?.dimensions.height ?? 0) / 1000);
-
-  //TODO - Get this value from calculateOptimalConfig from project.service
-  optimalSpacing = computed(() => {
+  readonly totalPanelArea = computed(() => {
     const panel = this.selectedPanelData();
     if (!panel) return 0;
-    const h = panel.dimensions.height / 1000;
-    const tiltRad = (this.tiltAngle() * Math.PI) / 180;
-    const cultivar = this.selectedCultivarData();
-    const tiltBased = Math.round(h * Math.sin(tiltRad) * 2.5 * 100) / 100;
-    if (this.projectType() === 'agrivoltaic' && cultivar) {
-      return Math.max(tiltBased, cultivar.recommendedSpacing);
-    }
-    return tiltBased;
+    return this.panelCount() * (panel.dimensions.width / 1000) * (panel.dimensions.height / 1000);
   });
 
-  //TODO - Get this value from calculateOptimalConfig from project.service
-  maxPanels = computed(() => {
-    const est = this.estimation();
-    const panel = this.selectedPanelData();
-    if (!est || !panel) return 0;
-    const W = panel.dimensions.width / 1000;
-    const H = panel.dimensions.height / 1000;
-    const d = this.rowSpacing();
-    const footprint = W * (H + d);
-    if (footprint <= 0) return 0;
-    const utilisation = this.projectType() === 'agrivoltaic' ? 0.70 : 0.85;
-    const usableArea = est.surfaceArea * utilisation;
-    return Math.max(0, Math.floor(usableArea / footprint));
+  readonly isUsingOptimalConfig = computed(() => {
+    const baseline = this.optimalBaseline();
+    if (!baseline) return false;
+    const spacing = this.rowSpacing();
+    return (
+      this.panelCount() === baseline.panelCount &&
+      spacing != null &&
+      Math.abs(spacing - baseline.rowSpacing) < 0.005
+    );
   });
 
-  totalPowerKWp = computed(() => {
-    const panel = this.selectedPanelData();
-    if (!panel) return 0;
-    return (this.panelCount() * panel.wattPeak) / 1000;
+  readonly annualSavingsEstimate = computed(() => {
+    const price = this.energyPrice();
+    const production = this.optimalConfig()?.estimatedProduction;
+    if (price == null || production == null) return null;
+    return price * production;
   });
 
-  totalPanelArea = computed(() => {
-    const panel = this.selectedPanelData();
-    if (!panel) return 0;
-    return this.panelCount() * this.panelWidthM() * this.panelHeightM();
-  });
-
-  polygonArea = computed(() => this.estimation()?.surfaceArea ?? 0);
-
-  //TODO - Get this value from calculateOptimalConfig from project.service
-  spacingWarning = computed<SpacingWarning>(() => {
-    const panel = this.selectedPanelData();
-    if (!panel) return { type: 'ok', message: '' };
-    const rs = this.rowSpacing();
-    const opt = this.optimalSpacing();
-    if (rs < 0.8) {
-      return {
-        type: 'error',
-        message: `Row spacing too narrow (${rs}m). Minimum 0.8m required for maintenance access.`,
-        recommended: `Recommended optimal spacing: ${opt}m`,
-      };
-    }
-    if (rs < opt) {
-      const reduction = Math.round(((opt - rs) / opt) * 30);
-      return {
-        type: 'warning',
-        message: `Row spacing (${rs}m) is below optimal (${opt}m). This may cause inter-row shading and reduce energy yield by ${reduction}%.`,
-        recommended: `Recommended optimal spacing: ${opt}m`,
-      };
-    }
-    return { type: 'ok', message: 'Row spacing is adequate. No significant inter-row shading expected.' };
-  });
-
-    //TODO - Get this value from calculateOptimalConfig from project.service for cultivar
-  heightWarning = computed<{ type: 'ok' | 'warning'; message: string } | null>(() => {
-    const cultivar = this.selectedCultivarData();
-    if (!cultivar) return null;
-    if (this.minHeight() < cultivar.minPanelHeight) {
-      return {
-        type: 'warning',
-        message: `Minimum height (${this.minHeight()}m) is below the recommended ${cultivar.minPanelHeight}m for ${cultivar.name}. This may restrict crop growth and machinery access.`,
-      };
-    }
-    return {
-      type: 'ok',
-      message: `Height clearance is adequate for ${cultivar.name}.`,
-    };
-  });
-
-  // ── Step validation ──────────────────────────────
-  canProceed = computed(() => {
+  readonly canProceed = computed(() => {
     switch (this.activeStep()) {
-      case 0: return this.projectName().trim().length > 0 && this.projectType() !== null;
-      case 1: return this.hasValidLocation() && this.hasDrawnArea();
+      case 0:
+        return this.projectName().trim().length >= 2;
+      case 1:
+        return this.hasValidLocation() && this.hasDrawnArea();
       case 2:
-        if (this.projectType() === 'agrivoltaic') {
-          return !!this.selectedPanelId() && !!this.selectedCultivarId();
-        }
-        return !!this.selectedPanelId();
-      case 3: return true;
-      default: return false;
+        return this.energyPrice() != null && this.energyPrice()! >= 0;
+      case 3:
+        return !!this.selectedPanelId() && this.panelCount() > 0 && this.rowSpacing() != null;
+      case 4:
+        return true;
+      default:
+        return false;
     }
   });
 
-  // ── Submission ───────────────────────────────────
-  isSubmitting = signal(false);
-
-  canSubmit = computed(
-    () =>
-      this.projectName().trim().length > 0 &&
-      this.projectType() !== null &&
-      !!this.selectedPanelId() &&
-      this.panelCount() > 0
+  readonly canCalculate = computed(
+    () => this.hasDrawnArea() && !!this.selectedPanelId() && this.tiltAngle() >= 0 && this.tiltAngle() <= 90,
   );
 
-  // ── Lifecycle ────────────────────────────────────
+  readonly canSubmit = computed(
+    () =>
+      this.projectName().trim().length >= 2 &&
+      this.hasValidLocation() &&
+      this.hasDrawnArea() &&
+      !!this.selectedPanelId() &&
+      this.panelCount() > 0 &&
+      this.rowSpacing() != null &&
+      !this.isSubmitting(),
+  );
+
   ngOnInit(): void {
     this.loadPanels();
-    this.loadCultivars();
-
-    // Intercept navigation to show confirmation dialog
     this.navigationSubscription = this.router.events.subscribe((event) => {
-      if (event instanceof NavigationStart) {
-        const url = event.url;
-        // Skip if navigating to same route or exit button handles it
-        if (url.startsWith('/projects/add') || url === '/projects') {
-          return;
-        }
-        this.checkUnsavedNavigation(url);
+      if (event instanceof NavigationStart && !event.url.startsWith('/projects/add')) {
+        this.checkUnsavedNavigation(event.url);
       }
     });
   }
@@ -303,19 +228,17 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     this.navigationSubscription?.unsubscribe();
   }
 
-  // ── HasUnsavedWork interface ─────────────────────
   hasUnsavedWork(): boolean {
     return (
-      this.projectName().length > 0 ||
-      this.projectDescription().length > 0 ||
+      this.projectName().trim().length > 0 ||
+      this.projectDescription().trim().length > 0 ||
       this.hasDrawnArea() ||
       !!this.selectedPanelId()
     );
   }
 
-  // ── Navigation ───────────────────────────────────
   goToStep(step: number): void {
-    if (step >= 0 && step <= 3) {
+    if (step >= 0 && step < this.steps.length && (step <= this.activeStep() || this.canProceed())) {
       this.activeStep.set(step);
     }
   }
@@ -327,61 +250,22 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   }
 
   onNext(): void {
-    if (this.activeStep() < 3 && this.canProceed()) {
-      const nextStep = this.activeStep() + 1;
-      this.activeStep.set(nextStep);
-      if (nextStep === 2) {
-        this.applyInitialConfigurationDefaults();
-      }
+    if (!this.canProceed() || this.activeStep() >= this.steps.length - 1) return;
+    const next = this.activeStep() + 1;
+    this.activeStep.set(next);
+    if (next === 3 && this.canCalculate()) {
+      this.calculateOptimalConfig(true);
     }
   }
 
   onExit(): void {
     if (this.hasUnsavedWork()) {
       this.showExitConfirmation(() => void this.router.navigate(['/projects']));
-    } else {
-      void this.router.navigate(['/projects']);
+      return;
     }
+    void this.router.navigate(['/projects']);
   }
 
-  private checkUnsavedNavigation(targetUrl: string): void {
-    if (this.hasUnsavedWork()) {
-      this.pendingNavigationUrl = targetUrl;
-      this.showExitConfirmation(() => {
-        this.pendingNavigationUrl = undefined;
-        void this.router.navigateByUrl(targetUrl);
-      });
-    }
-  }
-
-  private showExitConfirmation(onAccept: () => void): void {
-    this.confirmationService.confirm({
-      header: 'Leave project creation?',
-      message: 'Your progress will not be saved. Are you sure you want to exit?',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Leave',
-      rejectLabel: 'Cancel',
-      acceptButtonStyleClass: 'p-button-danger',
-      accept: onAccept,
-    });
-  }
-
-  // ── Data loading ─────────────────────────────────
-  private loadPanels(): void {
-    this.panelService.getAllPanels(1, 100).subscribe({
-      next: (res: PanelListResponse) => this.panels.set(res.panels ?? []),
-      error: (err) => console.error('Failed to load panels', err),
-    });
-  }
-
-  private loadCultivars(): void {
-    this.cultivarService.getAllCultivars(1, 100).subscribe({
-      next: (res: CultivarListResponse) => this.cultivars.set(res.data ?? []),
-      error: (err) => console.error('Failed to load cultivars', err),
-    });
-  }
-
-  // ── Step 2 methods ───────────────────────────────
   searchAddress(): void {
     const query = this.addressQuery().trim();
     if (!query) return;
@@ -389,7 +273,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     this.isSearching.set(true);
     this.searchError.set(null);
 
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1&accept-language=en`;
     this.http
       .get<Array<{ lat: string; lon: string; display_name?: string; address?: { country?: string; country_code?: string } }>>(url)
       .subscribe({
@@ -399,15 +283,13 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
             this.searchError.set('Location not found. Try a more specific address.');
             return;
           }
-          const r = results[0];
-          const lat = parseFloat(r.lat);
-          const lng = parseFloat(r.lon);
+          const result = results[0];
           this.applyResolvedLocation(
-            lat,
-            lng,
-            r.display_name ?? query,
-            r.address?.country,
-            r.address?.country_code,
+            parseFloat(result.lat),
+            parseFloat(result.lon),
+            result.display_name ?? query,
+            result.address?.country,
+            result.address?.country_code,
           );
         },
         error: () => {
@@ -415,11 +297,6 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
           this.searchError.set('Search failed. Please try again.');
         },
       });
-  }
-
-  onUserLocationFound(coords: Coordinates): void {
-    this.applyResolvedLocation(coords.lat, coords.lng, 'Current location');
-    this.reverseGeocode(coords.lat, coords.lng);
   }
 
   useCurrentLocation(): void {
@@ -430,7 +307,6 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
 
     this.isLocating.set(true);
     this.searchError.set(null);
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         this.isLocating.set(false);
@@ -443,16 +319,151 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
         this.isLocating.set(false);
         this.searchError.set('Unable to access your location. Please allow location permission.');
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
+  }
+
+  onUserLocationFound(coords: Coordinates): void {
+    this.applyResolvedLocation(coords.lat, coords.lng, 'Current location');
+    this.reverseGeocode(coords.lat, coords.lng);
   }
 
   onPolygonChange(coords: Coordinates[]): void {
     this.drawnPolygonPoints.set(coords);
-    this.estimation.set(null);
+    this.optimalConfig.set(null);
+    this.optimalBaseline.set(null);
+    if (this.canCalculate()) {
+      this.calculateOptimalConfig(true);
+    }
+  }
+
+  onPriceEdited(value: number | null): void {
+    this.energyPrice.set(value);
+    this.userEditedPrice.set(true);
+    this.priceSource.set('manual');
+  }
+
+  onPanelChange(): void {
+    this.optimalConfig.set(null);
+    this.optimalBaseline.set(null);
+    if (this.canCalculate()) {
+      this.calculateOptimalConfig(true);
+    }
+  }
+
+  onTiltChange(value: number): void {
+    this.tiltAngle.set(value);
+    this.optimalConfig.set(null);
+    this.optimalBaseline.set(null);
+    if (this.canCalculate()) {
+      this.calculateOptimalConfig(true);
+    }
+  }
+
+  onDirectionChange(value: string): void {
+    this.selectedDirection.set(value);
+    this.optimalConfig.set(null);
+    this.optimalBaseline.set(null);
+    if (this.canCalculate()) {
+      this.calculateOptimalConfig(true);
+    }
+  }
+
+  onPanelCountChange(value: number): void {
+    this.panelCount.set(value);
+  }
+
+  onRowSpacingChange(value: number | null): void {
+    this.rowSpacing.set(value);
+  }
+
+  restoreOptimal(): void {
+    const baseline = this.optimalBaseline();
+    if (!baseline) return;
+    this.panelCount.set(baseline.panelCount);
+    this.rowSpacing.set(baseline.rowSpacing);
+  }
+
+  calculateOptimalConfig(applyResult: boolean): void {
+    if (!this.canCalculate()) return;
+
+    this.isCalculating.set(true);
+    this.calculationError.set(null);
+    const request: OptimalConfigFromPolygonRequest = {
+      area: this.drawnPolygonPoints().map((coords) => ({ lat: coords.lat, lon: coords.lng })),
+      panelId: this.selectedPanelId()!,
+      tilt: this.tiltAngle(),
+      azimuth: this.directionToAzimuth(this.selectedDirection()),
+    };
+
+    this.projectService.calculateOptimalConfig(request).subscribe({
+      next: (config) => {
+        this.optimalConfig.set(config);
+        this.optimalBaseline.set({
+          panelCount: config.recommendedPanels,
+          rowSpacing: config.recommendedRowSpacing,
+          config,
+        });
+        if (applyResult) {
+          this.panelCount.set(Math.max(1, config.recommendedPanels));
+          this.rowSpacing.set(config.recommendedRowSpacing);
+        }
+        this.isCalculating.set(false);
+      },
+      error: () => {
+        this.calculationError.set('Could not calculate the optimal layout. You can still enter the layout manually.');
+        this.isCalculating.set(false);
+      },
+    });
+  }
+
+  onSubmit(): void {
+    if (!this.canSubmit()) return;
+    this.isSubmitting.set(true);
+
+    const payload: ProjectCreateRequest = {
+      name: this.projectName().trim(),
+      description: this.projectDescription().trim() || undefined,
+      projectType: 'roof',
+      area: this.drawnPolygonPoints().map((coords): GeoPoint => ({ lat: coords.lat, lon: coords.lng })),
+      country: this.detectedCountry() || undefined,
+      countryCode: this.detectedCountryCode() || undefined,
+      timezone: this.detectedTimezone() || undefined,
+      currency: this.currency() || undefined,
+      price: this.energyPrice() ?? undefined,
+      tilt: this.tiltAngle(),
+      direction: this.selectedDirection(),
+      azimuth: this.directionToAzimuth(this.selectedDirection()),
+      panelNumber: this.panelCount(),
+      panelId: this.selectedPanelId() ?? undefined,
+      rawSpacing: this.rowSpacing() ?? undefined,
+    };
+
+    this.projectService.createProject(payload).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        void this.router.navigate(['/projects']);
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+      },
+    });
+  }
+
+  formatPrice(value: number | null): string {
+    if (value == null) return 'Not available';
+    return `${this.currency()} ${value.toFixed(4)}/kWh`;
+  }
+
+  directionLabel(value: string): string {
+    return this.directionOptions.find((option) => option.value === value)?.label ?? value;
+  }
+
+  private loadPanels(): void {
+    this.panelService.getAllPanels(1, 200).subscribe({
+      next: (res: PanelListResponse) => this.panels.set(res.panels ?? []),
+      error: () => this.panels.set([]),
+    });
   }
 
   private applyResolvedLocation(
@@ -466,14 +477,19 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     this.addressLat.set(lat);
     this.addressLng.set(lng);
     this.addressResult.set(label);
-    if (country) {
-      this.detectedCountry.set(country);
+
+    if (country) this.detectedCountry.set(country);
+    if (countryCode) {
+      const normalized = countryCode.toUpperCase();
+      this.detectedCountryCode.set(normalized);
+      this.detectedTimezone.set(this.guessTimezone(countryCode));
+      this.currency.set(this.guessCurrency(countryCode));
+      this.fetchEnergyPriceSuggestion(normalized);
     }
-    this.detectedTimezone.set(this.guessTimezone(countryCode));
   }
 
   private reverseGeocode(lat: number, lng: number): void {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}&format=json&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}&format=json&addressdetails=1&accept-language=en`;
     this.http
       .get<{ display_name?: string; address?: { country?: string; country_code?: string } }>(url)
       .subscribe({
@@ -486,177 +502,73 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
             res.address?.country_code,
           );
         },
-        error: () => {
-          this.addressResult.set(this.addressResult().trim() || 'Current location');
-        },
+        error: () => this.addressResult.set(this.addressResult().trim() || 'Current location'),
       });
+  }
+
+  private fetchEnergyPriceSuggestion(countryCode: string): void {
+    this.isFetchingPrice.set(true);
+    this.priceError.set(null);
+    this.projectService.getElectricityPriceSuggestion(countryCode).subscribe({
+      next: (suggestion) => {
+        this.isFetchingPrice.set(false);
+        this.priceSuggestion.set(suggestion.price);
+        if (suggestion.currency) this.currency.set(suggestion.currency);
+        if (suggestion.price != null) {
+          this.priceSource.set('entsoe');
+          if (!this.userEditedPrice()) {
+            this.energyPrice.set(suggestion.price);
+          }
+        } else {
+          this.priceSource.set('unavailable');
+          this.priceError.set('No ENTSO-E price was available for this country. Keep or edit the default value.');
+        }
+      },
+      error: () => {
+        this.isFetchingPrice.set(false);
+        this.priceSource.set('unavailable');
+        this.priceError.set('Energy price lookup failed. Keep or edit the default value.');
+      },
+    });
+  }
+
+  private directionToAzimuth(direction: string): number {
+    return this.directionOptions.find((option) => option.value === direction)?.azimuth ?? 180;
+  }
+
+  private guessCurrency(countryCode?: string): string {
+    if (!countryCode) return 'EUR';
+    const map: Record<string, string> = {
+      ES: 'EUR', PT: 'EUR', DE: 'EUR', FR: 'EUR', IT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR',
+      GB: 'GBP', US: 'USD', PL: 'PLN',
+    };
+    return map[countryCode.toUpperCase()] ?? 'EUR';
   }
 
   private guessTimezone(countryCode?: string): string {
     if (!countryCode) return '';
     const map: Record<string, string> = {
-      es: 'Europe/Madrid', fr: 'Europe/Paris', de: 'Europe/Berlin',
-      it: 'Europe/Rome', pt: 'Europe/Lisbon', gb: 'Europe/London',
-      us: 'America/New_York', ar: 'America/Argentina/Buenos_Aires',
-      br: 'America/Sao_Paulo', mx: 'America/Mexico_City',
-      au: 'Australia/Sydney', jp: 'Asia/Tokyo', cn: 'Asia/Shanghai',
-      in: 'Asia/Kolkata',
+      es: 'Europe/Madrid', fr: 'Europe/Paris', de: 'Europe/Berlin', it: 'Europe/Rome',
+      pt: 'Europe/Lisbon', gb: 'Europe/London', us: 'America/New_York',
+      nl: 'Europe/Amsterdam', be: 'Europe/Brussels', at: 'Europe/Vienna', pl: 'Europe/Warsaw',
     };
     return map[countryCode.toLowerCase()] ?? '';
   }
 
-  // ── Step 3 methods ───────────────────────────────
-  private applyInitialConfigurationDefaults(): void {
-    if (!this.selectedPanelId()) {
-      return;
-    }
-
-    if (this.canCalculate()) {
-      this.onCalculate();
-      return;
-    }
-
-    this.applyAutoSpacing();
-    this.applyAutoPanelCount();
+  private checkUnsavedNavigation(targetUrl: string): void {
+    if (!this.hasUnsavedWork()) return;
+    this.showExitConfirmation(() => void this.router.navigateByUrl(targetUrl));
   }
 
-  private syncPanelCountWithCurrentSpacing(): void {
-    const max = this.maxPanels();
-    if (max > 0) {
-      this.panelCount.set(max);
-    }
-  }
-
-  onPanelChange(): void {
-    this.estimation.set(null);
-    const panel = this.selectedPanelData();
-    if (panel) {
-      this.rowSpacing.set(this.optimalSpacing());
-    }
-    if (this.hasDrawnArea() && this.selectedPanelId()) {
-      this.onCalculate();
-    }
-  }
-
-  onCultivarChange(): void {
-    const crop = this.selectedCultivarData();
-    if (crop) {
-      this.minHeight.set(crop.minPanelHeight);
-      this.rowSpacing.set(this.optimalSpacing());
-    }
-  }
-
-  applyAutoSpacing(): void {
-    this.rowSpacing.set(this.optimalSpacing());
-    this.syncPanelCountWithCurrentSpacing();
-  }
-
-  applyAutoPanelCount(): void {
-    const est = this.estimation();
-    const max = this.maxPanels();
-
-    if (est?.recommendedPanels && est.recommendedPanels > 0) {
-      this.panelCount.set(max > 0 ? Math.min(est.recommendedPanels, max) : est.recommendedPanels);
-      return;
-    }
-
-    if (max > 0) {
-      this.panelCount.set(max);
-    }
-  }
-
-  onPanelCountChange(value: number): void {
-    const max = this.maxPanels();
-    if (max > 0 && value > max) {
-      this.panelCount.set(max);
-    } else {
-      this.panelCount.set(value);
-    }
-  }
-
-  onRowSpacingChange(value: number): void {
-    this.rowSpacing.set(value);
-    this.syncPanelCountWithCurrentSpacing();
-  }
-
-  canCalculate = computed(
-    () => this.hasDrawnArea() && !!this.selectedPanelId() && this.tiltAngle() >= 0 && this.tiltAngle() <= 90
-  );
-
-  onCalculate(): void {
-    if (!this.canCalculate()) return;
-    this.isCalculating.set(true);
-
-    const area = this.drawnPolygonPoints().map((c) => ({ lat: c.lat, lon: c.lng }));
-    const request: OptimalConfigFromPolygonRequest = {
-      area,
-      panelId: this.selectedPanelId()!,
-      tilt: this.tiltAngle(),
-    };
-
-    this.projectService.calculateOptimalConfig(request).subscribe({
-      next: (res) => {
-        this.isCalculating.set(false);
-        this.estimation.set(res);
-        this.rowSpacing.set(res.recommendedRowSpacing);
-        this.panelCount.set(res.recommendedPanels);
-      },
-      error: (err) => {
-        this.isCalculating.set(false);
-        console.error('Estimation failed', err);
-      },
-    });
-  }
-
-  // ── Formatting helpers ───────────────────────────
-  formatLightRequirement(lr: string): string {
-    return lr.replace(/-/g, ' ');
-  }
-
-  capitalizeFirst(s: string): string {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
-
-  // ── Submit ───────────────────────────────────────
-  onSubmit(): void {
-    if (!this.canSubmit() || this.isSubmitting()) return;
-    this.isSubmitting.set(true);
-
-    const area: GeoPoint[] = this.drawnPolygonPoints().map((c) => ({
-      lat: c.lat,
-      lon: c.lng,
-    }));
-
-    const projectData: ProjectCreateRequest = {
-      name: this.projectName(),
-      description: this.projectDescription() || undefined,
-      projectType: this.projectType()!,
-      area,
-      tilt: this.tiltAngle(),
-      direction: this.selectedDirection(),
-      panelNumber: this.panelCount(),
-      panelId: this.selectedPanelId() ?? undefined,
-      rawSpacing: this.rowSpacing(),
-      cultivarId:
-        this.projectType() === 'agrivoltaic'
-          ? this.selectedCultivarId() ?? undefined
-          : undefined,
-    };
-
-    this.projectService.createProject(projectData).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.projectName.set('');
-        this.projectDescription.set('');
-        this.drawnPolygonPoints.set([]);
-        this.selectedPanelId.set(null);
-        void this.router.navigate(['/projects']);
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        console.error('Creation failed', err);
-      },
+  private showExitConfirmation(onAccept: () => void): void {
+    this.confirmationService.confirm({
+      header: 'Leave project creation?',
+      message: 'Your progress will not be saved. Are you sure you want to exit?',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Leave',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: onAccept,
     });
   }
 }
-

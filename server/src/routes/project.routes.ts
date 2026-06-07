@@ -12,6 +12,7 @@ import {
   deleteProject,
   adminDeleteProject,
   calculateFromPolygon,
+  getElectricityPriceSuggestion,
   estimateProject,
   refreshProduction,
   getProjectAnalytics,
@@ -58,6 +59,8 @@ router.post(
 router.get('/dashboard', verifyUserJwtToken, getUserDashboard);
 
 router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
+
+router.get('/electricity-price', verifyUserJwtToken, getElectricityPriceSuggestion);
 
 router.get('/:id', verifyUserJwtToken, getProjectById);
 

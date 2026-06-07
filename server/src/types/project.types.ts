@@ -93,6 +93,13 @@ export interface OptimalConfigResponse {
   recommendedRowSpacing: number; // m — shadow-based optimal row spacing
 }
 
+export interface ElectricityPriceSuggestionResponse {
+  price: number | null;
+  currency: string | null;
+  source: 'entsoe' | 'unavailable';
+  countryCode: string;
+}
+
 export interface ProjectAnalytics {
   capacityFactor: number;                               // CF (%) — NREL PVWatts V5 §8.1
   performanceRatio: number | null;                      // PR (%) — null if H(i)_y not stored
