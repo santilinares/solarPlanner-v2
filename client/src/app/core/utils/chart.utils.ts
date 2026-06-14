@@ -16,8 +16,11 @@ export const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'A
 export const BASE_CHART_OPTIONS: Highcharts.Options = {
   chart: {
     backgroundColor: 'transparent',
+    panning: { enabled: true, type: 'x' },
+    panKey: 'shift',
     style: { fontFamily: 'inherit' },
     width: undefined,
+    zooming: { type: 'x' },
   },
   credits: { enabled: false },
   title: { text: undefined },

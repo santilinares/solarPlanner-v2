@@ -406,7 +406,7 @@ export class ConfigureProjectComponent implements OnInit {
     return {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
-      xAxis: { categories: MONTH_LABELS },
+      xAxis: { categories: MONTH_LABELS, crosshair: true },
       yAxis: { title: { text: 'kWh/month' }, min: 0 },
       tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
       legend: { enabled: Boolean(currentMonthly?.length && previewMonthly?.length) },
@@ -444,7 +444,7 @@ export class ConfigureProjectComponent implements OnInit {
     return {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'bar', reflow: true },
-      xAxis: { categories },
+      xAxis: { categories, crosshair: true },
       yAxis: { title: { text: 'Relative to best value' }, min: 0, max: 100, labels: { format: '{value}%' } },
       tooltip: { valueDecimals: 0, valueSuffix: '%' },
       legend: { enabled: true },
@@ -473,7 +473,7 @@ export class ConfigureProjectComponent implements OnInit {
     return {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'spline', reflow: true },
-      xAxis: { categories: ['Summer', 'Equinox', 'Winter'] },
+      xAxis: { categories: ['Summer', 'Equinox', 'Winter'], crosshair: true },
       yAxis: [
         { title: { text: 'Noon altitude °' }, min: 0 },
         { title: { text: 'Daylight hours' }, opposite: true, min: 0 },

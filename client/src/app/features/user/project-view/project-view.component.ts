@@ -135,6 +135,7 @@ export class ProjectViewComponent implements OnInit {
           const d = new Date(p.dateTime);
           return `${d.getHours().toString().padStart(2, '0')}:00`;
         }),
+        crosshair: true,
         title: { text: 'Hour' },
       },
       yAxis: { title: { text: 'kWh' }, min: 0 },
@@ -159,6 +160,7 @@ export class ProjectViewComponent implements OnInit {
         categories: nextProd.map((p) =>
           new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
         ),
+        crosshair: true,
       },
       yAxis: { title: { text: 'kWh/day' }, min: 0 },
       tooltip: { valueDecimals: 1, valueSuffix: ' kWh/day' },
@@ -176,6 +178,7 @@ export class ProjectViewComponent implements OnInit {
         categories: previousProd.map((p) =>
           new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
         ),
+        crosshair: true,
       },
       yAxis: { title: { text: 'kWh/day' }, min: 0 },
       tooltip: { valueDecimals: 1, valueSuffix: ' kWh/day' },
@@ -202,6 +205,7 @@ export class ProjectViewComponent implements OnInit {
       chart: { ...BASE_CHART_OPTIONS.chart, reflow: true },
       xAxis: {
         categories: perYear.map((_, i) => `Y${i + 1}`),
+        crosshair: true,
         title: { text: 'Year' },
         plotLines: breakEvenYear
           ? [{
@@ -236,7 +240,7 @@ export class ProjectViewComponent implements OnInit {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
       subtitle: { text: `Annual total ${annualTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} kWh` },
-      xAxis: { categories: MONTH_LABELS },
+      xAxis: { categories: MONTH_LABELS, crosshair: true },
       yAxis: { title: { text: 'kWh/month' }, min: 0 },
       tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
       legend: { enabled: true },
