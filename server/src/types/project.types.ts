@@ -86,11 +86,23 @@ export interface DashboardStats {
 export interface OptimalConfigResponse {
   recommendedPanels: number;
   estimatedCapacity: number; // kW
-  estimatedProduction: number; // kWh/year
+  estimatedProduction: number; // kWh/year midpoint of the preliminary range
+  estimatedProductionRange: {
+    low: number;
+    high: number;
+  };
+  productionEstimateMode: 'preliminary';
   coverage: number; // percentage
   surfaceArea: number; // m² — polygon area for client-side maxPanels recalc
   latitude: number; // centre latitude for client-side sun elevation calc
   recommendedRowSpacing: number; // m — shadow-based optimal row spacing
+}
+
+export interface ElectricityPriceSuggestionResponse {
+  price: number | null;
+  currency: string | null;
+  source: 'entsoe' | 'unavailable';
+  countryCode: string;
 }
 
 export interface ProjectAnalytics {

@@ -12,6 +12,7 @@ import {
   deleteProject,
   adminDeleteProject,
   calculateFromPolygon,
+  getElectricityPriceSuggestion,
   estimateProject,
   refreshProduction,
   getProjectAnalytics,
@@ -34,6 +35,9 @@ const router = Router();
  * Public routes (no auth)
  */
 router.post('/estimate', validateBody(EstimateSchema), estimateProject);
+router.post('/calculate', validateBody(OptimalConfigFromPolygonSchema), calculateFromPolygon);
+router.get('/pricing/electricity', getElectricityPriceSuggestion);
+router.get('/electricity-price', getElectricityPriceSuggestion);
 
 /**
  * Project CRUD routes (mounted at /api/projects)
@@ -41,16 +45,6 @@ router.post('/estimate', validateBody(EstimateSchema), estimateProject);
 router.post('/', verifyUserJwtToken, validateBody(ProjectCreateSchema), createProject);
 
 router.get('/', verifyUserJwtToken, validateQuery(ProjectQuerySchema), listProjects);
-
-/**
- * Calculations (no ID needed)
- */
-router.post(
-  '/calculate',
-  verifyUserJwtToken,
-  validateBody(OptimalConfigFromPolygonSchema),
-  calculateFromPolygon
-);
 
 /**
  * Dashboard routes (must come before /:id route)

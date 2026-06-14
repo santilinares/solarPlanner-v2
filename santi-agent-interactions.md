@@ -4,6 +4,138 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## June 14, 2026 - Rango preliminar de producción en el wizard
+
+### Topic
+Mostrar una estimación parcial y honesta de producción en `add-project` sin llamar al modelo completo durante el wizard.
+
+### Summary of Prompt
+El usuario detectó que el wizard podía aumentar la producción estimada al cambiar orientación o tilt solo porque cabían más paneles, y pidió mostrar información parcial mediante un rango, aclarando que no usa el modelo completo de producción de la app.
+
+### What Was Achieved
+- Se extendió `OptimalConfigResponse` con `estimatedProductionRange` y `productionEstimateMode: 'preliminary'`.
+- `/projects/calculate` mantiene el cálculo ligero, sin PVGIS/Open-Meteo, y ahora aplica modificadores aproximados de orientación y tilt al rendimiento preliminar.
+- `estimatedProduction` se conserva como punto medio del rango para compatibilidad.
+- El wizard muestra “Preliminary Production Range” y un aviso explícito de que la estimación no usa el modelo completo.
+- El ahorro anual se etiqueta como preliminar y sigue usando el punto medio.
+- Se normalizó la altura/alineación de `p-select` y `p-inputNumber` en el paso de instalación.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Add Project Wizard: Preliminary Production Range And Honest Labeling
+> [...]
+> Add label/copy near the range: “This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.”"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El modelo completo ya considera tilt y azimuth mediante Open-Meteo y PVGIS al crear el proyecto, pero el cálculo del wizard era un estimado ligero basado en capacidad y horas solares simplificadas. Mostrar un número único como producción anual podía ser engañoso. El rango preliminar mantiene la UX rápida, reduce falsas certezas y deja claro que la vista del proyecto creado es la fuente autoritativa.
+
+---
+
+## June 14, 2026 - Validación de query compatible con Express 5
+
+### Topic
+Corrección persistente del `Validation error` en rutas con `validateQuery()`.
+
+### Summary of Prompt
+El usuario indicó que el mismo error seguía apareciendo en `GET /api/panels?page=1&limit=200` incluso después de aceptar `page` y `limit` en el schema de paneles.
+
+### What Was Achieved
+- Se actualizó el middleware compartido de validación para reemplazar `req.query` con `Object.defineProperty()` cuando valida queries.
+- Se mantuvo la asignación directa para `body` y `params`.
+- Se preservó el comportamiento de errores Zod con respuesta `Validation failed` y detalles por campo.
+- Se añadieron tests del middleware que reproducen una `req.query` estilo Express 5 no asignable y validan el error de Zod.
+- Se verificaron de nuevo los tests de schema y servicio de paneles.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Fix Query Validation Middleware For Express 5
+> [...]
+> The remaining `Validation error` on `GET /api/panels?page=1&limit=200` is likely not caused by `PanelQuerySchema` anymore."
+
+### Affected Files
+- `server/src/middleware/validation.middleware.ts`
+- `server/src/__tests__/middleware/validation.middleware.test.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El mensaje `Validation error`, distinto de `Validation failed`, señalaba que el error no venía de Zod sino de una excepción posterior. En Express 5, `req.query` puede estar expuesto mediante accessor y no admitir asignación directa. Definir la propiedad de forma explícita permite conservar los valores ya parseados/coercionados para los controllers sin romper las rutas que validan query params.
+
+---
+
+## June 14, 2026 - Paginación validada para carga de paneles
+
+### Topic
+Corrección del `Validation error` al entrar en `add-project` por `GET /api/panels?page=1&limit=200`.
+
+### Summary of Prompt
+El usuario confirmó en DevTools que el error ocurría al cargar la página de alta de proyecto y que la request fallida era `GET /api/panels?page=1&limit=200`, con token válido y respuesta 400 de validación.
+
+### What Was Achieved
+- Se añadió soporte backend para `page` y `limit` en `PanelQuerySchema`.
+- `PanelService.listPanels()` aplica `skip` y `limit` en la query de Mongoose y conserva `total` como conteo total filtrado.
+- Se mantuvieron los filtros existentes de paneles y el caso de búsqueda por `id`.
+- Se añadieron tests de schema para paginación válida e inválida.
+- Se añadieron tests de servicio para paginación, `total` y conservación del caso por `id`.
+- Se añadió un test del wizard para fijar que `add-project` carga `getAllPanels(1, 200)` al abrir.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Fix Panel Loading Validation Error
+> [...]
+> The current `Validation error` is caused by `GET /api/panels?page=1&limit=200`."
+
+### Affected Files
+- `server/src/schemas/panel.schema.ts`
+- `server/src/services/panel.service.ts`
+- `server/src/controllers/panel.controller.ts`
+- `server/src/__tests__/schemas/panel.schema.test.ts`
+- `server/src/__tests__/services/panel.service.test.ts`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El frontend ya tenía un contrato implícito de paginación en `PanelService.getAllPanels(page, limit)`, usado por `add-project` y otras pantallas. El backend, sin embargo, validaba la query de `/api/panels` sin aceptar esos parámetros, por lo que la request se rechazaba antes de llegar al controller. Implementar la paginación en el backend respeta el contrato existente del cliente y evita una solución local que solo ocultaría el problema en el wizard.
+
+---
+
+## June 14, 2026 - Helpers públicos para el wizard de creación
+
+### Topic
+Corrección del error `No token provided` al entrar en la configuración de paneles del flujo `add-project`.
+
+### Summary of Prompt
+El usuario reportó que al entrar en el paso de selección/configuración del panel aparecía la respuesta JSON `{"success":false,"message":"No token provided"}`.
+
+### What Was Achieved
+- Se hizo público `POST /api/projects/calculate`, porque calcula una configuración previa a crear proyecto y no accede a datos privados del usuario.
+- Se hicieron públicas las rutas de sugerencia de precio `GET /api/projects/pricing/electricity` y `GET /api/projects/electricity-price`.
+- Se mantuvieron protegidas las rutas de creación, listado, detalle, edición, eliminación y analíticas de proyectos.
+- Se actualizaron comentarios del controller para reflejar el acceso público de estos helpers.
+- Se verificó con `npm run build` en server, `npm run typecheck` en client, tests de `project.service` y `project.schema` en server, y test del `ProjectService` de Angular.
+
+### Full Prompt
+> `{"success":false,"message":"No token provided","timestamp":"2026-06-14T10:01:39.202Z"} Me salta este error cuando en add-project entro al paso de seleccionar el panel y su configuración`
+
+### Affected Files
+- `server/src/routes/project.routes.ts`
+- `server/src/controllers/project.controller.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El wizard llama a `/projects/calculate` antes de crear el proyecto para obtener paneles recomendados y espaciado óptimo. Ese cálculo solo usa los datos enviados en el payload y no necesita identidad de usuario, por lo que exigir `verifyUserJwtToken` podía bloquear la UX si el token local no estaba disponible aunque el usuario siguiera en la pantalla. La creación real del proyecto permanece protegida, que es donde sí se persisten datos asociados al usuario.
+
+---
 ## June 7, 2026 - Fix seed-panels TypeScript imports and lint noise
 
 ### Topic
@@ -3948,3 +4080,116 @@ El usuario solicitó inspeccionar todos los TODOs del proyecto y crear una tabla
 
 ### Reasoning
 Se detectó durante la auditoría que varios TODOs podían resolverse mejor usando datos de las APIs ya integradas. El más relevante: `peakSunHours` usaba una fórmula empírica hardcoded, pero PVGIS ya devuelve `H(i)_y` (irradiación anual sobre plano inclinado) almacenado en `pvgisRef.yearlyPOAIrradiation` — `psh = yearlyPOAIrradiation / 365` sin ninguna llamada extra. Para `sunrise`/`sunset`, Open-Meteo tiene parámetros `daily=sunrise,sunset` que darían mayor precisión, pero se optó por la corrección matemática de longitud como solución proporcional al alcance de una rama "low". Los 5 TODOs triviales eran en su mayoría dead code y validaciones ausentes, ninguno requería decisión de negocio salvo los que se consultaron al usuario (#11, #12, #13 — todos con respuesta "borrar").
+
+---
+
+## June 6, 2026 - Rediseño del wizard de creación de proyectos solares
+
+### Topic
+Refactor UX del componente `add-project` para creación roof-only, sugerencia ENTSO-E de precio energético y cálculo óptimo consistente desde backend.
+
+### Summary of Prompt
+El usuario pidió examinar `add-project`, `project.controller.ts`, `project.service.ts` y el modelo de proyecto para mejorar la experiencia de creación: recolocar el precio energético, integrarlo con ENTSO-E como sugerencia editable, retirar agrivoltaica de esta versión, unificar los cálculos de configuración óptima y embellecer la página de review.
+
+### What Was Achieved
+- `add-project` pasa a un wizard de 5 pasos: proyecto, ubicación/área, precio energético, instalación y review.
+- Se oculta agrivoltaica del alta de proyecto: sin tipo de instalación, cultivos, altura mínima ni review agrivoltaica, manteniendo compatibilidad backend/modelo para datos existentes.
+- Se añadió `GET /api/projects/electricity-price?countryCode=ES` para sugerir precio ENTSO-E y se permite que el usuario lo sobrescriba antes de crear.
+- `ProjectCreateSchema` y el modelo cliente aceptan `country`, `countryCode`, `timezone`, `currency`, `price` y `azimuth` en el cálculo desde polígono.
+- `createProject` preserva el precio del usuario; solo consulta ENTSO-E cuando no hay precio en el payload.
+- El cálculo óptimo del wizard usa `/projects/calculate` como fuente única para paneles recomendados, separación de filas y producción anual estimada.
+- La review se rediseñó con tarjetas compactas y botones de edición por sección.
+- Se añadieron pruebas server para schema/precio/cálculo y una spec cliente para lógica del wizard.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Add Project Wizard UX And Calculation Plan
+> 
+> ## Summary
+> Refactor the add-project flow into a clearer roof-only wizard for this version, remove agrivoltaic UI/dependencies from the component, integrate ENTSO-E as a suggested electricity price before project creation, and make optimal configuration calculations come from one backend source of truth.
+> 
+> [...]"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/core/models/index.ts`
+- `client/src/app/core/services/project.service.ts`
+- `client/jest.config.js`
+- `client/package.json`
+- `client/package-lock.json`
+- `server/src/controllers/project.controller.ts`
+- `server/src/routes/project.routes.ts`
+- `server/src/schemas/project.schema.ts`
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/schemas/project.schema.test.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `server/src/controllers/user.controller.ts`
+
+### Reasoning
+El problema principal era de consistencia: el frontend calculaba spacing, máximos y producción con fórmulas locales mientras el backend ya tenía el cálculo físico más completo. Se eliminó esa duplicación en el alta y se guardó un baseline óptimo recibido del backend para distinguir `Optimal` vs `Custom`. El precio energético se separó en su propio paso porque afecta la interpretación económica, no la geometría del sitio. ENTSO-E se trata explícitamente como sugerencia porque el precio real de factura puede incluir peajes, impuestos o contratos que el mercado diario no representa. Durante la validación se detectó además que `country-reverse-geocoding` puede devolver códigos alpha-3 como `ESP`; se normalizó a alpha-2 para que ENTSO-E reciba `ES`.
+
+---
+
+## June 7, 2026 - Seguimiento de errores en runtime del wizard y gráficos
+
+### Topic
+Diagnóstico de error 400 en `GET /api/projects/electricity-price` y warning de accesibilidad de Highcharts.
+
+### Summary of Prompt
+El usuario reportó que al ejecutar la app veía `400 Bad Request` en `/api/projects/electricity-price?countryCode=ES` y pegó un warning de Highcharts sobre el módulo `accessibility.js`.
+
+### What Was Achieved
+- Se revisó que en el código actual la ruta `/projects/electricity-price` está definida antes de `/:id`, por lo que el 400 apunta a un backend viejo aún en ejecución que interpreta `electricity-price` como un ID de proyecto.
+- Se añadió el módulo oficial de accesibilidad de Highcharts en `ProductionChartsComponent`, eliminando el warning sin desactivar accesibilidad.
+- Se verificó con `npm run typecheck` en cliente.
+
+### Full Prompt
+> "I am running the project and I am seeing issues with some api calls:
+> http://127.0.0.1:1235/api/projects/electricity-price?countryCode=ES 400 (Bad Request)
+> [...]
+> and then this other:
+> (pasted text)"
+
+### Affected Files
+- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El 400 encaja con una instancia de backend que no ha cargado la nueva ruta: sin esa ruta, Express matchea `/electricity-price` como `/:id`, Mongoose intenta castear ese string como ObjectId y el middleware devuelve `Invalid ID format` con status 400. El warning de Highcharts sí era una mejora directa del frontend; importar `highcharts/modules/accessibility` es preferible a silenciarlo con `accessibility.enabled = false`.
+
+---
+
+## June 7, 2026 - Ruta de precio energético sin colisión y fallback frontend
+
+### Topic
+Corrección adicional del error `400 Bad Request` en la sugerencia de precio energético durante `add-project`.
+
+### Summary of Prompt
+El usuario seguía viendo `GET /api/projects/electricity-price?countryCode=ES 400 (Bad Request)` desde `fetchEnergyPriceSuggestion` al resolver la ubicación en el wizard.
+
+### What Was Achieved
+- Se añadió una ruta alias más explícita: `GET /api/projects/pricing/electricity`.
+- El cliente ahora usa `/projects/pricing/electricity` en vez de `/projects/electricity-price`, reduciendo riesgo de colisión con rutas dinámicas `/:id`.
+- `ProjectService.getElectricityPriceSuggestion()` captura errores HTTP y devuelve `{ price: null, currency: null, source: 'unavailable' }`, para que el wizard mantenga el precio editable aunque el backend viejo o ENTSO-E fallen.
+- Se añadieron tests del servicio Angular para endpoint correcto y fallback en error 400.
+- Se verificó con `npm run typecheck`, `npm test -- project.service.spec.ts --runInBand` y `npm run build` en server.
+
+### Full Prompt
+> "add-project.component.ts:512
+> GET http://127.0.0.1:1235/api/projects/electricity-price?countryCode=ES 400 (Bad Request)
+> fetchEnergyPriceSuggestion @ add-project.component.ts:512
+> [...]"
+
+### Affected Files
+- `client/src/app/core/services/project.service.ts`
+- `client/src/app/core/services/project.service.spec.ts`
+- `server/src/routes/project.routes.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Aunque el código actual tenía `/electricity-price` antes de `/:id`, una ruta más específica bajo `/pricing/electricity` evita ambigüedades y facilita distinguir endpoints auxiliares de recursos de proyecto. El fallback frontend es necesario porque ENTSO-E es una sugerencia, no un bloqueo de creación: si la sugerencia falla, el usuario debe poder seguir usando o editando el precio por defecto.

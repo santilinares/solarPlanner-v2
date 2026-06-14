@@ -21,8 +21,17 @@ export function zValidate(schema: ZodSchema, target: ValidationTarget = 'body') 
       // Validate the target property
       const validated = schema.parse(req[target]);
       
-      // Replace original data with validated/transformed data
-      req[target] = validated;
+      // Express 5 exposes req.query through an accessor, so direct assignment can throw.
+      if (target === 'query') {
+        Object.defineProperty(req, 'query', {
+          value: validated,
+          configurable: true,
+          enumerable: true,
+        });
+      } else {
+        // Replace original data with validated/transformed data
+        req[target] = validated;
+      }
       
       next();
     } catch (error) {
@@ -51,4 +60,3 @@ export const validateBody = (schema: ZodSchema) => zValidate(schema, 'body');
  * @param schema Zod schema
  */
 export const validateQuery = (schema: ZodSchema) => zValidate(schema, 'query');
-

@@ -42,8 +42,14 @@ export interface ProjectCreateRequest {
   description?: string;
   projectType: 'roof' | 'agrivoltaic';
   area: GeoPoint[];
+  country?: string;
+  countryCode?: string;
+  timezone?: string;
+  currency?: string;
+  price?: number;
   tilt: number;
   direction: string;
+  azimuth?: number;
   panelNumber: number;
   panelId?: string;
   rawSpacing?: number;
@@ -217,9 +223,14 @@ export interface ProjectResponse {
 export interface OptimalConfigResponse {
   recommendedPanels: number;
   estimatedCapacity: number; // kW
-  estimatedProduction: number; // kWh/year
+  estimatedProduction: number; // kWh/year midpoint of the preliminary range
+  estimatedProductionRange: {
+    low: number;
+    high: number;
+  };
+  productionEstimateMode: 'preliminary';
   coverage: number; // Percentage
-  surfaceArea: number; // m² — polygon area for client-side maxPanels recalc
+  surfaceArea: number; // m² — polygon area used by backend optimal configuration
   latitude: number; // centre latitude for client-side sun elevation calc
   recommendedRowSpacing: number; // m — shadow-based optimal row spacing
 }
@@ -228,6 +239,14 @@ export interface OptimalConfigFromPolygonRequest {
   area: GeoPoint[];
   panelId: string;
   tilt: number;
+  azimuth?: number;
+}
+
+export interface ElectricityPriceSuggestion {
+  price: number | null;
+  currency: string | null;
+  source: 'entsoe' | 'unavailable';
+  countryCode: string;
 }
 
 export interface ProjectAnalytics {
