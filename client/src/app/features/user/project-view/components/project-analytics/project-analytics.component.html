@@ -8,7 +8,7 @@
     <!-- System Performance card -->
     <div class="view-card">
       <div class="step-card-header">
-        <div class="step-card-icon capacity-icon"><i class="pi pi-chart-line"></i></div>
+        <div class="step-card-icon capacity-icon"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
           <h2>System Performance</h2>
           <p>Performance and value metrics based on PVGIS annual reference data.</p>
@@ -38,7 +38,7 @@
     <!-- Annual savings card -->
     <div class="view-card">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-today"><i class="pi pi-wallet"></i></div>
+        <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">payments</span></div>
         <div>
           <h2>Estimated Annual Gross Savings</h2>
           <p>PVGIS yearly production multiplied by the configured energy price.</p>
@@ -47,7 +47,7 @@
       <p-divider />
       @if (a.annualSavingsEur != null) {
         <div class="economic-value-content">
-          <div class="economic-icon"><i class="pi pi-dollar"></i></div>
+          <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
           <div class="economic-info">
             <span>Est. Annual Gross Value</span>
             <strong>{{ getCurrencySymbol(currency()) }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
@@ -74,7 +74,7 @@
   @if (a.annualSavingsPerYear) {
     <div class="view-card chart-card mt-4">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-forecast"><i class="pi pi-calendar-plus"></i></div>
+        <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
           <h2>25-Year Gross Savings Projection</h2>
           <p>Cumulative gross savings first, with annual savings, degradation, installation cost and break-even context.</p>

@@ -385,11 +385,11 @@
     color: var(--p-cyan-900);
     }
     .threedee-icon {
-    background: linear-gradient(135deg, var(--p-indigo-100), var(--p-indigo-400));
+    background: color-mix(in srgb, #6366f1 18%, transparent);
     color: var(--p-indigo-900);
     }
     .capacity-icon {
-    background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+    background: color-mix(in srgb, #f59e0b 18%, transparent);
     color: var(--p-amber-900);
     }
 
@@ -793,7 +793,7 @@
 
     /* ─── Sun Path ─── */
     .sun-path-icon {
-    background: linear-gradient(135deg, var(--p-sky-100), var(--p-blue-300));
+    background: color-mix(in srgb, #0ea5e9 16%, transparent);
     color: var(--p-blue-800);
     }
     .sun-path-card {
