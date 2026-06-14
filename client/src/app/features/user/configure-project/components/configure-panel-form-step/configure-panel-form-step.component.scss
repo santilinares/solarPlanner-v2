@@ -44,7 +44,7 @@
   flex-shrink: 0;
 }
 .panel-icon {
-  background: linear-gradient(135deg, var(--p-amber-100), var(--p-yellow-400));
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
   color: var(--p-amber-900);
 }
 .capacity-icon {
@@ -65,7 +65,7 @@
 .mr-2 { margin-right: 0.5rem; }
 
 .material-symbols-outlined {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   line-height: 1;
   vertical-align: middle;
 }

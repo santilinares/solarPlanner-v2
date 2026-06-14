@@ -43,8 +43,12 @@
   font-size: 1.3rem;
   flex-shrink: 0;
 }
+.material-symbols-outlined {
+  font-size: 1.35rem;
+  line-height: 1;
+}
 .location-icon {
-  background: linear-gradient(135deg, var(--p-sky-100), var(--p-cyan-400));
+  background: color-mix(in srgb, #0ea5e9 16%, transparent);
   color: var(--p-cyan-900);
 }
 
