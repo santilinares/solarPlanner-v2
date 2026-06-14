@@ -4,6 +4,42 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## June 14, 2026 - Paginación validada para carga de paneles
+
+### Topic
+Corrección del `Validation error` al entrar en `add-project` por `GET /api/panels?page=1&limit=200`.
+
+### Summary of Prompt
+El usuario confirmó en DevTools que el error ocurría al cargar la página de alta de proyecto y que la request fallida era `GET /api/panels?page=1&limit=200`, con token válido y respuesta 400 de validación.
+
+### What Was Achieved
+- Se añadió soporte backend para `page` y `limit` en `PanelQuerySchema`.
+- `PanelService.listPanels()` aplica `skip` y `limit` en la query de Mongoose y conserva `total` como conteo total filtrado.
+- Se mantuvieron los filtros existentes de paneles y el caso de búsqueda por `id`.
+- Se añadieron tests de schema para paginación válida e inválida.
+- Se añadieron tests de servicio para paginación, `total` y conservación del caso por `id`.
+- Se añadió un test del wizard para fijar que `add-project` carga `getAllPanels(1, 200)` al abrir.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Fix Panel Loading Validation Error
+> [...]
+> The current `Validation error` is caused by `GET /api/panels?page=1&limit=200`."
+
+### Affected Files
+- `server/src/schemas/panel.schema.ts`
+- `server/src/services/panel.service.ts`
+- `server/src/controllers/panel.controller.ts`
+- `server/src/__tests__/schemas/panel.schema.test.ts`
+- `server/src/__tests__/services/panel.service.test.ts`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El frontend ya tenía un contrato implícito de paginación en `PanelService.getAllPanels(page, limit)`, usado por `add-project` y otras pantallas. El backend, sin embargo, validaba la query de `/api/panels` sin aceptar esos parámetros, por lo que la request se rechazaba antes de llegar al controller. Implementar la paginación en el backend respeta el contrato existente del cliente y evita una solución local que solo ocultaría el problema en el wizard.
+
+---
+
 ## June 14, 2026 - Helpers públicos para el wizard de creación
 
 ### Topic

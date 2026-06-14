@@ -16,6 +16,9 @@ describe('AddProjectComponent', () => {
     createProject: jest.Mock;
     getElectricityPriceSuggestion: jest.Mock;
   };
+  let panelService: {
+    getAllPanels: jest.Mock;
+  };
 
   beforeEach(async () => {
     projectService = {
@@ -36,6 +39,9 @@ describe('AddProjectComponent', () => {
         countryCode: 'ES',
       })),
     };
+    panelService = {
+      getAllPanels: jest.fn().mockReturnValue(of({ panels: [] })),
+    };
 
     await TestBed.configureTestingModule({
       imports: [AddProjectComponent],
@@ -43,7 +49,7 @@ describe('AddProjectComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ProjectService, useValue: projectService },
-        { provide: PanelService, useValue: { getAllPanels: jest.fn().mockReturnValue(of({ panels: [] })) } },
+        { provide: PanelService, useValue: panelService },
         { provide: Router, useValue: { events: new Subject(), navigate: jest.fn(), navigateByUrl: jest.fn() } },
       ],
     })
@@ -53,6 +59,10 @@ describe('AddProjectComponent', () => {
     fixture = TestBed.createComponent(AddProjectComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it('loads a broad panel list when the wizard opens', () => {
+    expect(panelService.getAllPanels).toHaveBeenCalledWith(1, 200);
   });
 
   it('uses roof-only creation steps for this version', () => {

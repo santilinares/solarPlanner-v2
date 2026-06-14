@@ -92,6 +92,8 @@ export type PanelUpdateInput = z.infer<typeof PanelUpdateSchema>;
  * - owner: Filter by user ID (for personal panels)
  * - technology: Filter by panel technology
  * - search: Search by panel name
+ * - page: Pagination page number (default: 1)
+ * - limit: Items per page (default: 20, max: 200)
  */
 export const PanelQuerySchema = z.object({
   id: z.string().optional(), // Single panel ID shortcut
@@ -99,6 +101,8 @@ export const PanelQuerySchema = z.object({
   owner: z.string().optional(), // User ID
   technology: PanelTechnologyEnum.optional(),
   search: z.string().optional(), // Search by brand/model
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(200).default(20),
 });
 
 /** Type inferred from PanelQuerySchema - used for querying/filtering panels */
