@@ -157,39 +157,29 @@ export class ProjectViewComponent implements OnInit {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
       xAxis: {
-        categories: nextProd.map((p) =>
-          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
-        ),
+        categories: nextProd.map((p) => this.formatProductionSlotLabel(p.dateTime)),
         crosshair: true,
+        labels: { rotation: -35, style: { fontSize: '0.72rem' } },
       },
-      yAxis: { title: { text: 'kWh/day' }, min: 0 },
-      tooltip: { valueDecimals: 1, valueSuffix: ' kWh/day' },
-      series: [{ type: 'column', name: 'Forecast', data: nextProd.map((p) => p.pv), color: CHART_COLORS.forecast, borderRadius: 4 }],
+      yAxis: { title: { text: 'kWh/interval' }, min: 0 },
+      tooltip: { valueDecimals: 2, valueSuffix: ' kWh/interval' },
+      series: [{ type: 'column', name: 'Forecast interval', data: nextProd.map((p) => p.pv), color: CHART_COLORS.forecast, borderRadius: 4 }],
     };
   });
 
   readonly previousProdChartOptions = computed((): Highcharts.Options => {
     const previousProd = this.projectData()?.previousProd ?? [];
-    const useTrendLine = previousProd.length > 10;
     return {
       ...BASE_CHART_OPTIONS,
-      chart: { ...BASE_CHART_OPTIONS.chart, type: useTrendLine ? 'spline' : 'column', reflow: true },
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
       xAxis: {
-        categories: previousProd.map((p) =>
-          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
-        ),
+        categories: previousProd.map((p) => this.formatProductionSlotLabel(p.dateTime)),
         crosshair: true,
+        labels: { rotation: -35, style: { fontSize: '0.72rem' } },
       },
-      yAxis: { title: { text: 'kWh/day' }, min: 0 },
-      tooltip: { valueDecimals: 1, valueSuffix: ' kWh/day' },
-      plotOptions: {
-        spline: { marker: { enabled: false }, lineWidth: 3 },
-      },
-      series: [
-        useTrendLine
-          ? { type: 'spline', name: 'Recent trend', data: previousProd.map((p) => p.pv), color: CHART_COLORS.comparison }
-          : { type: 'column', name: 'Recent production', data: previousProd.map((p) => p.pv), color: CHART_COLORS.comparison, borderRadius: 4 },
-      ],
+      yAxis: { title: { text: 'kWh/interval' }, min: 0 },
+      tooltip: { valueDecimals: 2, valueSuffix: ' kWh/interval' },
+      series: [{ type: 'column', name: 'Recent interval', data: previousProd.map((p) => p.pv), color: CHART_COLORS.comparison, borderRadius: 4 }],
     };
   });
 
@@ -317,6 +307,17 @@ export class ProjectViewComponent implements OnInit {
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+
+  private formatProductionSlotLabel(dateTime: string): string {
+    const d = new Date(dateTime);
+    return d.toLocaleString('en', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   getCurrencySymbol(currency: string): string {
