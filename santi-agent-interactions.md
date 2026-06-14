@@ -4,6 +4,37 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## June 14, 2026 - Validación de query compatible con Express 5
+
+### Topic
+Corrección persistente del `Validation error` en rutas con `validateQuery()`.
+
+### Summary of Prompt
+El usuario indicó que el mismo error seguía apareciendo en `GET /api/panels?page=1&limit=200` incluso después de aceptar `page` y `limit` en el schema de paneles.
+
+### What Was Achieved
+- Se actualizó el middleware compartido de validación para reemplazar `req.query` con `Object.defineProperty()` cuando valida queries.
+- Se mantuvo la asignación directa para `body` y `params`.
+- Se preservó el comportamiento de errores Zod con respuesta `Validation failed` y detalles por campo.
+- Se añadieron tests del middleware que reproducen una `req.query` estilo Express 5 no asignable y validan el error de Zod.
+- Se verificaron de nuevo los tests de schema y servicio de paneles.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Fix Query Validation Middleware For Express 5
+> [...]
+> The remaining `Validation error` on `GET /api/panels?page=1&limit=200` is likely not caused by `PanelQuerySchema` anymore."
+
+### Affected Files
+- `server/src/middleware/validation.middleware.ts`
+- `server/src/__tests__/middleware/validation.middleware.test.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El mensaje `Validation error`, distinto de `Validation failed`, señalaba que el error no venía de Zod sino de una excepción posterior. En Express 5, `req.query` puede estar expuesto mediante accessor y no admitir asignación directa. Definir la propiedad de forma explícita permite conservar los valores ya parseados/coercionados para los controllers sin romper las rutas que validan query params.
+
+---
+
 ## June 14, 2026 - Paginación validada para carga de paneles
 
 ### Topic
