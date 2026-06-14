@@ -319,6 +319,12 @@
     gap: 1.5rem;
     padding: 1.5rem 0;
     }
+    .design-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+    }
 
     /* ─── Step Cards ─── */
     .step-card {
@@ -785,7 +791,8 @@
     color: var(--p-blue-800);
     }
     .sun-path-card {
-    margin-top: 1.5rem;
+    grid-column: 1 / -1;
+    margin-top: 0;
     }
     .sun-path-skeleton {
     display: flex;
@@ -850,6 +857,9 @@
     @media (max-width: 1100px) {
     .setup-grid {
         grid-template-columns: 1fr;
+    }
+    .sun-path-card {
+        grid-column: auto;
     }
     .metadata-strip {
         gap: 0.5rem;
