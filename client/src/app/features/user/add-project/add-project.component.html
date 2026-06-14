@@ -408,13 +408,18 @@
                   <strong>{{ config.recommendedRowSpacing | number: '1.1-2' }} m</strong>
                 </div>
                 <div>
-                  <span>Estimated Production</span>
-                  <strong>{{ config.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
+                  <span>Preliminary Range</span>
+                  <strong>{{ formatProductionRange(config) }}</strong>
                 </div>
                 <div>
                   <span>Area Coverage</span>
                   <strong>{{ config.coverage | number: '1.0-1' }}%</strong>
                 </div>
+              </div>
+
+              <div class="preliminary-note">
+                <span class="material-symbols-outlined">info</span>
+                <span>This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.</span>
               </div>
 
               @if (!isUsingOptimalConfig()) {
@@ -504,11 +509,12 @@
 
           <div class="output-card">
             <div>
-              <span class="eyebrow">Expected output</span>
-              <strong>{{ optimalConfig()?.estimatedProduction ?? 0 | number: '1.0-0' }} kWh/year</strong>
+              <span class="eyebrow">Preliminary output range</span>
+              <strong>{{ formatProductionRange(optimalConfig()) }}</strong>
+              <small>This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.</small>
             </div>
             <div>
-              <span class="eyebrow">Estimated annual savings</span>
+              <span class="eyebrow">Preliminary annual savings</span>
               <strong>{{ annualSavingsEstimate() != null ? (annualSavingsEstimate() | number: '1.0-0') + ' ' + currency() : '—' }}</strong>
             </div>
             <div>

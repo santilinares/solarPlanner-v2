@@ -7,6 +7,23 @@ import { Subject, of } from 'rxjs';
 import { AddProjectComponent } from './add-project.component';
 import { PanelService } from '@core/services/panel.service';
 import { ProjectService } from '@core/services/project.service';
+import { OptimalConfigResponse } from '@core/models';
+
+const optimalConfigStub = (overrides: Partial<OptimalConfigResponse> = {}): OptimalConfigResponse => ({
+  recommendedPanels: 12,
+  estimatedCapacity: 4.8,
+  estimatedProduction: 6200,
+  estimatedProductionRange: {
+    low: 5270,
+    high: 7130,
+  },
+  productionEstimateMode: 'preliminary',
+  coverage: 42,
+  surfaceArea: 120,
+  latitude: 40,
+  recommendedRowSpacing: 1.7,
+  ...overrides,
+});
 
 describe('AddProjectComponent', () => {
   let fixture: ComponentFixture<AddProjectComponent>;
@@ -22,15 +39,7 @@ describe('AddProjectComponent', () => {
 
   beforeEach(async () => {
     projectService = {
-      calculateOptimalConfig: jest.fn().mockReturnValue(of({
-        recommendedPanels: 12,
-        estimatedCapacity: 4.8,
-        estimatedProduction: 6200,
-        coverage: 42,
-        surfaceArea: 120,
-        latitude: 40,
-        recommendedRowSpacing: 1.7,
-      })),
+      calculateOptimalConfig: jest.fn().mockReturnValue(of(optimalConfigStub())),
       createProject: jest.fn().mockReturnValue(of({})),
       getElectricityPriceSuggestion: jest.fn().mockReturnValue(of({
         price: 0.1845,
@@ -87,15 +96,7 @@ describe('AddProjectComponent', () => {
   });
 
   it('marks configuration as custom when panel count differs from optimal baseline', () => {
-    component.optimalConfig.set({
-      recommendedPanels: 12,
-      estimatedCapacity: 4.8,
-      estimatedProduction: 6200,
-      coverage: 42,
-      surfaceArea: 120,
-      latitude: 40,
-      recommendedRowSpacing: 1.7,
-    });
+    component.optimalConfig.set(optimalConfigStub());
     component.optimalBaseline.set({
       panelCount: 12,
       rowSpacing: 1.7,
@@ -111,15 +112,7 @@ describe('AddProjectComponent', () => {
     component.optimalBaseline.set({
       panelCount: 12,
       rowSpacing: 1.7,
-      config: {
-        recommendedPanels: 12,
-        estimatedCapacity: 4.8,
-        estimatedProduction: 6200,
-        coverage: 42,
-        surfaceArea: 120,
-        latitude: 40,
-        recommendedRowSpacing: 1.7,
-      },
+      config: optimalConfigStub(),
     });
     component.panelCount.set(9);
     component.rowSpacing.set(1.2);
@@ -129,6 +122,10 @@ describe('AddProjectComponent', () => {
     expect(component.panelCount()).toBe(12);
     expect(component.rowSpacing()).toBe(1.7);
     expect(component.isUsingOptimalConfig()).toBe(true);
+  });
+
+  it('formats the preliminary production range from the backend response', () => {
+    expect(component.formatProductionRange(optimalConfigStub()).replace(/,/g, '')).toBe('5270-7130 kWh/yr');
   });
 
   it('submits the edited energy price in a roof project payload', () => {

@@ -223,7 +223,12 @@ export interface ProjectResponse {
 export interface OptimalConfigResponse {
   recommendedPanels: number;
   estimatedCapacity: number; // kW
-  estimatedProduction: number; // kWh/year
+  estimatedProduction: number; // kWh/year midpoint of the preliminary range
+  estimatedProductionRange: {
+    low: number;
+    high: number;
+  };
+  productionEstimateMode: 'preliminary';
   coverage: number; // Percentage
   surfaceArea: number; // m² — polygon area used by backend optimal configuration
   latitude: number; // centre latitude for client-side sun elevation calc

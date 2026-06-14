@@ -455,6 +455,13 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     return `${this.currency()} ${value.toFixed(4)}/kWh`;
   }
 
+  formatProductionRange(config: OptimalConfigResponse | null): string {
+    if (!config) return '—';
+    const range = config.estimatedProductionRange;
+    if (!range) return `${Math.round(config.estimatedProduction).toLocaleString()} kWh/yr`;
+    return `${Math.round(range.low).toLocaleString()}-${Math.round(range.high).toLocaleString()} kWh/yr`;
+  }
+
   directionLabel(value: string): string {
     return this.directionOptions.find((option) => option.value === value)?.label ?? value;
   }

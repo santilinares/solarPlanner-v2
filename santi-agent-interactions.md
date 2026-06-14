@@ -4,6 +4,44 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## June 14, 2026 - Rango preliminar de producción en el wizard
+
+### Topic
+Mostrar una estimación parcial y honesta de producción en `add-project` sin llamar al modelo completo durante el wizard.
+
+### Summary of Prompt
+El usuario detectó que el wizard podía aumentar la producción estimada al cambiar orientación o tilt solo porque cabían más paneles, y pidió mostrar información parcial mediante un rango, aclarando que no usa el modelo completo de producción de la app.
+
+### What Was Achieved
+- Se extendió `OptimalConfigResponse` con `estimatedProductionRange` y `productionEstimateMode: 'preliminary'`.
+- `/projects/calculate` mantiene el cálculo ligero, sin PVGIS/Open-Meteo, y ahora aplica modificadores aproximados de orientación y tilt al rendimiento preliminar.
+- `estimatedProduction` se conserva como punto medio del rango para compatibilidad.
+- El wizard muestra “Preliminary Production Range” y un aviso explícito de que la estimación no usa el modelo completo.
+- El ahorro anual se etiqueta como preliminar y sigue usando el punto medio.
+- Se normalizó la altura/alineación de `p-select` y `p-inputNumber` en el paso de instalación.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Add Project Wizard: Preliminary Production Range And Honest Labeling
+> [...]
+> Add label/copy near the range: “This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.”"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El modelo completo ya considera tilt y azimuth mediante Open-Meteo y PVGIS al crear el proyecto, pero el cálculo del wizard era un estimado ligero basado en capacidad y horas solares simplificadas. Mostrar un número único como producción anual podía ser engañoso. El rango preliminar mantiene la UX rápida, reduce falsas certezas y deja claro que la vista del proyecto creado es la fuente autoritativa.
+
+---
+
 ## June 14, 2026 - Validación de query compatible con Express 5
 
 ### Topic

@@ -792,18 +792,28 @@ export class ProjectService {
     const panelWatts = wattPeak ?? 300;
     const estimatedCapacity = (recommendedPanels * panelWatts) / 1000;
 
-    // Use real irradiation from PVGIS (H(i)_y ÷ 365) when the project has it stored;
-    // fall back to the empirical formula for standalone estimates without a project context.
+    // Lightweight preliminary yield only. The full app production model runs after
+    // project creation using weather, irradiance, panel and system-loss inputs.
     let peakSunHours: number;
     if (projectId) {
       const proj = await ProjectModel.findById(projectId).select('pvgisRef').lean();
       const poa = proj?.pvgisRef?.yearlyPOAIrradiation;
       peakSunHours = poa ? poa / 365 : 5.5 - Math.abs(latitude) * 0.02;
     } else {
-      peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+      const basePeakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+      const azimuthDeviation = Math.min(Math.abs((azimuth ?? 180) - 180), 180);
+      const orientationFactor = Math.max(0.55, 1 - (azimuthDeviation / 180) * 0.35);
+      const idealTilt = Math.min(45, Math.max(10, Math.abs(latitude) * 0.76));
+      const tiltDeviation = Math.abs(tilt - idealTilt);
+      const tiltFactor = Math.max(0.7, 1 - (tiltDeviation / 90) * 0.3);
+      peakSunHours = basePeakSunHours * orientationFactor * tiltFactor;
     }
     const systemEfficiency = 0.85;
     const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency;
+    const estimatedProductionRange = {
+      low: Math.round(estimatedProduction * 0.85),
+      high: Math.round(estimatedProduction * 1.15),
+    };
 
     const panelArea = W * H;
     const coverage = ((recommendedPanels * panelArea) / surfaceArea) * 100;
@@ -812,6 +822,8 @@ export class ProjectService {
       recommendedPanels,
       estimatedCapacity,
       estimatedProduction,
+      estimatedProductionRange,
+      productionEstimateMode: 'preliminary',
       coverage: Math.min(coverage, 100),
       surfaceArea,
       latitude,

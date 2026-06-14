@@ -679,6 +679,9 @@ describe('ProjectService', () => {
       expect(result.recommendedPanels).toBeGreaterThan(0);
       expect(result.estimatedCapacity).toBeGreaterThan(0);
       expect(result.estimatedProduction).toBeGreaterThan(0);
+      expect(result.estimatedProductionRange.low).toBeLessThan(result.estimatedProduction);
+      expect(result.estimatedProductionRange.high).toBeGreaterThan(result.estimatedProduction);
+      expect(result.productionEstimateMode).toBe('preliminary');
       expect(result.coverage).toBeGreaterThan(0);
       expect(result.coverage).toBeLessThanOrEqual(100);
       expect(result.recommendedRowSpacing).toBeGreaterThanOrEqual(0.6);
@@ -728,6 +731,13 @@ describe('ProjectService', () => {
       const withoutAzimuth = await service.calculateOptimalConfig(baseInput);
 
       expect(withAzimuth.recommendedRowSpacing).toBe(withoutAzimuth.recommendedRowSpacing);
+    });
+
+    it('reduces preliminary production for poor orientation and tilt', async () => {
+      const south = await service.calculateOptimalConfig({ ...baseInput, tilt: 30, azimuth: 180 });
+      const poor = await service.calculateOptimalConfig({ ...baseInput, tilt: 80, azimuth: 0 });
+
+      expect(poor.estimatedProduction).toBeLessThan(south.estimatedProduction);
     });
   });
 
