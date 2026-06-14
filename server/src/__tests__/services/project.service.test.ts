@@ -22,6 +22,7 @@ const {
   mockComputeTodayAndForecast,
   mockFetchAnnualProduction,
   mockComputeTotalSystemLossPct,
+  mockFetchDailySunlight,
 } = vi.hoisted(() => ({
   mockProjectCreate: vi.fn(),
   mockProjectFindById: vi.fn(),
@@ -39,6 +40,7 @@ const {
   mockComputeTodayAndForecast: vi.fn(),
   mockFetchAnnualProduction: vi.fn(),
   mockComputeTotalSystemLossPct: vi.fn(),
+  mockFetchDailySunlight: vi.fn(),
 }));
 
 vi.mock('../../models/project.model', () => ({
@@ -79,6 +81,10 @@ vi.mock('../../services/production.service', () => ({
 
 vi.mock('../../services/pvgis.service', () => ({
   pvgisService: { fetchAnnualProduction: mockFetchAnnualProduction },
+}));
+
+vi.mock('../../services/openmeteo.service', () => ({
+  openMeteoService: { fetchDailySunlight: mockFetchDailySunlight },
 }));
 
 vi.mock('mongoose', async (importOriginal) => {
@@ -222,6 +228,14 @@ describe('ProjectService', () => {
       yearlyPOAIrradiation: 1700,
     });
     mockComputeTotalSystemLossPct.mockReturnValue(10);
+    mockFetchDailySunlight.mockResolvedValue({
+      date: '2026-06-14',
+      timezone: 'Europe/Madrid',
+      sunrise: '2026-06-14T06:43',
+      sunset: '2026-06-14T21:47',
+      daylightHours: 15.1,
+      sunshineHours: 12.5,
+    });
   });
 
   // ---------- createProject ----------
@@ -743,7 +757,13 @@ describe('ProjectService', () => {
           yearlyPOAIrradiation: 1700,
         },
       }));
-      mockProjectFindById.mockReturnValue({ populate: populateMock });
+      const leanMock = vi.fn().mockResolvedValue({
+        pvgisRef: { yearlyPOAIrradiation: 1700 },
+      });
+      const selectMock = vi.fn().mockReturnValue({ lean: leanMock });
+      mockProjectFindById
+        .mockReturnValueOnce({ populate: populateMock })
+        .mockReturnValueOnce({ select: selectMock });
 
       const result = await service.previewProjectConfig(
         PROJECT_ID,
@@ -794,6 +814,14 @@ describe('ProjectService', () => {
       expect(result.winterSolstice).toBeDefined();
       expect(result.equinox).toBeDefined();
       expect(result.summerSolstice.daylightHours).toBeGreaterThan(result.winterSolstice.daylightHours);
+      expect(result.longitude).toBe(-3.7);
+      expect(result.timezone).toBe('Europe/Madrid');
+      expect(result.todaySunlight).toMatchObject({
+        sunrise: '2026-06-14T06:43',
+        sunset: '2026-06-14T21:47',
+        source: 'open-meteo',
+      });
+      expect(mockFetchDailySunlight).toHaveBeenCalledWith(40.4, -3.7, 'Europe/Madrid');
     });
 
     it('allows admin to view sun path for any project', async () => {
@@ -804,6 +832,36 @@ describe('ProjectService', () => {
       await expect(
         service.getSunPath(PROJECT_ID, { userId: 'admin-id', role: 'admin' })
       ).resolves.toBeDefined();
+    });
+
+    it('returns seasonal sun path data when Open-Meteo daily sunlight fails', async () => {
+      mockProjectFindById.mockResolvedValue(makeMockProject());
+      mockFetchDailySunlight.mockRejectedValueOnce(new Error('Open-Meteo unavailable'));
+
+      const result = await service.getSunPath(PROJECT_ID, { userId: USER_ID, role: 'user' });
+
+      expect(result.summerSolstice).toBeDefined();
+      expect(result.todaySunlight).toBeNull();
+    });
+
+    it('uses geo-tz timezone when project timezone is missing', async () => {
+      mockProjectFindById.mockResolvedValue(makeMockProject({ timezone: undefined }));
+
+      const result = await service.getSunPath(PROJECT_ID, { userId: USER_ID, role: 'user' });
+
+      expect(result.timezone).toBe('Europe/Madrid');
+      expect(mockFetchDailySunlight).toHaveBeenCalledWith(40.4, -3.7, 'Europe/Madrid');
+    });
+
+    it('falls back to Open-Meteo auto timezone when project and geo-tz timezone are missing', async () => {
+      const { find } = await import('geo-tz');
+      vi.mocked(find).mockReturnValueOnce([]);
+      mockProjectFindById.mockResolvedValue(makeMockProject({ timezone: undefined }));
+
+      const result = await service.getSunPath(PROJECT_ID, { userId: USER_ID, role: 'user' });
+
+      expect(result.timezone).toBe('auto');
+      expect(mockFetchDailySunlight).toHaveBeenCalledWith(40.4, -3.7, 'auto');
     });
 
     it('throws when project is not found', async () => {

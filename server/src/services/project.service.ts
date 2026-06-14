@@ -10,6 +10,7 @@ import { emailService } from './email.service';
 import { productionService, computeTotalSystemLossPct, ProjectProductionParams, TodayAndForecastData } from './production.service';
 import { pvgisService, PvgisAnnualResult } from './pvgis.service';
 import { entsoeService } from './entsoe.service';
+import { openMeteoService } from './openmeteo.service';
 import {
   ProjectCreateInput,
   ProjectQueryInput,
@@ -42,16 +43,29 @@ import { CapexSegment } from '../data/capex-benchmarks-eu';
 
 interface SunPathData {
   latitude: number;
+  longitude: number;
+  timezone: string;
   summerSolstice: SunPosition;
   winterSolstice: SunPosition;
   equinox: SunPosition;
+  todaySunlight: TodaySunlight | null;
 }
 
 interface SunPosition {
   noonAltitude: number;
   daylightHours: number;
-  sunrise: number;
-  sunset: number;
+  sunrise?: number;
+  sunset?: number;
+}
+
+interface TodaySunlight {
+  date: string;
+  timezone: string;
+  sunrise: string;
+  sunset: string;
+  daylightHours: number;
+  sunshineHours: number | null;
+  source: 'open-meteo';
 }
 
 interface PlanData {
@@ -1065,19 +1079,40 @@ export class ProjectService {
     }
 
     const geo = calculateGeospatialFields(project.area);
-    if (!geo.lat || !geo.lon) throw new Error('Project has no defined area polygon');
+    if (geo.lat == null || geo.lon == null) throw new Error('Project has no defined area polygon');
 
     const latitude = geo.lat;
     const longitude = geo.lon;
+    const timezone = this.resolveProjectTimezone(project, latitude, longitude);
+    const todaySunlight = await this.fetchTodaySunlight(latitude, longitude, timezone);
+
     return {
       latitude,
-      summerSolstice: this.calculateSunPosition(latitude, longitude, 23.5),
-      winterSolstice: this.calculateSunPosition(latitude, longitude, -23.5),
-      equinox: this.calculateSunPosition(latitude, longitude, 0),
+      longitude,
+      timezone,
+      summerSolstice: this.calculateSunPosition(latitude, 23.5),
+      winterSolstice: this.calculateSunPosition(latitude, -23.5),
+      equinox: this.calculateSunPosition(latitude, 0),
+      todaySunlight,
     };
   }
 
-  private calculateSunPosition(latitude: number, longitude: number, declination: number) {
+  private resolveProjectTimezone(project: HydratedDocument<IProject> | IProject, latitude: number, longitude: number): string {
+    if (project.timezone) return project.timezone;
+    return find(latitude, longitude)[0] ?? 'auto';
+  }
+
+  private async fetchTodaySunlight(latitude: number, longitude: number, timezone: string): Promise<TodaySunlight | null> {
+    try {
+      const sunlight = await openMeteoService.fetchDailySunlight(latitude, longitude, timezone);
+      return { ...sunlight, source: 'open-meteo' };
+    } catch (error) {
+      console.warn('Open-Meteo daily sunlight unavailable:', error);
+      return null;
+    }
+  }
+
+  private calculateSunPosition(latitude: number, declination: number) {
     const latRad = (latitude * Math.PI) / 180;
     const decRad = (declination * Math.PI) / 180;
 
@@ -1087,13 +1122,9 @@ export class ProjectService {
     const hourAngle = Math.acos(Math.max(-1, Math.min(1, cosHourAngle)));
     const daylightHours = (2 * hourAngle * 180) / Math.PI / 15;
 
-    const solarNoon = 12 - longitude / 15;
-
     return {
       noonAltitude: Math.max(0, noonAltitude),
       daylightHours,
-      sunrise: solarNoon - daylightHours / 2,
-      sunset: solarNoon + daylightHours / 2,
     };
   }
 

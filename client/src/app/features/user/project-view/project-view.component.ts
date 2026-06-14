@@ -302,11 +302,8 @@ export class ProjectViewComponent implements OnInit {
     });
   }
 
-  formatDecimalHours(h: number): string {
-    const totalMinutes = Math.round(h * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  formatClockTime(value: string): string {
+    return value.includes('T') ? value.slice(11, 16) : value;
   }
 
   private formatProductionSlotLabel(dateTime: string): string {

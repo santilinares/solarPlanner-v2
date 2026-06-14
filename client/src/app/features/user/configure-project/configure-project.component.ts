@@ -476,7 +476,7 @@ export class ConfigureProjectComponent implements OnInit {
       xAxis: { categories: ['Summer', 'Equinox', 'Winter'], crosshair: true },
       yAxis: [
         { title: { text: 'Noon altitude °' }, min: 0 },
-        { title: { text: 'Daylight hours' }, opposite: true, min: 0 },
+        { title: { text: 'Approx. daylight hours' }, opposite: true, min: 0 },
       ],
       tooltip: { shared: true },
       legend: { enabled: true },
@@ -490,7 +490,7 @@ export class ConfigureProjectComponent implements OnInit {
         },
         {
           type: 'spline',
-          name: 'Daylight',
+          name: 'Approx. daylight',
           data: [sp.summerSolstice.daylightHours, sp.equinox.daylightHours, sp.winterSolstice.daylightHours],
           yAxis: 1,
           color: CHART_COLORS.forecast,
@@ -653,11 +653,8 @@ export class ConfigureProjectComponent implements OnInit {
     });
   }
 
-  formatDecimalHours(h: number): string {
-    const totalMinutes = Math.round(h * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  formatClockTime(value: string): string {
+    return value.includes('T') ? value.slice(11, 16) : value;
   }
 
   // ─── Polygon Change ───

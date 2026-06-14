@@ -266,7 +266,7 @@
                 </div>
                 <div>
                   <h2>Sun Path</h2>
-                  <p>Solar position data for this location across the year.</p>
+                  <p>Seasonal solar geometry and today’s clock-based sunlight data.</p>
                 </div>
               </div>
 
@@ -302,23 +302,46 @@
                     <span>{{ sp.winterSolstice.noonAltitude | number: '1.1-1' }}°</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Daylight hours</span>
+                    <span class="row-label">Approx. daylight duration</span>
                     <span>{{ sp.summerSolstice.daylightHours | number: '1.1-1' }} h</span>
                     <span>{{ sp.equinox.daylightHours | number: '1.1-1' }} h</span>
                     <span>{{ sp.winterSolstice.daylightHours | number: '1.1-1' }} h</span>
                   </div>
-                  <div class="sun-path-row">
-                    <span class="row-label">Sunrise</span>
-                    <span>{{ formatDecimalHours(sp.summerSolstice.sunrise) }}</span>
-                    <span>{{ formatDecimalHours(sp.equinox.sunrise) }}</span>
-                    <span>{{ formatDecimalHours(sp.winterSolstice.sunrise) }}</span>
+                </div>
+                <div class="today-sunlight-panel">
+                  <div class="today-sunlight-header">
+                    <span class="material-symbols-outlined">wb_twilight</span>
+                    <div>
+                      <h3>Today’s Sunlight</h3>
+                      <p>Clock times from Open-Meteo for the project timezone.</p>
+                    </div>
                   </div>
-                  <div class="sun-path-row">
-                    <span class="row-label">Sunset</span>
-                    <span>{{ formatDecimalHours(sp.summerSolstice.sunset) }}</span>
-                    <span>{{ formatDecimalHours(sp.equinox.sunset) }}</span>
-                    <span>{{ formatDecimalHours(sp.winterSolstice.sunset) }}</span>
-                  </div>
+                  @if (sp.todaySunlight; as sunlight) {
+                    <div class="today-sunlight-grid">
+                      <div>
+                        <span>Sunrise</span>
+                        <strong>{{ formatClockTime(sunlight.sunrise) }}</strong>
+                      </div>
+                      <div>
+                        <span>Sunset</span>
+                        <strong>{{ formatClockTime(sunlight.sunset) }}</strong>
+                      </div>
+                      <div>
+                        <span>Daylight</span>
+                        <strong>{{ sunlight.daylightHours | number: '1.1-1' }} h</strong>
+                      </div>
+                      <div>
+                        <span>Sunshine duration</span>
+                        <strong>{{ sunlight.sunshineHours != null ? (sunlight.sunshineHours | number: '1.1-1') + ' h' : '—' }}</strong>
+                      </div>
+                    </div>
+                    <small class="today-sunlight-source">{{ sunlight.date }} · {{ sunlight.timezone }} · {{ sunlight.source }}</small>
+                  } @else {
+                    <div class="sun-path-warning">
+                      <i class="pi pi-info-circle"></i>
+                      <span>Today’s sunlight data unavailable.</span>
+                    </div>
+                  }
                 </div>
               } @else if (mapLat() == null || mapLng() == null) {
                 <div class="sun-path-warning">

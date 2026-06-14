@@ -103,8 +103,18 @@ export interface Panel {
 export interface SunPosition {
   noonAltitude: number;
   daylightHours: number;
-  sunrise: number;
-  sunset: number;
+  sunrise?: number;
+  sunset?: number;
+}
+
+export interface TodaySunlight {
+  date: string;
+  timezone: string;
+  sunrise: string;
+  sunset: string;
+  daylightHours: number;
+  sunshineHours: number | null;
+  source: 'open-meteo';
 }
 
 /**
@@ -112,9 +122,12 @@ export interface SunPosition {
  */
 export interface SunPathData {
   latitude: number;
+  longitude: number;
+  timezone: string;
   summerSolstice: SunPosition;
   winterSolstice: SunPosition;
   equinox: SunPosition;
+  todaySunlight: TodaySunlight | null;
 }
 
 /**
