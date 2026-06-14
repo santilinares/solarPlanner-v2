@@ -760,19 +760,37 @@ describe('ProjectService', () => {
   // ---------- estimateFromPolygon ----------
 
   describe('estimateFromPolygon', () => {
-    it('returns non-negative estimates for a valid polygon', () => {
-      const result = service.estimateFromPolygon(SAMPLE_AREA);
+    it('returns non-negative estimates for a valid polygon', async () => {
+      const result = await service.estimateFromPolygon(SAMPLE_AREA);
 
       expect(result.panelCount).toBeGreaterThanOrEqual(0);
       expect(result.areaSqm).toBeGreaterThan(0);
       expect(result.estimatedKwp).toBeGreaterThanOrEqual(0);
     });
 
+    it('uses public defaults through the optimal layout calculation', async () => {
+      const calculateSpy = vi.spyOn(service, 'calculateOptimalConfig');
+
+      const result = await service.estimateFromPolygon(SAMPLE_AREA);
+
+      expect(calculateSpy).toHaveBeenCalledWith({
+        surfaceArea: 1000,
+        panelWidth: 2,
+        panelHeight: 4,
+        tilt: 30,
+        latitude: 40.4,
+        wattPeak: 400,
+        azimuth: 180,
+      });
+      expect(result.panelCount).toBeGreaterThanOrEqual(0);
+      expect(result.estimatedKwp).toBe(result.panelCount * 0.4);
+    });
+
     it('returns zero panels for an empty area', async () => {
       const { getAreaOfPolygon } = await import('geolib');
       vi.mocked(getAreaOfPolygon).mockReturnValueOnce(0);
 
-      const result = service.estimateFromPolygon(SAMPLE_AREA);
+      const result = await service.estimateFromPolygon(SAMPLE_AREA);
 
       expect(result.panelCount).toBe(0);
       expect(result.estimatedKwp).toBe(0);

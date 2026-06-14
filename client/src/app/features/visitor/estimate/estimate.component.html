@@ -13,10 +13,7 @@
         Quick estimate
       </div>
 
-      <div class="step-nav-right">
-        <p-button label="Sign in" [outlined]="true" size="small" routerLink="/login" />
-        <p-button label="Create account" size="small" routerLink="/registration" />
-      </div>
+      <div class="step-nav-right" aria-hidden="true"></div>
     </div>
 
     <div class="sticky-stepper-row" aria-label="Estimate steps">
@@ -85,16 +82,16 @@
   <main class="content-area">
     <div class="content-shell">
       <section class="step-section">
-        <div class="section-heading">
-          <span class="material-symbols-outlined section-icon">solar_power</span>
-          <div>
-            <h1>Quick Panel Estimate</h1>
-            <p>Search your site, draw the usable installation area, and get an instant roof-style capacity estimate.</p>
-          </div>
-        </div>
-
         <div class="estimate-layout">
           <div class="map-panel">
+            <div class="section-heading">
+              <span class="material-symbols-outlined section-icon">solar_power</span>
+              <div>
+                <h1>Quick Panel Estimate</h1>
+                <p>Search your site, draw the usable installation area, and get an instant roof-style capacity estimate.</p>
+              </div>
+            </div>
+
             <div class="form-group">
               <div class="label-row">
                 <label for="estimate-address">Site location</label>
@@ -273,10 +270,12 @@
                     <small>Registered projects include production forecasts, local energy prices, savings, and CO2 estimates.</small>
                     <div class="locked-cta-row">
                       <button type="button" class="primary-action compact" (click)="onGetStarted()">
-                        <span>Create free project</span>
+                        <span>Create project</span>
                         <span class="material-symbols-outlined">arrow_forward</span>
                       </button>
-                      <p-button label="Sign in" [outlined]="true" size="small" routerLink="/login" />
+                      <button type="button" class="secondary-action compact" routerLink="/login">
+                        <span>Sign in</span>
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -862,21 +862,29 @@ export class ProjectService {
     };
   }
 
-  estimateFromPolygon(
+  async estimateFromPolygon(
     area: GeoPointInput[],
-  ): { panelCount: number; areaSqm: number; estimatedKwp: number } {
+  ): Promise<{ panelCount: number; areaSqm: number; estimatedKwp: number }> {
     const geoPoints = area.map((p) => ({ latitude: p.lat, longitude: p.lon }));
     const areaSqm = getAreaOfPolygon(geoPoints);
+    const center = getCenter(geoPoints);
+    if (!center) throw new Error('Could not calculate center of area');
 
-    const panelW = 2;
-    const panelH = 4;
-    const rowSpacing = 2;
-    const footprint = panelW * (panelH + rowSpacing);
-    const usableArea = areaSqm * 0.85;
-    const panelCount = footprint > 0 ? Math.max(0, Math.floor(usableArea / footprint)) : 0;
-    const estimatedKwp = (panelCount * 400) / 1000;
+    const config = await this.calculateOptimalConfig({
+      surfaceArea: areaSqm,
+      panelWidth: 2,
+      panelHeight: 4,
+      tilt: 30,
+      latitude: center.latitude,
+      wattPeak: 400,
+      azimuth: 180,
+    });
 
-    return { panelCount, areaSqm, estimatedKwp };
+    return {
+      panelCount: config.recommendedPanels,
+      areaSqm: config.surfaceArea,
+      estimatedKwp: config.estimatedCapacity,
+    };
   }
 
   async getSunPath(projectId: string, caller: CallerContext): Promise<SunPathData> {
