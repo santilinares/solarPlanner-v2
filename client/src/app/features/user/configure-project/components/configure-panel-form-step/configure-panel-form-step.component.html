@@ -1,4 +1,5 @@
 <!-- Panel & Installation card -->
+@if (showPanelCard()) {
 <div class="step-card panel-installation-card">
   <div class="step-card-header">
     <div class="step-card-icon panel-icon">
@@ -200,9 +201,11 @@
     </div>
   </form>
 </div>
+}
 
 <!-- Impact Preview card -->
-<div class="step-card capacity-preview-card mt-card">
+@if (showImpactCard()) {
+<div class="step-card capacity-preview-card" [class.mt-card]="showPanelCard()">
   <div class="step-card-header">
     <div class="step-card-icon capacity-icon">
       <i class="pi pi-bolt"></i>
@@ -309,3 +312,4 @@
     </div>
   }
 </div>
+}

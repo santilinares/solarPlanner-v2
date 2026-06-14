@@ -312,18 +312,24 @@
     padding: 1.5rem 0;
     }
 
-    /* ─── Setup Grid (Step 2 — 2×2 layout) ─── */
+    /* ─── Configure Sections ─── */
     .setup-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    padding: 1.5rem 0;
-    }
-    .design-stack {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    padding: 1.5rem 0;
+    }
+
+    .design-basics-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
     min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 1.5rem;
+    background: color-mix(in srgb, var(--p-content-background) 92%, var(--p-surface-100));
     }
 
     /* ─── Step Cards ─── */
@@ -855,7 +861,7 @@
 
     /* ─── Responsive ─── */
     @media (max-width: 1100px) {
-    .setup-grid {
+    .design-basics-section {
         grid-template-columns: 1fr;
     }
     .sun-path-card {

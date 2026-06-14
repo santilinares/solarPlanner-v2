@@ -56,6 +56,8 @@ export class ConfigurePanelFormStepComponent {
   readonly segmentOptions = input.required<Array<{ label: string; value: string }>>();
   readonly monthlyProductionChartOptions = input<Highcharts.Options>({});
   readonly comparisonChartOptions = input<Highcharts.Options>({});
+  readonly showPanelCard = input<boolean>(true);
+  readonly showImpactCard = input<boolean>(true);
 
   readonly applyOptimal = output<void>();
   readonly Highcharts: typeof Highcharts = Highcharts;

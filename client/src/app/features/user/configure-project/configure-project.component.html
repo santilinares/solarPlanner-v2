@@ -153,6 +153,7 @@
             </div>
 
             <div class="setup-grid">
+              <div class="design-basics-section">
                 <app-configure-location-step
                   [polygonCoords]="polygonCoords()"
                   [mapLat]="mapLat()"
@@ -165,31 +166,55 @@
                   (addressSearch)="searchAddress($event)"
                 />
 
-                <div class="design-stack">
-                  <app-configure-panel-form-step
-                    [formGroup]="configForm"
-                    [panelsWithLabel]="panelsWithLabel()"
-                    [selectedPanelData]="selectedPanelData()"
-                    [selectedPanelName]="selectedPanelName()"
-                    [selectedPanelTechDimensions]="selectedPanelTechDimensions()"
-                    [panelTagEntries]="panelTagEntries()"
-                    [orientationOptions]="orientationOptions"
-                    [totalCapacityKw]="totalCapacityKw()"
-                    [projectTotalArea]="projectTotalArea()"
-                    [optimalConfig]="optimalConfig()"
-                    [configPreview]="configPreview()"
-                    [isCalculating]="isCalculating()"
-                    [isPreviewLoading]="isPreviewLoading()"
-                    [isUsingOptimalConfig]="isUsingOptimalConfig()"
-                    [panelNumber]="formValue().panelNumber ?? null"
-                    [segmentOptions]="segmentOptions"
-                    [monthlyProductionChartOptions]="monthlyProductionChartOptions()"
-                    [comparisonChartOptions]="comparisonChartOptions()"
-                    (applyOptimal)="applyOptimalConfig()"
-                  />
+                <app-configure-panel-form-step
+                  [formGroup]="configForm"
+                  [panelsWithLabel]="panelsWithLabel()"
+                  [selectedPanelData]="selectedPanelData()"
+                  [selectedPanelName]="selectedPanelName()"
+                  [selectedPanelTechDimensions]="selectedPanelTechDimensions()"
+                  [panelTagEntries]="panelTagEntries()"
+                  [orientationOptions]="orientationOptions"
+                  [totalCapacityKw]="totalCapacityKw()"
+                  [projectTotalArea]="projectTotalArea()"
+                  [optimalConfig]="optimalConfig()"
+                  [configPreview]="configPreview()"
+                  [isCalculating]="isCalculating()"
+                  [isPreviewLoading]="isPreviewLoading()"
+                  [isUsingOptimalConfig]="isUsingOptimalConfig()"
+                  [panelNumber]="formValue().panelNumber ?? null"
+                  [segmentOptions]="segmentOptions"
+                  [monthlyProductionChartOptions]="monthlyProductionChartOptions()"
+                  [comparisonChartOptions]="comparisonChartOptions()"
+                  [showImpactCard]="false"
+                  (applyOptimal)="applyOptimalConfig()"
+                />
+              </div>
 
-                  <!-- ── Layout Insight ── -->
-                  <div class="step-card placeholder-3d-card">
+              <app-configure-panel-form-step
+                [formGroup]="configForm"
+                [panelsWithLabel]="panelsWithLabel()"
+                [selectedPanelData]="selectedPanelData()"
+                [selectedPanelName]="selectedPanelName()"
+                [selectedPanelTechDimensions]="selectedPanelTechDimensions()"
+                [panelTagEntries]="panelTagEntries()"
+                [orientationOptions]="orientationOptions"
+                [totalCapacityKw]="totalCapacityKw()"
+                [projectTotalArea]="projectTotalArea()"
+                [optimalConfig]="optimalConfig()"
+                [configPreview]="configPreview()"
+                [isCalculating]="isCalculating()"
+                [isPreviewLoading]="isPreviewLoading()"
+                [isUsingOptimalConfig]="isUsingOptimalConfig()"
+                [panelNumber]="formValue().panelNumber ?? null"
+                [segmentOptions]="segmentOptions"
+                [monthlyProductionChartOptions]="monthlyProductionChartOptions()"
+                [comparisonChartOptions]="comparisonChartOptions()"
+                [showPanelCard]="false"
+                (applyOptimal)="applyOptimalConfig()"
+              />
+
+              <!-- ── Layout Insight ── -->
+              <div class="step-card placeholder-3d-card">
                 <div class="step-card-header">
                     <div class="step-card-icon threedee-icon">
                     <span class="material-symbols-outlined">straighten</span>
@@ -229,7 +254,6 @@
                       <span>Panel Count</span>
                       <strong>{{ formValue().panelNumber ?? 0 }}</strong>
                     </div>
-                </div>
                 </div>
                 </div>
             </div>
