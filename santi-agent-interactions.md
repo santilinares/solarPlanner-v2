@@ -3975,3 +3975,31 @@ El usuario pidió examinar `add-project`, `project.controller.ts`, `project.serv
 
 ### Reasoning
 El problema principal era de consistencia: el frontend calculaba spacing, máximos y producción con fórmulas locales mientras el backend ya tenía el cálculo físico más completo. Se eliminó esa duplicación en el alta y se guardó un baseline óptimo recibido del backend para distinguir `Optimal` vs `Custom`. El precio energético se separó en su propio paso porque afecta la interpretación económica, no la geometría del sitio. ENTSO-E se trata explícitamente como sugerencia porque el precio real de factura puede incluir peajes, impuestos o contratos que el mercado diario no representa. Durante la validación se detectó además que `country-reverse-geocoding` puede devolver códigos alpha-3 como `ESP`; se normalizó a alpha-2 para que ENTSO-E reciba `ES`.
+
+---
+
+## June 7, 2026 - Alineacion visual del estimador publico con add-project
+
+### Topic
+Rediseño del componente `estimate` para compartir look and feel con el nuevo wizard de `add-project`.
+
+### Summary of Prompt
+El usuario pidio que el componente `client/src/app/features/visitor/estimate/` tuviera la misma UI y sensacion visual que el flujo de `add-project`.
+
+### What Was Achieved
+- El estimador publico ahora usa una cabecera sticky tipo wizard con stepper de 3 pasos: location, draw area y estimate.
+- Se sustituyo la iconografia custom por Material Symbols, manteniendo PrimeNG para botones/campos donde ya encaja con el proyecto.
+- La busqueda de ubicacion, el mapa, los avisos y el resumen de area usan los mismos patrones visuales del `add-project` rediseñado.
+- El resultado se presenta como tarjeta compacta con metric grid, estado y bloque bloqueado para el analisis completo.
+- El CTA de registro/inicio de sesion se rediseño para encajar con el lenguaje visual del wizard.
+
+### Full Prompt
+> "I want the [estimate](client/src/app/features/visitor/estimate/) component to have the same UI and look and feel as this add-project. I want the [estimate](client/src/app/features/visitor/estimate/) component to have the same UI and look and feel as this add-project."
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El estimador es una herramienta publica mas corta que el alta de proyecto, por lo que no se copio el wizard de cinco pasos completo. Se adapto a tres estados reales del flujo para mantener claridad sin meter pasos falsos. El objetivo fue reutilizar la gramatica visual de `add-project`: cabecera sticky, stepper, section heading, site summary strip, feedback banners, metric cards y acciones compactas. Tambien se eliminaron PrimeIcons del template del estimador para alinearlo con el uso dominante de Material Symbols en la aplicacion.
