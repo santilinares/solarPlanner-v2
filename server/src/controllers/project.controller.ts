@@ -119,7 +119,7 @@ export const calculateOptimalConfig = asyncHandler(async (req: Request, res: Res
 /**
  * @route   POST /projects/calculate
  * @desc    Calculate optimal panel configuration from polygon (no project needed)
- * @access  Private
+ * @access  Public
  */
 export const calculateFromPolygon = asyncHandler(async (req: Request, res: Response) => {
   const config = await projectService.calculateFromPolygon(
@@ -129,9 +129,9 @@ export const calculateFromPolygon = asyncHandler(async (req: Request, res: Respo
 });
 
 /**
- * @route   GET /projects/electricity-price
+ * @route   GET /projects/pricing/electricity
  * @desc    Suggest latest available ENTSO-E electricity price for a country
- * @access  Private
+ * @access  Public
  */
 export const getElectricityPriceSuggestion = asyncHandler(async (req: Request, res: Response) => {
   const countryCode = typeof req.query.countryCode === 'string' ? req.query.countryCode : '';

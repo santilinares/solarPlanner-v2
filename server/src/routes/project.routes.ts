@@ -35,6 +35,9 @@ const router = Router();
  * Public routes (no auth)
  */
 router.post('/estimate', validateBody(EstimateSchema), estimateProject);
+router.post('/calculate', validateBody(OptimalConfigFromPolygonSchema), calculateFromPolygon);
+router.get('/pricing/electricity', getElectricityPriceSuggestion);
+router.get('/electricity-price', getElectricityPriceSuggestion);
 
 /**
  * Project CRUD routes (mounted at /api/projects)
@@ -44,24 +47,11 @@ router.post('/', verifyUserJwtToken, validateBody(ProjectCreateSchema), createPr
 router.get('/', verifyUserJwtToken, validateQuery(ProjectQuerySchema), listProjects);
 
 /**
- * Calculations (no ID needed)
- */
-router.post(
-  '/calculate',
-  verifyUserJwtToken,
-  validateBody(OptimalConfigFromPolygonSchema),
-  calculateFromPolygon
-);
-
-/**
  * Dashboard routes (must come before /:id route)
  */
 router.get('/dashboard', verifyUserJwtToken, getUserDashboard);
 
 router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
-
-router.get('/pricing/electricity', verifyUserJwtToken, getElectricityPriceSuggestion);
-router.get('/electricity-price', verifyUserJwtToken, getElectricityPriceSuggestion);
 
 router.get('/:id', verifyUserJwtToken, getProjectById);
 

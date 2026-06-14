@@ -4,6 +4,34 @@ This document tracks all significant development work performed using AI assista
 
 ---
 
+## June 14, 2026 - Helpers públicos para el wizard de creación
+
+### Topic
+Corrección del error `No token provided` al entrar en la configuración de paneles del flujo `add-project`.
+
+### Summary of Prompt
+El usuario reportó que al entrar en el paso de selección/configuración del panel aparecía la respuesta JSON `{"success":false,"message":"No token provided"}`.
+
+### What Was Achieved
+- Se hizo público `POST /api/projects/calculate`, porque calcula una configuración previa a crear proyecto y no accede a datos privados del usuario.
+- Se hicieron públicas las rutas de sugerencia de precio `GET /api/projects/pricing/electricity` y `GET /api/projects/electricity-price`.
+- Se mantuvieron protegidas las rutas de creación, listado, detalle, edición, eliminación y analíticas de proyectos.
+- Se actualizaron comentarios del controller para reflejar el acceso público de estos helpers.
+- Se verificó con `npm run build` en server, `npm run typecheck` en client, tests de `project.service` y `project.schema` en server, y test del `ProjectService` de Angular.
+
+### Full Prompt
+> `{"success":false,"message":"No token provided","timestamp":"2026-06-14T10:01:39.202Z"} Me salta este error cuando en add-project entro al paso de seleccionar el panel y su configuración`
+
+### Affected Files
+- `server/src/routes/project.routes.ts`
+- `server/src/controllers/project.controller.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El wizard llama a `/projects/calculate` antes de crear el proyecto para obtener paneles recomendados y espaciado óptimo. Ese cálculo solo usa los datos enviados en el payload y no necesita identidad de usuario, por lo que exigir `verifyUserJwtToken` podía bloquear la UX si el token local no estaba disponible aunque el usuario siguiera en la pantalla. La creación real del proyecto permanece protegida, que es donde sí se persisten datos asociados al usuario.
+
+---
+
 ## May 27, 2026 - Enforce strong password policy across client and server
 
 ### Topic
