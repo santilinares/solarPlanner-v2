@@ -5,6 +5,7 @@ import { DecimalPipe } from '@angular/common';
 import { DividerModule } from 'primeng/divider';
 import { SkeletonModule } from 'primeng/skeleton';
 import { ProjectAnalytics } from '@core/models';
+import { getCurrencySymbol } from '@core/utils/chart.utils';
 
 @Component({
   selector: 'app-project-analytics',
@@ -24,10 +25,6 @@ export class ProjectAnalyticsComponent {
   readonly Highcharts: typeof Highcharts = Highcharts;
 
   getCurrencySymbol(currency: string): string {
-    const symbols: Record<string, string> = {
-      EUR: '€', USD: '$', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹',
-      AUD: 'A$', CAD: 'C$', CHF: 'Fr', ARS: '$', BRL: 'R$', CLP: '$', MXN: '$', COP: '$',
-    };
-    return symbols[currency] ?? currency;
+    return getCurrencySymbol(currency);
   }
 }

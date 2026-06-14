@@ -11,7 +11,7 @@
         <div class="step-card-icon capacity-icon"><i class="pi pi-chart-line"></i></div>
         <div>
           <h2>System Performance</h2>
-          <p>Metrics based on PVGIS annual reference (NREL PVWatts V5).</p>
+          <p>Performance and value metrics based on PVGIS annual reference data.</p>
         </div>
       </div>
       <p-divider />
@@ -29,7 +29,7 @@
           <strong>{{ a.paybackYears != null ? (a.paybackYears | number: '1.1-1') + ' years' : '—' }}</strong>
         </div>
         <div class="capacity-item">
-          <span class="capacity-label">25-Year ROI</span>
+          <span class="capacity-label">25-Year Gross ROI</span>
           <strong>{{ a.roi25Years != null ? (a.roi25Years | number: '1.0-0') + ' %' : '—' }}</strong>
         </div>
       </div>
@@ -40,8 +40,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-today"><i class="pi pi-wallet"></i></div>
         <div>
-          <h2>Estimated Annual Savings</h2>
-          <p>Based on PVGIS yearly production × energy price.</p>
+          <h2>Estimated Annual Gross Savings</h2>
+          <p>PVGIS yearly production multiplied by the configured energy price.</p>
         </div>
       </div>
       <p-divider />
@@ -49,10 +49,17 @@
         <div class="economic-value-content">
           <div class="economic-icon"><i class="pi pi-dollar"></i></div>
           <div class="economic-info">
-            <span>Est. Annual Value</span>
+            <span>Est. Annual Gross Value</span>
             <strong>{{ getCurrencySymbol(currency()) }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
             <small>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh/yr × {{ price() | number: '1.2-4' }}/kWh</small>
           </div>
+        </div>
+        <div class="assumption-grid">
+          <div><span>Energy price</span><strong>{{ price() | number: '1.2-4' }} {{ currency() }}/kWh</strong></div>
+          <div><span>PVGIS yearly production</span><strong>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh</strong></div>
+          <div><span>Installation cost</span><strong>{{ a.installationCostUsed != null ? getCurrencySymbol(currency()) + ' ' + (a.installationCostUsed | number: '1.0-0') : '—' }}</strong></div>
+          <div><span>Cost source</span><strong>{{ a.installationCostSource === 'benchmark' ? 'Benchmark' : a.installationCostSource === 'user' ? 'User input' : 'Missing' }}</strong></div>
+          <div><span>Degradation model</span><strong>2.0% first year, 0.5%/yr</strong></div>
         </div>
       } @else {
         <div class="sun-path-warning">
@@ -69,8 +76,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-forecast"><i class="pi pi-calendar-plus"></i></div>
         <div>
-          <h2>25-Year Savings Projection</h2>
-          <p>Annual and cumulative savings with degradation and installation cost context.</p>
+          <h2>25-Year Gross Savings Projection</h2>
+          <p>Cumulative gross savings first, with annual savings, degradation, installation cost and break-even context.</p>
         </div>
       </div>
       <p-divider />

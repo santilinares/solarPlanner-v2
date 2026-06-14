@@ -237,9 +237,15 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.35rem;
   font-size: 0.95rem;
   color: var(--p-text-color);
+}
+.chart-note {
+  margin: 0 0 0.75rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .optimal-hint {

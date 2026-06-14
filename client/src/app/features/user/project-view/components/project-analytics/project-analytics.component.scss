@@ -142,6 +142,33 @@
   color: var(--p-text-muted-color);
 }
 
+.assumption-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.assumption-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 0.5rem;
+  background: var(--p-content-hover-background);
+}
+
+.assumption-grid span {
+  color: var(--p-text-muted-color);
+  font-size: 0.78rem;
+}
+
+.assumption-grid strong {
+  color: var(--p-text-color);
+  font-size: 0.9rem;
+}
+
 .sun-path-warning {
   display: flex;
   align-items: center;

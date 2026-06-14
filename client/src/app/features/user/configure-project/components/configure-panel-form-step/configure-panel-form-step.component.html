@@ -252,7 +252,7 @@
         <strong>{{ preview.preview.annualProductionKwh != null ? (preview.preview.annualProductionKwh | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
       </div>
       <div class="capacity-item">
-        <span class="capacity-label">Annual Savings</span>
+        <span class="capacity-label">Annual Gross Savings</span>
         <strong>{{ preview.preview.annualSavings != null ? (preview.preview.annualSavings | number: '1.0-0') + ' ' + (preview.currency ?? '') : '—' }}</strong>
       </div>
       <div class="capacity-item">
@@ -286,11 +286,13 @@
     }
     <div class="chart-stack">
       <div class="mini-chart">
-        <h3><span class="material-symbols-outlined">monitoring</span> Current vs Preview</h3>
+        <h3><span class="material-symbols-outlined">monitoring</span> Relative Impact</h3>
+        <p class="chart-note">Normalized to 100% per metric so panels, capacity, production and coverage are not mixed on one raw axis.</p>
         <highcharts-chart [Highcharts]="Highcharts" [options]="comparisonChartOptions()" [oneToOne]="true" style="width: 100%; height: 260px; display: block;" />
       </div>
       <div class="mini-chart">
         <h3><span class="material-symbols-outlined">wb_sunny</span> Monthly Estimate</h3>
+        <p class="chart-note">Current and preview monthly production are shown side by side when both estimates are available.</p>
         <highcharts-chart [Highcharts]="Highcharts" [options]="monthlyProductionChartOptions()" [oneToOne]="true" style="width: 100%; height: 260px; display: block;" />
       </div>
     </div>

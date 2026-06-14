@@ -12,6 +12,10 @@ import {
 } from '../schemas/project.schema';
 import { CallerContext } from '../types/project.types';
 
+function getRouteId(req: Request): string {
+  const { id } = req.params;
+  return Array.isArray(id) ? id[0] : id;
+}
 
 /**
  * Project Controller
@@ -68,7 +72,7 @@ export const getAdminDashboard = asyncHandler(async (_req: Request, res: Respons
  */
 export const getProjectById = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const project = await projectService.getProjectById(req.params.id, caller);
+  const project = await projectService.getProjectById(getRouteId(req), caller);
   return success(res, project);
 });
 
@@ -79,7 +83,7 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
  */
 export const updateProject = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const updatedProject = await projectService.updateProject(caller, req.params.id, req.body as ProjectUpdateInput);
+  const updatedProject = await projectService.updateProject(caller, getRouteId(req), req.body as ProjectUpdateInput);
   return success(res, updatedProject, 'Project updated successfully');
 });
 
@@ -91,7 +95,7 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
 
 export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const sunPath = await projectService.getSunPath(req.params.id, caller);
+  const sunPath = await projectService.getSunPath(getRouteId(req), caller);
   return success(res, sunPath);
 });
 
@@ -103,7 +107,7 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
 export const generatePlan = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   // TODO - Revisar que se mete en el PDF. Hay que actualizar alguna cosa?
-  const planData = await projectService.generatePlanData(req.params.id, caller);
+  const planData = await projectService.generatePlanData(getRouteId(req), caller);
   return success(res, planData);
 });
 
@@ -113,7 +117,7 @@ export const generatePlan = asyncHandler(async (req: Request, res: Response) => 
  * @access  Private
  */
 export const calculateOptimalConfig = asyncHandler(async (req: Request, res: Response) => {
-  const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput, req.params.id);
+  const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput, getRouteId(req));
   return success(res, config);
 });
 
@@ -137,7 +141,7 @@ export const calculateFromPolygon = asyncHandler(async (req: Request, res: Respo
 export const previewProjectConfig = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   const preview = await projectService.previewProjectConfig(
-    req.params.id,
+    getRouteId(req),
     caller,
     req.body as ProjectConfigPreviewInput,
   );
@@ -151,7 +155,7 @@ export const previewProjectConfig = asyncHandler(async (req: Request, res: Respo
  */
 export const deleteProject = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.userId!;
-  await projectService.deleteProject(req.params.id, userId);
+  await projectService.deleteProject(getRouteId(req), userId);
   return success(res, null, 'Project deleted successfully');
 });
 
@@ -161,7 +165,7 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
  * @access  Private (Admin)
  */
 export const adminDeleteProject = asyncHandler(async (req: Request, res: Response) => {
-  await projectService.adminDeleteProject(req.params.id);
+  await projectService.adminDeleteProject(getRouteId(req));
   return success(res, null, 'Project deleted successfully');
 });
 
@@ -183,7 +187,7 @@ export const estimateProject = asyncHandler((req: Request, res: Response) => {
  */
 export const getProjectAnalytics = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const analytics = await projectService.getProjectAnalytics(req.params.id, caller);
+  const analytics = await projectService.getProjectAnalytics(getRouteId(req), caller);
   return success(res, analytics);
 });
 
@@ -196,7 +200,7 @@ export const refreshProduction = asyncHandler(async (req: Request, res: Response
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   const { forceFullRecalc } = req.body as { forceFullRecalc?: boolean };
   const result = await projectService.refreshProjectProductionOnDemand(
-    req.params.id,
+    getRouteId(req),
     caller,
     forceFullRecalc,
   );

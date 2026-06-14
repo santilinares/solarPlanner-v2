@@ -49,6 +49,7 @@ import {
   ProjectConfigPreviewRequest,
   SystemLosses,
 } from '@core/models';
+import { BASE_CHART_OPTIONS, CHART_COLORS, MONTH_LABELS } from '@core/utils/chart.utils';
 import { ConfigureLocationStepComponent } from './components/configure-location-step/configure-location-step.component';
 import { ConfigurePanelFormStepComponent } from './components/configure-panel-form-step/configure-panel-form-step.component';
 import { ConfigureReviewStepComponent } from './components/configure-review-step/configure-review-step.component';
@@ -148,13 +149,6 @@ export class ConfigureProjectComponent implements OnInit {
   // ─── Optimal Config State ───
   readonly optimalConfig = signal<OptimalConfigResponse | null>(null);
   readonly Highcharts: typeof Highcharts = Highcharts;
-
-  private readonly CHART_THEME: Highcharts.Options = {
-    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' }, width: undefined },
-    credits: { enabled: false },
-    title: { text: undefined },
-    legend: { enabled: false },
-  };
 
   // ─── Options ───
   readonly orientationOptions: OrientationOption[] = [
@@ -405,15 +399,23 @@ export class ConfigureProjectComponent implements OnInit {
   });
 
   readonly monthlyProductionChartOptions = computed((): Highcharts.Options => {
-    const monthly = this.configPreview()?.preview.monthlyProductionKwh ?? this.projectData()?.pvgisRef?.monthlyKwh;
+    const currentMonthly = this.projectData()?.pvgisRef?.monthlyKwh;
+    const previewMonthly = this.configPreview()?.preview.monthlyProductionKwh;
+    const monthly = previewMonthly ?? currentMonthly;
     if (!monthly?.length) return {};
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
-      xAxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
+      xAxis: { categories: MONTH_LABELS },
       yAxis: { title: { text: 'kWh/month' }, min: 0 },
       tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
-      series: [{ type: 'column', name: 'Production', data: monthly, color: '#f59e0b', borderRadius: 4 }],
+      legend: { enabled: Boolean(currentMonthly?.length && previewMonthly?.length) },
+      series: [
+        ...(currentMonthly?.length && previewMonthly?.length
+          ? [{ type: 'column' as const, name: 'Current', data: currentMonthly, color: CHART_COLORS.neutral, borderRadius: 4 }]
+          : []),
+        { type: 'column', name: previewMonthly?.length ? 'Preview estimate' : 'Production estimate', data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
+      ],
     };
   });
 
@@ -422,36 +424,43 @@ export class ConfigureProjectComponent implements OnInit {
     if (!preview) return {};
     const currentProduction = preview.current.annualProductionKwh ?? 0;
     const previewProduction = preview.preview.annualProductionKwh ?? 0;
+    const categories = ['Panels', 'Capacity', 'Annual production', 'Coverage'];
+    const currentValues = [
+      preview.current.panelNumber,
+      preview.current.capacityKw,
+      currentProduction / 1000,
+      preview.current.coverage ?? 0,
+    ];
+    const previewValues = [
+      preview.preview.panelNumber,
+      preview.preview.capacityKw,
+      previewProduction / 1000,
+      preview.preview.coverage ?? 0,
+    ];
+    const normalize = (values: number[], index: number) => {
+      const max = Math.max(currentValues[index] ?? 0, previewValues[index] ?? 0);
+      return max > 0 ? (values[index] / max) * 100 : 0;
+    };
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
-      xAxis: { categories: ['Panels', 'Capacity kW', 'Annual MWh', 'Coverage %'] },
-      yAxis: { title: { text: null }, min: 0 },
-      tooltip: { valueDecimals: 1 },
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'bar', reflow: true },
+      xAxis: { categories },
+      yAxis: { title: { text: 'Relative to best value' }, min: 0, max: 100, labels: { format: '{value}%' } },
+      tooltip: { valueDecimals: 0, valueSuffix: '%' },
       legend: { enabled: true },
       series: [
         {
           type: 'bar',
           name: 'Current',
-          data: [
-            preview.current.panelNumber,
-            preview.current.capacityKw,
-            currentProduction / 1000,
-            preview.current.coverage ?? 0,
-          ],
-          color: '#64748b',
+          data: currentValues.map((_, index) => normalize(currentValues, index)),
+          color: CHART_COLORS.neutral,
           borderRadius: 4,
         },
         {
           type: 'bar',
           name: 'Preview',
-          data: [
-            preview.preview.panelNumber,
-            preview.preview.capacityKw,
-            previewProduction / 1000,
-            preview.preview.coverage ?? 0,
-          ],
-          color: '#22c55e',
+          data: previewValues.map((_, index) => normalize(previewValues, index)),
+          color: CHART_COLORS.savings,
           borderRadius: 4,
         },
       ],
@@ -462,26 +471,29 @@ export class ConfigureProjectComponent implements OnInit {
     const sp = this.sunPathData();
     if (!sp) return {};
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'spline', reflow: true },
       xAxis: { categories: ['Summer', 'Equinox', 'Winter'] },
-      yAxis: [{ title: { text: 'Altitude °' }, min: 0 }, { title: { text: 'Daylight h' }, opposite: true, min: 0 }],
+      yAxis: [
+        { title: { text: 'Noon altitude °' }, min: 0 },
+        { title: { text: 'Daylight hours' }, opposite: true, min: 0 },
+      ],
       tooltip: { shared: true },
       legend: { enabled: true },
+      plotOptions: { spline: { marker: { radius: 4 }, lineWidth: 3 } },
       series: [
         {
-          type: 'column',
+          type: 'spline',
           name: 'Noon altitude',
           data: [sp.summerSolstice.noonAltitude, sp.equinox.noonAltitude, sp.winterSolstice.noonAltitude],
-          color: '#f59e0b',
-          borderRadius: 4,
+          color: CHART_COLORS.production,
         },
         {
           type: 'spline',
           name: 'Daylight',
           data: [sp.summerSolstice.daylightHours, sp.equinox.daylightHours, sp.winterSolstice.daylightHours],
           yAxis: 1,
-          color: '#0ea5e9',
+          color: CHART_COLORS.forecast,
         },
       ],
     };

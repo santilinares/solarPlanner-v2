@@ -199,6 +199,18 @@
                     </div>
                 </div>
                 <p-divider />
+                <div class="layout-mini-map" aria-label="Preview area coverage">
+                  <div class="layout-coverage-fill" [style.width.%]="configPreview()?.preview?.coverage ?? 0"></div>
+                  <div class="layout-panel-rows">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <div class="layout-coverage-label">
+                    {{ configPreview()?.preview?.coverage != null ? (configPreview()!.preview.coverage | number: '1.0-1') + '% area use' : 'Coverage pending' }}
+                  </div>
+                </div>
                 <div class="layout-insight-grid">
                     <div>
                       <span>Polygon Area</span>

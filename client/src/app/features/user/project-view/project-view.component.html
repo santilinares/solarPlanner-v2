@@ -98,7 +98,7 @@
     </div>
     <div class="kpi-card">
       <span class="material-symbols-outlined">payments</span>
-      <div><small>Annual Savings</small><strong>{{ analytics()?.annualSavingsEur != null ? getCurrencySymbol(project.currency ?? 'EUR') + ' ' + (analytics()!.annualSavingsEur | number: '1.0-0') : '—' }}</strong></div>
+      <div><small>Annual Gross Savings</small><strong>{{ analytics()?.annualSavingsEur != null ? getCurrencySymbol(project.currency ?? 'EUR') + ' ' + (analytics()!.annualSavingsEur | number: '1.0-0') : '—' }}</strong></div>
     </div>
     <div class="kpi-card">
       <span class="material-symbols-outlined">speed</span>
@@ -106,7 +106,7 @@
     </div>
     <div class="kpi-card">
       <span class="material-symbols-outlined">monitoring</span>
-      <div><small>25-Year ROI</small><strong>{{ analytics()?.roi25Years != null ? (analytics()!.roi25Years | number: '1.0-0') + '%' : '—' }}</strong></div>
+      <div><small>25-Year Gross ROI</small><strong>{{ analytics()?.roi25Years != null ? (analytics()!.roi25Years | number: '1.0-0') + '%' : '—' }}</strong></div>
     </div>
   </div>
 
@@ -210,7 +210,7 @@
         <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">wb_sunny</span></div>
         <div>
           <h2>Monthly Production Estimate</h2>
-          <p>PVGIS long-term monthly reference for this configuration.</p>
+          <p>PVGIS long-term monthly reference with annual total and monthly average.</p>
         </div>
       </div>
       <p-divider />
