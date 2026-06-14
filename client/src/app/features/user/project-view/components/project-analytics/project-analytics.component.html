@@ -11,7 +11,7 @@
         <div class="step-card-icon capacity-icon"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
           <h2>System Performance</h2>
-          <p>Performance and value metrics based on PVGIS annual reference data.</p>
+          <p>Performance, payback and gross avoided-cost metrics based on PVGIS annual reference data.</p>
         </div>
       </div>
       <p-divider />
@@ -29,7 +29,7 @@
           <strong>{{ a.paybackYears != null ? (a.paybackYears | number: '1.1-1') + ' years' : '—' }}</strong>
         </div>
         <div class="capacity-item">
-          <span class="capacity-label">25-Year Gross ROI</span>
+          <span class="capacity-label">25-Year Gross ROI Estimate</span>
           <strong>{{ a.roi25Years != null ? (a.roi25Years | number: '1.0-0') + ' %' : '—' }}</strong>
         </div>
       </div>
@@ -40,8 +40,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">payments</span></div>
         <div>
-          <h2>Estimated Annual Gross Savings</h2>
-          <p>PVGIS yearly production multiplied by the configured energy price.</p>
+          <h2>Estimated Annual Avoided Cost</h2>
+          <p>Estimated yearly avoided energy cost, calculated as PVGIS yearly production × energy price. This is a gross estimate, not net profit.</p>
         </div>
       </div>
       <p-divider />
@@ -49,7 +49,7 @@
         <div class="economic-value-content">
           <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
           <div class="economic-info">
-            <span>Est. Annual Gross Value</span>
+            <span>Estimated Annual Avoided Cost</span>
             <strong>{{ getCurrencySymbol(currency()) }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
             <small>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh/yr × {{ price() | number: '1.2-4' }}/kWh</small>
           </div>
@@ -64,7 +64,7 @@
       } @else {
         <div class="sun-path-warning">
           <i class="pi pi-info-circle"></i>
-          <span>Set an energy price to see savings estimates.</span>
+          <span>Set an energy price to see avoided-cost estimates.</span>
         </div>
       }
     </div>
@@ -76,8 +76,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
-          <h2>25-Year Gross Savings Projection</h2>
-          <p>Cumulative gross savings first, with annual savings, degradation, installation cost and break-even context.</p>
+          <h2>25-Year Avoided Cost Projection</h2>
+          <p>Long-term gross avoided-cost projection using PVGIS annual production, panel degradation, energy price, and installation cost context. It does not include inflation, maintenance, taxes, financing, or export compensation.</p>
         </div>
       </div>
       <p-divider />

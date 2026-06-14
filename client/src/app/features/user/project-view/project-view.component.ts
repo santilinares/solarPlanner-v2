@@ -212,8 +212,8 @@ export class ProjectViewComponent implements OnInit {
       tooltip: { shared: true, valueDecimals: 0, valueSuffix: ` ${currency}` },
       legend: { enabled: true },
       series: [
-        { type: 'spline', name: 'Cumulative gross savings', data: cumulativeSavings, color: CHART_COLORS.savings, lineWidth: 3, zIndex: 2 },
-        { type: 'column', name: 'Annual gross savings', data: perYear, color: CHART_COLORS.savingsSoft, borderRadius: 4, yAxis: 0 },
+        { type: 'spline', name: 'Cumulative avoided cost', data: cumulativeSavings, color: CHART_COLORS.savings, lineWidth: 3, zIndex: 2 },
+        { type: 'column', name: 'Annual avoided cost', data: perYear, color: CHART_COLORS.savingsSoft, borderRadius: 4, yAxis: 0 },
         ...(installCost != null
           ? [{ type: 'line' as const, name: 'Installation cost', data: perYear.map(() => installCost), color: CHART_COLORS.cost, dashStyle: 'Dash' as const, marker: { enabled: false } }]
           : []),

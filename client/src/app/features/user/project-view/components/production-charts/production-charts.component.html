@@ -3,9 +3,12 @@
     <div class="economic-value-content">
       <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
       <div class="economic-info">
-        <span>Estimated Recent Gross Value</span>
+        <span>Estimated Recent Avoided Cost</span>
         <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
-        <small>{{ ev.totalKwh | number: '1.1-1' }} kWh × {{ price() | number: '1.2-4' }}/kWh</small>
+        <small>
+          Estimated gross value of recent solar production: {{ ev.totalKwh | number: '1.1-1' }} kWh × {{ price() | number: '1.2-4' }}/kWh.
+          It represents avoided grid energy cost before installation, maintenance, taxes, financing, or export compensation.
+        </small>
       </div>
     </div>
   </div>
