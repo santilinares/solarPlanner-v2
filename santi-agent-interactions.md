@@ -4391,3 +4391,158 @@ The user had merged two conflicting feature branches and asked to reproduce `npm
 
 ### Reasoning
 The compiler errors pointed to conflict-resolution leftovers where new exports or methods had been inserted before closing the previous object, method, interface, or mock block. Restoring those missing closers made the server exports visible again and allowed both client and server TypeScript to parse. The remaining `npm start` server failure was configuration-related, not code-related: this Codex worktree has no `server/.env`, so `loadEnv()` rejects startup until required values are present.
+
+---
+
+## June 15, 2026 - Modern landing page redesign
+
+### Topic
+Rediseño responsive del home público de Solar Planner v2.0.
+
+### Summary of Prompt
+El usuario pidió inspeccionar primero la implementación actual del home, rutas, módulos PrimeNG e iconos configurados; después pidió implementar una nueva landing page moderna para un TFG centrado en estimación fotovoltaica, con navbar, hero visual, timeline interactiva, secciones de funcionalidades, tecnologías y GitHub.
+
+### What Was Achieved
+- Se rediseñó la landing pública con un hero técnico, mockup CSS de mapa/área/paneles y métricas de ejemplo.
+- Se añadió una timeline interactiva con estado Angular, controles previous/next y selección de hitos.
+- Se añadieron secciones de funcionalidades, stack tecnológico y contribución open-source.
+- Se actualizó el navbar público con Solar Planner, badge v2.0, Home, Documentation, GitHub, Login y Register.
+- Se configuró `environment.githubUrl` para centralizar los enlaces externos de GitHub.
+- Se convirtió la ruta pública de layout y home a `loadComponent` para mantener el bundle inicial bajo el presupuesto de error.
+- Se verificó con typecheck, build y revisión en navegador integrado en desktop y móvil.
+
+### Full Prompt
+> "Implement the new landing page for Solar Planner v2.0 using the project information already inspected. [...] Redesign the current home page as a modern, visual and responsive landing page for a Final Year Project application focused on photovoltaic project estimation. [...] Add githubUrl to both environment files. [...] Create a top navigation bar [...] Create a strong but clean hero section [...] Add a section titled Development Journey [...] Add a section titled Everything you need to design and evaluate solar projects [...] Add a concise section titled Built with modern technologies [...] Add a final highlighted section titled Open to contributing. Built to evolve."
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `client/src/environments/environment.ts`
+- `client/src/environments/environment.prod.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El navbar público pertenecía al layout visitante, por lo que actualizarlo allí evitó duplicar navegación dentro del home. La documentación no tenía ruta propia, así que el enlace se resolvió como ancla local a la sección de timeline. La URL de GitHub se movió a los environments para evitar hardcoding repetido. Al fallar inicialmente el build por presupuesto de bundle, se lazy-loadearon `VisitorLayoutComponent` y `LandingPageComponent`, siguiendo el patrón ya usado por las rutas protegidas y reduciendo el bundle inicial.
+
+---
+
+## June 15, 2026 - Landing polish: timeline, hero mockup and header stacking
+
+### Topic
+Mejora visual del home y corrección de solape entre header público y stepper de estimación.
+
+### Summary of Prompt
+El usuario indicó que la landing estaba bien como base, pero quería que `Development Journey` pareciera más una línea temporal, que el panel visual del hero estuviera mejor construido, que se añadieran logos de tecnologías y que el header dejara de solaparse con el stepper en `/estimate`.
+
+### What Was Achieved
+- Se reemplazó el mockup del hero por una ventana tipo dashboard con barra superior, mapa, área seleccionada, paneles solares alineados y métricas laterales.
+- Se rediseñó `Development Journey` como línea temporal real con eje horizontal, nodos, hito activo y adaptación vertical en móvil.
+- Se añadieron badges/logos visuales para MongoDB, Express.js, Angular, Node.js y PrimeNG sin introducir librerías externas.
+- Se elevó el `z-index` del header visitante y se corrigió el sticky stepper de `/estimate` para que no invada la zona del navbar.
+- Se verificó `npm run typecheck`, `npm run build`, `/`, `/estimate` y viewport móvil de 390px.
+
+### Full Prompt
+> "No está mal, pero quiero que el development journey sea mas linea temporal y el supuesto panel que tienes en el hero está mal hecho. Añade logos de las tecnologías usadas. El header funciona mal cuando entras en /estimate porque se solapa con el stepper (el stepper esta por encima del header y lo tapa un poco)"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El solape se debía a que el stepper visitante era sticky con margen negativo y competía con el header. Darle al header una capa superior y retirar el margen negativo del stepper evita la colisión. Para el hero, un layout dashboard con mapa y panel lateral transmite mejor la funcionalidad del producto que un dibujo decorativo. Para la timeline, los nodos sobre una línea continua hacen más evidente la progresión temporal y siguen funcionando en móvil al convertirse en eje vertical.
+
+---
+
+## June 15, 2026 - Local SVG technology logos and TypeScript stack card
+
+### Topic
+Añadir TypeScript al stack tecnológico y reemplazar badges tipográficos por logos SVG locales.
+
+### Summary of Prompt
+El usuario pidió añadir TypeScript al stack de tecnologías y confirmó que quería usar SVG locales con logos oficiales para las tecnologías listadas.
+
+### What Was Achieved
+- Se creó `client/src/assets/tech/` con SVG locales para MongoDB, Express.js, Angular, Node.js, TypeScript y PrimeNG.
+- Se añadió TypeScript a la sección `Built with modern technologies`.
+- Se actualizó el componente para usar `NgOptimizedImage` y cargar los logos desde assets locales.
+- Se verificó en navegador que los seis logos cargan correctamente al llegar a la sección.
+- Se validó con `npm run typecheck`.
+
+### Full Prompt
+> "Al stack de tecnologías añade typescript. Dime que necesitas para poner los logos de cada una de las tecnologías"
+>
+> "Ok vamos a usar svg locales con logos oficiales"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/assets/tech/angular.svg`
+- `client/src/assets/tech/express.svg`
+- `client/src/assets/tech/mongodb.svg`
+- `client/src/assets/tech/nodejs.svg`
+- `client/src/assets/tech/primeng-logo.svg`
+- `client/src/assets/tech/typescript.svg`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Los logos como assets locales evitan depender de internet en runtime y hacen que la landing sea estable en desarrollo, build y despliegue. `NgOptimizedImage` encaja con el estándar Angular del proyecto para imágenes estáticas. TypeScript se añadió como una tecnología explícita porque forma parte central del frontend Angular y del backend Node/Express del proyecto.
+
+---
+
+## June 15, 2026 - Replace Angular and PrimeNG logo assets
+
+### Topic
+Sustitución de logos de tecnologías por assets solicitados por el usuario.
+
+### Summary of Prompt
+El usuario pidió usar un logo de Angular desde Logo Search y un logo de PrimeNG desde PNGKey, guardando ambos dentro del proyecto en assets locales.
+
+### What Was Achieved
+- Se sustituyó `client/src/assets/tech/angular.svg` por una variante de Angular enlazada desde Logo Search, usando `devicons/devicon` como fuente directa.
+- Se descargó el PNG de PrimeNG desde PNGKey y se guardó como `client/src/assets/tech/primeng.png`.
+- Se actualizó la landing para apuntar al PNG local de PrimeNG.
+- Se eliminó el SVG temporal local de PrimeNG creado anteriormente.
+- Se verificó `npm run typecheck`, `npm run build` y carga en navegador de Angular/PrimeNG sin assets rotos.
+
+### Full Prompt
+> "Añade este logo de angular https://logosear.ch/logos/angular/index.html en lugar del actual. Usa este para primeng: https://www.pngkey.com/maxpic/u2e6w7u2i1i1q8y3/ (pero añadelos al proyecto en assets"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/assets/tech/angular.svg`
+- `client/src/assets/tech/primeng.png`
+- `client/src/assets/tech/primeng-logo.svg`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El enlace de Logo Search es un índice con múltiples variantes; se eligió la variante `angular-original.svg` de `devicons/devicon` porque es un asset técnico común y directo. PNGKey exponía el PNG final en metadata y en el elemento de imagen principal, por lo que se descargó ese recurso y se apuntó la landing al asset local para evitar dependencias externas en runtime.
+
+---
+
+## June 15, 2026 - Project evolution timeline redesign
+
+### Topic
+Rediseño de `Development Journey` como evolución real del proyecto.
+
+### Summary of Prompt
+El usuario pidió que la timeline explicara cómo ha progresado Solar Planner desde v1, desarrollada por Rayeen Hamada, hasta v2, desarrollada por Santiago Linares, y que el diseño fuera más minimalista, sin flechas y con efectos interactivos al hacer hover.
+
+### What Was Achieved
+- Se sustituyeron los hitos mensuales por tres etapas narrativas: `Solar Planner v1`, `Solar Planner v2` y `Open Evolution`.
+- Se documentó v1 como base de Rayeen Hamada con Angular 17, JavaScript, stack MEAN anterior, estimación PVGIS, gráficos completos y generación PDF.
+- Se documentó v2 como refactor de Santiago Linares con Angular 21.1, TypeScript 5.9, Express 5.2, Mongoose 9.6, PrimeNG 21.1, look and feel modernizado, modelo basado en NREL PVWatts V5 y analíticas económicas.
+- Se eliminaron las flechas previous/next y se mantuvo interacción por click sobre nodos.
+- Se simplificó el diseño visual con línea fina, nodos minimalistas y hover con elevación/highlight.
+- Se verificó `npm run typecheck`, `npm run build` y cambio de estado en navegador al pulsar la etapa v2.
+
+### Full Prompt
+> "Ahora el timeline quiero que sea más bien para que indiquemos como ha ido progresando el proyecto (v1 fue desarrollada por Rayeen Hamada y contenia estimaciones con PVGIS, gr;aficos completos, generacion de PDF y usaba angular 17 con código en javascript, mismo stack, pero más antiguo. Luego el v2 desarrrolaldo por Santiago Linares, que ha sido un refactor de la app subiendolo a angular 21, las versiones de lo demas que puedes ver tu aqui, añadiendo una modernización del look and feel, un modelo de calculo que no delega todo en PVGIS y se basa en el motor de NREL PVWATTS V5 Manual, con gr;aficos economicos tambien. Quiero que el timeline sea más minimalista en su diseño sin las flechas y más interactivo con efectos al hacer hover"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La timeline anterior contaba una planificación mensual genérica, pero el usuario necesitaba una narrativa de evolución del producto. La nueva estructura compara v1 y v2 con un tercer punto de continuidad, que ayuda a leer el proyecto como una base técnica en evolución. Las versiones de v2 se tomaron de los `package.json` locales para evitar inventar números.
