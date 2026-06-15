@@ -237,7 +237,8 @@ export type ProjectConfigPreviewInput = z.infer<typeof ProjectConfigPreviewSchem
  * Visitor quick estimate schema
  *
  * Unauthenticated polygon-based panel count estimate.
- * Uses fixed panel size (2m × 4m) and 2m row spacing.
+ * Uses public defaults (2m × 4m, 400W, 30° tilt, south-facing)
+ * through the same optimal layout calculation used by project setup.
  */
 export const EstimateSchema = z.object({
   area: z

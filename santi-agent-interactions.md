@@ -4063,7 +4063,7 @@ El usuario solicitó inspeccionar todos los TODOs del proyecto y crear una tabla
 
 ### Full Prompt
 > "Quiero que inspecciones todos los TODOs que hay marcados en el proyecto y en una tabla me indiques en que fichero se encuentra, cual es el problema, que dice el comentario del todo, como podría solucionarse, si requiere de mi interacción porque puede llevarse a cabo de diversas maneras, o si puede delegarse a un agente de IA y que tan complicado es."
-> 
+>
 > (Seguido de aprobación del plan de ramas y solicitud de implementación empezando por triviales y bajos.)
 
 ### Affected Files
@@ -4135,6 +4135,170 @@ El problema principal era de consistencia: el frontend calculaba spacing, máxim
 
 ---
 
+## June 7, 2026 - Alineacion visual del estimador publico con add-project
+
+### Topic
+Rediseño del componente `estimate` para compartir look and feel con el nuevo wizard de `add-project`.
+
+### Summary of Prompt
+El usuario pidio que el componente `client/src/app/features/visitor/estimate/` tuviera la misma UI y sensacion visual que el flujo de `add-project`.
+
+### What Was Achieved
+- El estimador publico ahora usa una cabecera sticky tipo wizard con stepper de 3 pasos: location, draw area y estimate.
+- Se sustituyo la iconografia custom por Material Symbols, manteniendo PrimeNG para botones/campos donde ya encaja con el proyecto.
+- La busqueda de ubicacion, el mapa, los avisos y el resumen de area usan los mismos patrones visuales del `add-project` rediseñado.
+- El resultado se presenta como tarjeta compacta con metric grid, estado y bloque bloqueado para el analisis completo.
+- El CTA de registro/inicio de sesion se rediseño para encajar con el lenguaje visual del wizard.
+
+### Full Prompt
+> "I want the [estimate](client/src/app/features/visitor/estimate/) component to have the same UI and look and feel as this add-project. I want the [estimate](client/src/app/features/visitor/estimate/) component to have the same UI and look and feel as this add-project."
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El estimador es una herramienta publica mas corta que el alta de proyecto, por lo que no se copio el wizard de cinco pasos completo. Se adapto a tres estados reales del flujo para mantener claridad sin meter pasos falsos. El objetivo fue reutilizar la gramatica visual de `add-project`: cabecera sticky, stepper, section heading, site summary strip, feedback banners, metric cards y acciones compactas. Tambien se eliminaron PrimeIcons del template del estimador para alinearlo con el uso dominante de Material Symbols en la aplicacion.
+
+---
+
+## June 14, 2026 - Unificacion del calculo del estimador publico
+
+### Topic
+Reutilizar el motor de calculo optimo del backend para el estimador publico sin autenticacion.
+
+### Summary of Prompt
+El usuario pidio implementar el plan para que `POST /api/projects/estimate` dejara de usar una formula paralela simple y delegara en el mismo calculo optimo usado por `add-project` y `configure-project`, manteniendo la experiencia publica sin auth y sin cambiar el contrato del frontend.
+
+### What Was Achieved
+- `estimateFromPolygon` ahora es async y delega en `calculateOptimalConfig` con defaults publicos.
+- El endpoint publico mantiene la misma respuesta: `panelCount`, `areaSqm` y `estimatedKwp`.
+- `estimateProject` espera la promesa del servicio.
+- Los comentarios del schema explican que el estimate usa defaults publicos a traves del motor optimo.
+- Los tests del servicio se ajustaron para validar defaults publicos y el contrato de respuesta.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Unificar El Cálculo Del Estimador Público Con El Motor Óptimo
+>
+> ## Summary
+> Cambiar el estimador público para que deje de usar una fórmula paralela simple y pase a reutilizar el mismo motor backend que `add-project`/`configure-project`, manteniendo la ruta pública y la experiencia sin auth. El visitante seguirá sin elegir panel ni tilt: el backend aplicará defaults públicos.
+>
+> [...]"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `server/src/controllers/project.controller.ts`
+- `server/src/schemas/project.schema.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La formula antigua del estimador publico usaba un spacing fijo de 2m y no tenia en cuenta latitud, inclinacion ni orientacion, mientras el alta de proyecto ya usaba un calculo de spacing basado en sombras. Para evitar resultados incoherentes entre la puerta de entrada publica y el wizard autenticado, se mantuvo el endpoint publico pero se convirtio su implementacion en una adaptacion con defaults: panel de 2m x 4m, 400W, tilt 30 y azimuth sur. Asi no se añade seleccion de panel al visitante ni se consulta MongoDB, pero el calculo de capacidad queda alineado con el motor optimo.
+
+---
+
+## June 14, 2026 - Limpieza de acciones del estimador publico
+
+### Topic
+Eliminar botones duplicados y normalizar los CTAs del componente `estimate`.
+
+### Summary of Prompt
+El usuario pidio quitar los botones de login y registro de la barra interna del estimador, porque el header global ya los incluye. Tambien pidio que los botones `Create free project` y `Sign in` tuvieran el mismo tamano, y que el texto del primero pasara a ser `Create project`.
+
+### What Was Achieved
+- Se eliminaron los botones duplicados de login y registro de la barra sticky interna de `estimate`.
+- El CTA principal del bloque bloqueado ahora dice `Create project`.
+- El CTA de `Sign in` usa un boton secundario propio con las mismas dimensiones base que el CTA principal.
+- Se ajusto el comportamiento responsive para que ambos botones mantengan consistencia en mobile.
+
+### Full Prompt
+> "En la barra de "estimate" hay botones de login y de register. Esos botones sobran porque en el header ya tenemos esos botones. Eliminalos. Luego necesito que el tamaño de los botones de create free project y login sean del mismo tamaño. Modifica el boton de "create free project" a "create project""
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La barra del estimador ya vive dentro del layout publico, por lo que repetir login y registro competia con el header global y hacia el primer viewport mas ruidoso. En el bloque de analisis completo se mantuvieron dos acciones, pero se paso el login a una variante secundaria local para compartir altura, padding y ritmo visual con el CTA principal sin depender del tamaño propio de PrimeNG. El cambio es solo visual y no altera la navegacion ni el flujo de calculo.
+
+---
+
+## June 14, 2026 - Padding lateral del stepper del estimador
+
+### Topic
+Alinear el espaciado del header stepper de `estimate` con `add-project` y `configure-project`.
+
+### Summary of Prompt
+El usuario indico que el panel stepper del estimador no tenia padding lateral y pidio añadirlo como en los flujos de alta/configuracion de proyecto.
+
+### What Was Achieved
+- Se añadio padding horizontal al contenedor `.estimate-page`.
+- Se mantuvo el margen negativo del sticky header para conservar el panel full-width con contenido respirando por dentro.
+- Se ajusto el padding del area de contenido para evitar doble acolchado lateral.
+- Se adapto el mismo comportamiento para mobile con padding de `1rem`.
+
+### Full Prompt
+> "Otra cosa. no hay padding a los lados del panel stepper. añadelo como estan en add project o configure project"
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El layout publico renderiza el contenido con padding vertical pero sin padding horizontal, mientras el layout autenticado aporta `1.5rem` alrededor de `add-project` y `configure-project`. Como el sticky header usa margen negativo para ocupar todo el ancho del contenedor y padding interno para alinear sus controles, el estimador necesitaba recrear ese acolchado en su propia raiz. Asi el stepper queda visualmente alineado con los wizards autenticados sin tocar el layout global de visitantes.
+
+---
+
+## June 14, 2026 - Compactar cabecera del estimador
+
+### Topic
+Reducir el espacio vertical sobre la tarjeta `Estimator assumptions`.
+
+### Summary of Prompt
+El usuario indico que sobraba espacio encima de la tarjeta de supuestos del estimador y pidio subirla un poco, probablemente ajustando el titulo y descripcion.
+
+### What Was Achieved
+- Se redujo el `gap` vertical de la seccion principal del estimador.
+- Se compacto ligeramente el margen inferior del titulo.
+- Se redujo un poco el tamaño y line-height de la descripcion de cabecera.
+
+### Full Prompt
+> "Sobra un espacio arriba de la tarjeta de Estimator assumptions. Sube la tarjeta un poco más. imagino que tendrás que tocar algo en el titulo, descripcion de la tarjeta"
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La tarjeta ya estaba alineada al inicio del grid, asi que el hueco visible venia de la separacion entre la cabecera descriptiva y el layout principal. Compactar la cabecera mueve la tarjeta hacia arriba sin usar margenes negativos ni afectar la estructura responsive del estimador.
+
+---
+
+## June 14, 2026 - Alinear tarjeta de supuestos con la cabecera izquierda
+
+### Topic
+Eliminar el hueco real sobre `Estimator assumptions` causado por la estructura del grid.
+
+### Summary of Prompt
+El usuario indico que el espacio superior seguia estando ahi despues de compactar la cabecera del estimador.
+
+### What Was Achieved
+- Se movio la cabecera `Quick Panel Estimate` dentro de la columna izquierda del layout.
+- La tarjeta `Estimator assumptions` ahora puede empezar arriba de la columna derecha, alineada con la cabecera del flujo.
+- Se mantuvo el contenido y orden visual del estimador sin cambiar la logica.
+
+### Full Prompt
+> "El espacio sigue estando allí"
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El hueco persistia porque la cabecera estaba antes del grid y ocupaba una fila completa, empujando tanto el mapa como la columna lateral. Mover la cabecera a la columna izquierda elimina esa fila global: el usuario ve el titulo sobre la busqueda y, al mismo tiempo, la tarjeta de supuestos arranca en la parte superior de la columna derecha.
 ## June 7, 2026 - Seguimiento de errores en runtime del wizard y gráficos
 
 ### Topic

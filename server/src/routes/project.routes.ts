@@ -55,6 +55,8 @@ router.get('/dashboard', verifyUserJwtToken, getUserDashboard);
 
 router.get('/admin/dashboard', verifyAdminJwtToken, getAdminDashboard);
 
+router.get('/electricity-price', verifyUserJwtToken, getElectricityPriceSuggestion);
+
 router.get('/:id', verifyUserJwtToken, getProjectById);
 
 router.put('/:id', verifyUserJwtToken, validateBody(ProjectUpdateSchema), updateProject);
