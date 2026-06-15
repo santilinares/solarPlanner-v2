@@ -1,8 +1,11 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 import * as Highcharts from 'highcharts';
+import AccessibilityModule from 'highcharts/modules/accessibility';
 import { HighchartsChartModule } from 'highcharts-angular';
 import { DecimalPipe } from '@angular/common';
 import { DividerModule } from 'primeng/divider';
+
+AccessibilityModule(Highcharts);
 
 export interface EconomicValue {
   value: number;

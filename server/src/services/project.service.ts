@@ -1,5 +1,4 @@
 import { HydratedDocument, Types, startSession } from 'mongoose';
-type FilterQuery<_T> = Record<string, any>;
 import { getCenter, getAreaOfPolygon } from 'geolib';
 import { find } from 'geo-tz';
 import { ProjectModel, IProject, IProductionPoint} from '../models/project.model';
@@ -30,6 +29,7 @@ import {
   PvgisRefResponse,
   ProjectConfigPreview,
   ProjectPanelSummary,
+  ElectricityPriceSuggestionResponse,
 } from '../types/project.types';
 import { getCapexPerKwp } from './capex-benchmark.service';
 import { CapexSegment } from '../data/capex-benchmarks-eu';
@@ -81,6 +81,14 @@ interface PlanData {
   estimatedAnnualProduction: number;
   generatedAt: string;
 }
+
+type ProjectListQuery = {
+  owner?: string;
+  country?: string;
+  installDate?: { $gte?: Date; $lte?: Date };
+  $text?: { $search: string };
+  projectType?: 'roof' | 'agrivoltaic';
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -265,7 +273,7 @@ export class ProjectService {
    */
   async createProject(userId: string, data: ProjectCreateInput): Promise<ProjectResponse> {
     // 1. Validate referenced documents (panel reused below to avoid a second DB round-trip)
-    let panel: Awaited<ReturnType<typeof PanelModel.findById>> | null = null;
+    let panel: HydratedDocument<IPanel> | null = null;
     if (data.panelId) {
       panel = await PanelModel.findById(data.panelId);
       if (!panel) throw new Error('Panel not found');
@@ -284,26 +292,33 @@ export class ProjectService {
     let resolvedTimezone: string | undefined;
 
     try {
-      resolvedCountry = this.resolveCountry(lat, lon, undefined);
+      resolvedCountry = this.resolveCountry(
+        lat,
+        lon,
+        data.country && data.countryCode ? { name: data.country, code: data.countryCode } : undefined,
+      );
       console.info(`[Project Creation] Country: ${resolvedCountry?.name} (${resolvedCountry?.code})`);
     } catch (error) {
       console.warn('[Project Creation] Country resolution error:', error);
     }
 
     try {
-      resolvedTimezone = this.resolveTimezone(lat, lon, undefined);
+      resolvedTimezone = this.resolveTimezone(lat, lon, data.timezone);
       console.info(`[Project Creation] Timezone: ${resolvedTimezone}`);
     } catch (error) {
       console.warn('[Project Creation] Timezone resolution error:', error);
     }
 
     // 3. External API calls — completed before the DB transaction so the session stays short
-    const priceData = await this.fetchElectricityPrice(resolvedCountry?.code ?? '').catch(
-      (error: unknown) => {
-        console.warn('[Project Creation] Price lookup error:', error);
-        return { price: undefined, currency: undefined };
-      },
-    );
+    const priceData =
+      data.price != null
+        ? { price: data.price, currency: data.currency }
+        : await this.fetchElectricityPrice(resolvedCountry?.code ?? data.countryCode ?? '').catch(
+            (error: unknown) => {
+              console.warn('[Project Creation] Price lookup error:', error);
+              return { price: undefined, currency: undefined };
+            },
+          );
 
     let productionData = { prodToday: [] as IProductionPoint[], nextProd: [] as IProductionPoint[], previousProd: [] as IProductionPoint[] };
     let pvgisResult: PvgisAnnualResult | undefined;
@@ -315,7 +330,7 @@ export class ProjectService {
             lat,
             lon,
             tilt: data.tilt,
-            azimuth: undefined, // azimuth not in create schema, defaults to south
+            azimuth: data.azimuth,
             panelNumber: data.panelNumber,
             installDate: new Date(),
             dcAcRatio: data.dcAcRatio,
@@ -336,7 +351,7 @@ export class ProjectService {
             peakpowerKw,
             systemLossPct,
             data.tilt,
-            undefined, // azimuth not in create schema, defaults to south
+            data.azimuth,
           );
           console.info(`[Project Creation] PVGIS: ${pvgisResult.yearlyKwh.toFixed(0)} kWh/year, ${pvgisResult.yearlyKwhPerKwp.toFixed(0)} kWh/kWp`);
         } catch (pvgisError) {
@@ -365,7 +380,7 @@ export class ProjectService {
       country: resolvedCountry?.name,
       countryCode: resolvedCountry?.code,
       timezone: resolvedTimezone,
-      currency: priceData.currency,
+      currency: priceData.currency ?? data.currency,
       price: priceData.price,
       prodToday: productionData.prodToday,
       nextProd: productionData.nextProd,
@@ -580,7 +595,7 @@ export class ProjectService {
       return { data: [project], total: 1, page: 1, limit: 1, totalPages: 1 };
     }
 
-    const query: FilterQuery<IProject> = {};
+    const query: ProjectListQuery = {};
 
     if (filters.owner) {
       query.owner = filters.owner;
@@ -594,7 +609,7 @@ export class ProjectService {
       const dateQuery: Record<string, Date> = {};
       if (filters.from) dateQuery.$gte = filters.from;
       if (filters.to) dateQuery.$lte = filters.to;
-      (query as Record<string, unknown>).installDate = dateQuery;
+      query.installDate = dateQuery;
     }
 
     if (filters.search) query.$text = { $search: filters.search };
@@ -901,18 +916,28 @@ export class ProjectService {
     const panelWatts = wattPeak ?? 300;
     const estimatedCapacity = (recommendedPanels * panelWatts) / 1000;
 
-    // Use real irradiation from PVGIS (H(i)_y ÷ 365) when the project has it stored;
-    // fall back to the empirical formula for standalone estimates without a project context.
+    // Lightweight preliminary yield only. The full app production model runs after
+    // project creation using weather, irradiance, panel and system-loss inputs.
     let peakSunHours: number;
     if (projectId) {
       const proj = await ProjectModel.findById(projectId).select('pvgisRef').lean();
       const poa = proj?.pvgisRef?.yearlyPOAIrradiation;
       peakSunHours = poa ? poa / 365 : 5.5 - Math.abs(latitude) * 0.02;
     } else {
-      peakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+      const basePeakSunHours = 5.5 - Math.abs(latitude) * 0.02;
+      const azimuthDeviation = Math.min(Math.abs((azimuth ?? 180) - 180), 180);
+      const orientationFactor = Math.max(0.55, 1 - (azimuthDeviation / 180) * 0.35);
+      const idealTilt = Math.min(45, Math.max(10, Math.abs(latitude) * 0.76));
+      const tiltDeviation = Math.abs(tilt - idealTilt);
+      const tiltFactor = Math.max(0.7, 1 - (tiltDeviation / 90) * 0.3);
+      peakSunHours = basePeakSunHours * orientationFactor * tiltFactor;
     }
     const systemEfficiency = 0.85;
     const estimatedProduction = estimatedCapacity * peakSunHours * 365 * systemEfficiency;
+    const estimatedProductionRange = {
+      low: Math.round(estimatedProduction * 0.85),
+      high: Math.round(estimatedProduction * 1.15),
+    };
 
     const panelArea = W * H;
     const coverage = ((recommendedPanels * panelArea) / surfaceArea) * 100;
@@ -921,6 +946,8 @@ export class ProjectService {
       recommendedPanels,
       estimatedCapacity,
       estimatedProduction,
+      estimatedProductionRange,
+      productionEstimateMode: 'preliminary',
       coverage: Math.min(coverage, 100),
       surfaceArea,
       latitude,
@@ -1050,6 +1077,22 @@ export class ProjectService {
       optimal,
       currency,
       warnings,
+  async getElectricityPriceSuggestion(countryCode: string): Promise<ElectricityPriceSuggestionResponse> {
+    const normalizedCountryCode = this.normalizeCountryCode(countryCode.trim());
+    if (!normalizedCountryCode) {
+      return { price: null, currency: null, source: 'unavailable', countryCode: '' };
+    }
+
+    const result = await this.fetchElectricityPrice(normalizedCountryCode).catch((error: unknown) => {
+      console.warn('[ENTSO-E] Price suggestion failed:', error);
+      return { price: undefined, currency: undefined };
+    });
+
+    return {
+      price: result.price ?? null,
+      currency: result.currency ?? null,
+      source: result.price != null ? 'entsoe' : 'unavailable',
+      countryCode: normalizedCountryCode,
     };
   }
 
@@ -1337,11 +1380,34 @@ export class ProjectService {
       const crg = CRG();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const result = crg.get_country(lat, lon) as { code: string; name: string } | null;
-      if (result?.name) return { name: result.name, code: result.code };
+      if (result?.name) {
+        return {
+          name: result.name,
+          code: this.normalizeCountryCode(result.code, fallback?.code),
+        };
+      }
     } catch (error) {
       console.warn(`[Country Resolution] Failed for (${lat}, ${lon}):`, error);
     }
     return fallback;
+  }
+
+  private normalizeCountryCode(code: string | undefined, fallback?: string): string {
+    if (!code) return fallback?.toUpperCase() ?? '';
+    const upper = code.toUpperCase();
+    const alpha3ToAlpha2: Record<string, string> = {
+      ESP: 'ES',
+      PRT: 'PT',
+      DEU: 'DE',
+      FRA: 'FR',
+      ITA: 'IT',
+      GBR: 'GB',
+      NLD: 'NL',
+      BEL: 'BE',
+      POL: 'PL',
+      AUT: 'AT',
+    };
+    return alpha3ToAlpha2[upper] ?? (upper.length === 2 ? upper : fallback?.toUpperCase() ?? upper);
   }
 
   private resolveTimezone(

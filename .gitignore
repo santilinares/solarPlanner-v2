@@ -63,7 +63,6 @@ coverage/
 # Misc
 .env.backup
 .server-requests/
-scripts/
 .agent/
 .cursor/settings.json
 .other-readme/

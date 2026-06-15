@@ -97,6 +97,24 @@ describe('ProjectCreateSchema', () => {
     expect(ProjectCreateSchema.safeParse({ ...validProject, rawSpacing: 2.5 }).success).toBe(true);
   });
 
+  it('accepts country metadata and energy price on creation', () => {
+    expect(
+      ProjectCreateSchema.safeParse({
+        ...validProject,
+        azimuth: 180,
+        country: 'Spain',
+        countryCode: 'ES',
+        timezone: 'Europe/Madrid',
+        currency: 'EUR',
+        price: 0.18,
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects negative creation price', () => {
+    expect(ProjectCreateSchema.safeParse({ ...validProject, price: -0.01 }).success).toBe(false);
+  });
+
   it('rejects non-positive rawSpacing', () => {
     expect(ProjectCreateSchema.safeParse({ ...validProject, rawSpacing: 0 }).success).toBe(false);
   });
@@ -206,6 +224,10 @@ describe('OptimalConfigFromPolygonSchema', () => {
 
   it('accepts valid input', () => {
     expect(OptimalConfigFromPolygonSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('accepts optional azimuth', () => {
+    expect(OptimalConfigFromPolygonSchema.safeParse({ ...valid, azimuth: 180 }).success).toBe(true);
   });
 
   it('rejects area with fewer than 3 points', () => {

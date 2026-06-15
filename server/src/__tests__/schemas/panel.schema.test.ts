@@ -94,6 +94,25 @@ describe('PanelQuerySchema', () => {
     expect(PanelQuerySchema.safeParse({}).success).toBe(true);
   });
 
+  it('applies default page and limit', () => {
+    const result = PanelQuerySchema.safeParse({});
+    expect(result.success && result.data.page).toBe(1);
+    expect(result.success && result.data.limit).toBe(20);
+  });
+
+  it('coerces string page and limit to numbers', () => {
+    const result = PanelQuerySchema.safeParse({ page: '1', limit: '200' });
+    expect(result.success && result.data.page).toBe(1);
+    expect(result.success && result.data.limit).toBe(200);
+  });
+
+  it('rejects invalid pagination values', () => {
+    expect(PanelQuerySchema.safeParse({ page: '0' }).success).toBe(false);
+    expect(PanelQuerySchema.safeParse({ limit: '0' }).success).toBe(false);
+    expect(PanelQuerySchema.safeParse({ page: 'abc' }).success).toBe(false);
+    expect(PanelQuerySchema.safeParse({ limit: '201' }).success).toBe(false);
+  });
+
   it('accepts type filter', () => {
     expect(PanelQuerySchema.safeParse({ type: 'global' }).success).toBe(true);
   });

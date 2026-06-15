@@ -54,7 +54,9 @@ function makeMockPanel(overrides: Record<string, unknown> = {}) {
 function mockFindChain(panels: ReturnType<typeof makeMockPanel>[]) {
   return {
     populate: vi.fn().mockReturnThis(),
-    sort: vi.fn().mockResolvedValue(panels),
+    sort: vi.fn().mockReturnThis(),
+    skip: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue(panels),
   };
 }
 
@@ -140,7 +142,8 @@ describe('PanelService', () => {
   describe('listPanels', () => {
     it('returns global + personal panels for a user when no owner filter', async () => {
       const panels = [makeMockPanel(), makeMockPanel({ type: 'personal' })];
-      mockFind.mockReturnValueOnce(mockFindChain(panels));
+      const findChain = mockFindChain(panels);
+      mockFind.mockReturnValueOnce(findChain);
       mockCountDocuments.mockResolvedValueOnce(2);
 
       const result = await service.listPanels({}, 'user-id-123');
@@ -149,6 +152,10 @@ describe('PanelService', () => {
         $or: [{ type: 'global' }, { type: 'personal', owner: 'user-id-123' }],
       });
       expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+      expect(findChain.skip).toHaveBeenCalledWith(0);
+      expect(findChain.limit).toHaveBeenCalledWith(20);
     });
 
     it('returns single panel when id filter is provided', async () => {
@@ -161,6 +168,8 @@ describe('PanelService', () => {
 
       expect(result.panels).toHaveLength(1);
       expect(result.total).toBe(1);
+      expect(mockFind).not.toHaveBeenCalled();
+      expect(mockCountDocuments).not.toHaveBeenCalled();
     });
 
     it('applies technology filter when provided', async () => {
@@ -172,6 +181,23 @@ describe('PanelService', () => {
       expect(mockFind).toHaveBeenCalledWith(
         expect.objectContaining({ technology: 'Monocrystalline' })
       );
+    });
+
+    it('applies pagination while total counts the full filtered query', async () => {
+      const findChain = mockFindChain([makeMockPanel()]);
+      mockFind.mockReturnValueOnce(findChain);
+      mockCountDocuments.mockResolvedValueOnce(42);
+
+      const result = await service.listPanels({ page: 2, limit: 15, type: 'global' });
+
+      expect(mockFind).toHaveBeenCalledWith({ type: 'global' });
+      expect(mockCountDocuments).toHaveBeenCalledWith({ type: 'global' });
+      expect(findChain.skip).toHaveBeenCalledWith(15);
+      expect(findChain.limit).toHaveBeenCalledWith(15);
+      expect(result.panels).toHaveLength(1);
+      expect(result.total).toBe(42);
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(15);
     });
   });
 

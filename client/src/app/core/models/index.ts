@@ -29,6 +29,7 @@ export {
   ProjectConfigPreview,
   ProjectConfigPreviewMetrics,
   ProjectPanelSummary,
+  ElectricityPriceSuggestion,
   ProjectAnalytics,
 } from './project.model';
 

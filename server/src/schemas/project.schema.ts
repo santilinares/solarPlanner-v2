@@ -76,6 +76,12 @@ export const ProjectCreateSchema = z.object({
     ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'],
     { errorMap: () => ({ message: 'Direction must be a cardinal direction (e.g., "south", "northeast")' }) }
   ),
+  azimuth: z.number().min(0).max(360).optional(),
+  country: z.string().optional(),
+  countryCode: z.string().length(2).optional(),
+  timezone: z.string().optional(),
+  currency: z.string().length(3).optional(),
+  price: z.number().nonnegative().optional(),
   rawSpacing: z.number().positive().optional(),
   panelNumber: z.number().int().positive('Panel number must be a positive integer'),
   panelId: ObjectIdSchema.optional(),

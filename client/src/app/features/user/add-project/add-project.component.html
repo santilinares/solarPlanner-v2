@@ -1,5 +1,4 @@
 <div class="add-project-page">
-  <!-- ═══ TOP STICKY HEADER BAR ═══ -->
   <header class="configure-sticky-header">
     <div class="step-nav-bar">
       <div class="step-nav-left">
@@ -22,9 +21,11 @@
           size="small"
         />
       </div>
+
       <span class="step-nav-mode-label">Create Mode</span>
+
       <div class="step-nav-right">
-        @if (activeStep() < 3) {
+        @if (activeStep() < steps.length - 1) {
           <p-button
             [label]="stepNextLabel()"
             icon="pi pi-arrow-right"
@@ -40,7 +41,7 @@
             icon="pi pi-check"
             [rounded]="true"
             [loading]="isSubmitting()"
-            [disabled]="!canSubmit() || isSubmitting()"
+            [disabled]="!canSubmit()"
             (onClick)="onSubmit()"
             size="small"
           />
@@ -48,16 +49,15 @@
       </div>
     </div>
 
-    <!-- Row 2: Horizontal Stepper -->
-    <nav class="sticky-stepper-row">
-      @for (step of steps(); track $index; let last = $last) {
+    <nav class="sticky-stepper-row" aria-label="Create project steps">
+      @for (step of steps; track step.label; let last = $last) {
         <button
           type="button"
           class="step-btn"
           [class.step-btn-active]="$index === activeStep()"
           [class.step-btn-future]="$index > activeStep()"
           [disabled]="$index > activeStep()"
-          (click)="$index < activeStep() && goToStep($index)"
+          (click)="$index <= activeStep() && goToStep($index)"
         >
           <span
             class="step-icon-wrapper"
@@ -65,13 +65,13 @@
             [class.completed]="$index < activeStep()"
           >
             @if ($index < activeStep()) {
-              <i class="pi pi-check"></i>
+              <span class="material-symbols-outlined">check</span>
             } @else {
               {{ $index + 1 }}
             }
           </span>
           <span class="step-label-wrap">
-            <i [class]="step.icon"></i>
+            <span class="material-symbols-outlined">{{ step.icon }}</span>
             {{ step.label }}
           </span>
         </button>
@@ -82,15 +82,17 @@
     </nav>
   </header>
 
-  <!-- ═══ MAIN CONTENT AREA ═══ -->
   <main class="content-area">
     <div class="content-shell">
-
-      <!-- ════════ STEP 0: Project Details ════════ -->
       @if (activeStep() === 0) {
         <section class="step-section animate-fade-in-up">
-          <h2 class="step-title">Project Details</h2>
-          <p class="step-subtitle">Start by giving your project a name and choosing the installation type.</p>
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">description</span>
+            <div>
+              <h2>Project Basics</h2>
+              <p>Name the installation and add the notes you want to remember later.</p>
+            </div>
+          </div>
 
           <div class="form-group">
             <label for="projectName">Project Name</label>
@@ -100,9 +102,10 @@
               type="text"
               [value]="projectName()"
               (input)="projectName.set($any($event.target).value)"
-              placeholder="e.g. Madrid Solar Farm Phase 1"
+              placeholder="e.g. Family house rooftop"
               class="w-full"
             />
+            <small class="helper-text">Use at least two characters.</small>
           </div>
 
           <div class="form-group">
@@ -112,52 +115,29 @@
               id="projectDesc"
               [value]="projectDescription()"
               (input)="projectDescription.set($any($event.target).value)"
-              placeholder="Brief description of the project scope, client, and goals..."
-              rows="3"
+              placeholder="Optional notes about roof, client, goals, or constraints..."
+              rows="4"
               class="w-full"
             ></textarea>
-            <small class="helper-text">Optional. Add notes for your team.</small>
           </div>
 
-          <div class="form-group">
-            <label>Installation Type</label>
-            <div class="type-cards">
-              <button
-                type="button"
-                class="type-card"
-                [class.selected]="projectType() === 'roof'"
-                (click)="projectType.set('roof')"
-              >
-                <span class="type-icon-box" [class.active]="projectType() === 'roof'">
-                  <span class="material-symbols-outlined">roofing</span>
-                </span>
-                <span class="type-label">Roof Mounting</span>
-                <span class="type-desc">Traditional rooftop or ground-mounted solar panel installation</span>
-              </button>
-              <button
-                type="button"
-                class="type-card"
-                [class.selected]="projectType() === 'agrivoltaic'"
-                (click)="projectType.set('agrivoltaic')"
-              >
-                <span class="type-icon-box" [class.active]="projectType() === 'agrivoltaic'">
-                   <span class="material-symbols-outlined">psychiatry</span>
-                </span>
-                <span class="type-label">Agrivoltaic</span>
-                <span class="type-desc">Dual-use solar with agriculture, optimized for crop compatibility</span>
-              </button>
-            </div>
+          <div class="feedback-banner feedback-info">
+            <span class="material-symbols-outlined">info</span>
+            <span>For this version, project creation is focused on standard roof or ground-mounted solar installations.</span>
           </div>
         </section>
       }
 
-      <!-- ════════ STEP 1: Location & Area ════════ -->
       @if (activeStep() === 1) {
         <section class="step-section animate-fade-in-up">
-          <h2 class="step-title">Location & Area</h2>
-          <p class="step-subtitle">Search for the installation site and define the project area.</p>
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">map</span>
+            <div>
+              <h2>Site & Area</h2>
+              <p>Find the location and draw the polygon where panels can be installed.</p>
+            </div>
+          </div>
 
-          <!-- Search bar -->
           <div class="form-group">
             <label>Search Location</label>
             <div class="location-search">
@@ -188,7 +168,6 @@
                 [outlined]="true"
                 [loading]="isSearching()"
                 [disabled]="isSearching() || !addressQuery().trim()"
-                [class]="addressQuery().trim() ? 'search-action-btn search-action-btn-active' : 'search-action-btn'"
                 (onClick)="searchAddress()"
                 size="small"
               />
@@ -196,17 +175,20 @@
           </div>
 
           @if (searchError()) {
-            <p class="search-error">{{ searchError() }}</p>
-          }
-
-          @if (addressResult()) {
-            <div class="address-feedback">
-              <i class="pi pi-map-marker"></i>
-              <span>{{ addressResult() }} ({{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }})</span>
+            <div class="feedback-banner feedback-error">
+              <span class="material-symbols-outlined">error</span>
+              <span>{{ searchError() }}</span>
             </div>
           }
 
-          <!-- Map -->
+          @if (addressResult()) {
+            <div class="site-summary-strip">
+              <span class="material-symbols-outlined">pin_drop</span>
+              <strong>{{ addressResult() }}</strong>
+              <span>{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</span>
+            </div>
+          }
+
           <div class="form-group">
             <label>Project Area</label>
             <div class="map-wrapper">
@@ -220,675 +202,332 @@
             </div>
           </div>
 
-          <!-- Polygon status -->
           @if (hasDrawnArea()) {
             <div class="feedback-banner feedback-success">
-              <i class="pi pi-check-circle"></i>
-              <span>Polygon defined — <strong>{{ drawnPolygonPoints().length }}</strong> vertices</span>
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>Area defined with <strong>{{ drawnPolygonPoints().length }}</strong> vertices.</span>
             </div>
           } @else {
             <div class="feedback-banner feedback-neutral">
-              <i class="pi pi-info-circle"></i>
-              <span>No polygon defined. Draw a polygon to define the installation area.</span>
+              <span class="material-symbols-outlined">draw</span>
+              <span>Draw a polygon on the map to define the usable installation area.</span>
             </div>
           }
-
-          <!-- Energy Price -->
-          <div class="form-group">
-            <div class="label-row">
-              <label>Energy Price</label>
-              <p-tag value="€/kWh" icon="pi pi-bolt" severity="secondary" [rounded]="true" />
-            </div>
-            <div class="inline-field">
-              <p-inputNumber
-                [ngModel]="energyPrice()"
-                (ngModelChange)="energyPrice.set($event)"
-                mode="decimal"
-                [step]="0.01"
-                [min]="0"
-                [minFractionDigits]="2"
-                [maxFractionDigits]="4"
-              />
-              <small class="helper-text">Local grid electricity price for ROI calculations.</small>
-            </div>
-          </div>
         </section>
       }
 
-      <!-- ════════ STEP 2: Configuration ════════ -->
       @if (activeStep() === 2) {
         <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">bolt</span>
+            <div>
+              <h2>Energy Price</h2>
+              <p>Use the suggested market price as a starting point, then adjust it to match the electricity bill if you know it.</p>
+            </div>
+          </div>
 
-          <!-- ──── ROOF CONFIG ──── -->
-          @if (projectType() !== 'agrivoltaic') {
-            <h2 class="step-title">Roof Installation Config</h2>
-            <p class="step-subtitle">Select your panel and configure the optimal layout for your roof installation.</p>
+          <div class="energy-layout">
+            <div class="energy-editor">
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="energyPrice">Electricity Price</label>
+                  <p-tag [value]="currency() + '/kWh'" severity="secondary" [rounded]="true" />
+                </div>
+                <p-inputNumber
+                  inputId="energyPrice"
+                  [ngModel]="energyPrice()"
+                  (ngModelChange)="onPriceEdited($event)"
+                  mode="decimal"
+                  [step]="0.01"
+                  [min]="0"
+                  [minFractionDigits]="2"
+                  [maxFractionDigits]="4"
+                  suffix=" /kWh"
+                  class="w-full"
+                />
+                <small class="helper-text">Your bill price is usually better for savings and payback estimates than any market reference.</small>
+              </div>
+            </div>
 
-            <!-- Panel selection -->
+            <div class="suggestion-panel">
+              <div class="suggestion-header">
+                <span class="material-symbols-outlined">query_stats</span>
+                <strong>ENTSO-E suggestion</strong>
+              </div>
+              @if (isFetchingPrice()) {
+                <p>Looking up the latest available country-level price...</p>
+              } @else if (priceSuggestion() != null) {
+                <span class="suggestion-price">{{ formatPrice(priceSuggestion()) }}</span>
+                <p>Day-ahead market average for {{ detectedCountryCode() || 'the selected country' }}. Treat it as a reference, not your final tariff.</p>
+              } @else {
+                <span class="suggestion-price muted">No suggestion available</span>
+                <p>{{ priceError() || 'Search a supported European country to request an ENTSO-E suggestion.' }}</p>
+              }
+              @if (priceSource() === 'manual') {
+                <p-tag value="User edited" icon="pi pi-pencil" severity="info" [rounded]="true" />
+              } @else if (priceSource() === 'entsoe') {
+                <p-tag value="Suggested by ENTSO-E" icon="pi pi-check-circle" severity="success" [rounded]="true" />
+              } @else {
+                <p-tag value="Default value" severity="secondary" [rounded]="true" />
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (activeStep() === 3) {
+        <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">solar_power</span>
+            <div>
+              <h2>Installation Setup</h2>
+              <p>Select the panel and tune the layout. The recommended count and spacing come from the backend calculator.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="panelSelect">Solar Panel</label>
+            <p-select
+              inputId="panelSelect"
+              [options]="panelOptions()"
+              [ngModel]="selectedPanelId()"
+              (ngModelChange)="selectedPanelId.set($event); onPanelChange()"
+              optionLabel="label"
+              optionValue="value"
+              [filter]="true"
+              placeholder="Select a solar panel..."
+              class="w-full"
+            />
+          </div>
+
+          @if (selectedPanelData(); as panel) {
+            <div class="panel-info-card">
+              <div>
+                <strong>{{ panel.brand }} {{ panel.model }}</strong>
+                <span>{{ panel.dimensions.width / 1000 | number: '1.1-2' }}m x {{ panel.dimensions.height / 1000 | number: '1.1-2' }}m</span>
+              </div>
+              <div class="panel-tags">
+                <p-tag [value]="panel.wattPeak + 'W'" icon="pi pi-bolt" severity="warn" [rounded]="true" />
+                <p-tag [value]="panel.efficiency + '% eff.'" icon="pi pi-gauge" severity="success" [rounded]="true" />
+              </div>
+            </div>
+          }
+
+          <div class="config-grid">
             <div class="form-group">
-              <label for="panelSelect">Solar Panel</label>
-              <p-select
-                inputId="panelSelect"
-                [options]="panelOptions()"
-                [ngModel]="selectedPanelId()"
-                (ngModelChange)="selectedPanelId.set($event)"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select a solar panel..."
+              <label for="tiltAngle">Tilt</label>
+              <p-inputNumber
+                inputId="tiltAngle"
+                [ngModel]="tiltAngle()"
+                (ngModelChange)="onTiltChange($event)"
+                [min]="0"
+                [max]="90"
+                [showButtons]="true"
+                suffix="°"
                 class="w-full"
-                (onChange)="onPanelChange()"
               />
             </div>
 
-            @if (selectedPanelData(); as panel) {
-              <div class="panel-info-card">
-                <div class="panel-info-left">
-                  <span class="panel-info-name">{{ panel.brand }} {{ panel.model }}</span>
-                  <small class="panel-info-detail">{{ panel.technology ?? 'Mono' }} • {{ panelWidthM() }}m × {{ panelHeightM() }}m</small>
-                </div>
-                <div class="panel-info-right">
-                  <p-tag [value]="panel.wattPeak + 'W'" [rounded]="true" />
-                  <small class="panel-info-detail">{{ panel.efficiency }}% eff.</small>
-                </div>
-              </div>
-            }
-
-            <p-divider />
-
-            <!-- Config grid 2x2 -->
-            <div class="config-grid-2x2">
-              <div class="form-group">
-                <label for="tiltAngle">Tilt Angle (°)</label>
-                <p-inputNumber
-                  inputId="tiltAngle"
-                  [ngModel]="tiltAngle()"
-                  (ngModelChange)="tiltAngle.set($event)"
-                  [min]="0" [max]="60" [showButtons]="true"
-                />
-              </div>
-              <div class="form-group">
-                <label for="direction">Orientation</label>
-                <p-select
-                  inputId="direction"
-                  [options]="directionOptions"
-                  [ngModel]="selectedDirection()"
-                  (ngModelChange)="selectedDirection.set($event)"
-                  optionLabel="label" optionValue="value"
-                  class="w-full"
-                />
-              </div>
-              <div class="form-group">
-                <div class="label-row">
-                  <label for="panelCount">Number of Panels</label>
-                  @if (polygonArea() > 0 && selectedPanelData()) {
-                    <small class="helper-text">max ~{{ maxPanels() }}</small>
-                  }
-                </div>
-                <p-inputNumber
-                  inputId="panelCount"
-                  [ngModel]="panelCount()"
-                  (ngModelChange)="onPanelCountChange($event)"
-                  [min]="1" [showButtons]="true"
-                />
-              </div>
-              <div class="form-group">
-                <div class="label-row">
-                  <label for="rowSpacing">Row Spacing (m)</label>
-                  <p-button
-                    icon="pi pi-refresh"
-                    label="Auto"
-                    [text]="true"
-                    size="small"
-                    (onClick)="applyAutoSpacing()"
-                  />
-                </div>
-                <p-inputNumber
-                  inputId="rowSpacing"
-                  [ngModel]="rowSpacing()"
-                  (ngModelChange)="onRowSpacingChange($event)"
-                  [step]="0.1" [min]="0.5"
-                  mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2"
-                />
-              </div>
+            <div class="form-group">
+              <label for="direction">Orientation</label>
+              <p-select
+                inputId="direction"
+                [options]="directionOptions"
+                [ngModel]="selectedDirection()"
+                (ngModelChange)="onDirectionChange($event)"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+              />
             </div>
 
-            <!-- Spacing warning -->
-            @if (selectedPanelData()) {
-              @if (spacingWarning().type === 'ok' && spacingWarning().message) {
-                <div class="feedback-banner feedback-success">
-                  <i class="pi pi-check-circle"></i>
-                  <span>{{ spacingWarning().message }}</span>
-                </div>
-              }
-              @if (spacingWarning().type === 'warning') {
-                <div class="feedback-banner feedback-warn">
-                  <i class="pi pi-exclamation-triangle"></i>
-                  <div>
-                    <span>{{ spacingWarning().message }}</span>
-                    @if (spacingWarning().recommended) {
-                      <small class="banner-sub">{{ spacingWarning().recommended }}</small>
-                    }
-                  </div>
-                </div>
-              }
-              @if (spacingWarning().type === 'error') {
-                <div class="feedback-banner feedback-error">
-                  <i class="pi pi-times-circle"></i>
-                  <div>
-                    <span>{{ spacingWarning().message }}</span>
-                    @if (spacingWarning().recommended) {
-                      <small class="banner-sub">{{ spacingWarning().recommended }}</small>
-                    }
-                  </div>
-                </div>
-              }
-            }
-
-            <!-- Summary stat cards -->
-            @if (selectedPanelData()) {
-              <div class="stat-cards stat-cards-3">
-                <div class="stat-card">
-                  <i class="pi pi-bolt stat-icon"></i>
-                  <span class="stat-value">{{ totalPowerKWp().toFixed(1) }} kWp</span>
-                  <span class="stat-label">Total Power</span>
-                </div>
-                <div class="stat-card">
-                  <i class="pi pi-arrows-v stat-icon"></i>
-                  <span class="stat-value">{{ optimalSpacing() }} m</span>
-                  <span class="stat-label">Optimal Spacing</span>
-                </div>
-                <div class="stat-card">
-                  <i class="pi pi-box stat-icon"></i>
-                  <span class="stat-value">{{ totalPanelArea().toFixed(1) }} m²</span>
-                  <span class="stat-label">Panel Area</span>
-                </div>
-              </div>
-            }
-
-            <p-divider />
-
-            <!-- 3D Preview placeholder -->
             <div class="form-group">
-              <div class="label-row">
-                <label>3D Preview</label>
-                <p-tag value="Coming Soon" severity="secondary" [rounded]="true" />
-              </div>
-              <div class="placeholder-3d">
-                <span class="placeholder-3d-icon"><i class="pi pi-box"></i></span>
-                <span class="placeholder-3d-text">3D visualization of your panel layout</span>
-                @if (selectedPanelData(); as panel) {
-                  <small class="placeholder-3d-sub">{{ panelCount() }}× {{ panel.brand }} {{ panel.model }} at {{ tiltAngle() }}° tilt, {{ rowSpacing() }}m spacing</small>
-                } @else {
-                  <small class="placeholder-3d-sub">Select a panel to preview configuration</small>
-                }
-              </div>
+              <label for="panelCount">Number of Panels</label>
+              <p-inputNumber
+                inputId="panelCount"
+                [ngModel]="panelCount()"
+                (ngModelChange)="onPanelCountChange($event)"
+                [min]="1"
+                [showButtons]="true"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="rowSpacing">Row Spacing</label>
+              <p-inputNumber
+                inputId="rowSpacing"
+                [ngModel]="rowSpacing()"
+                (ngModelChange)="onRowSpacingChange($event)"
+                mode="decimal"
+                [step]="0.1"
+                [min]="0"
+                [minFractionDigits]="1"
+                [maxFractionDigits]="2"
+                suffix=" m"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          @if (isCalculating()) {
+            <div class="feedback-banner feedback-neutral">
+              <span class="material-symbols-outlined">sync</span>
+              <span>Calculating optimal configuration...</span>
             </div>
           }
 
-          <!-- ──── AGRIVOLTAIC CONFIG ──── -->
-          @if (projectType() === 'agrivoltaic') {
-            <h2 class="step-title">Agrivoltaic Config</h2>
-            <p class="step-subtitle">Configure panel layout and select the cultivar for dual-use optimization.</p>
-
-            <!-- Two-column selection -->
-            <div class="selection-grid-2col">
-              <!-- Panel column -->
-              <div class="form-group">
-                <label for="panelSelectAgri">Solar Panel</label>
-                <p-select
-                  inputId="panelSelectAgri"
-                  [options]="panelOptions()"
-                  [ngModel]="selectedPanelId()"
-                  (ngModelChange)="selectedPanelId.set($event)"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Select a solar panel..."
-                  class="w-full"
-                  (onChange)="onPanelChange()"
-                />
-                @if (selectedPanelData(); as panel) {
-                  <div class="panel-info-card compact">
-                    <span class="panel-info-name">{{ panel.brand }} {{ panel.model }}</span>
-                    <small class="panel-info-detail">{{ panel.technology ?? 'Mono' }} • {{ panelWidthM() }}m × {{ panelHeightM() }}m</small>
-                    <div class="panel-info-tags">
-                      <p-tag [value]="panel.wattPeak + 'W'" [rounded]="true" />
-                      <p-tag [value]="panel.efficiency + '% eff.'" severity="secondary" [rounded]="true" />
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <!-- Cultivar column -->
-              <div class="form-group">
-                <div class="label-row">
-                  <label for="cultivarSelect">Cultivar</label>
-                  <i class="pi pi-leaf" style="color: var(--p-green-500)"></i>
-                </div>
-                <p-select
-                  inputId="cultivarSelect"
-                  [options]="cultivarOptions()"
-                  [ngModel]="selectedCultivarId()"
-                  (ngModelChange)="selectedCultivarId.set($event)"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Select cultivar..."
-                  class="w-full"
-                  (onChange)="onCultivarChange()"
-                />
-                @if (selectedCultivarData(); as crop) {
-                  <div class="cultivar-info-card">
-                    <span class="cultivar-info-name">{{ crop.name }}</span>
-                    <small class="cultivar-info-detail">{{ crop.category }}</small>
-                    <div class="cultivar-info-tags">
-                      <p-tag [value]="crop.minPanelHeight + 'm min'" icon="pi pi-arrow-up" severity="secondary" [rounded]="true" />
-                      <p-tag [value]="crop.recommendedSpacing + 'm spacing'" icon="pi pi-arrows-h" severity="secondary" [rounded]="true" />
-                      <p-tag
-                        [value]="formatLightRequirement(crop.lightRequirement)"
-                        [rounded]="true"
-                        [severity]="crop.lightRequirement === 'shade-tolerant' ? 'success' : crop.lightRequirement === 'partial-shade' ? 'warn' : 'danger'"
-                      />
-                    </div>
-                  </div>
-                }
-              </div>
+          @if (calculationError()) {
+            <div class="feedback-banner feedback-error">
+              <span class="material-symbols-outlined">error</span>
+              <span>{{ calculationError() }}</span>
             </div>
+          }
 
-            <!-- Cultivar recommendation -->
-            @if (selectedCultivarData(); as crop) {
-              @if (crop.notes) {
-                <div class="feedback-banner feedback-info">
-                  <i class="pi pi-lightbulb"></i>
-                  <div>
-                    <span>{{ crop.notes }}</span>
-                    <small class="banner-sub">Recommended: {{ crop.recommendedSpacing }}m row spacing, {{ crop.minPanelHeight }}m minimum clearance height</small>
-                  </div>
+          @if (optimalConfig(); as config) {
+            <div class="capacity-card">
+              <div class="capacity-card-header">
+                <div>
+                  <span class="eyebrow">Live capacity preview</span>
+                  <strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong>
                 </div>
-              }
-            }
-
-            <p-divider />
-
-            <!-- Config grid 2x2 + clearance height -->
-            <div class="config-grid-2x2">
-              <div class="form-group">
-                <label for="tiltAngleAgri">Tilt Angle (°)</label>
-                <p-inputNumber
-                  inputId="tiltAngleAgri"
-                  [ngModel]="tiltAngle()"
-                  (ngModelChange)="tiltAngle.set($event)"
-                  [min]="0" [max]="60" [showButtons]="true"
+                <p-tag
+                  [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+                  [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+                  [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
+                  [rounded]="true"
                 />
               </div>
-              <div class="form-group">
-                <label for="directionAgri">Orientation</label>
-                <p-select
-                  inputId="directionAgri"
-                  [options]="directionOptions"
-                  [ngModel]="selectedDirection()"
-                  (ngModelChange)="selectedDirection.set($event)"
-                  optionLabel="label" optionValue="value"
-                  class="w-full"
-                />
-              </div>
-              <div class="form-group">
-                <div class="label-row">
-                  <label for="panelCountAgri">Number of Panels</label>
-                  @if (polygonArea() > 0 && selectedPanelData()) {
-                    <small class="helper-text">max ~{{ maxPanels() }}</small>
-                  }
+              <div class="metric-grid">
+                <div>
+                  <span>Recommended Panels</span>
+                  <strong>{{ config.recommendedPanels }}</strong>
                 </div>
-                <p-inputNumber
-                  inputId="panelCountAgri"
-                  [ngModel]="panelCount()"
-                  (ngModelChange)="onPanelCountChange($event)"
-                  [min]="1" [showButtons]="true"
-                />
-              </div>
-              <div class="form-group">
-                <div class="label-row">
-                  <label for="rowSpacingAgri">Row Spacing (m)</label>
-                  <p-button
-                    icon="pi pi-refresh"
-                    label="Auto"
-                    [text]="true"
-                    size="small"
-                    (onClick)="applyAutoSpacing()"
-                  />
+                <div>
+                  <span>Recommended Spacing</span>
+                  <strong>{{ config.recommendedRowSpacing | number: '1.1-2' }} m</strong>
                 </div>
-                <p-inputNumber
-                  inputId="rowSpacingAgri"
-                  [ngModel]="rowSpacing()"
-                  (ngModelChange)="onRowSpacingChange($event)"
-                  [step]="0.1" [min]="0.5"
-                  mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2"
-                />
+                <div>
+                  <span>Preliminary Range</span>
+                  <strong>{{ formatProductionRange(config) }}</strong>
+                </div>
+                <div>
+                  <span>Area Coverage</span>
+                  <strong>{{ config.coverage | number: '1.0-1' }}%</strong>
+                </div>
               </div>
-            </div>
 
-            <!-- Clearance height — full width -->
-            <div class="form-group">
-              <div class="label-row">
-                <label for="minHeight">Minimum Clearance Height (m)</label>
-                <i class="pi pi-arrow-up" style="color: var(--p-text-muted-color)"></i>
+              <div class="preliminary-note">
+                <span class="material-symbols-outlined">info</span>
+                <span>This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.</span>
               </div>
-              <div class="inline-field">
-                <p-inputNumber
-                  inputId="minHeight"
-                  [ngModel]="minHeight()"
-                  (ngModelChange)="minHeight.set($event)"
-                  [step]="0.5" [min]="1"
-                  mode="decimal" [minFractionDigits]="1"
-                />
-                <small class="helper-text">
-                  @if (selectedCultivarData(); as crop) {
-                    Recommended: ≥{{ crop.minPanelHeight }}m for {{ crop.name }}
-                  } @else {
-                    Select a cultivar for height recommendations
-                  }
-                </small>
-              </div>
-            </div>
 
-            <!-- Spacing warning -->
-            @if (selectedPanelData()) {
-              @if (spacingWarning().type === 'ok' && spacingWarning().message) {
-                <div class="feedback-banner feedback-success">
-                  <i class="pi pi-check-circle"></i>
-                  <span>{{ spacingWarning().message }}</span>
+              @if (!isUsingOptimalConfig()) {
+                <div class="optimal-hint">
+                  <span class="material-symbols-outlined">info</span>
+                  <span>Custom configuration active. The layout differs from the backend recommendation.</span>
+                  <button type="button" class="link-btn" (click)="restoreOptimal()">Restore optimal</button>
                 </div>
               }
-              @if (spacingWarning().type === 'warning') {
-                <div class="feedback-banner feedback-warn">
-                  <i class="pi pi-exclamation-triangle"></i>
-                  <div>
-                    <span>{{ spacingWarning().message }}</span>
-                    @if (spacingWarning().recommended) {
-                      <small class="banner-sub">{{ spacingWarning().recommended }}</small>
-                    }
-                  </div>
-                </div>
-              }
-              @if (spacingWarning().type === 'error') {
-                <div class="feedback-banner feedback-error">
-                  <i class="pi pi-times-circle"></i>
-                  <div>
-                    <span>{{ spacingWarning().message }}</span>
-                    @if (spacingWarning().recommended) {
-                      <small class="banner-sub">{{ spacingWarning().recommended }}</small>
-                    }
-                  </div>
-                </div>
-              }
-            }
-
-            <!-- Height warning -->
-            @if (heightWarning(); as hw) {
-              @if (hw.type === 'ok') {
-                <div class="feedback-banner feedback-success">
-                  <i class="pi pi-check-circle"></i>
-                  <span>{{ hw.message }}</span>
-                </div>
-              }
-              @if (hw.type === 'warning') {
-                <div class="feedback-banner feedback-warn">
-                  <i class="pi pi-exclamation-triangle"></i>
-                  <span>{{ hw.message }}</span>
-                </div>
-              }
-            }
-
-            <!-- Summary stat cards (4 cols) -->
-            @if (selectedPanelData()) {
-              <div class="stat-cards stat-cards-4">
-                <div class="stat-card">
-                  <i class="pi pi-bolt stat-icon"></i>
-                  <span class="stat-value">{{ totalPowerKWp().toFixed(1) }} kWp</span>
-                  <span class="stat-label">Total Power</span>
-                </div>
-                <div class="stat-card">
-                  <i class="pi pi-arrows-v stat-icon"></i>
-                  <span class="stat-value">{{ rowSpacing() }} m</span>
-                  <span class="stat-label">Row Spacing</span>
-                </div>
-                <div class="stat-card">
-                  <i class="pi pi-arrow-up stat-icon"></i>
-                  <span class="stat-value">{{ minHeight() }} m</span>
-                  <span class="stat-label">Min Height</span>
-                </div>
-                <div class="stat-card">
-                  <i class="pi pi-box stat-icon"></i>
-                  <span class="stat-value">{{ totalPanelArea().toFixed(1) }} m²</span>
-                  <span class="stat-label">Panel Area</span>
-                </div>
-              </div>
-            }
-
-            <p-divider />
-
-            <!-- 3D Preview placeholder -->
-            <div class="form-group">
-              <div class="label-row">
-                <label>3D Preview</label>
-                <p-tag value="Coming Soon" severity="secondary" [rounded]="true" />
-              </div>
-              <div class="placeholder-3d">
-                <span class="placeholder-3d-icon"><i class="pi pi-box"></i></span>
-                <span class="placeholder-3d-text">3D visualization of your agrivoltaic layout</span>
-                @if (selectedPanelData(); as panel) {
-                  @if (selectedCultivarData(); as crop) {
-                    <small class="placeholder-3d-sub">{{ panelCount() }}× {{ panel.brand }} {{ panel.model }} over {{ crop.name }} at {{ minHeight() }}m height</small>
-                  } @else {
-                    <small class="placeholder-3d-sub">Select panel and cultivar to preview</small>
-                  }
-                } @else {
-                  <small class="placeholder-3d-sub">Select panel and cultivar to preview</small>
-                }
-              </div>
             </div>
           }
         </section>
       }
 
-      <!-- ════════ STEP 3: Review & Confirm ════════ -->
-      @if (activeStep() === 3) {
+      @if (activeStep() === 4) {
         <section class="step-section animate-fade-in-up">
-          <h2 class="step-title">Review & Confirm</h2>
-          <p class="step-subtitle">Review your project configuration before creating.</p>
-
-          <!-- Section 1: Project Details -->
-          <div class="review-section">
-            <div class="review-section-header">
-              <i class="pi pi-file"></i>
-              <span>Project Details</span>
-            </div>
-            <div class="review-rows">
-              <div class="review-row">
-                <span class="review-key">Name</span>
-                <span class="review-val">{{ projectName() }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Description</span>
-                <span class="review-val">{{ projectDescription() || '—' }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Type</span>
-                <span class="review-val">
-                  @if (projectType() === 'roof') {
-                    <p-tag value="Roof Mounting" icon="pi pi-home" severity="secondary" [rounded]="true" />
-                  } @else {
-                    <p-tag value="Agrivoltaic" icon="pi pi-leaf" severity="secondary" [rounded]="true" />
-                  }
-                </span>
-              </div>
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">fact_check</span>
+            <div>
+              <h2>Review & Create</h2>
+              <p>Check the important choices before creating the project.</p>
             </div>
           </div>
 
-          <p-divider />
+          <div class="review-grid">
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">description</span>Project</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(0)" aria-label="Edit project">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item"><span>Name</span><strong>{{ projectName() }}</strong></div>
+              <div class="review-item"><span>Description</span><strong>{{ projectDescription() || 'No description' }}</strong></div>
+            </article>
 
-          <!-- Section 2: Location & Area -->
-          <div class="review-section">
-            <div class="review-section-header">
-              <i class="pi pi-map-marker"></i>
-              <span>Location & Area</span>
-            </div>
-            <div class="review-rows">
-              <div class="review-row">
-                <span class="review-key">Address</span>
-                <span class="review-val">{{ addressResult() || '—' }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Coordinates</span>
-                <span class="review-val">{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Polygon Area</span>
-                <span class="review-val">{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : 'Not defined' }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Polygon Vertices</span>
-                <span class="review-val">{{ hasDrawnArea() ? drawnPolygonPoints().length : '—' }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Energy Price</span>
-                <span class="review-val">€{{ energyPrice().toFixed(2) }}/kWh</span>
-              </div>
-            </div>
-          </div>
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">map</span>Site</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(1)" aria-label="Edit site">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item"><span>Address</span><strong>{{ addressResult() }}</strong></div>
+              <div class="review-item"><span>Coordinates</span><strong>{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</strong></div>
+              <div class="review-item"><span>Country</span><strong>{{ detectedCountry() || 'Detected on server' }}</strong></div>
+              <div class="review-item"><span>Timezone</span><strong>{{ detectedTimezone() || 'Detected on server' }}</strong></div>
+              <div class="review-item"><span>Area</span><strong>{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : drawnPolygonPoints().length + ' vertices' }}</strong></div>
+            </article>
 
-          <p-divider />
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">bolt</span>Energy Price</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(2)" aria-label="Edit energy price">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item"><span>Selected Price</span><strong>{{ formatPrice(energyPrice()) }}</strong></div>
+              <div class="review-item"><span>Suggestion</span><strong>{{ formatPrice(priceSuggestion()) }}</strong></div>
+              <p class="review-note">Use the value from the bill when available; ENTSO-E is a market reference.</p>
+            </article>
 
-          <!-- Section 3: Configuration -->
-          <div class="review-section">
-            <div class="review-section-header">
-              <i class="pi pi-cog"></i>
-              <span>{{ projectType() === 'agrivoltaic' ? 'Agrivoltaic Configuration' : 'Roof Configuration' }}</span>
-            </div>
-            <div class="review-rows">
-              <div class="review-row">
-                <span class="review-key">Solar Panel</span>
-                <span class="review-val">
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">solar_power</span>Installation</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(3)" aria-label="Edit installation">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item">
+                <span>Panel</span>
+                <strong>
                   @if (selectedPanelData(); as panel) {
-                    {{ panel.brand }} {{ panel.model }} ({{ panel.wattPeak }}W)
-                  } @else { — }
-                </span>
+                    {{ panel.brand }} {{ panel.model }}
+                  } @else {
+                    —
+                  }
+                </strong>
               </div>
-              <div class="review-row">
-                <span class="review-key">Panel Count</span>
-                <span class="review-val">{{ panelCount() }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Total Power</span>
-                <span class="review-val review-val-highlight">
-                  <i class="pi pi-bolt" style="color: var(--p-yellow-500)"></i>
-                  {{ totalPowerKWp().toFixed(1) }} kWp
-                </span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Tilt Angle</span>
-                <span class="review-val">{{ tiltAngle() }}°</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Orientation</span>
-                <span class="review-val">{{ capitalizeFirst(selectedDirection()) }}</span>
-              </div>
-              <div class="review-row">
-                <span class="review-key">Row Spacing</span>
-                <span class="review-val">{{ rowSpacing() }} m</span>
-              </div>
-              @if (selectedPanelData()) {
-                <div class="review-row">
-                  <span class="review-key">Panel Area</span>
-                  <span class="review-val">{{ totalPanelArea().toFixed(1) }} m²</span>
-                </div>
-              }
-            </div>
+              <div class="review-item"><span>Panels</span><strong>{{ panelCount() }}</strong></div>
+              <div class="review-item"><span>Tilt</span><strong>{{ tiltAngle() }}°</strong></div>
+              <div class="review-item"><span>Orientation</span><strong>{{ directionLabel(selectedDirection()) }}</strong></div>
+              <div class="review-item"><span>Row Spacing</span><strong>{{ rowSpacing() | number: '1.1-2' }} m</strong></div>
+              <div class="review-item"><span>Total Capacity</span><strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong></div>
+            </article>
           </div>
 
-          <!-- Section 4: Cultivar (agrivoltaic only) -->
-          @if (projectType() === 'agrivoltaic') {
-            <p-divider />
-            <div class="review-section">
-              <div class="review-section-header review-section-green">
-                <i class="pi pi-leaf"></i>
-                <span>Cultivar Configuration</span>
-              </div>
-              <div class="review-rows">
-                <div class="review-row">
-                  <span class="review-key">Cultivar</span>
-                  <span class="review-val">{{ selectedCultivarData()?.name ?? '—' }}</span>
-                </div>
-                @if (selectedCultivarData(); as crop) {
-                  <div class="review-row">
-                    <span class="review-key">Category</span>
-                    <span class="review-val">{{ crop.category }}</span>
-                  </div>
-                  <div class="review-row">
-                    <span class="review-key">Light Requirement</span>
-                    <span class="review-val">
-                      <p-tag [value]="formatLightRequirement(crop.lightRequirement)" severity="secondary" [rounded]="true" />
-                    </span>
-                  </div>
-                }
-                <div class="review-row">
-                  <span class="review-key">Min Clearance Height</span>
-                  <span class="review-val">{{ minHeight() }} m</span>
-                </div>
-              </div>
+          <div class="output-card">
+            <div>
+              <span class="eyebrow">Preliminary output range</span>
+              <strong>{{ formatProductionRange(optimalConfig()) }}</strong>
+              <small>This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.</small>
             </div>
-          }
-
-          <p-divider />
-
-          <!-- Summary cards -->
-          <div class="stat-cards stat-cards-3">
-            <div class="stat-card">
-              <i class="pi pi-bolt stat-icon" style="color: var(--p-yellow-500)"></i>
-              <small class="stat-label">Total Power</small>
-              <span class="stat-value-lg">{{ totalPowerKWp().toFixed(1) }} kWp</span>
-              <small class="stat-sub">{{ panelCount() }} panels</small>
+            <div>
+              <span class="eyebrow">Preliminary annual savings</span>
+              <strong>{{ annualSavingsEstimate() != null ? (annualSavingsEstimate() | number: '1.0-0') + ' ' + currency() : '—' }}</strong>
             </div>
-            <div class="stat-card">
-              <i class="pi pi-box stat-icon" style="color: var(--p-blue-500)"></i>
-              <small class="stat-label">Installation Area</small>
-              <span class="stat-value-lg">{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : 'TBD' }}</span>
-              <small class="stat-sub truncate">{{ addressResult() || 'No location' }}</small>
-            </div>
-            <div class="stat-card">
-              @if (projectType() === 'agrivoltaic') {
-                <i class="pi pi-leaf stat-icon" style="color: var(--p-green-500)"></i>
-              } @else {
-                <i class="pi pi-home stat-icon" style="color: var(--p-primary-color)"></i>
-              }
-              <small class="stat-label">Project Type</small>
-              <span class="stat-value-lg">{{ projectType() === 'agrivoltaic' ? 'Agrivoltaic' : 'Roof Mounting' }}</span>
-              <small class="stat-sub truncate">{{ projectType() === 'agrivoltaic' ? (selectedCultivarData()?.name ?? 'No cultivar') : 'Standard installation' }}</small>
-            </div>
-          </div>
-
-          <!-- Estimated Annual Production -->
-          <div class="production-card">
-            <div class="production-header">
-              <i class="pi pi-bolt" style="color: var(--p-yellow-500)"></i>
-              <span>Estimated Annual Production</span>
-            </div>
-            <div class="production-grid">
-              <div class="production-item">
-                <span class="production-value">{{ (totalPowerKWp() * 1350).toFixed(0) }}</span>
-                <small class="production-label">kWh/year (est.)</small>
-              </div>
-              <div class="production-item">
-                <span class="production-value">€{{ (totalPowerKWp() * 1350 * energyPrice()).toFixed(0) }}</span>
-                <small class="production-label">annual savings (est.)</small>
-              </div>
-              <div class="production-item">
-                <span class="production-value">{{ (totalPowerKWp() * 1350 * 0.000233).toFixed(1) }}</span>
-                <small class="production-label">tonnes CO₂ avoided/year</small>
-              </div>
+            <div>
+              <span class="eyebrow">Configuration</span>
+              <p-tag
+                [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+                [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+                [rounded]="true"
+              />
             </div>
           </div>
         </section>
       }
-
     </div>
   </main>
 </div>

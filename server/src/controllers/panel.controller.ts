@@ -32,7 +32,7 @@ export const listPanels = asyncHandler(async (req: Request, res: Response) => {
   // Admin can see all panels, users see global + their own personal panels
   const effectiveUserId = userRole === 'admin' ? undefined : userId;
 
-  const panels = await panelService.listPanels(req.query as PanelQueryInput, effectiveUserId);
+  const panels = await panelService.listPanels(req.query as unknown as PanelQueryInput, effectiveUserId);
   return success(res, panels);
 });
 

@@ -17,6 +17,7 @@ const {
   mockCultivarFindById,
   mockUserFindById,
   mockSendProjectCreatedEmail,
+  mockFetchElectricityPrice,
   mockStartSession,
   mockComputeProductionData,
   mockComputeTodayAndForecast,
@@ -35,6 +36,7 @@ const {
   mockCultivarFindById: vi.fn(),
   mockUserFindById: vi.fn(),
   mockSendProjectCreatedEmail: vi.fn(),
+  mockFetchElectricityPrice: vi.fn(),
   mockStartSession: vi.fn(),
   mockComputeProductionData: vi.fn(),
   mockComputeTodayAndForecast: vi.fn(),
@@ -85,6 +87,8 @@ vi.mock('../../services/pvgis.service', () => ({
 
 vi.mock('../../services/openmeteo.service', () => ({
   openMeteoService: { fetchDailySunlight: mockFetchDailySunlight },
+vi.mock('../../services/entsoe.service', () => ({
+  entsoeService: { fetchElectricityPrice: mockFetchElectricityPrice },
 }));
 
 vi.mock('mongoose', async (importOriginal) => {
@@ -98,9 +102,9 @@ vi.mock('geolib', () => ({
 }));
 
 vi.mock('country-reverse-geocoding', () => ({
-  default: {
+  country_reverse_geocoding: vi.fn(() => ({
     get_country: vi.fn(() => ({ name: 'Spain', code: 'ES' })),
-  },
+  })),
 }));
 
 vi.mock('geo-tz', () => ({
@@ -152,6 +156,7 @@ function makeMockProject(overrides: Record<string, unknown> = {}) {
     lon: -3.7,
     surface: 1000,
     country: 'Spain',
+    countryCode: 'ES',
     timezone: 'Europe/Madrid',
     currency: undefined,
     price: undefined,
@@ -236,6 +241,7 @@ describe('ProjectService', () => {
       daylightHours: 15.1,
       sunshineHours: 12.5,
     });
+    mockFetchElectricityPrice.mockResolvedValue(null);
   });
 
   // ---------- createProject ----------
@@ -262,9 +268,94 @@ describe('ProjectService', () => {
 
       expect(mockProjectCreate).toHaveBeenCalledWith(
         [expect.objectContaining({ owner: USER_ID, panel: PANEL_ID })],
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         expect.objectContaining({ session: expect.anything() }),
       );
       expect(result._id).toBe(PROJECT_ID);
+    });
+
+    it('preserves user-provided electricity price instead of calling ENTSO-E', async () => {
+      const mockProject = makeMockProject({ price: 0.21, currency: 'EUR' });
+      mockPanelFindById.mockResolvedValue(makeMockPanel());
+      mockProjectCreate.mockResolvedValue([mockProject]);
+      mockProjectFindByIdAndUpdate.mockResolvedValue(mockProject);
+      mockUserFindById.mockResolvedValue(null);
+
+      await service.createProject(USER_ID, {
+        name: 'Bill Price Project',
+        area: SAMPLE_AREA,
+        panelId: PANEL_ID,
+        panelNumber: 10,
+        tilt: 30,
+        direction: 'south',
+        projectType: 'roof',
+        country: 'Spain',
+        countryCode: 'ES',
+        currency: 'EUR',
+        price: 0.21,
+      });
+
+      expect(mockFetchElectricityPrice).not.toHaveBeenCalled();
+      expect(mockProjectFindByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ price: 0.21, currency: 'EUR' }),
+        expect.anything(),
+      );
+    });
+
+    it('uses ENTSO-E price when creation payload has no price', async () => {
+      const mockProject = makeMockProject({ price: 0.16, currency: 'EUR' });
+      mockFetchElectricityPrice.mockResolvedValue({ price: 0.16, currency: 'EUR' });
+      mockPanelFindById.mockResolvedValue(makeMockPanel());
+      mockProjectCreate.mockResolvedValue([mockProject]);
+      mockProjectFindByIdAndUpdate.mockResolvedValue(mockProject);
+      mockUserFindById.mockResolvedValue(null);
+
+      await service.createProject(USER_ID, {
+        name: 'Suggested Price Project',
+        area: SAMPLE_AREA,
+        panelId: PANEL_ID,
+        panelNumber: 10,
+        tilt: 30,
+        direction: 'south',
+        projectType: 'roof',
+        country: 'Spain',
+        countryCode: 'ES',
+      });
+
+      expect(mockFetchElectricityPrice).toHaveBeenCalledWith('ES');
+      expect(mockProjectFindByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ price: 0.16, currency: 'EUR' }),
+        expect.anything(),
+      );
+    });
+
+    it('leaves price unset when ENTSO-E has no data and user did not provide one', async () => {
+      const mockProject = makeMockProject({ price: undefined, currency: undefined });
+      mockFetchElectricityPrice.mockResolvedValue(null);
+      mockPanelFindById.mockResolvedValue(makeMockPanel());
+      mockProjectCreate.mockResolvedValue([mockProject]);
+      mockProjectFindByIdAndUpdate.mockResolvedValue(mockProject);
+      mockUserFindById.mockResolvedValue(null);
+
+      await service.createProject(USER_ID, {
+        name: 'No Price Project',
+        area: SAMPLE_AREA,
+        panelId: PANEL_ID,
+        panelNumber: 10,
+        tilt: 30,
+        direction: 'south',
+        projectType: 'roof',
+        country: 'Spain',
+        countryCode: 'ES',
+      });
+
+      expect(mockProjectFindByIdAndUpdate).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ price: undefined }),
+        expect.anything(),
+      );
     });
 
     it('throws when panelId is provided but panel does not exist', async () => {
@@ -666,6 +757,9 @@ describe('ProjectService', () => {
       expect(result.recommendedPanels).toBeGreaterThan(0);
       expect(result.estimatedCapacity).toBeGreaterThan(0);
       expect(result.estimatedProduction).toBeGreaterThan(0);
+      expect(result.estimatedProductionRange.low).toBeLessThan(result.estimatedProduction);
+      expect(result.estimatedProductionRange.high).toBeGreaterThan(result.estimatedProduction);
+      expect(result.productionEstimateMode).toBe('preliminary');
       expect(result.coverage).toBeGreaterThan(0);
       expect(result.coverage).toBeLessThanOrEqual(100);
       expect(result.recommendedRowSpacing).toBeGreaterThanOrEqual(0.6);
@@ -716,6 +810,13 @@ describe('ProjectService', () => {
 
       expect(withAzimuth.recommendedRowSpacing).toBe(withoutAzimuth.recommendedRowSpacing);
     });
+
+    it('reduces preliminary production for poor orientation and tilt', async () => {
+      const south = await service.calculateOptimalConfig({ ...baseInput, tilt: 30, azimuth: 180 });
+      const poor = await service.calculateOptimalConfig({ ...baseInput, tilt: 80, azimuth: 0 });
+
+      expect(poor.estimatedProduction).toBeLessThan(south.estimatedProduction);
+    });
   });
 
   // ---------- calculateFromPolygon ----------
@@ -728,6 +829,7 @@ describe('ProjectService', () => {
         area: SAMPLE_AREA,
         panelId: PANEL_ID,
         tilt: 30,
+        azimuth: 90,
       });
 
       expect(mockPanelFindById).toHaveBeenCalledWith(PANEL_ID);

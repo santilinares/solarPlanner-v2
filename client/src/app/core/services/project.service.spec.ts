@@ -31,6 +31,36 @@ describe('ProjectService', () => {
     });
   });
 
+  describe('getElectricityPriceSuggestion()', () => {
+    it('calls the non-conflicting pricing endpoint', () => {
+      service.getElectricityPriceSuggestion('ES').subscribe();
+
+      const req = httpMock.expectOne((request) =>
+        request.url.endsWith('/projects/pricing/electricity') &&
+        request.params.get('countryCode') === 'ES'
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush({ price: 0.18, currency: 'EUR', source: 'entsoe', countryCode: 'ES' });
+    });
+
+    it('returns unavailable suggestion when backend route is missing or rejects', () => {
+      let result: unknown;
+      service.getElectricityPriceSuggestion('ES').subscribe((value) => {
+        result = value;
+      });
+
+      const req = httpMock.expectOne((request) => request.url.endsWith('/projects/pricing/electricity'));
+      req.flush({ message: 'Invalid ID format' }, { status: 400, statusText: 'Bad Request' });
+
+      expect(result).toEqual({
+        price: null,
+        currency: null,
+        source: 'unavailable',
+        countryCode: 'ES',
+      });
+    });
+  });
+
   describe('getMyProjects()', () => {
     it('sends page and limit as query params', () => {
       service.getMyProjects(2, 5).subscribe();
