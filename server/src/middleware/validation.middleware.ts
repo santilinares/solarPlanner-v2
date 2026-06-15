@@ -9,6 +9,20 @@ import { fail } from '../utils/response';
 
 type ValidationTarget = 'body' | 'query' | 'params';
 
+function assignValidatedTarget(req: Request, target: ValidationTarget, validated: unknown): void {
+  if (target === 'query') {
+    Object.defineProperty(req, 'query', {
+      value: validated,
+      configurable: true,
+      enumerable: true,
+      writable: true,
+    });
+    return;
+  }
+
+  req[target] = validated;
+}
+
 /**
  * Create validation middleware for Zod schema
  * @param schema Zod schema to validate against
@@ -21,17 +35,9 @@ export function zValidate(schema: ZodSchema, target: ValidationTarget = 'body') 
       // Validate the target property
       const validated = schema.parse(req[target]);
       
-      // Express 5 exposes req.query through an accessor, so direct assignment can throw.
-      if (target === 'query') {
-        Object.defineProperty(req, 'query', {
-          value: validated,
-          configurable: true,
-          enumerable: true,
-        });
-      } else {
-        // Replace original data with validated/transformed data
-        req[target] = validated;
-      }
+      // Replace original data with validated/transformed data.
+      // Express 5 exposes req.query via an accessor, so direct assignment can throw.
+      assignValidatedTarget(req, target, validated);
       
       next();
     } catch (error) {

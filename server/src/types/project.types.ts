@@ -26,6 +26,26 @@ export interface PvgisRefResponse {
   yearlyPOAIrradiation?: number; // H(i)_y — absent for projects created before this field was added
 }
 
+export interface ProjectPanelSummary {
+  _id: string;
+  id: string;
+  brand: string;
+  model: string;
+  wattPeak: number;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+  efficiency?: number;
+  warranty?: number;
+  price?: number;
+  technology?: string;
+  bifacial?: boolean;
+  bifacialityFactor?: number;
+  degradationFirstYear?: number;
+  degradationAnnual?: number;
+}
+
 export interface ProjectResponse {
   _id: string;
   name: string;
@@ -49,7 +69,7 @@ export interface ProjectResponse {
   rawSpacing?: number;
   panelNumber: number;
   dcAcRatio?: number;
-  panel?: string | object; // Panel ID or populated panel object
+  panel?: string | ProjectPanelSummary; // Panel ID or populated panel summary
   cultivar?: string | object; // Cultivar ID or populated cultivar object
   owner?: string | { _id: string; fullName: string; email: string }; // User ID or populated user object
   prodToday?: IProductionPoint[];
@@ -98,6 +118,43 @@ export interface OptimalConfigResponse {
   recommendedRowSpacing: number; // m — shadow-based optimal row spacing
 }
 
+export interface ProjectConfigPreviewInput {
+  area?: GeoPointInput[];
+  panelId?: string;
+  panelNumber?: number;
+  tilt?: number;
+  azimuth?: number;
+  rawSpacing?: number;
+  price?: number;
+  currency?: string;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  dcAcRatio?: number;
+  albedo?: number;
+  systemLosses?: SystemLossesResponse;
+}
+
+export interface ProjectConfigPreview {
+  current: {
+    panelNumber: number;
+    capacityKw: number;
+    annualProductionKwh: number | null;
+    annualSavings: number | null;
+    coverage: number | null;
+    rowSpacing: number | null;
+  };
+  preview: {
+    panelNumber: number;
+    capacityKw: number;
+    annualProductionKwh: number | null;
+    annualSavings: number | null;
+    coverage: number | null;
+    rowSpacing: number | null;
+    monthlyProductionKwh: number[] | null;
+  };
+  optimal: OptimalConfigResponse | null;
+  currency?: string;
+  warnings: string[];
 export interface ElectricityPriceSuggestionResponse {
   price: number | null;
   currency: string | null;

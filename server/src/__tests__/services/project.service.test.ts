@@ -19,6 +19,11 @@ const {
   mockSendProjectCreatedEmail,
   mockFetchElectricityPrice,
   mockStartSession,
+  mockComputeProductionData,
+  mockComputeTodayAndForecast,
+  mockFetchAnnualProduction,
+  mockComputeTotalSystemLossPct,
+  mockFetchDailySunlight,
 } = vi.hoisted(() => ({
   mockProjectCreate: vi.fn(),
   mockProjectFindById: vi.fn(),
@@ -33,6 +38,11 @@ const {
   mockSendProjectCreatedEmail: vi.fn(),
   mockFetchElectricityPrice: vi.fn(),
   mockStartSession: vi.fn(),
+  mockComputeProductionData: vi.fn(),
+  mockComputeTodayAndForecast: vi.fn(),
+  mockFetchAnnualProduction: vi.fn(),
+  mockComputeTotalSystemLossPct: vi.fn(),
+  mockFetchDailySunlight: vi.fn(),
 }));
 
 vi.mock('../../models/project.model', () => ({
@@ -63,6 +73,20 @@ vi.mock('../../services/email.service', () => ({
   emailService: { sendProjectCreatedEmail: mockSendProjectCreatedEmail },
 }));
 
+vi.mock('../../services/production.service', () => ({
+  productionService: {
+    computeProductionData: mockComputeProductionData,
+    computeTodayAndForecast: mockComputeTodayAndForecast,
+  },
+  computeTotalSystemLossPct: mockComputeTotalSystemLossPct,
+}));
+
+vi.mock('../../services/pvgis.service', () => ({
+  pvgisService: { fetchAnnualProduction: mockFetchAnnualProduction },
+}));
+
+vi.mock('../../services/openmeteo.service', () => ({
+  openMeteoService: { fetchDailySunlight: mockFetchDailySunlight },
 vi.mock('../../services/entsoe.service', () => ({
   entsoeService: { fetchElectricityPrice: mockFetchElectricityPrice },
 }));
@@ -192,6 +216,31 @@ describe('ProjectService', () => {
       endSession: vi.fn().mockResolvedValue(undefined),
     };
     mockStartSession.mockResolvedValue(mockSession);
+    mockComputeProductionData.mockResolvedValue({
+      prodToday: [{ dateTime: new Date('2024-01-02T12:00:00Z'), pv: 4 }],
+      previousProd: [{ dateTime: new Date('2024-01-01T12:00:00Z'), pv: 8 }],
+      nextProd: [{ dateTime: new Date('2024-01-03T12:00:00Z'), pv: 9 }],
+    });
+    mockComputeTodayAndForecast.mockResolvedValue({
+      prodToday: [{ dateTime: new Date('2024-01-02T12:00:00Z'), pv: 4 }],
+      nextProd: [{ dateTime: new Date('2024-01-03T12:00:00Z'), pv: 9 }],
+    });
+    mockFetchAnnualProduction.mockResolvedValue({
+      yearlyKwh: 5200,
+      yearlyKwhPerKwp: 1405,
+      monthlyKwh: [280, 320, 410, 470, 520, 560, 590, 550, 480, 390, 310, 250],
+      systemLossPercent: 10,
+      yearlyPOAIrradiation: 1700,
+    });
+    mockComputeTotalSystemLossPct.mockReturnValue(10);
+    mockFetchDailySunlight.mockResolvedValue({
+      date: '2026-06-14',
+      timezone: 'Europe/Madrid',
+      sunrise: '2026-06-14T06:43',
+      sunset: '2026-06-14T21:47',
+      daylightHours: 15.1,
+      sunshineHours: 12.5,
+    });
     mockFetchElectricityPrice.mockResolvedValue(null);
   });
 
@@ -420,6 +469,35 @@ describe('ProjectService', () => {
       );
 
       expect(result.name).toBe('Updated Name');
+    });
+
+    it('maps panelId updates to the panel field and refreshes derived solar data', async () => {
+      const newPanelId = '507f1f77bcf86cd799439099';
+      const mockProject = makeMockProject();
+      const updatedProject = makeMockProject({
+        panel: { ...makeMockPanel({ _id: { toString: () => newPanelId } }) },
+      });
+      mockProjectFindById.mockResolvedValue(mockProject);
+      mockPanelFindById.mockResolvedValue(makeMockPanel({ _id: { toString: () => newPanelId } }));
+      mockProjectFindByIdAndUpdate.mockResolvedValue(updatedProject);
+
+      await service.updateProject(
+        { userId: USER_ID, role: 'user' },
+        PROJECT_ID,
+        { panelId: newPanelId, panelNumber: 12 },
+      );
+
+      expect(mockProjectFindByIdAndUpdate).toHaveBeenCalledWith(
+        PROJECT_ID,
+        expect.objectContaining({
+          panel: newPanelId,
+          panelNumber: 12,
+          prodToday: expect.any(Array),
+          pvgisRef: expect.objectContaining({ yearlyKwh: 5200 }),
+        }),
+        { new: true },
+      );
+      expect(mockProjectFindByIdAndUpdate.mock.calls[0][1]).not.toHaveProperty('panelId');
     });
 
     it('allows admin to update any project', async () => {
@@ -767,6 +845,42 @@ describe('ProjectService', () => {
     });
   });
 
+  // ---------- previewProjectConfig ----------
+
+  describe('previewProjectConfig', () => {
+    it('returns preview metrics without mutating the project', async () => {
+      const populateMock = vi.fn().mockResolvedValue(makeMockProject({
+        price: 0.2,
+        currency: 'EUR',
+        pvgisRef: {
+          yearlyKwh: 5000,
+          yearlyKwhPerKwp: 1351,
+          monthlyKwh: [250, 300, 400, 470, 530, 570, 600, 560, 480, 390, 290, 240],
+          yearlyPOAIrradiation: 1700,
+        },
+      }));
+      const leanMock = vi.fn().mockResolvedValue({
+        pvgisRef: { yearlyPOAIrradiation: 1700 },
+      });
+      const selectMock = vi.fn().mockReturnValue({ lean: leanMock });
+      mockProjectFindById
+        .mockReturnValueOnce({ populate: populateMock })
+        .mockReturnValueOnce({ select: selectMock });
+
+      const result = await service.previewProjectConfig(
+        PROJECT_ID,
+        { userId: USER_ID, role: 'user' },
+        { panelNumber: 12, tilt: 25, azimuth: 180 },
+      );
+
+      expect(result.current.panelNumber).toBe(10);
+      expect(result.preview.panelNumber).toBe(12);
+      expect(result.preview.capacityKw).toBeGreaterThan(result.current.capacityKw);
+      expect(result.preview.monthlyProductionKwh).toHaveLength(12);
+      expect(mockProjectFindByIdAndUpdate).not.toHaveBeenCalled();
+    });
+  });
+
   // ---------- estimateFromPolygon ----------
 
   describe('estimateFromPolygon', () => {
@@ -802,6 +916,14 @@ describe('ProjectService', () => {
       expect(result.winterSolstice).toBeDefined();
       expect(result.equinox).toBeDefined();
       expect(result.summerSolstice.daylightHours).toBeGreaterThan(result.winterSolstice.daylightHours);
+      expect(result.longitude).toBe(-3.7);
+      expect(result.timezone).toBe('Europe/Madrid');
+      expect(result.todaySunlight).toMatchObject({
+        sunrise: '2026-06-14T06:43',
+        sunset: '2026-06-14T21:47',
+        source: 'open-meteo',
+      });
+      expect(mockFetchDailySunlight).toHaveBeenCalledWith(40.4, -3.7, 'Europe/Madrid');
     });
 
     it('allows admin to view sun path for any project', async () => {
@@ -812,6 +934,36 @@ describe('ProjectService', () => {
       await expect(
         service.getSunPath(PROJECT_ID, { userId: 'admin-id', role: 'admin' })
       ).resolves.toBeDefined();
+    });
+
+    it('returns seasonal sun path data when Open-Meteo daily sunlight fails', async () => {
+      mockProjectFindById.mockResolvedValue(makeMockProject());
+      mockFetchDailySunlight.mockRejectedValueOnce(new Error('Open-Meteo unavailable'));
+
+      const result = await service.getSunPath(PROJECT_ID, { userId: USER_ID, role: 'user' });
+
+      expect(result.summerSolstice).toBeDefined();
+      expect(result.todaySunlight).toBeNull();
+    });
+
+    it('uses geo-tz timezone when project timezone is missing', async () => {
+      mockProjectFindById.mockResolvedValue(makeMockProject({ timezone: undefined }));
+
+      const result = await service.getSunPath(PROJECT_ID, { userId: USER_ID, role: 'user' });
+
+      expect(result.timezone).toBe('Europe/Madrid');
+      expect(mockFetchDailySunlight).toHaveBeenCalledWith(40.4, -3.7, 'Europe/Madrid');
+    });
+
+    it('falls back to Open-Meteo auto timezone when project and geo-tz timezone are missing', async () => {
+      const { find } = await import('geo-tz');
+      vi.mocked(find).mockReturnValueOnce([]);
+      mockProjectFindById.mockResolvedValue(makeMockProject({ timezone: undefined }));
+
+      const result = await service.getSunPath(PROJECT_ID, { userId: USER_ID, role: 'user' });
+
+      expect(result.timezone).toBe('auto');
+      expect(mockFetchDailySunlight).toHaveBeenCalledWith(40.4, -3.7, 'auto');
     });
 
     it('throws when project is not found', async () => {

@@ -15,6 +15,11 @@ const REFRESH_COOKIE_OPTIONS = {
 function setRefreshCookie(res: Response, token: string): void {
   res.cookie(REFRESH_COOKIE, token, REFRESH_COOKIE_OPTIONS);
 }
+
+function getRouteId(req: Request): string {
+  const { id } = req.params;
+  return Array.isArray(id) ? id[0] : id;
+}
 import { userService } from '../services/user.service';
 import {
   UserCreateInput,
@@ -94,7 +99,7 @@ export const listUsers = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
-  const user = await userService.getUserById(req.params.id as string);
+  const user = await userService.getUserById(getRouteId(req));
   return success(res, user);
 });
 
@@ -104,7 +109,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  await userService.deleteUser(req.params.id as string);
+  await userService.deleteUser(getRouteId(req));
   return success(res, null, 'User deleted successfully');
 });
 
@@ -114,7 +119,7 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
-  const user = await userService.updateUserRole(req.params.id as string, (req.body as UserUpdateRoleInput).role);
+  const user = await userService.updateUserRole(getRouteId(req), (req.body as UserUpdateRoleInput).role);
   return success(res, user, 'User role updated successfully');
 });
 
@@ -124,10 +129,11 @@ export const updateUserRole = asyncHandler(async (req: Request, res: Response) =
  * @access  Private (Self or Admin)
  */
 export const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  if (req.userRole !== 'admin' && req.userId !== req.params.id) {
+  const userId = getRouteId(req);
+  if (req.userRole !== 'admin' && req.userId !== userId) {
     return forbidden(res, 'Not authorized to update this profile');
   }
-  const user = await userService.updateProfile(req.params.id as string, req.body as UserUpdateProfileInput);
+  const user = await userService.updateProfile(userId, req.body as UserUpdateProfileInput);
   return success(res, user, 'Profile updated successfully');
 });
 
@@ -137,11 +143,12 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
  * @access  Private (Self)
  */
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
-  if (req.userId !== req.params.id) {
+  const userId = getRouteId(req);
+  if (req.userId !== userId) {
     return forbidden(res, 'Not authorized to change this password');
   }
   const { currentPassword, newPassword } = req.body as UserChangePasswordInput;
-  await userService.changePassword(req.params.id as string, currentPassword, newPassword);
+  await userService.changePassword(userId, currentPassword, newPassword);
   return success(res, null, 'Password changed successfully');
 });
 

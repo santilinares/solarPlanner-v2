@@ -7,6 +7,8 @@ import {
   computed,
   DestroyRef,
 } from '@angular/core';
+import * as Highcharts from 'highcharts';
+import { HighchartsChartModule } from 'highcharts-angular';
 import { toSignal, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -29,6 +31,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
+import { FieldsetModule } from 'primeng/fieldset';
 
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
@@ -42,7 +45,11 @@ import {
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
   SunPathData,
+  ProjectConfigPreview,
+  ProjectConfigPreviewRequest,
+  SystemLosses,
 } from '@core/models';
+import { BASE_CHART_OPTIONS, CHART_COLORS, MONTH_LABELS } from '@core/utils/chart.utils';
 import { ConfigureLocationStepComponent } from './components/configure-location-step/configure-location-step.component';
 import { ConfigurePanelFormStepComponent } from './components/configure-panel-form-step/configure-panel-form-step.component';
 import { ConfigureReviewStepComponent } from './components/configure-review-step/configure-review-step.component';
@@ -61,6 +68,12 @@ interface TimezoneOption {
 interface CurrencyOption {
   label: string;
   value: string;
+}
+
+export interface ReviewChange {
+  label: string;
+  before: string;
+  after: string;
 }
 
 export type ConfigFormValue = ReturnType<ConfigureProjectComponent['configForm']['getRawValue']>;
@@ -86,6 +99,8 @@ export type ConfigFormValue = ReturnType<ConfigureProjectComponent['configForm']
     TooltipModule,
     ConfirmDialogModule,
     ToastModule,
+    FieldsetModule,
+    HighchartsChartModule,
     ConfigureLocationStepComponent,
     ConfigurePanelFormStepComponent,
     ConfigureReviewStepComponent,
@@ -118,6 +133,8 @@ export class ConfigureProjectComponent implements OnInit {
   readonly panels = signal<Panel[]>([]);
   readonly projectId = signal('');
   readonly activeStep = signal(1);
+  readonly configPreview = signal<ProjectConfigPreview | null>(null);
+  readonly isPreviewLoading = signal(false);
 
   // ─── Map / Location State ───
   readonly mapLat = signal<number | null>(null);
@@ -131,6 +148,7 @@ export class ConfigureProjectComponent implements OnInit {
 
   // ─── Optimal Config State ───
   readonly optimalConfig = signal<OptimalConfigResponse | null>(null);
+  readonly Highcharts: typeof Highcharts = Highcharts;
 
   // ─── Options ───
   readonly orientationOptions: OrientationOption[] = [
@@ -190,6 +208,13 @@ export class ConfigureProjectComponent implements OnInit {
     { label: 'CHF', value: 'CHF' },
   ];
 
+  readonly segmentOptions = [
+    { label: 'Residential', value: 'residential' },
+    { label: 'Commercial', value: 'commercial' },
+    { label: 'Utility', value: 'utility' },
+    { label: 'Agrivoltaic', value: 'agrivoltaic' },
+  ];
+
   // ─── Reactive Form ───
   readonly configForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
@@ -203,6 +228,19 @@ export class ConfigureProjectComponent implements OnInit {
     direction: ['south', Validators.required],
     azimuth: [null as number | null, [Validators.min(0), Validators.max(360)]],
     rawSpacing: [null as number | null],
+    installationCost: [null as number | null],
+    segment: ['residential' as 'residential' | 'commercial' | 'utility' | 'agrivoltaic'],
+    dcAcRatio: [1.1 as number | null, [Validators.min(0.5), Validators.max(3)]],
+    albedo: [0.2 as number | null, [Validators.min(0), Validators.max(1)]],
+    systemLosses: this.fb.group({
+      inverterEfficiency: [0.96 as number | null, [Validators.min(0), Validators.max(1)]],
+      dcWiring: [2 as number | null, [Validators.min(0), Validators.max(100)]],
+      acWiring: [1 as number | null, [Validators.min(0), Validators.max(100)]],
+      mismatch: [2 as number | null, [Validators.min(0), Validators.max(100)]],
+      soiling: [3 as number | null, [Validators.min(0), Validators.max(100)]],
+      shadingStatic: [0 as number | null, [Validators.min(0), Validators.max(100)]],
+      degradationExtra: [0 as number | null, [Validators.min(0), Validators.max(100)]],
+    }),
   });
 
   readonly formValue = toSignal(this.configForm.valueChanges, {
@@ -259,9 +297,25 @@ export class ConfigureProjectComponent implements OnInit {
       fv.timezone !== (data.timezone ?? '') ||
       fv.currency !== (data.currency ?? '') ||
       fv.price !== (data.price ?? null) ||
+      fv.installationCost !== (data.installationCost ?? null) ||
+      fv.segment !== (data.segment ?? 'residential') ||
+      fv.dcAcRatio !== (data.dcAcRatio ?? 1.1) ||
+      fv.albedo !== (data.albedo ?? 0.2) ||
       fv.tilt !== data.tilt ||
       fv.direction !== data.direction ||
+      fv.azimuth !== (data.azimuth ?? null) ||
+      fv.rawSpacing !== (data.rawSpacing ?? null) ||
       fv.panelNumber !== data.panelNumber ||
+      fv.panelId !== this.getProjectPanelId(data.panel) ||
+      JSON.stringify(fv.systemLosses ?? {}) !== JSON.stringify(data.systemLosses ?? {
+        inverterEfficiency: 0.96,
+        dcWiring: 2,
+        acWiring: 1,
+        mismatch: 2,
+        soiling: 3,
+        shadingStatic: 0,
+        degradationExtra: 0,
+      }) ||
       this.polygonEdited()
     );
   });
@@ -322,8 +376,157 @@ export class ConfigureProjectComponent implements OnInit {
     const panel = this.selectedPanelData();
     if (!panel) return 'N/A - N/A';
     const technology = panel.technology ?? 'N/A';
-    const dimensions = `${panel.dimensions.width}m x ${panel.dimensions.height}m`;
+    const widthM = panel.dimensions.width / 1000;
+    const heightM = panel.dimensions.height / 1000;
+    const dimensions = `${widthM.toFixed(2)} m x ${heightM.toFixed(2)} m`;
     return `${technology} - ${dimensions}`;
+  });
+
+  readonly polygonAreaLabel = computed(() => `${this.projectTotalArea().toLocaleString(undefined, { maximumFractionDigits: 0 })} m²`);
+
+  readonly previewWarnings = computed(() => this.configPreview()?.warnings ?? []);
+
+  readonly annualProductionDelta = computed(() => {
+    const preview = this.configPreview();
+    if (!preview?.preview.annualProductionKwh || !preview.current.annualProductionKwh) return null;
+    return preview.preview.annualProductionKwh - preview.current.annualProductionKwh;
+  });
+
+  readonly annualSavingsDelta = computed(() => {
+    const preview = this.configPreview();
+    if (preview?.preview.annualSavings == null || preview.current.annualSavings == null) return null;
+    return preview.preview.annualSavings - preview.current.annualSavings;
+  });
+
+  readonly monthlyProductionChartOptions = computed((): Highcharts.Options => {
+    const currentMonthly = this.projectData()?.pvgisRef?.monthlyKwh;
+    const previewMonthly = this.configPreview()?.preview.monthlyProductionKwh;
+    const monthly = previewMonthly ?? currentMonthly;
+    if (!monthly?.length) return {};
+    return {
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
+      xAxis: { categories: MONTH_LABELS, crosshair: true },
+      yAxis: { title: { text: 'kWh/month' }, min: 0 },
+      tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
+      legend: { enabled: Boolean(currentMonthly?.length && previewMonthly?.length) },
+      series: [
+        ...(currentMonthly?.length && previewMonthly?.length
+          ? [{ type: 'column' as const, name: 'Current', data: currentMonthly, color: CHART_COLORS.neutral, borderRadius: 4 }]
+          : []),
+        { type: 'column', name: previewMonthly?.length ? 'Preview estimate' : 'Production estimate', data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
+      ],
+    };
+  });
+
+  readonly comparisonChartOptions = computed((): Highcharts.Options => {
+    const preview = this.configPreview();
+    if (!preview) return {};
+    const currentProduction = preview.current.annualProductionKwh ?? 0;
+    const previewProduction = preview.preview.annualProductionKwh ?? 0;
+    const categories = ['Panels', 'Capacity', 'Annual production', 'Coverage'];
+    const currentValues = [
+      preview.current.panelNumber,
+      preview.current.capacityKw,
+      currentProduction / 1000,
+      preview.current.coverage ?? 0,
+    ];
+    const previewValues = [
+      preview.preview.panelNumber,
+      preview.preview.capacityKw,
+      previewProduction / 1000,
+      preview.preview.coverage ?? 0,
+    ];
+    const normalize = (values: number[], index: number) => {
+      const max = Math.max(currentValues[index] ?? 0, previewValues[index] ?? 0);
+      return max > 0 ? (values[index] / max) * 100 : 0;
+    };
+    return {
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'bar', reflow: true },
+      xAxis: { categories, crosshair: true },
+      yAxis: { title: { text: 'Relative to best value' }, min: 0, max: 100, labels: { format: '{value}%' } },
+      tooltip: { valueDecimals: 0, valueSuffix: '%' },
+      legend: { enabled: true },
+      series: [
+        {
+          type: 'bar',
+          name: 'Current',
+          data: currentValues.map((_, index) => normalize(currentValues, index)),
+          color: CHART_COLORS.neutral,
+          borderRadius: 4,
+        },
+        {
+          type: 'bar',
+          name: 'Preview',
+          data: previewValues.map((_, index) => normalize(previewValues, index)),
+          color: CHART_COLORS.savings,
+          borderRadius: 4,
+        },
+      ],
+    };
+  });
+
+  readonly sunPathChartOptions = computed((): Highcharts.Options => {
+    const sp = this.sunPathData();
+    if (!sp) return {};
+    return {
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'spline', reflow: true },
+      xAxis: { categories: ['Summer', 'Equinox', 'Winter'], crosshair: true },
+      yAxis: [
+        { title: { text: 'Noon altitude °' }, min: 0 },
+        { title: { text: 'Approx. daylight hours' }, opposite: true, min: 0 },
+      ],
+      tooltip: { shared: true },
+      legend: { enabled: true },
+      plotOptions: { spline: { marker: { radius: 4 }, lineWidth: 3 } },
+      series: [
+        {
+          type: 'spline',
+          name: 'Noon altitude',
+          data: [sp.summerSolstice.noonAltitude, sp.equinox.noonAltitude, sp.winterSolstice.noonAltitude],
+          color: CHART_COLORS.production,
+        },
+        {
+          type: 'spline',
+          name: 'Approx. daylight',
+          data: [sp.summerSolstice.daylightHours, sp.equinox.daylightHours, sp.winterSolstice.daylightHours],
+          yAxis: 1,
+          color: CHART_COLORS.forecast,
+        },
+      ],
+    };
+  });
+
+  readonly reviewChanges = computed<ReviewChange[]>(() => {
+    const project = this.projectData();
+    if (!project) return [];
+    const fv = this.configForm.getRawValue();
+    const changes: ReviewChange[] = [];
+    const add = (label: string, before: unknown, after: unknown) => {
+      const beforeText = before == null || before === '' ? '—' : String(before);
+      const afterText = after == null || after === '' ? '—' : String(after);
+      if (beforeText !== afterText) changes.push({ label, before: beforeText, after: afterText });
+    };
+
+    add('Project Name', project.name, fv.name);
+    add('Country', project.country, fv.country);
+    add('Timezone', project.timezone, fv.timezone);
+    add('Currency', project.currency, fv.currency);
+    add('Energy Price', project.price, fv.price);
+    add('Panel', this.getProjectPanelId(project.panel), fv.panelId);
+    add('Panel Count', project.panelNumber, fv.panelNumber);
+    add('Tilt', project.tilt != null ? `${project.tilt}°` : null, fv.tilt != null ? `${fv.tilt}°` : null);
+    add('Direction', project.direction, fv.direction);
+    add('Azimuth', project.azimuth != null ? `${project.azimuth}°` : null, fv.azimuth != null ? `${fv.azimuth}°` : null);
+    add('Row Spacing', project.rawSpacing != null ? `${project.rawSpacing} m` : null, fv.rawSpacing != null ? `${fv.rawSpacing} m` : null);
+    add('Installation Cost', project.installationCost, fv.installationCost);
+    add('Segment', project.segment ?? 'residential', fv.segment);
+    add('DC:AC Ratio', project.dcAcRatio ?? 1.1, fv.dcAcRatio);
+    add('Albedo', project.albedo ?? 0.2, fv.albedo);
+    if (this.polygonEdited()) add('Area Polygon', `${project.area?.length ?? 0} points`, `${this.polygonCoords().length} points`);
+    return changes;
   });
 
   // ─── Lifecycle ───
@@ -349,14 +552,22 @@ export class ConfigureProjectComponent implements OnInit {
     }).subscribe({
       next: ({ project, panels: panelRes }) => {
         const projectResponse = project as unknown as ProjectResponse;
+        const projectPanel =
+          projectResponse.panel && typeof projectResponse.panel !== 'string'
+            ? ({ ...projectResponse.panel, id: projectResponse.panel.id || projectResponse.panel._id } as Panel)
+            : null;
+        const loadedPanels = (panelRes.panels ?? []).map((p) => ({ ...p, id: p.id ?? p._id ?? '' }));
         this.projectData.set(projectResponse);
         this.panels.set(
-          (panelRes.panels ?? []).map((p) => ({ ...p, id: p.id ?? p._id ?? '' })),
+          projectPanel && !loadedPanels.some((p) => (p.id || p._id) === projectPanel.id)
+            ? [projectPanel, ...loadedPanels]
+            : loadedPanels,
         );
         this.populateForm(projectResponse);
         this.extractMapData(projectResponse);
         this.isLoading.set(false);
         this.fetchOptimalConfig(false);
+        this.fetchConfigPreview();
         this.loadSunPath(id);
         this.setupFormWatchers();
       },
@@ -374,13 +585,32 @@ export class ConfigureProjectComponent implements OnInit {
       timezone: project.timezone ?? '',
       currency: project.currency ?? '',
       price: project.price ?? null,
-      panelId: project.panel ?? '',
+      panelId: this.getProjectPanelId(project.panel),
       panelNumber: project.panelNumber ?? 1,
       tilt: project.tilt ?? 30,
       direction: project.direction ?? 'south',
       azimuth: project.azimuth ?? null,
       rawSpacing: project.rawSpacing ?? null,
+      installationCost: project.installationCost ?? null,
+      segment: project.segment ?? 'residential',
+      dcAcRatio: project.dcAcRatio ?? 1.1,
+      albedo: project.albedo ?? 0.2,
+      systemLosses: {
+        inverterEfficiency: project.systemLosses?.inverterEfficiency ?? 0.96,
+        dcWiring: project.systemLosses?.dcWiring ?? 2,
+        acWiring: project.systemLosses?.acWiring ?? 1,
+        mismatch: project.systemLosses?.mismatch ?? 2,
+        soiling: project.systemLosses?.soiling ?? 3,
+        shadingStatic: project.systemLosses?.shadingStatic ?? 0,
+        degradationExtra: project.systemLosses?.degradationExtra ?? 0,
+      },
     });
+  }
+
+  private getProjectPanelId(panel: ProjectResponse['panel']): string {
+    if (!panel) return '';
+    if (typeof panel === 'string') return panel;
+    return panel.id || panel._id || '';
   }
 
   private extractMapData(project: ProjectResponse): void {
@@ -403,6 +633,15 @@ export class ConfigureProjectComponent implements OnInit {
       .get('tilt')
       ?.valueChanges.pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.fetchOptimalConfig(true));
+
+    this.configForm
+      .get('azimuth')
+      ?.valueChanges.pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.fetchOptimalConfig(true));
+
+    this.configForm.valueChanges
+      .pipe(debounceTime(700), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.fetchConfigPreview());
   }
 
   // ─── Sun Path ───
@@ -414,11 +653,8 @@ export class ConfigureProjectComponent implements OnInit {
     });
   }
 
-  formatDecimalHours(h: number): string {
-    const totalMinutes = Math.round(h * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  formatClockTime(value: string): string {
+    return value.includes('T') ? value.slice(11, 16) : value;
   }
 
   // ─── Polygon Change ───
@@ -426,6 +662,7 @@ export class ConfigureProjectComponent implements OnInit {
     this.polygonCoords.set(coords);
     this.polygonEdited.set(true);
     this.fetchOptimalConfig(true);
+    this.fetchConfigPreview();
   }
 
   // ─── Optimal Config ───
@@ -437,7 +674,8 @@ export class ConfigureProjectComponent implements OnInit {
 
     this.isCalculating.set(true);
     const area = coords.map((c) => ({ lat: c.lat, lon: c.lng }));
-    const request: OptimalConfigFromPolygonRequest = { area, panelId, tilt };
+    const azimuth = this.configForm.get('azimuth')?.value ?? undefined;
+    const request: OptimalConfigFromPolygonRequest = { area, panelId, tilt, azimuth };
 
     this.projectService.calculateOptimalConfig(request).subscribe({
       next: (res) => {
@@ -448,6 +686,22 @@ export class ConfigureProjectComponent implements OnInit {
         this.isCalculating.set(false);
       },
       error: () => { this.isCalculating.set(false); },
+    });
+  }
+
+  private fetchConfigPreview(): void {
+    if (!this.projectId() || !this.configForm.valid) return;
+
+    this.isPreviewLoading.set(true);
+    this.projectService.previewConfig(this.projectId(), this.buildProjectPayload()).subscribe({
+      next: (preview) => {
+        this.configPreview.set(preview);
+        if (preview.optimal) this.optimalConfig.set(preview.optimal);
+        this.isPreviewLoading.set(false);
+      },
+      error: () => {
+        this.isPreviewLoading.set(false);
+      },
     });
   }
 
@@ -513,6 +767,25 @@ export class ConfigureProjectComponent implements OnInit {
     this.saveError.set(null);
     this.saveSuccess.set(false);
 
+    const payload = this.buildProjectPayload();
+
+    this.projectService.updateProject(this.projectId(), payload as ProjectUpdateRequest).subscribe({
+      next: (updated) => {
+        this.projectData.set(updated as unknown as ProjectResponse);
+        this.polygonEdited.set(false);
+        this.saveSuccess.set(true);
+        this.isSaving.set(false);
+        this.fetchConfigPreview();
+      },
+      error: (err) => {
+        console.error('Update failed', err);
+        this.saveError.set('Failed to save. Please check your inputs and try again.');
+        this.isSaving.set(false);
+      },
+    });
+  }
+
+  private buildProjectPayload(): ProjectUpdateRequest & ProjectConfigPreviewRequest {
     const fv = this.configForm.getRawValue();
     const payload: Record<string, unknown> = {};
     if (fv.name) payload['name'] = fv.name;
@@ -526,6 +799,12 @@ export class ConfigureProjectComponent implements OnInit {
     if (fv.timezone) payload['timezone'] = fv.timezone;
     if (fv.currency) payload['currency'] = fv.currency;
     if (fv.price != null) payload['price'] = fv.price;
+    if (fv.installationCost != null) payload['installationCost'] = fv.installationCost;
+    if (fv.segment) payload['segment'] = fv.segment;
+    if (fv.dcAcRatio != null) payload['dcAcRatio'] = fv.dcAcRatio;
+    if (fv.albedo != null) payload['albedo'] = fv.albedo;
+    const systemLosses = this.cleanSystemLosses(fv.systemLosses);
+    if (Object.keys(systemLosses).length > 0) payload['systemLosses'] = systemLosses;
 
     if (this.polygonEdited() && this.polygonCoords().length >= 3) {
       payload['area'] = this.polygonCoords().map((c) => ({ lat: c.lat, lon: c.lng }));
@@ -536,17 +815,15 @@ export class ConfigureProjectComponent implements OnInit {
       }
     }
 
-    this.projectService.updateProject(this.projectId(), payload as ProjectUpdateRequest).subscribe({
-      next: (updated) => {
-        this.projectData.set(updated as unknown as ProjectResponse);
-        this.saveSuccess.set(true);
-        this.isSaving.set(false);
-      },
-      error: (err) => {
-        console.error('Update failed', err);
-        this.saveError.set('Failed to save. Please check your inputs and try again.');
-        this.isSaving.set(false);
-      },
-    });
+    return payload as ProjectUpdateRequest & ProjectConfigPreviewRequest;
+  }
+
+  private cleanSystemLosses(losses: Partial<Record<keyof SystemLosses, number | null>> | null | undefined): SystemLosses {
+    const clean: SystemLosses = {};
+    if (!losses) return clean;
+    for (const [key, value] of Object.entries(losses) as Array<[keyof SystemLosses, number | null]>) {
+      if (value != null) clean[key] = value;
+    }
+    return clean;
   }
 }

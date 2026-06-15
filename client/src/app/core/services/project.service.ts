@@ -13,6 +13,8 @@ import {
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
   ProjectAnalytics,
+  ProjectConfigPreview,
+  ProjectConfigPreviewRequest,
   ElectricityPriceSuggestion,
 } from '../models';
 
@@ -130,6 +132,10 @@ export class ProjectService {
   }
 
   /**
+   * Preview project configuration changes without saving
+   */
+  previewConfig(id: string, data: ProjectConfigPreviewRequest): Observable<ProjectConfigPreview> {
+    return this.http.post<ProjectConfigPreview>(`${this.apiUrl}/${id}/config-preview`, data);
    * Suggest a country-level electricity price from ENTSO-E.
    */
   getElectricityPriceSuggestion(countryCode: string): Observable<ElectricityPriceSuggestion> {

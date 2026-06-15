@@ -40,6 +40,10 @@
   align-items: center;
   gap: 0.5rem;
 }
+.material-symbols-outlined {
+  font-size: 1.15rem;
+  line-height: 1;
+}
 .review-items {
   display: flex;
   flex-direction: column;
@@ -61,6 +65,44 @@
   color: var(--p-text-color);
   font-weight: 700;
   text-align: right;
+}
+
+.change-table {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.change-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+  font-size: 0.9rem;
+}
+.change-row:last-child {
+  border-bottom: none;
+}
+.change-header {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  background: var(--p-content-hover-background);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+.change-row strong {
+  color: var(--p-text-color);
+  font-weight: 700;
+}
+.review-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem;
+  border-radius: 0.75rem;
+  background: var(--p-content-hover-background);
+  color: var(--p-text-muted-color);
 }
 
 .total-capacity-card {
@@ -120,5 +162,9 @@
   }
   .capacity-info strong {
     font-size: 1.5rem;
+  }
+  .change-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
   }
 }

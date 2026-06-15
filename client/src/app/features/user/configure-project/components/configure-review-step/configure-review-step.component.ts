@@ -6,7 +6,8 @@ import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
 import { TooltipModule } from 'primeng/tooltip';
 import { Coordinates, OptimalConfigResponse } from '@core/models';
-import { ConfigFormValue } from '../../configure-project.component';
+import { ConfigFormValue, ReviewChange } from '../../configure-project.component';
+import { ProjectConfigPreview } from '@core/models';
 
 @Component({
   selector: 'app-configure-review-step',
@@ -20,6 +21,10 @@ export class ConfigureReviewStepComponent {
   readonly locationSummary = input.required<string>();
   readonly polygonCoords = input.required<Coordinates[]>();
   readonly optimalConfig = input<OptimalConfigResponse | null>(null);
+  readonly configPreview = input<ProjectConfigPreview | null>(null);
+  readonly reviewChanges = input<ReviewChange[]>([]);
+  readonly annualProductionDelta = input<number | null>(null);
+  readonly annualSavingsDelta = input<number | null>(null);
   readonly isUsingOptimalConfig = input<boolean>(false);
   readonly totalCapacityKw = input<number>(0);
   readonly selectedPanelLabel = input<string>('—');
