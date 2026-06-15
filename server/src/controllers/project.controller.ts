@@ -106,7 +106,7 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
  */
 export const generatePlan = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  // TODO - Revisar que se mete en el PDF. Hay que actualizar alguna cosa?
+
   const planData = await projectService.generatePlanData(getRouteId(req), caller);
   return success(res, planData);
 });
