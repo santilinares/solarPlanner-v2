@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { catchError, Observable, of } from 'rxjs';
 import { environment } from '@environments/environment';
 import {
   Project,
@@ -13,6 +13,8 @@ import {
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
   ProjectAnalytics,
+  ProjectConfigPreview,
+  ProjectConfigPreviewRequest,
   ElectricityPriceSuggestion,
 } from '../models';
 
@@ -130,12 +132,27 @@ export class ProjectService {
   }
 
   /**
+   * Preview project configuration changes without saving
+   */
+  previewConfig(id: string, data: ProjectConfigPreviewRequest): Observable<ProjectConfigPreview> {
+    return this.http.post<ProjectConfigPreview>(`${this.apiUrl}/${id}/config-preview`, data);
    * Suggest a country-level electricity price from ENTSO-E.
    */
   getElectricityPriceSuggestion(countryCode: string): Observable<ElectricityPriceSuggestion> {
-    return this.http.get<ElectricityPriceSuggestion>(`${this.apiUrl}/electricity-price`, {
-      params: { countryCode },
-    });
+    return this.http
+      .get<ElectricityPriceSuggestion>(`${this.apiUrl}/pricing/electricity`, {
+        params: { countryCode },
+      })
+      .pipe(
+        catchError(() =>
+          of({
+            price: null,
+            currency: null,
+            source: 'unavailable',
+            countryCode,
+          } satisfies ElectricityPriceSuggestion),
+        ),
+      );
   }
 
   /**

@@ -8,9 +8,14 @@ import {
   ProjectUpdateInput,
   OptimalConfigInput,
   OptimalConfigFromPolygonInput,
+  ProjectConfigPreviewInput,
 } from '../schemas/project.schema';
 import { CallerContext } from '../types/project.types';
 
+function getRouteId(req: Request): string {
+  const { id } = req.params;
+  return Array.isArray(id) ? id[0] : id;
+}
 
 /**
  * Project Controller
@@ -67,7 +72,7 @@ export const getAdminDashboard = asyncHandler(async (_req: Request, res: Respons
  */
 export const getProjectById = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const project = await projectService.getProjectById(req.params.id as string, caller);
+  const project = await projectService.getProjectById(getRouteId(req), caller);
   return success(res, project);
 });
 
@@ -78,7 +83,7 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
  */
 export const updateProject = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const updatedProject = await projectService.updateProject(caller, req.params.id as string, req.body as ProjectUpdateInput);
+  const updatedProject = await projectService.updateProject(caller, getRouteId(req), req.body as ProjectUpdateInput);
   return success(res, updatedProject, 'Project updated successfully');
 });
 
@@ -90,7 +95,7 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
 
 export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const sunPath = await projectService.getSunPath(req.params.id as string, caller);
+  const sunPath = await projectService.getSunPath(getRouteId(req), caller);
   return success(res, sunPath);
 });
 
@@ -102,7 +107,7 @@ export const getSunPath = asyncHandler(async (req: Request, res: Response) => {
 export const generatePlan = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   // TODO - Revisar que se mete en el PDF. Hay que actualizar alguna cosa?
-  const planData = await projectService.generatePlanData(req.params.id as string, caller);
+  const planData = await projectService.generatePlanData(getRouteId(req), caller);
   return success(res, planData);
 });
 
@@ -112,14 +117,14 @@ export const generatePlan = asyncHandler(async (req: Request, res: Response) => 
  * @access  Private
  */
 export const calculateOptimalConfig = asyncHandler(async (req: Request, res: Response) => {
-  const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput, req.params.id as string);
+  const config = await projectService.calculateOptimalConfig(req.body as OptimalConfigInput, getRouteId(req));
   return success(res, config);
 });
 
 /**
  * @route   POST /projects/calculate
  * @desc    Calculate optimal panel configuration from polygon (no project needed)
- * @access  Private
+ * @access  Public
  */
 export const calculateFromPolygon = asyncHandler(async (req: Request, res: Response) => {
   const config = await projectService.calculateFromPolygon(
@@ -129,9 +134,21 @@ export const calculateFromPolygon = asyncHandler(async (req: Request, res: Respo
 });
 
 /**
- * @route   GET /projects/electricity-price
- * @desc    Suggest latest available ENTSO-E electricity price for a country
+ * @route   POST /projects/:id/config-preview
+ * @desc    Calculate non-mutating configuration preview for project
  * @access  Private
+ */
+export const previewProjectConfig = asyncHandler(async (req: Request, res: Response) => {
+  const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
+  const preview = await projectService.previewProjectConfig(
+    getRouteId(req),
+    caller,
+    req.body as ProjectConfigPreviewInput,
+  );
+  return success(res, preview);
+ * @route   GET /projects/pricing/electricity
+ * @desc    Suggest latest available ENTSO-E electricity price for a country
+ * @access  Public
  */
 export const getElectricityPriceSuggestion = asyncHandler(async (req: Request, res: Response) => {
   const countryCode = typeof req.query.countryCode === 'string' ? req.query.countryCode : '';
@@ -146,7 +163,7 @@ export const getElectricityPriceSuggestion = asyncHandler(async (req: Request, r
  */
 export const deleteProject = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.userId!;
-  await projectService.deleteProject(req.params.id as string, userId);
+  await projectService.deleteProject(getRouteId(req), userId);
   return success(res, null, 'Project deleted successfully');
 });
 
@@ -156,7 +173,7 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
  * @access  Private (Admin)
  */
 export const adminDeleteProject = asyncHandler(async (req: Request, res: Response) => {
-  await projectService.adminDeleteProject(req.params.id as string);
+  await projectService.adminDeleteProject(getRouteId(req));
   return success(res, null, 'Project deleted successfully');
 });
 
@@ -178,7 +195,7 @@ export const estimateProject = asyncHandler(async (req: Request, res: Response) 
  */
 export const getProjectAnalytics = asyncHandler(async (req: Request, res: Response) => {
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
-  const analytics = await projectService.getProjectAnalytics(req.params.id as string, caller);
+  const analytics = await projectService.getProjectAnalytics(getRouteId(req), caller);
   return success(res, analytics);
 });
 
@@ -191,7 +208,7 @@ export const refreshProduction = asyncHandler(async (req: Request, res: Response
   const caller: CallerContext = { role: req.userRole!, userId: req.userId! };
   const { forceFullRecalc } = req.body as { forceFullRecalc?: boolean };
   const result = await projectService.refreshProjectProductionOnDemand(
-    req.params.id as string,
+    getRouteId(req),
     caller,
     forceFullRecalc,
   );

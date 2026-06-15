@@ -6,7 +6,7 @@ import { projectService } from './project.service';
 /**
  * Scheduler Service — 2.3 Nightly production refresh
  *
- * At 3:47 AM local time for each project, re-fetches Solcast data and
+ * re-fetches data and
  * updates prodToday, nextProd, previousProd, and accumulates totalProd.
  */
 

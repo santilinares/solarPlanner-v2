@@ -1,6 +1,8 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
+import * as Highcharts from 'highcharts';
+import { HighchartsChartModule } from 'highcharts-angular';
 
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -10,8 +12,9 @@ import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TooltipModule } from 'primeng/tooltip';
+import { FieldsetModule } from 'primeng/fieldset';
 
-import { Panel, OptimalConfigResponse } from '@core/models';
+import { Panel, OptimalConfigResponse, ProjectConfigPreview } from '@core/models';
 import { OrientationOption } from '../../configure-project.component';
 
 @Component({
@@ -28,6 +31,8 @@ import { OrientationOption } from '../../configure-project.component';
     DividerModule,
     SkeletonModule,
     TooltipModule,
+    FieldsetModule,
+    HighchartsChartModule,
   ],
   templateUrl: './configure-panel-form-step.component.html',
   styleUrls: ['./configure-panel-form-step.component.scss'],
@@ -43,9 +48,17 @@ export class ConfigurePanelFormStepComponent {
   readonly totalCapacityKw = input<number>(0);
   readonly projectTotalArea = input<number>(0);
   readonly optimalConfig = input<OptimalConfigResponse | null>(null);
+  readonly configPreview = input<ProjectConfigPreview | null>(null);
   readonly isCalculating = input<boolean>(false);
+  readonly isPreviewLoading = input<boolean>(false);
   readonly isUsingOptimalConfig = input<boolean>(false);
   readonly panelNumber = input<number | null>(null);
+  readonly segmentOptions = input.required<Array<{ label: string; value: string }>>();
+  readonly monthlyProductionChartOptions = input<Highcharts.Options>({});
+  readonly comparisonChartOptions = input<Highcharts.Options>({});
+  readonly showPanelCard = input<boolean>(true);
+  readonly showImpactCard = input<boolean>(true);
 
   readonly applyOptimal = output<void>();
+  readonly Highcharts: typeof Highcharts = Highcharts;
 }

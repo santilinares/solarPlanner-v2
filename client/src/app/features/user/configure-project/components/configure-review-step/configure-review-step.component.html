@@ -1,4 +1,32 @@
 <div class="step-content">
+  <div class="step-card review-card">
+    <div class="review-card-header">
+      <h3><span class="material-symbols-outlined">tune</span> Changes to Save</h3>
+    </div>
+    <p-divider />
+    @if (reviewChanges().length) {
+      <div class="change-table">
+        <div class="change-row change-header">
+          <span>Field</span>
+          <span>Before</span>
+          <span>After</span>
+        </div>
+        @for (change of reviewChanges(); track change.label) {
+          <div class="change-row">
+            <span>{{ change.label }}</span>
+            <strong>{{ change.before }}</strong>
+            <strong>{{ change.after }}</strong>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="review-empty">
+        <i class="pi pi-check-circle"></i>
+        <span>No field changes detected.</span>
+      </div>
+    }
+  </div>
+
   <div class="review-grid">
     <!-- Project & Metadata Summary -->
     <div class="step-card review-card">
@@ -121,6 +149,20 @@
           <span>Total Capacity</span>
           <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
         </div>
+        @if (configPreview(); as preview) {
+          <div class="review-item">
+            <span>Preview Annual Production</span>
+            <strong>{{ preview.preview.annualProductionKwh != null ? (preview.preview.annualProductionKwh | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
+          </div>
+          <div class="review-item">
+            <span>Production Delta</span>
+            <strong>{{ annualProductionDelta() != null ? (annualProductionDelta()! | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
+          </div>
+          <div class="review-item">
+            <span>Savings Delta</span>
+            <strong>{{ annualSavingsDelta() != null ? (annualSavingsDelta()! | number: '1.0-0') + ' /yr' : '—' }}</strong>
+          </div>
+        }
         @if (optimalConfig(); as oc) {
           <div class="review-item">
             <span>Est. Annual Production</span>
@@ -145,6 +187,10 @@
       </div>
     </div>
   </div>
+
+  @if (reviewChanges().length) {
+    <p-message severity="info" text="Saving solar-impacting changes will refresh production and analytics data." class="w-full" />
+  }
 
   @if (saveError()) {
     <p-message severity="error" [text]="saveError()!" class="w-full" />

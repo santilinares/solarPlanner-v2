@@ -1,7 +1,7 @@
 <div class="step-card map-edit-card">
   <div class="step-card-header">
     <div class="step-card-icon location-icon">
-      <i class="pi pi-map-marker"></i>
+      <span class="material-symbols-outlined">location_searching</span>
     </div>
     <div>
       <h2>Location & Area</h2>
@@ -61,6 +61,16 @@
     <div class="map-status">
       <i class="pi pi-check-circle"></i>
       <span>Polygon defined with {{ polygonCoords().length }} points</span>
+    </div>
+    <div class="location-metrics">
+      <div>
+        <span>Area</span>
+        <strong>{{ areaLabel() }}</strong>
+      </div>
+      <div>
+        <span>Centroid</span>
+        <strong>{{ mapLat() != null && mapLng() != null ? (mapLat() | number: '1.4-4') + ', ' + (mapLng() | number: '1.4-4') : '—' }}</strong>
+      </div>
     </div>
   }
 </div>

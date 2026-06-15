@@ -21,7 +21,15 @@ import { CardModule } from 'primeng/card';
 
 import { ProjectService } from '@core/services/project.service';
 import { FileService } from '@core/services/file.service';
-import { ProjectResponse, SunPathData, PlanData, ProjectAnalytics } from '@core/models';
+import { ProjectResponse, SunPathData, PlanData, ProjectAnalytics, ProjectPanelSummary } from '@core/models';
+import {
+  BASE_CHART_OPTIONS,
+  CHART_COLORS,
+  MONTH_LABELS,
+  cumulativeValues,
+  findBreakEvenYear,
+  getCurrencySymbol,
+} from '@core/utils/chart.utils';
 import { ProjectAnalyticsComponent } from './components/project-analytics/project-analytics.component';
 import { ProductionChartsComponent, EconomicValue } from './components/production-charts/production-charts.component';
 
@@ -37,6 +45,7 @@ import { ProductionChartsComponent, EconomicValue } from './components/productio
     TagModule,
     ToastModule,
     CardModule,
+    HighchartsChartModule,
     ProjectAnalyticsComponent,
     ProductionChartsComponent,
   ],
@@ -64,14 +73,6 @@ export class ProjectViewComponent implements OnInit {
   // ─── Highcharts ───
   readonly Highcharts: typeof Highcharts = Highcharts;
 
-  private readonly CHART_THEME: Highcharts.Options = {
-    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' }, width: undefined },
-    credits: { enabled: false },
-    title: { text: undefined },
-    legend: { enabled: false },
-    tooltip: { valueDecimals: 2, valueSuffix: ' kWh' },
-  };
-
   // ─── Computed ───
   readonly hasProductionData = computed(() => {
     const data = this.projectData();
@@ -89,7 +90,7 @@ export class ProjectViewComponent implements OnInit {
     const previousSum = (data.previousProd ?? []).reduce((s, p) => s + p.pv, 0);
     const totalKwh = todaySum + previousSum;
     const value = totalKwh * data.price;
-    const symbol = this.getCurrencySymbol(data.currency ?? 'EUR');
+    const symbol = getCurrencySymbol(data.currency ?? 'EUR');
     return { value, totalKwh, currency: data.currency ?? 'EUR', symbol };
   });
 
@@ -97,63 +98,146 @@ export class ProjectViewComponent implements OnInit {
   readonly hasNextProdData = computed(() => (this.projectData()?.nextProd?.length ?? 0) > 0);
   readonly hasPreviousProdData = computed(() => (this.projectData()?.previousProd?.length ?? 0) > 0);
 
+  readonly projectPanel = computed<ProjectPanelSummary | null>(() => {
+    const panel = this.projectData()?.panel;
+    return panel && typeof panel !== 'string' ? panel : null;
+  });
+
+  readonly totalCapacityKw = computed(() => {
+    const project = this.projectData();
+    const panel = this.projectPanel();
+    return project && panel ? (panel.wattPeak * project.panelNumber) / 1000 : 0;
+  });
+
+  readonly todayProductionKwh = computed(() =>
+    (this.projectData()?.prodToday ?? []).reduce((sum, point) => sum + point.pv, 0)
+  );
+
+  readonly freshnessLabel = computed(() => {
+    const refreshed = this.projectData()?.lastRefreshedAt;
+    if (!refreshed) return 'Production data not refreshed yet';
+    return `Last refreshed ${new Date(refreshed).toLocaleString()}`;
+  });
+
+  readonly isProductionStale = computed(() => {
+    const refreshed = this.projectData()?.lastRefreshedAt;
+    if (!refreshed) return true;
+    return Date.now() - new Date(refreshed).getTime() > 6 * 60 * 60 * 1000;
+  });
+
   readonly todayChartOptions = computed((): Highcharts.Options => {
     const prodToday = this.projectData()?.prodToday ?? [];
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'area', reflow: true },
       xAxis: {
         categories: prodToday.map((p) => {
           const d = new Date(p.dateTime);
           return `${d.getHours().toString().padStart(2, '0')}:00`;
         }),
+        crosshair: true,
         title: { text: 'Hour' },
       },
       yAxis: { title: { text: 'kWh' }, min: 0 },
-      series: [{ type: 'column', name: 'Production', data: prodToday.map((p) => p.pv), color: '#f59e0b', borderRadius: 4 }],
+      tooltip: { valueDecimals: 2, valueSuffix: ' kWh' },
+      plotOptions: {
+        area: {
+          marker: { enabled: false },
+          fillOpacity: 0.22,
+          lineWidth: 3,
+        },
+      },
+      series: [{ type: 'area', name: 'Production curve', data: prodToday.map((p) => p.pv), color: CHART_COLORS.production }],
     };
   });
 
   readonly nextProdChartOptions = computed((): Highcharts.Options => {
     const nextProd = this.projectData()?.nextProd ?? [];
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
       xAxis: {
-        categories: nextProd.map((p) =>
-          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
-        ),
+        categories: nextProd.map((p) => this.formatProductionSlotLabel(p.dateTime)),
+        crosshair: true,
+        labels: { rotation: -35, style: { fontSize: '0.72rem' } },
       },
-      yAxis: { title: { text: 'kWh/day' }, min: 0 },
-      series: [{ type: 'bar', name: 'Forecast', data: nextProd.map((p) => p.pv), color: '#22c55e', borderRadius: 4 }],
+      yAxis: { title: { text: 'kWh/interval' }, min: 0 },
+      tooltip: { valueDecimals: 2, valueSuffix: ' kWh/interval' },
+      series: [{ type: 'column', name: 'Forecast interval', data: nextProd.map((p) => p.pv), color: CHART_COLORS.forecast, borderRadius: 4 }],
     };
   });
 
   readonly previousProdChartOptions = computed((): Highcharts.Options => {
     const previousProd = this.projectData()?.previousProd ?? [];
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'bar', reflow: true },
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
       xAxis: {
-        categories: previousProd.map((p) =>
-          new Date(p.dateTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
-        ),
+        categories: previousProd.map((p) => this.formatProductionSlotLabel(p.dateTime)),
+        crosshair: true,
+        labels: { rotation: -35, style: { fontSize: '0.72rem' } },
       },
-      yAxis: { title: { text: 'kWh/day' }, min: 0 },
-      series: [{ type: 'bar', name: 'Actual', data: previousProd.map((p) => p.pv), color: '#6366f1', borderRadius: 4 }],
+      yAxis: { title: { text: 'kWh/interval' }, min: 0 },
+      tooltip: { valueDecimals: 2, valueSuffix: ' kWh/interval' },
+      series: [{ type: 'column', name: 'Recent interval', data: previousProd.map((p) => p.pv), color: CHART_COLORS.comparison, borderRadius: 4 }],
     };
   });
 
   readonly savingsChartOptions = computed((): Highcharts.Options => {
     const perYear = this.analytics()?.annualSavingsPerYear;
     if (!perYear) return {};
+    const cumulativeSavings = cumulativeValues(perYear);
+    const installCost = this.analytics()?.installationCostUsed;
+    const breakEvenYear = findBreakEvenYear(cumulativeSavings, installCost);
+    const currency = this.projectData()?.currency ?? 'EUR';
     return {
-      ...this.CHART_THEME,
-      chart: { ...this.CHART_THEME.chart, type: 'column', reflow: true },
-      xAxis: { categories: perYear.map((_, i) => `Y${i + 1}`), title: { text: 'Year' } },
-      yAxis: { title: { text: this.projectData()?.currency ?? 'EUR' }, min: 0 },
-      tooltip: { valueDecimals: 2, valueSuffix: ` ${this.projectData()?.currency ?? 'EUR'}` },
-      series: [{ type: 'column', name: 'Annual Savings', data: perYear, color: '#22c55e', borderRadius: 4 }],
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, reflow: true },
+      xAxis: {
+        categories: perYear.map((_, i) => `Y${i + 1}`),
+        crosshair: true,
+        title: { text: 'Year' },
+        plotLines: breakEvenYear
+          ? [{
+              color: CHART_COLORS.savings,
+              dashStyle: 'ShortDash',
+              value: breakEvenYear - 1,
+              width: 2,
+              label: { text: `Break-even Y${breakEvenYear}`, rotation: 0, y: 16 },
+              zIndex: 5,
+            }]
+          : [],
+      },
+      yAxis: { title: { text: currency }, min: 0 },
+      tooltip: { shared: true, valueDecimals: 0, valueSuffix: ` ${currency}` },
+      legend: { enabled: true },
+      series: [
+        { type: 'spline', name: 'Cumulative avoided cost', data: cumulativeSavings, color: CHART_COLORS.savings, lineWidth: 3, zIndex: 2 },
+        { type: 'column', name: 'Annual avoided cost', data: perYear, color: CHART_COLORS.savingsSoft, borderRadius: 4, yAxis: 0 },
+        ...(installCost != null
+          ? [{ type: 'line' as const, name: 'Installation cost', data: perYear.map(() => installCost), color: CHART_COLORS.cost, dashStyle: 'Dash' as const, marker: { enabled: false } }]
+          : []),
+      ],
+    };
+  });
+
+  readonly monthlyProductionChartOptions = computed((): Highcharts.Options => {
+    const monthly = this.projectData()?.pvgisRef?.monthlyKwh;
+    if (!monthly?.length) return {};
+    const annualTotal = monthly.reduce((sum, value) => sum + value, 0);
+    const monthlyAverage = annualTotal / monthly.length;
+    return {
+      ...BASE_CHART_OPTIONS,
+      chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
+      subtitle: { text: `Annual total ${annualTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} kWh` },
+      xAxis: { categories: MONTH_LABELS, crosshair: true },
+      yAxis: { title: { text: 'kWh/month' }, min: 0 },
+      tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
+      legend: { enabled: true },
+      series: [
+        { type: 'column', name: 'Monthly production', data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
+        { type: 'line', name: 'Monthly average', data: monthly.map(() => monthlyAverage), color: CHART_COLORS.forecast, dashStyle: 'ShortDash', marker: { enabled: false } },
+      ],
     };
   });
 
@@ -218,18 +302,22 @@ export class ProjectViewComponent implements OnInit {
     });
   }
 
-  formatDecimalHours(h: number): string {
-    const totalMinutes = Math.round(h * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  formatClockTime(value: string): string {
+    return value.includes('T') ? value.slice(11, 16) : value;
+  }
+
+  private formatProductionSlotLabel(dateTime: string): string {
+    const d = new Date(dateTime);
+    return d.toLocaleString('en', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   getCurrencySymbol(currency: string): string {
-    const symbols: Record<string, string> = {
-      EUR: '€', USD: '$', GBP: '£', JPY: '¥', CNY: '¥', INR: '₹',
-      AUD: 'A$', CAD: 'C$', CHF: 'Fr', ARS: '$', BRL: 'R$', CLP: '$', MXN: '$', COP: '$',
-    };
-    return symbols[currency] ?? currency;
+    return getCurrencySymbol(currency);
   }
 }

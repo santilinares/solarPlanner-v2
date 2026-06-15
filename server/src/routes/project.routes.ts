@@ -16,6 +16,7 @@ import {
   estimateProject,
   refreshProduction,
   getProjectAnalytics,
+  previewProjectConfig,
 } from '../controllers/project.controller';
 import { verifyUserJwtToken, verifyAdminJwtToken } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
@@ -27,6 +28,7 @@ import {
   OptimalConfigFromPolygonSchema,
   EstimateSchema,
   RefreshProductionSchema,
+  ProjectConfigPreviewSchema,
 } from '../schemas/project.schema';
 
 const router = Router();
@@ -35,6 +37,9 @@ const router = Router();
  * Public routes (no auth)
  */
 router.post('/estimate', validateBody(EstimateSchema), estimateProject);
+router.post('/calculate', validateBody(OptimalConfigFromPolygonSchema), calculateFromPolygon);
+router.get('/pricing/electricity', getElectricityPriceSuggestion);
+router.get('/electricity-price', getElectricityPriceSuggestion);
 
 /**
  * Project CRUD routes (mounted at /api/projects)
@@ -42,16 +47,6 @@ router.post('/estimate', validateBody(EstimateSchema), estimateProject);
 router.post('/', verifyUserJwtToken, validateBody(ProjectCreateSchema), createProject);
 
 router.get('/', verifyUserJwtToken, validateQuery(ProjectQuerySchema), listProjects);
-
-/**
- * Calculations (no ID needed)
- */
-router.post(
-  '/calculate',
-  verifyUserJwtToken,
-  validateBody(OptimalConfigFromPolygonSchema),
-  calculateFromPolygon
-);
 
 /**
  * Dashboard routes (must come before /:id route)
@@ -65,6 +60,13 @@ router.get('/electricity-price', verifyUserJwtToken, getElectricityPriceSuggesti
 router.get('/:id', verifyUserJwtToken, getProjectById);
 
 router.put('/:id', verifyUserJwtToken, validateBody(ProjectUpdateSchema), updateProject);
+
+router.post(
+  '/:id/config-preview',
+  verifyUserJwtToken,
+  validateBody(ProjectConfigPreviewSchema),
+  previewProjectConfig,
+);
 
 router.delete('/:id', verifyUserJwtToken, deleteProject);
 

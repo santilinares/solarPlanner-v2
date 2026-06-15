@@ -1,11 +1,14 @@
 @if (economicValue(); as ev) {
   <div class="view-card economic-value-card">
     <div class="economic-value-content">
-      <div class="economic-icon"><i class="pi pi-dollar"></i></div>
+      <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
       <div class="economic-info">
-        <span>Estimated Energy Value</span>
+        <span>Estimated Recent Avoided Cost</span>
         <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
-        <small>{{ ev.totalKwh | number: '1.1-1' }} kWh × {{ price() | number: '1.2-4' }}/kWh</small>
+        <small>
+          Estimated gross value of recent solar production: {{ ev.totalKwh | number: '1.1-1' }} kWh × {{ price() | number: '1.2-4' }}/kWh.
+          It represents avoided grid energy cost before installation, maintenance, taxes, financing, or export compensation.
+        </small>
       </div>
     </div>
   </div>
@@ -15,10 +18,10 @@
   @if (hasTodayData()) {
     <div class="view-card chart-card">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-today"><i class="pi pi-sun"></i></div>
+        <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">wb_sunny</span></div>
         <div>
-          <h2>Today's Hourly Production</h2>
-          <p>Forecasted PV output for today, hour by hour.</p>
+          <h2>Today's Production Curve</h2>
+          <p>Forecasted PV output for today as an hourly solar curve.</p>
         </div>
       </div>
       <p-divider />
@@ -32,10 +35,10 @@
 
     <div class="view-card chart-card">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-forecast"><i class="pi pi-calendar"></i></div>
+        <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">event_upcoming</span></div>
         <div>
           <h2>Next 6 Days Forecast</h2>
-          <p>Projected daily energy production.</p>
+          <p>Projected production by hourly interval across the forecast window.</p>
         </div>
       </div>
       <p-divider />
@@ -49,12 +52,12 @@
   }
 
   @if (hasPreviousProdData()) {
-    <div class="view-card chart-card">
+    <div class="view-card chart-card full-width-chart">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-past"><i class="pi pi-history"></i></div>
+        <div class="step-card-icon chart-icon-past"><span class="material-symbols-outlined">history</span></div>
         <div>
-          <h2>Past 6 Days Estimates</h2>
-          <p>Estimated actual production per day.</p>
+          <h2>Recent Production Trend</h2>
+          <p>Estimated production by hourly interval across the recent history window.</p>
         </div>
       </div>
       <p-divider />

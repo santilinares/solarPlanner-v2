@@ -54,6 +54,21 @@ export interface ProjectCreateRequest {
   panelId?: string;
   rawSpacing?: number;
   cultivarId?: string;
+  dcAcRatio?: number;
+  systemLosses?: SystemLosses;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  albedo?: number;
+}
+
+export interface SystemLosses {
+  inverterEfficiency?: number;
+  dcWiring?: number;
+  acWiring?: number;
+  mismatch?: number;
+  soiling?: number;
+  degradationExtra?: number;
+  shadingStatic?: number;
 }
 
 export interface ProjectUpdateRequest {
@@ -72,6 +87,8 @@ export interface ProjectUpdateRequest {
   installationCost?: number;
   segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
   albedo?: number;
+  dcAcRatio?: number;
+  systemLosses?: SystemLosses;
 }
 
 // Simplified Panel reference for project
@@ -92,8 +109,18 @@ export interface Panel {
 export interface SunPosition {
   noonAltitude: number;
   daylightHours: number;
-  sunrise: number;
-  sunset: number;
+  sunrise?: number;
+  sunset?: number;
+}
+
+export interface TodaySunlight {
+  date: string;
+  timezone: string;
+  sunrise: string;
+  sunset: string;
+  daylightHours: number;
+  sunshineHours: number | null;
+  source: 'open-meteo';
 }
 
 /**
@@ -101,9 +128,12 @@ export interface SunPosition {
  */
 export interface SunPathData {
   latitude: number;
+  longitude: number;
+  timezone: string;
   summerSolstice: SunPosition;
   winterSolstice: SunPosition;
   equinox: SunPosition;
+  todaySunlight: TodaySunlight | null;
 }
 
 /**
@@ -199,7 +229,7 @@ export interface ProjectResponse {
   azimuth?: number;
   rawSpacing?: number;
   panelNumber: number;
-  panel?: string;
+  panel?: string | ProjectPanelSummary;
   cultivar?: string;
   owner?: string;
   pvgisRef?: {
@@ -212,9 +242,20 @@ export interface ProjectResponse {
   nextProd?: ProductionPoint[];
   previousProd?: ProductionPoint[];
   totalProd?: number;
+  lastRefreshedAt?: string;
+  dcAcRatio?: number;
+  systemLosses?: SystemLosses;
   installDate: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectPanelSummary extends Panel {
+  _id: string;
+  bifacial?: boolean;
+  bifacialityFactor?: number;
+  degradationFirstYear?: number;
+  degradationAnnual?: number;
 }
 
 /**
@@ -223,7 +264,12 @@ export interface ProjectResponse {
 export interface OptimalConfigResponse {
   recommendedPanels: number;
   estimatedCapacity: number; // kW
-  estimatedProduction: number; // kWh/year
+  estimatedProduction: number; // kWh/year midpoint of the preliminary range
+  estimatedProductionRange: {
+    low: number;
+    high: number;
+  };
+  productionEstimateMode: 'preliminary';
   coverage: number; // Percentage
   surfaceArea: number; // m² — polygon area used by backend optimal configuration
   latitude: number; // centre latitude for client-side sun elevation calc
@@ -237,6 +283,37 @@ export interface OptimalConfigFromPolygonRequest {
   azimuth?: number;
 }
 
+export interface ProjectConfigPreviewRequest {
+  area?: GeoPoint[];
+  panelId?: string;
+  panelNumber?: number;
+  tilt?: number;
+  azimuth?: number;
+  rawSpacing?: number;
+  price?: number;
+  currency?: string;
+  installationCost?: number;
+  segment?: 'residential' | 'commercial' | 'utility' | 'agrivoltaic';
+  dcAcRatio?: number;
+  albedo?: number;
+  systemLosses?: SystemLosses;
+}
+
+export interface ProjectConfigPreview {
+  current: ProjectConfigPreviewMetrics;
+  preview: ProjectConfigPreviewMetrics & { monthlyProductionKwh: number[] | null };
+  optimal: OptimalConfigResponse | null;
+  currency?: string;
+  warnings: string[];
+}
+
+export interface ProjectConfigPreviewMetrics {
+  panelNumber: number;
+  capacityKw: number;
+  annualProductionKwh: number | null;
+  annualSavings: number | null;
+  coverage: number | null;
+  rowSpacing: number | null;
 export interface ElectricityPriceSuggestion {
   price: number | null;
   currency: string | null;

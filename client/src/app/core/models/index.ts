@@ -14,6 +14,7 @@ export {
   MonthlyProduction,
   ProjectCreateRequest,
   ProjectUpdateRequest,
+  SystemLosses,
   Panel as ProjectPanel,
   SunPosition,
   SunPathData,
@@ -24,6 +25,10 @@ export {
   ProjectResponse,
   OptimalConfigResponse,
   OptimalConfigFromPolygonRequest,
+  ProjectConfigPreviewRequest,
+  ProjectConfigPreview,
+  ProjectConfigPreviewMetrics,
+  ProjectPanelSummary,
   ElectricityPriceSuggestion,
   ProjectAnalytics,
 } from './project.model';

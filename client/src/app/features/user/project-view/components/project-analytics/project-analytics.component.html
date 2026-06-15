@@ -8,10 +8,10 @@
     <!-- System Performance card -->
     <div class="view-card">
       <div class="step-card-header">
-        <div class="step-card-icon capacity-icon"><i class="pi pi-chart-line"></i></div>
+        <div class="step-card-icon capacity-icon"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
           <h2>System Performance</h2>
-          <p>Metrics based on PVGIS annual reference (NREL PVWatts V5).</p>
+          <p>Performance, payback and gross avoided-cost metrics based on PVGIS annual reference data.</p>
         </div>
       </div>
       <p-divider />
@@ -24,32 +24,47 @@
           <span class="capacity-label">Performance Ratio</span>
           <strong>{{ a.performanceRatio != null ? (a.performanceRatio | number: '1.1-1') + ' %' : '—' }}</strong>
         </div>
+        <div class="capacity-item">
+          <span class="capacity-label">Payback</span>
+          <strong>{{ a.paybackYears != null ? (a.paybackYears | number: '1.1-1') + ' years' : '—' }}</strong>
+        </div>
+        <div class="capacity-item">
+          <span class="capacity-label">25-Year Gross ROI Estimate</span>
+          <strong>{{ a.roi25Years != null ? (a.roi25Years | number: '1.0-0') + ' %' : '—' }}</strong>
+        </div>
       </div>
     </div>
 
     <!-- Annual savings card -->
     <div class="view-card">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-today"><i class="pi pi-wallet"></i></div>
+        <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">payments</span></div>
         <div>
-          <h2>Estimated Annual Savings</h2>
-          <p>Based on PVGIS yearly production × energy price.</p>
+          <h2>Estimated Annual Avoided Cost</h2>
+          <p>Estimated yearly avoided energy cost, calculated as PVGIS yearly production × energy price. This is a gross estimate, not net profit.</p>
         </div>
       </div>
       <p-divider />
       @if (a.annualSavingsEur != null) {
         <div class="economic-value-content">
-          <div class="economic-icon"><i class="pi pi-dollar"></i></div>
+          <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
           <div class="economic-info">
-            <span>Est. Annual Value</span>
+            <span>Estimated Annual Avoided Cost</span>
             <strong>{{ getCurrencySymbol(currency()) }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
             <small>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh/yr × {{ price() | number: '1.2-4' }}/kWh</small>
           </div>
         </div>
+        <div class="assumption-grid">
+          <div><span>Energy price</span><strong>{{ price() | number: '1.2-4' }} {{ currency() }}/kWh</strong></div>
+          <div><span>PVGIS yearly production</span><strong>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh</strong></div>
+          <div><span>Installation cost</span><strong>{{ a.installationCostUsed != null ? getCurrencySymbol(currency()) + ' ' + (a.installationCostUsed | number: '1.0-0') : '—' }}</strong></div>
+          <div><span>Cost source</span><strong>{{ a.installationCostSource === 'benchmark' ? 'Benchmark' : a.installationCostSource === 'user' ? 'User input' : 'Missing' }}</strong></div>
+          <div><span>Degradation model</span><strong>2.0% first year, 0.5%/yr</strong></div>
+        </div>
       } @else {
         <div class="sun-path-warning">
           <i class="pi pi-info-circle"></i>
-          <span>Set an energy price to see savings estimates.</span>
+          <span>Set an energy price to see avoided-cost estimates.</span>
         </div>
       }
     </div>
@@ -59,10 +74,10 @@
   @if (a.annualSavingsPerYear) {
     <div class="view-card chart-card mt-4">
       <div class="step-card-header">
-        <div class="step-card-icon chart-icon-forecast"><i class="pi pi-calendar-plus"></i></div>
+        <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
-          <h2>25-Year Savings Projection</h2>
-          <p>Annual savings with panel degradation applied (NREL PVWatts V5).</p>
+          <h2>25-Year Avoided Cost Projection</h2>
+          <p>Long-term gross avoided-cost projection using PVGIS annual production, panel degradation, energy price, and installation cost context. It does not include inflation, maintenance, taxes, financing, or export compensation.</p>
         </div>
       </div>
       <p-divider />

@@ -68,7 +68,7 @@ export class PanelService {
    * @param userId Requesting user ID (for filtering personal panels)
    * @returns List of panels
    */
-  async listPanels(filters: PanelQueryInput, userId?: string): Promise<PanelListResponse> {
+  async listPanels(filters: Partial<PanelQueryInput> = {}, userId?: string): Promise<PanelListResponse> {
     // If single ID requested, return that panel
     if (filters.id) {
       const panel = await this.getPanelById(filters.id);
@@ -104,14 +104,24 @@ export class PanelService {
     }
 
     // Execute query
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+    const skip = (page - 1) * limit;
+
     const [panels, total] = await Promise.all([
-      PanelModel.find(query).populate('owner', 'fullName email').sort({ createdAt: -1 }),
+      PanelModel.find(query)
+        .populate('owner', 'fullName email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
       PanelModel.countDocuments(query),
     ]);
 
     return {
       panels: panels.map(transformPanelToResponse),
       total,
+      page,
+      limit,
     };
   }
 
@@ -190,8 +200,7 @@ export class PanelService {
    */
   async getAvailablePanels(userId: string): Promise<PanelListResponse> {
     // Return global panels + personal panels owned by user
-    const filters: PanelQueryInput = {};
-    return this.listPanels(filters, userId);
+    return this.listPanels({}, userId);
   }
 }
 
