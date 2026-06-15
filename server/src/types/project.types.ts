@@ -155,6 +155,8 @@ export interface ProjectConfigPreview {
   optimal: OptimalConfigResponse | null;
   currency?: string;
   warnings: string[];
+}
+
 export interface ElectricityPriceSuggestionResponse {
   price: number | null;
   currency: string | null;

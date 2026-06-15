@@ -87,6 +87,8 @@ vi.mock('../../services/pvgis.service', () => ({
 
 vi.mock('../../services/openmeteo.service', () => ({
   openMeteoService: { fetchDailySunlight: mockFetchDailySunlight },
+}));
+
 vi.mock('../../services/entsoe.service', () => ({
   entsoeService: { fetchElectricityPrice: mockFetchElectricityPrice },
 }));

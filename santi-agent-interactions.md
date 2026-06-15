@@ -4357,3 +4357,37 @@ El usuario seguía viendo `GET /api/projects/electricity-price?countryCode=ES 40
 
 ### Reasoning
 Aunque el código actual tenía `/electricity-price` antes de `/:id`, una ruta más específica bajo `/pricing/electricity` evita ambigüedades y facilita distinguir endpoints auxiliares de recursos de proyecto. El fallback frontend es necesario porque ENTSO-E es una sugerencia, no un bloqueo de creación: si la sugerencia falla, el usuario debe poder seguir usando o editando el precio por defecto.
+
+---
+
+## June 15, 2026 - Fix merge-conflict syntax breakages after PR merge
+
+### Topic
+Repair TypeScript parse errors introduced while merging solar planning feature branches.
+
+### Summary of Prompt
+The user had merged two conflicting feature branches and asked to reproduce `npm start`, inspect the reported errors, read PRs #21 and #22 if possible, and then fix the problems.
+
+### What Was Achieved
+- Reproduced the app startup failures after installing missing root, client, and server dependencies.
+- Fixed broken merge fragments in the server project controller, project service, project response types, and project service tests.
+- Fixed broken merge fragments in the Angular project model and project service.
+- Verified `server` TypeScript compilation with `npx tsc --noEmit --pretty false`.
+- Verified Angular TypeScript with `npm run typecheck`.
+- Verified the Angular development build outside the Codex filesystem sandbox with `npx ng build --configuration development`.
+- Verified the server starts successfully when the required environment variables are supplied temporarily.
+
+### Full Prompt
+> "Please fix those problems and try again. I authenticated you so you should be able to see it. What is the exact workspace you say does not have access?"
+
+### Affected Files
+- `server/src/controllers/project.controller.ts`
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/core/services/project.service.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+The compiler errors pointed to conflict-resolution leftovers where new exports or methods had been inserted before closing the previous object, method, interface, or mock block. Restoring those missing closers made the server exports visible again and allowed both client and server TypeScript to parse. The remaining `npm start` server failure was configuration-related, not code-related: this Codex worktree has no `server/.env`, so `loadEnv()` rejects startup until required values are present.

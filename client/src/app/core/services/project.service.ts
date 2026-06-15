@@ -136,6 +136,9 @@ export class ProjectService {
    */
   previewConfig(id: string, data: ProjectConfigPreviewRequest): Observable<ProjectConfigPreview> {
     return this.http.post<ProjectConfigPreview>(`${this.apiUrl}/${id}/config-preview`, data);
+  }
+
+  /**
    * Suggest a country-level electricity price from ENTSO-E.
    */
   getElectricityPriceSuggestion(countryCode: string): Observable<ElectricityPriceSuggestion> {

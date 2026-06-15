@@ -146,6 +146,9 @@ export const previewProjectConfig = asyncHandler(async (req: Request, res: Respo
     req.body as ProjectConfigPreviewInput,
   );
   return success(res, preview);
+});
+
+/**
  * @route   GET /projects/pricing/electricity
  * @desc    Suggest latest available ENTSO-E electricity price for a country
  * @access  Public

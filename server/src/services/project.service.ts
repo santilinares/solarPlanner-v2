@@ -1077,6 +1077,9 @@ export class ProjectService {
       optimal,
       currency,
       warnings,
+    };
+  }
+
   async getElectricityPriceSuggestion(countryCode: string): Promise<ElectricityPriceSuggestionResponse> {
     const normalizedCountryCode = this.normalizeCountryCode(countryCode.trim());
     if (!normalizedCountryCode) {
@@ -1096,7 +1099,7 @@ export class ProjectService {
     };
   }
 
-  estimateFromPolygon(
+  async estimateFromPolygon(
     area: GeoPointInput[],
   ): Promise<{ panelCount: number; areaSqm: number; estimatedKwp: number }> {
     const geoPoints = area.map((p) => ({ latitude: p.lat, longitude: p.lon }));

@@ -314,6 +314,8 @@ export interface ProjectConfigPreviewMetrics {
   annualSavings: number | null;
   coverage: number | null;
   rowSpacing: number | null;
+}
+
 export interface ElectricityPriceSuggestion {
   price: number | null;
   currency: string | null;
