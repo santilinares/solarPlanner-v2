@@ -4546,3 +4546,252 @@ El usuario pidió que la timeline explicara cómo ha progresado Solar Planner de
 
 ### Reasoning
 La timeline anterior contaba una planificación mensual genérica, pero el usuario necesitaba una narrativa de evolución del producto. La nueva estructura compara v1 y v2 con un tercer punto de continuidad, que ayuda a leer el proyecto como una base técnica en evolución. Las versiones de v2 se tomaron de los `package.json` locales para evitar inventar números.
+
+---
+
+## June 16, 2026 - PrimeNG Timeline and AnimateOnScroll landing integration
+
+### Topic
+Migración del timeline del home a componentes PrimeNG y animación de secciones al hacer scroll.
+
+### Summary of Prompt
+El usuario aprobó el plan para implementar en el home page el timeline vertical de PrimeNG y `AnimateOnScroll`, manteniendo la misma fuente usada por el resto de la aplicación.
+
+### What Was Achieved
+- Se importaron `TimelineModule` y `AnimateOnScrollModule` en el componente standalone del landing page.
+- Se sustituyó el timeline custom por `<p-timeline>` vertical con templates de marker, opposite y content.
+- Se mantuvo la interacción por click/teclado para seleccionar la etapa activa del proyecto.
+- Se aplicó `pAnimateOnScroll` a las secciones principales del home con una animación suave de entrada.
+- Se eliminaron los estilos y selectores responsive del timeline anterior.
+- Se verificó `npm run typecheck`, `npm run build` del cliente y el DOM/interacción en el navegador integrado.
+
+### Full Prompt
+> "Para el home page quiero implementar usanod primeng estos dos elementos:
+> - https://primeng.org/timeline para el timeline vertical
+> - https://primeng.org/animateonscroll
+>
+> Usa la misma fuente para todo lo que metas. La que se usa por toda la app"
+>
+> "Aprobado"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+PrimeNG ya es la librería UI principal del proyecto, así que usar su `Timeline` reduce código propio para la estructura vertical y deja el diseño alineado con el stack. `AnimateOnScroll` se aplicó como mejora progresiva sobre secciones completas, usando clases locales y heredando la tipografía global (`Inter, "Segoe UI", system-ui, sans-serif`) para no introducir otra fuente ni una estética distinta.
+
+---
+
+## June 17, 2026 - GitHub repository links and landing CTA cleanup
+
+### Topic
+Actualización de enlaces de GitHub y mejora de botones del home.
+
+### Summary of Prompt
+El usuario pidió que los enlaces de GitHub apuntasen al repositorio `santilinares/solarPlanner-v2`, que documentación apuntase al `README.md`, contributing a `CONTRIBUTING.md`, que el botón `View on GitHub` tuviera más contraste y que se eliminara el botón `Star Repository`.
+
+### What Was Achieved
+- Se actualizó la URL base del repositorio a `https://github.com/santilinares/solarPlanner-v2`.
+- Se añadieron URLs configurables para `README.md` y `CONTRIBUTING.md` en entornos de desarrollo y producción.
+- Se cambió el enlace de `Documentation` del header para abrir el README del repositorio.
+- Se mejoró el contraste del botón `View on GitHub` del hero con una clase específica.
+- Se eliminó el botón `Star the Repository`.
+- Se añadió un botón `Contributing Guide` que abre `CONTRIBUTING.md`.
+- Se validó con `npm run typecheck`, `npm run build` del cliente y revisión en navegador integrado.
+
+### Full Prompt
+> "Los links a github deben tener:
+> - [santilinares/solarPlanner-v2](https://github.com/santilinares/solarPlanner-v2)
+> - Para el contributing este: [CONTRIBUTING.md](https://github.com/santilinares/solarPlanner-v2/blob/main/CONTRIBUTING.md)
+> - Para la documentacion este: [README.md](https://github.com/santilinares/solarPlanner-v2/blob/main/README.md)
+>
+> El boton de view on github no tiene suficiente contraste
+> Elimina el boton de star repository"
+>
+> "Dale"
+
+### Affected Files
+- `client/src/environments/environment.ts`
+- `client/src/environments/environment.prod.ts`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Centralizar las URLs en los archivos de entorno evita duplicar rutas de GitHub en componentes y mantiene la configuración consistente entre desarrollo y producción. El botón de estrella no era una acción útil dentro de la app, mientras que enlazar a la guía de contribución aprovecha el enlace solicitado y encaja con la sección open source.
+
+---
+
+## June 17, 2026 - Contributing CTA contrast improvement
+
+### Topic
+Mejora de contraste del botón `Contributing Guide` en el home.
+
+### Summary of Prompt
+El usuario indicó que el botón `Contributing Guide` no tenía suficiente contraste sobre el panel de contribución.
+
+### What Was Achieved
+- Se añadió una clase específica `contributing-button` al botón.
+- Se ajustó el color del texto a blanco y el borde a blanco semitransparente de alta visibilidad.
+- Se mantuvo como CTA secundario respecto a `View on GitHub`.
+- Se verificó con `npm run typecheck` y revisión en navegador integrado.
+
+### Full Prompt
+> "Contributing guide no tiene suficiente contraste"
+>
+> "dale"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El botón era `outlined` y heredaba un estilo secundario demasiado tenue sobre un fondo oscuro. Una clase local permite mejorar contraste sin alterar otros botones PrimeNG ni cambiar la jerarquía visual de la sección.
+
+---
+
+## June 17, 2026 - Future work roadmap copy update
+
+### Topic
+Actualización del contenido del timeline para reflejar futuras líneas de trabajo del proyecto.
+
+### Summary of Prompt
+El usuario pidió modificar `Open Evolution` para incorporar futuros trabajos sobre agrovoltaica, 3D, sombras, topografía, componentes eléctricos y destino de la energía generada. También pidió sustituir `Refactor` por una palabra que transmitiera mejora, modernización y escalabilidad.
+
+### What Was Achieved
+- Se cambió la etiqueta de `Solar Planner v2` de `Refactor` a `Modernization`.
+- Se cambió `Open Evolution` para presentarlo como `Future Work`.
+- Se resumieron las futuras líneas de trabajo en tres puntos de alto nivel:
+  - compatibilidad cultivo-instalación y beneficios agrovoltaicos,
+  - representación 3D, obstáculos y sombras dinámicas anuales,
+  - análisis topográfico, componentes eléctricos, almacenamiento y flujos de energía.
+- Se mantuvo el contenido lo bastante compacto para no sobrecargar el timeline.
+- Se verificó con `npm run typecheck` y navegador integrado.
+
+### Full Prompt
+> "Para la parte de open evolution modificalo para tener en cuenta esto:
+> Futuro Trabajo 1. Incorporar un modelo de compatibilidad entre cultivos e instalaciones fotovoltaicas...
+> Futuro Trabajo 2. Añadir una representación 3D del área de instalación...
+> Futuro Trabajo 3. Implementar un sistema capaz de calcular dinámicamente las sombras proyectadas...
+> Futuro Trabajo 4. Desarrollar mecanismos específicos para analizar la topografía del terreno...
+> Futuro Trabajo 5. Incorporar entidades específicas para inversores, baterías, reguladores y sistemas de almacenamiento...
+> Futuro Trabajo 6. Extender el análisis para representar qué ocurre con la energía generada...
+>
+> Y en lugar de refactor, usa una palabra que implique mejora, modernización, escalabilidad, etc."
+>
+> "Dale"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El texto original de `Open Evolution` era demasiado genérico para una sección de roadmap. Se condensaron los seis futuros trabajos en tres bullets más legibles para el home, manteniendo el significado técnico sin convertir el timeline en una sección documental extensa.
+
+---
+
+## June 17, 2026 - Visitor footer year update
+
+### Topic
+Actualización del año mostrado en el footer público.
+
+### Summary of Prompt
+El usuario pidió cambiar el año del footer de 2025 a 2026.
+
+### What Was Achieved
+- Se actualizó el copyright del layout público a `© 2026 Solar Planner`.
+- Se verificó con `npm run typecheck`.
+
+### Full Prompt
+> "Cambia el footer para que el año sea 2026 en lugar de 2025"
+
+### Affected Files
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El footer mostraba un año desactualizado para la versión actual del proyecto. Se realizó el cambio directamente en el layout público compartido para que aplique a todas las páginas visitantes.
+
+---
+
+## June 17, 2026 - Hero illustration asset replacement
+
+### Topic
+Sustitución del mockup generado por CSS del hero por una ilustración local.
+
+### Summary of Prompt
+El usuario proporcionó una imagen para reemplazar la ilustración actual del hero y pidió probar si podía incorporarse tal cual o replicarse.
+
+### What Was Achieved
+- Se copió la imagen proporcionada al proyecto como `client/src/assets/landing/solar-home-hero.png`.
+- Se reemplazó el mockup HTML/CSS del hero por una imagen local usando `NgOptimizedImage`.
+- Se ajustó el estilo de la imagen para mantener buen encuadre, bordes y sombra dentro del hero.
+- Se eliminaron estilos y propiedades TypeScript que solo pertenecían al mockup anterior.
+- Se validó con `npm run typecheck`, `npm run build` del cliente y revisión en navegador integrado.
+
+### Full Prompt
+> "Modifica la ilustracion que tienes en el hero y mete la que te he pasado. No se si puedes meterla tal cual o puedes replicar el diseño"
+>
+> "Vamos a probar"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/assets/landing/solar-home-hero.png`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Usar la imagen como asset local preserva exactamente el estilo visual solicitado y evita depender de recursos externos en runtime. Al sustituir el mockup por una imagen optimizada se simplifica el componente y se reduce CSS específico que ya no era necesario.
+
+---
+
+## June 17, 2026 - Hero illustration dark variant replacement
+
+### Topic
+Sustitución de la ilustración del hero por una variante más oscura.
+
+### Summary of Prompt
+El usuario proporcionó una segunda imagen para usarla en lugar de la ilustración anterior del hero.
+
+### What Was Achieved
+- Se reemplazó el asset `client/src/assets/landing/solar-home-hero.png` por la nueva imagen proporcionada.
+- Se mantuvo el mismo nombre y ruta del asset para evitar cambios adicionales en el template.
+- Se verificó en navegador que la imagen carga correctamente desde `assets/landing/solar-home-hero.png`.
+
+### Full Prompt
+> "Usa esta imagen mejor"
+
+### Affected Files
+- `client/src/assets/landing/solar-home-hero.png`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La segunda imagen tiene un fondo oscuro y una iluminación verde/amarilla que encaja mejor con el hero actual, por lo que bastó con reemplazar el asset existente sin tocar el componente.
+
+---
+
+## June 17, 2026 - Transparent hero illustration styling
+
+### Topic
+Ajuste de la imagen del hero para usar su transparencia real sobre el fondo de la sección.
+
+### Summary of Prompt
+El usuario aclaró que la imagen no debía verse como si tuviera fondo propio, sino integrarse con el fondo del hero aprovechando su transparencia.
+
+### What Was Achieved
+- Se comprobó que el PNG tiene canal alfa y esquinas transparentes.
+- Se eliminó el fondo CSS blanco y la sombra rectangular aplicada a `.hero-illustration`.
+- Se sustituyó la sombra de caja por `filter: drop-shadow(...)` para mantener profundidad sin crear una tarjeta.
+- Se verificó en navegador que el fondo computado de la imagen es transparente y no tiene `box-shadow`.
+
+### Full Prompt
+> "Pero la idea es que no tenga fondo y se use el fondo del hero. Porque la imagen no tiene fondo"
+>
+> "dale"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El asset ya era transparente, pero el CSS de la imagen añadía un fondo claro y una sombra rectangular que lo hacía parecer una tarjeta. El `drop-shadow` conserva profundidad visual respetando la silueta transparente de la ilustración.

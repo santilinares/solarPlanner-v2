@@ -3,6 +3,8 @@ import { NgOptimizedImage } from '@angular/common';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { TimelineModule } from 'primeng/timeline';
+import { AnimateOnScrollModule } from 'primeng/animateonscroll';
 
 import { environment } from '../../../../environments/environment';
 
@@ -30,7 +32,7 @@ interface TechnologyCard {
 
 @Component({
   selector: 'app-landing-page',
-  imports: [NgOptimizedImage, ButtonModule, CardModule],
+  imports: [NgOptimizedImage, ButtonModule, CardModule, TimelineModule, AnimateOnScrollModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="landing-page">
@@ -61,53 +63,34 @@ interface TechnologyCard {
               <p-button
                 label="View on GitHub"
                 icon="pi pi-github"
-                [outlined]="true"
-                severity="secondary"
+                styleClass="github-hero-button"
                 (onClick)="openGithub()"
               />
             </div>
           </div>
 
           <div class="hero-visual" aria-label="Solar project planning preview">
-            <div class="planner-mockup">
-              <div class="mockup-toolbar">
-                <span></span>
-                <span></span>
-                <span></span>
-                <strong>Site estimate</strong>
-              </div>
-              <div class="mockup-body">
-                <div class="map-canvas">
-                  <div class="map-grid" aria-hidden="true"></div>
-                  <div class="site-area" aria-hidden="true">
-                    <div class="panel-field">
-                      @for (panel of panelBlocks; track panel) {
-                        <span class="panel-block"></span>
-                      }
-                    </div>
-                  </div>
-                  <div class="north-marker" aria-hidden="true">N</div>
-                  <div class="map-scale" aria-hidden="true"></div>
-                </div>
-                <aside class="metrics-panel" aria-label="Example project metrics">
-                  <header>
-                    <span>PV feasibility</span>
-                    <strong>High</strong>
-                  </header>
-                  @for (metric of heroMetrics; track metric.label) {
-                    <div class="metric-row">
-                      <span>{{ metric.label }}</span>
-                      <strong>{{ metric.value }}</strong>
-                    </div>
-                  }
-                </aside>
-              </div>
-            </div>
+            <img
+              ngSrc="assets/landing/solar-home-hero.png"
+              alt="Illustration of solar panels powering a home"
+              width="1536"
+              height="1024"
+              priority
+              class="hero-illustration"
+            />
           </div>
         </div>
       </section>
 
-      <section id="documentation" class="journey-section" aria-labelledby="journey-title">
+      <section
+        id="documentation"
+        class="journey-section"
+        aria-labelledby="journey-title"
+        pAnimateOnScroll
+        enterClass="scroll-enter"
+        leaveClass="scroll-leave"
+        [once]="true"
+      >
         <div class="container">
           <div class="section-heading">
             <span class="section-kicker">Roadmap</span>
@@ -115,61 +98,59 @@ interface TechnologyCard {
             <p>From initial prototype to an evolving open-source platform.</p>
           </div>
 
-          <div class="timeline-shell timeline-line-shell">
-            <div class="timeline-topbar">
-              <div class="timeline-progress-label">
-                <span>{{ activeMilestone.label }}</span>
-                <strong>{{ activeMilestone.title }}</strong>
+          <p-timeline [value]="timelineMilestones" align="left" layout="vertical" class="project-timeline">
+            <ng-template #marker let-milestone>
+              <button
+                type="button"
+                class="timeline-marker"
+                [class.active]="activeMilestone.title === milestone.title"
+                [attr.aria-label]="'Select ' + milestone.title"
+                [attr.aria-pressed]="activeMilestone.title === milestone.title"
+                (click)="selectMilestone(timelineMilestones.indexOf(milestone))"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">{{ milestone.icon }}</span>
+              </button>
+            </ng-template>
+
+            <ng-template #opposite let-milestone>
+              <div class="timeline-opposite">
+                <span>{{ milestone.label }}</span>
+                <strong>{{ milestone.author }}</strong>
               </div>
-            </div>
+            </ng-template>
 
-            <div class="timeline-track" role="tablist" aria-label="Development milestones">
-              @for (milestone of timelineMilestones; track milestone.title; let index = $index) {
-                <button
-                  type="button"
-                  class="milestone"
-                  role="tab"
-                  [id]="'milestone-tab-' + index"
-                  [attr.aria-selected]="selectedMilestoneIndex === index"
-                  [attr.aria-controls]="'milestone-panel-' + index"
-                  [class.active]="selectedMilestoneIndex === index"
-                  (click)="selectMilestone(index)"
-                >
-                  <span class="milestone-node">
-                    <span class="milestone-icon material-symbols-outlined" aria-hidden="true">{{ milestone.icon }}</span>
-                  </span>
-                  <span class="milestone-date">{{ milestone.label }}</span>
-                  <span class="milestone-title">{{ milestone.title }}</span>
-                </button>
-              }
-            </div>
-
-            <article
-              class="active-milestone"
-              role="tabpanel"
-              [id]="'milestone-panel-' + selectedMilestoneIndex"
-              [attr.aria-labelledby]="'milestone-tab-' + selectedMilestoneIndex"
-            >
-              <span class="active-icon material-symbols-outlined" aria-hidden="true">
-                {{ activeMilestone.icon }}
-              </span>
-              <div>
-                <span>{{ activeMilestone.label }} · {{ activeMilestone.author }}</span>
-                <h3>{{ activeMilestone.title }}</h3>
-                <p>{{ activeMilestone.description }}</p>
-                <strong class="active-stack">{{ activeMilestone.stack }}</strong>
+            <ng-template #content let-milestone>
+              <article
+                class="timeline-card"
+                [class.active]="activeMilestone.title === milestone.title"
+                tabindex="0"
+                (click)="selectMilestone(timelineMilestones.indexOf(milestone))"
+                (keyup.enter)="selectMilestone(timelineMilestones.indexOf(milestone))"
+                (keyup.space)="selectMilestone(timelineMilestones.indexOf(milestone))"
+              >
+                <span class="timeline-card-label">{{ milestone.label }}</span>
+                <h3>{{ milestone.title }}</h3>
+                <p>{{ milestone.description }}</p>
+                <strong class="active-stack">{{ milestone.stack }}</strong>
                 <ul class="active-highlights">
-                  @for (highlight of activeMilestone.highlights; track highlight) {
+                  @for (highlight of milestone.highlights; track highlight) {
                     <li>{{ highlight }}</li>
                   }
                 </ul>
-              </div>
-            </article>
-          </div>
+              </article>
+            </ng-template>
+          </p-timeline>
         </div>
       </section>
 
-      <section class="features-section" aria-labelledby="features-title">
+      <section
+        class="features-section"
+        aria-labelledby="features-title"
+        pAnimateOnScroll
+        enterClass="scroll-enter"
+        leaveClass="scroll-leave"
+        [once]="true"
+      >
         <div class="container">
           <div class="section-heading">
             <span class="section-kicker">Capabilities</span>
@@ -196,7 +177,14 @@ interface TechnologyCard {
         </div>
       </section>
 
-      <section class="technology-section" aria-labelledby="technology-title">
+      <section
+        class="technology-section"
+        aria-labelledby="technology-title"
+        pAnimateOnScroll
+        enterClass="scroll-enter"
+        leaveClass="scroll-leave"
+        [once]="true"
+      >
         <div class="container">
           <div class="section-heading compact">
             <span class="section-kicker">Stack</span>
@@ -217,7 +205,14 @@ interface TechnologyCard {
         </div>
       </section>
 
-      <section class="contribution-section" aria-labelledby="contribution-title">
+      <section
+        class="contribution-section"
+        aria-labelledby="contribution-title"
+        pAnimateOnScroll
+        enterClass="scroll-enter"
+        leaveClass="scroll-leave"
+        [once]="true"
+      >
         <div class="container contribution-panel">
           <div class="activity-mark" aria-hidden="true">
             <i class="pi pi-github"></i>
@@ -236,11 +231,12 @@ interface TechnologyCard {
           <div class="contribution-actions">
             <p-button label="View on GitHub" icon="pi pi-github" (onClick)="openGithub()" />
             <p-button
-              label="Star the Repository"
-              icon="pi pi-star"
+              label="Contributing Guide"
+              icon="pi pi-book"
               [outlined]="true"
               severity="secondary"
-              (onClick)="openGithub()"
+              styleClass="contributing-button"
+              (onClick)="openContributing()"
             />
           </div>
         </div>
@@ -350,195 +346,17 @@ interface TechnologyCard {
     }
 
     .hero-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       min-width: 0;
     }
 
-    .planner-mockup {
-      position: relative;
-      border-radius: 1.5rem;
-      overflow: hidden;
-      background: color-mix(in srgb, var(--p-surface-0) 10%, transparent);
-      border: 1px solid color-mix(in srgb, #fff 22%, transparent);
-      box-shadow: 0 2rem 4rem color-mix(in srgb, #000 28%, transparent);
-    }
-
-    .mockup-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.85rem 1rem;
-      background: color-mix(in srgb, #001f18 68%, transparent);
-      border-bottom: 1px solid color-mix(in srgb, #fff 14%, transparent);
-    }
-
-    .mockup-toolbar span {
-      width: 0.62rem;
-      height: 0.62rem;
-      border-radius: 999px;
-      background: color-mix(in srgb, #fff 28%, transparent);
-    }
-
-    .mockup-toolbar span:first-child {
-      background: var(--landing-accent);
-    }
-
-    .mockup-toolbar strong {
-      margin-left: 0.4rem;
-      color: color-mix(in srgb, #fff 86%, transparent);
-      font-size: 0.82rem;
-      letter-spacing: 0;
-    }
-
-    .mockup-body {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 17rem;
-      gap: 1rem;
-      min-height: 28rem;
-      padding: 1rem;
-      background:
-        radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--p-primary-300) 22%, transparent), transparent 28%),
-        linear-gradient(145deg, var(--p-primary-800), var(--p-primary-600));
-    }
-
-    .map-canvas {
-      position: relative;
-      min-height: 25rem;
-      overflow: hidden;
-      border-radius: 1rem;
-      background:
-        linear-gradient(32deg, transparent 45%, color-mix(in srgb, #fff 20%, transparent) 46% 48%, transparent 49%),
-        linear-gradient(118deg, transparent 42%, color-mix(in srgb, #fff 14%, transparent) 43% 45%, transparent 46%),
-        linear-gradient(160deg, color-mix(in srgb, var(--p-green-900, #064e3b) 82%, #0ea5e9 18%), var(--p-primary-700));
-      border: 1px solid color-mix(in srgb, #fff 18%, transparent);
-    }
-
-    .map-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(color-mix(in srgb, #fff 10%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in srgb, #fff 10%, transparent) 1px, transparent 1px);
-      background-size: 3rem 3rem;
-      opacity: 0.34;
-      mask-image: linear-gradient(135deg, transparent, #000 18%, #000 82%, transparent);
-    }
-
-    .site-area {
-      position: absolute;
-      inset: 21% 12% 20% 10%;
-      clip-path: polygon(10% 20%, 74% 8%, 94% 45%, 69% 91%, 20% 80%, 4% 47%);
-      background: linear-gradient(135deg, color-mix(in srgb, var(--landing-accent) 24%, transparent), color-mix(in srgb, var(--p-green-500) 30%, transparent));
-      border: 2px solid var(--landing-accent);
-      box-shadow:
-        inset 0 0 2.5rem color-mix(in srgb, var(--landing-accent) 12%, transparent),
-        0 1rem 2rem color-mix(in srgb, #000 16%, transparent);
-    }
-
-    .panel-field {
-      position: absolute;
-      left: 16%;
-      top: 28%;
-      display: grid;
-      grid-template-columns: repeat(4, 2.6rem);
-      gap: 0.38rem;
-      transform: rotate(-6deg);
-    }
-
-    .panel-block {
-      width: 2.6rem;
-      height: 1.25rem;
-      border-radius: 0.28rem;
-      background:
-        linear-gradient(90deg, color-mix(in srgb, #fff 12%, transparent) 1px, transparent 1px),
-        linear-gradient(180deg, var(--p-blue-900, #172554), var(--p-blue-700, #1d4ed8));
-      background-size: 0.65rem 100%, 100% 100%;
-      border: 1px solid color-mix(in srgb, #fff 32%, transparent);
-      box-shadow: 0 0.5rem 1rem color-mix(in srgb, #000 18%, transparent);
-    }
-
-    .north-marker {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      display: grid;
-      place-items: center;
-      width: 2.2rem;
-      height: 2.2rem;
-      border-radius: 999px;
-      background: color-mix(in srgb, #fff 16%, transparent);
-      border: 1px solid color-mix(in srgb, #fff 26%, transparent);
-      color: #fff;
-      font-size: 0.8rem;
-      font-weight: 800;
-    }
-
-    .map-scale {
-      position: absolute;
-      left: 1rem;
-      bottom: 1rem;
-      width: 5rem;
-      height: 0.35rem;
-      border-right: 2px solid #fff;
-      border-left: 2px solid #fff;
-      border-bottom: 2px solid #fff;
-      opacity: 0.72;
-    }
-
-    .metrics-panel {
-      align-self: stretch;
-      padding: 1rem;
-      border-radius: 1rem;
-      background: color-mix(in srgb, var(--p-surface-0) 94%, transparent);
-      color: var(--p-text-color);
-      box-shadow: var(--shadow-xl);
-      backdrop-filter: blur(14px);
-    }
-
-    .metrics-panel header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 0.3rem;
-      padding-bottom: 0.8rem;
-      border-bottom: 1px solid var(--landing-border);
-    }
-
-    .metrics-panel header span {
-      color: var(--landing-muted);
-      font-size: 0.82rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .metrics-panel header strong {
-      padding: 0.25rem 0.55rem;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--p-green-500) 12%, transparent);
-      color: var(--p-green-700, var(--p-green-500));
-      font-size: 0.82rem;
-    }
-
-    .metric-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.72rem 0;
-      border-bottom: 1px solid var(--landing-border);
-      font-size: 0.9rem;
-    }
-
-    .metric-row:last-child {
-      border-bottom: 0;
-    }
-
-    .metric-row span {
-      color: var(--landing-muted);
-    }
-
-    .metric-row strong {
-      color: var(--p-primary-700);
-      white-space: nowrap;
+    .hero-illustration {
+      display: block;
+      width: min(100%, 48rem);
+      height: auto;
+      filter: drop-shadow(0 2rem 2.6rem color-mix(in srgb, #000 24%, transparent));
     }
 
     .journey-section,
@@ -581,99 +399,14 @@ interface TechnologyCard {
       line-height: 1.7;
     }
 
-    .timeline-shell {
-      padding: 1.4rem;
-      border: 1px solid color-mix(in srgb, var(--p-primary-500) 14%, var(--landing-border));
-      border-radius: 1.25rem;
-      background: var(--landing-panel);
-      box-shadow: var(--shadow-md);
-    }
-
-    .timeline-line-shell {
-      overflow: hidden;
-    }
-
-    .timeline-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1.45rem;
-    }
-
-    .timeline-progress-label {
-      display: flex;
-      align-items: baseline;
-      gap: 0.75rem;
-      min-width: 0;
-    }
-
-    .timeline-progress-label span {
-      color: var(--p-primary-700);
-      font-size: 0.88rem;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .timeline-progress-label strong {
-      color: var(--p-text-color);
-      font-size: 1.05rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .milestone:focus-visible,
+    .timeline-marker:focus-visible,
+    .timeline-card:focus-visible,
     .tech-card:focus-visible {
       outline: none;
       box-shadow: var(--focus-ring);
     }
 
-    .timeline-track {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(10rem, 1fr));
-      gap: 1rem;
-      overflow-x: auto;
-      padding: 1rem 0.15rem 1.35rem;
-      scrollbar-width: thin;
-      position: relative;
-    }
-
-    .timeline-track::before {
-      content: '';
-      position: absolute;
-      top: 2.62rem;
-      left: 9%;
-      right: 9%;
-      height: 2px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, color-mix(in srgb, var(--p-primary-500) 70%, transparent), color-mix(in srgb, var(--p-primary-500) 16%, var(--landing-border)));
-    }
-
-    .milestone {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      justify-items: center;
-      gap: 0.45rem;
-      min-height: 7rem;
-      padding: 0.2rem 0.65rem 0.6rem;
-      border: 0;
-      border-radius: 1rem;
-      background: transparent;
-      color: var(--p-text-color);
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.25s ease, background-color 0.25s ease, color 0.25s ease;
-    }
-
-    .milestone:hover,
-    .milestone.active {
-      transform: translateY(-0.22rem);
-      background: color-mix(in srgb, var(--p-primary-500) 7%, transparent);
-    }
-
-    .milestone-node {
+    .timeline-marker {
       display: grid;
       place-items: center;
       width: 3rem;
@@ -682,64 +415,89 @@ interface TechnologyCard {
       border-radius: 999px;
       background: var(--p-surface-100);
       color: var(--p-primary-600);
+      cursor: pointer;
       box-shadow: 0 0 0 1px var(--landing-border), var(--shadow-sm);
+      font: inherit;
       transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
     }
 
-    .milestone:hover .milestone-node {
+    .timeline-marker:hover {
       box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--p-primary-500) 10%, transparent), var(--shadow-md);
       transform: scale(1.04);
     }
 
-    .milestone.active .milestone-node {
+    .timeline-marker.active {
       background: var(--p-primary-500);
       color: var(--p-primary-contrast-color);
       box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--p-primary-500) 16%, transparent), var(--shadow-md);
       transform: scale(1.08);
     }
 
-    .milestone-icon,
-    .active-icon {
-      font-size: 1.7rem;
+    .timeline-marker .material-symbols-outlined {
+      font-size: 1.45rem;
       line-height: 1;
     }
 
-    .milestone-date {
-      color: var(--landing-muted);
+    .timeline-opposite {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding-top: 0.55rem;
+      text-align: right;
+    }
+
+    .timeline-opposite span {
+      color: var(--p-primary-700);
       font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .timeline-opposite strong {
+      color: var(--landing-muted);
+      font-size: 0.9rem;
       font-weight: 700;
     }
 
-    .milestone-title {
-      font-weight: 800;
-      line-height: 1.25;
-      max-width: 12rem;
-    }
-
-    .active-milestone {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
+    .timeline-card {
       padding: 1.15rem;
-      border-radius: 1rem;
-      background: color-mix(in srgb, var(--p-primary-500) 8%, var(--p-surface-0));
-      border: 1px solid color-mix(in srgb, var(--p-primary-500) 18%, var(--landing-border));
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      min-height: 100%;
+      border-radius: 0.8rem;
+      border: 1px solid var(--landing-border);
+      background: var(--landing-panel);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        background-color 0.25s ease;
     }
 
-    .active-milestone span:not(.active-icon) {
+    .timeline-card:hover,
+    .timeline-card.active {
+      transform: translateY(-0.2rem);
+      border-color: color-mix(in srgb, var(--p-primary-500) 30%, var(--landing-border));
+      background: color-mix(in srgb, var(--p-primary-500) 5%, var(--p-surface-0));
+      box-shadow: var(--shadow-md);
+    }
+
+    .timeline-card-label {
+      display: inline-flex;
+      margin-bottom: 0.35rem;
       color: var(--p-primary-700);
       font-weight: 800;
       font-size: 0.88rem;
+      text-transform: uppercase;
     }
 
-    .active-milestone h3 {
-      margin: 0.2rem 0 0.35rem;
+    .timeline-card h3 {
+      margin: 0 0 0.45rem;
       color: var(--p-text-color);
       font-size: 1.35rem;
     }
 
-    .active-milestone p {
+    .timeline-card p {
       margin: 0;
       color: var(--landing-muted);
       line-height: 1.65;
@@ -777,6 +535,15 @@ interface TechnologyCard {
       height: 0.35rem;
       border-radius: 999px;
       background: var(--p-primary-500);
+    }
+
+    .scroll-enter {
+      animation: scrollFadeUp 0.65s ease both;
+    }
+
+    .scroll-leave {
+      opacity: 0;
+      transform: translateY(1.25rem);
     }
 
     .features-section {
@@ -967,6 +734,42 @@ interface TechnologyCard {
     }
 
     :host ::ng-deep {
+      .project-timeline.p-timeline {
+        max-width: 62rem;
+        margin: 0 auto;
+        padding: 1.2rem 1rem;
+        border: 1px solid color-mix(in srgb, var(--p-primary-500) 14%, var(--landing-border));
+        border-radius: 1rem;
+        background: var(--landing-panel);
+        box-shadow: var(--shadow-md);
+      }
+
+      .project-timeline .p-timeline-event {
+        min-height: 11rem;
+      }
+
+      .project-timeline .p-timeline-event-opposite {
+        flex: 0 0 11rem;
+        padding: 0 1.2rem 0 0;
+      }
+
+      .project-timeline .p-timeline-event-content {
+        padding: 0 0 1.2rem 1.2rem;
+      }
+
+      .project-timeline .p-timeline-event-separator {
+        min-width: 3rem;
+      }
+
+      .project-timeline .p-timeline-event-connector {
+        width: 2px;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--p-primary-500) 52%, transparent),
+          color-mix(in srgb, var(--p-primary-500) 12%, var(--landing-border))
+        );
+      }
+
       .landing-card {
         height: 100%;
         border-radius: 1rem;
@@ -981,6 +784,29 @@ interface TechnologyCard {
       .landing-page .p-button {
         font-weight: 700;
       }
+
+      .landing-page .github-hero-button {
+        border-color: color-mix(in srgb, #fff 72%, transparent);
+        background: color-mix(in srgb, #fff 14%, transparent);
+        color: #fff;
+      }
+
+      .landing-page .github-hero-button:hover {
+        border-color: #fff;
+        background: #fff;
+        color: var(--p-primary-800);
+      }
+
+      .landing-page .contributing-button {
+        border-color: color-mix(in srgb, #fff 76%, transparent);
+        color: #fff;
+      }
+
+      .landing-page .contributing-button:hover {
+        border-color: #fff;
+        background: color-mix(in srgb, #fff 14%, transparent);
+        color: #fff;
+      }
     }
 
     @keyframes activityPulse {
@@ -992,6 +818,18 @@ interface TechnologyCard {
       50% {
         opacity: 1;
         transform: scale(1.18);
+      }
+    }
+
+    @keyframes scrollFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(1.25rem);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
@@ -1013,10 +851,6 @@ interface TechnologyCard {
 
       .hero-section {
         padding-top: 4rem;
-      }
-
-      .mockup-body {
-        grid-template-columns: 1fr;
       }
 
       .contribution-actions {
@@ -1042,77 +876,13 @@ interface TechnologyCard {
         flex-direction: column;
       }
 
-      .mockup-body {
-        padding: 0.75rem;
-      }
-
-      .map-canvas {
-        min-height: 20rem;
-      }
-
-      .panel-field {
-        left: 16%;
-        grid-template-columns: repeat(3, 2.7rem);
-      }
-
-      .panel-block {
-        width: 2.7rem;
-      }
-
-      .timeline-shell {
+      .timeline-card {
         padding: 1rem;
       }
 
-      .timeline-topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .timeline-track {
-        grid-template-columns: 1fr;
-        overflow-x: visible;
+      .timeline-opposite {
         padding-top: 0;
-      }
-
-      .timeline-track::before {
-        top: 1.6rem;
-        bottom: 1.6rem;
-        left: 1.6rem;
-        right: auto;
-        width: 3px;
-        height: auto;
-      }
-
-      .milestone {
-        grid-template-columns: 3rem 1fr;
-        justify-items: start;
-        align-items: center;
-        min-height: auto;
         text-align: left;
-      }
-
-      .milestone-node {
-        grid-row: span 2;
-      }
-
-      .milestone-title {
-        max-width: none;
-      }
-
-      .milestone-date {
-        align-self: end;
-      }
-
-      .milestone-title {
-        align-self: start;
-      }
-
-      .active-milestone {
-        min-height: auto;
-      }
-
-      .active-milestone {
-        flex-direction: column;
       }
 
       .feature-grid,
@@ -1122,25 +892,44 @@ interface TechnologyCard {
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .milestone,
+      .scroll-enter,
+      .scroll-leave,
+      .timeline-marker,
+      .timeline-card,
       .activity-mark span {
         animation: none;
         transition: none;
+        transform: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      :host ::ng-deep {
+        .project-timeline.p-timeline {
+          padding: 0.9rem;
+        }
+
+        .project-timeline .p-timeline-event {
+          min-height: auto;
+        }
+
+        .project-timeline .p-timeline-event-opposite {
+          display: none;
+        }
+
+        .project-timeline .p-timeline-event-content {
+          padding: 0 0 1rem 0.85rem;
+        }
+
+        .project-timeline .p-timeline-event-separator {
+          min-width: 2.7rem;
+        }
       }
     }
   `]
 })
 export class LandingPageComponent {
   private readonly router = inject(Router);
-
-  readonly panelBlocks = Array.from({ length: 16 }, (_, index) => index);
-
-  readonly heroMetrics = [
-    { label: 'Annual Production', value: '125.4 MWh' },
-    { label: 'ROI', value: '18.7 %' },
-    { label: 'Payback Period', value: '6.2 years' },
-    { label: 'CO₂ Saved / year', value: '48.2 t' },
-  ] as const;
 
   readonly timelineMilestones: TimelineMilestone[] = [
     {
@@ -1159,7 +948,7 @@ export class LandingPageComponent {
     },
     {
       title: 'Solar Planner v2',
-      label: 'Refactor',
+      label: 'Modernization',
       author: 'Santiago Linares',
       description:
         'The current version modernizes the application architecture, interface and calculation model while preserving the original planning purpose.',
@@ -1173,16 +962,16 @@ export class LandingPageComponent {
     },
     {
       title: 'Open Evolution',
-      label: 'Next',
-      author: 'Open-source direction',
+      label: 'Future Work',
+      author: 'Planned extensions',
       description:
-        'The project is prepared as a stronger base for future technical improvements, validation work and collaborative development.',
+        'The project can evolve toward richer agrivoltaic, spatial and energy-flow analysis for more realistic photovoltaic planning.',
       icon: 'rocket_launch',
-      stack: 'A maintainable TypeScript codebase designed to keep evolving.',
+      stack: 'A scalable roadmap for physical feasibility, storage modeling and advanced simulation.',
       highlights: [
-        'Cleaner structure for extending calculation and reporting modules.',
-        'Room for stronger validation against external datasets and real installations.',
-        'Repository ready for issues, contributions and future thesis work.',
+        'Crop-installation compatibility models to evaluate shading, orientation and agrivoltaic benefits.',
+        '3D terrain and obstacle representation with dynamic annual shadow projection.',
+        'Topology-aware panel layout plus inverter, battery, regulator, storage and energy-flow analysis.',
       ],
     },
   ];
@@ -1283,6 +1072,10 @@ export class LandingPageComponent {
 
   openGithub(): void {
     window.open(environment.githubUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  openContributing(): void {
+    window.open(environment.githubContributingUrl, '_blank', 'noopener,noreferrer');
   }
 
   selectMilestone(index: number): void {

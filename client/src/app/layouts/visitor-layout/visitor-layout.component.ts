@@ -21,10 +21,10 @@ import { environment } from '../../../environments/environment';
               <i class="pi pi-home"></i>
               <span>Home</span>
             </a>
-            <a href="/#documentation">
+            <button type="button" class="nav-link" (click)="openDocumentation()">
               <i class="pi pi-book"></i>
               <span>Documentation</span>
-            </a>
+            </button>
             <button type="button" class="nav-link" (click)="openGithub()">
               <i class="pi pi-github"></i>
               <span>GitHub</span>
@@ -45,7 +45,7 @@ import { environment } from '../../../environments/environment';
 
       <footer class="visitor-footer">
         <div class="container">
-          <p>&copy; 2025 Solar Planner. All rights reserved.</p>
+          <p>&copy; 2026 Solar Planner. All rights reserved.</p>
         </div>
       </footer>
     </div>
@@ -204,5 +204,9 @@ import { environment } from '../../../environments/environment';
 export class VisitorLayoutComponent {
   openGithub(): void {
     window.open(environment.githubUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  openDocumentation(): void {
+    window.open(environment.githubReadmeUrl, '_blank', 'noopener,noreferrer');
   }
 }
