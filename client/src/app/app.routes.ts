@@ -1,8 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
-import { LandingPageComponent } from './features/visitor/landing-page/landing-page.component';
-import { VisitorLayoutComponent } from './layouts/visitor-layout/visitor-layout.component';
 
 export const routes: Routes = [
   // User routes (protected)
@@ -89,12 +87,14 @@ export const routes: Routes = [
   // Visitor routes (public)
   {
     path: '',
-    component: VisitorLayoutComponent,
+    loadComponent: () => import('./layouts/visitor-layout/visitor-layout.component')
+      .then(m => m.VisitorLayoutComponent),
     children: [
       {
         path: '',
         pathMatch: 'full',
-        component: LandingPageComponent
+        loadComponent: () => import('./features/visitor/landing-page/landing-page.component')
+          .then(m => m.LandingPageComponent)
       },
       {
         path: 'login',

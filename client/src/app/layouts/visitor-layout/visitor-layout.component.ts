@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 
+import { environment } from '../../../environments/environment';
+
 @Component({
   selector: 'app-visitor-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -12,19 +14,26 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
           <div class="brand">
             <i class="pi pi-sun brand-icon"></i>
             <h1>Solar Planner</h1>
+            <span class="version-badge">v2.0</span>
           </div>
           <nav>
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
               <i class="pi pi-home"></i>
               <span>Home</span>
             </a>
-            <a routerLink="/login" routerLinkActive="active">
-              <i class="pi pi-sign-in"></i>
-              <span>Login</span>
+            <button type="button" class="nav-link" (click)="openDocumentation()">
+              <i class="pi pi-book"></i>
+              <span>Documentation</span>
+            </button>
+            <button type="button" class="nav-link" (click)="openGithub()">
+              <i class="pi pi-github"></i>
+              <span>GitHub</span>
+            </button>
+            <a class="nav-button secondary" routerLink="/login" routerLinkActive="active">
+              Login
             </a>
-            <a routerLink="/registration" routerLinkActive="active">
-              <i class="pi pi-user-plus"></i>
-              <span>Register</span>
+            <a class="nav-button primary" routerLink="/registration" routerLinkActive="active">
+              Register
             </a>
           </nav>
         </div>
@@ -36,7 +45,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 
       <footer class="visitor-footer">
         <div class="container">
-          <p>&copy; 2025 Solar Planner. All rights reserved.</p>
+          <p>&copy; 2026 Solar Planner. All rights reserved.</p>
         </div>
       </footer>
     </div>
@@ -53,10 +62,14 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
     }
 
     .visitor-header {
+      position: sticky;
+      top: 0;
+      z-index: 1200;
       background: linear-gradient(135deg, var(--p-primary-600) 0%, var(--p-primary-700) 100%);
       color: white;
       padding: 0.875rem 0;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(0.75rem);
 
       .container {
         display: flex;
@@ -82,13 +95,28 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
           color: white;
           letter-spacing: -0.01em;
         }
+
+        .version-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.18rem 0.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.92);
+          font-size: 0.72rem;
+          font-weight: 700;
+          line-height: 1;
+        }
       }
 
       nav {
         display: flex;
+        align-items: center;
         gap: 0.375rem;
 
-        a {
+        a,
+        .nav-link {
           display: flex;
           align-items: center;
           gap: 0.375rem;
@@ -98,6 +126,10 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
           font-size: 0.9rem;
           padding: 0.4rem 0.875rem;
           border-radius: 9999px;
+          border: 0;
+          background: transparent;
+          font-family: inherit;
+          cursor: pointer;
           transition: all 0.2s ease;
 
           i {
@@ -115,12 +147,33 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
             font-weight: 600;
           }
         }
+
+        .nav-button {
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          font-weight: 700;
+
+          &.primary {
+            background: var(--p-yellow-400);
+            border-color: var(--p-yellow-400);
+            color: var(--p-primary-900);
+
+            &:hover,
+            &.active {
+              color: var(--p-primary-900);
+              background: var(--p-yellow-300);
+            }
+          }
+
+          &.secondary {
+            background: rgba(255, 255, 255, 0.1);
+          }
+        }
       }
     }
 
     .visitor-content {
       flex: 1;
-      padding: 2rem 0;
+      padding: 0;
     }
 
     .visitor-footer {
@@ -130,6 +183,30 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
       color: var(--p-text-muted-color);
       font-size: 0.875rem;
     }
+
+    @media (max-width: 760px) {
+      .visitor-header {
+        .container {
+          align-items: flex-start;
+          gap: 1rem;
+          flex-direction: column;
+        }
+
+        nav {
+          width: 100%;
+          overflow-x: auto;
+          padding-bottom: 0.15rem;
+        }
+      }
+    }
   `]
 })
-export class VisitorLayoutComponent {}
+export class VisitorLayoutComponent {
+  openGithub(): void {
+    window.open(environment.githubUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  openDocumentation(): void {
+    window.open(environment.githubReadmeUrl, '_blank', 'noopener,noreferrer');
+  }
+}
