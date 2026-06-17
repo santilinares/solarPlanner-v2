@@ -388,21 +388,13 @@ export class FileService {
 
     let chart: Highcharts.Chart | null = null;
     try {
-      chart = Highcharts.chart(host, {
-        ...options,
-        chart: {
-          ...(options.chart ?? {}),
-          animation: false,
-          backgroundColor: '#ffffff',
-          height: 360,
-          width: 900,
-        },
-        accessibility: { enabled: false },
-      });
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      chart = Highcharts.chart(host, this.toStaticChartOptions(options));
+      chart.reflow();
+      chart.redraw(false);
+      await this.waitForChartPaint();
       const svg = chart.container.querySelector('svg');
       if (!svg) return null;
-      const svgText = new XMLSerializer().serializeToString(svg);
+      const svgText = this.serializeChartSvg(svg);
       return await this.svgToPng(svgText, 900, 360);
     } catch {
       return null;
@@ -410,6 +402,68 @@ export class FileService {
       chart?.destroy();
       host.remove();
     }
+  }
+
+  private toStaticChartOptions(options: Highcharts.Options): Highcharts.Options {
+    const series = options.series?.map((item) => ({
+      ...item,
+      animation: false,
+      enableMouseTracking: false,
+    }));
+
+    return {
+      ...options,
+      chart: {
+        ...(options.chart ?? {}),
+        animation: false,
+        backgroundColor: '#ffffff',
+        height: 360,
+        width: 900,
+      },
+      credits: { enabled: false },
+      accessibility: { enabled: false },
+      plotOptions: {
+        ...(options.plotOptions ?? {}),
+        series: {
+          ...((options.plotOptions?.series as Highcharts.PlotSeriesOptions) ?? {}),
+          animation: false,
+          enableMouseTracking: false,
+        },
+      },
+      series,
+    };
+  }
+
+  private waitForChartPaint(): Promise<void> {
+    return new Promise((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(resolve, 80);
+        });
+      });
+    });
+  }
+
+  private serializeChartSvg(svg: SVGSVGElement): string {
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    clone.setAttribute('width', '900');
+    clone.setAttribute('height', '360');
+    clone.setAttribute('viewBox', '0 0 900 360');
+
+    clone.querySelectorAll('path, rect, circle, line, text').forEach((node) => {
+      const element = node as SVGElement;
+      const computed = window.getComputedStyle(element);
+      if (!element.getAttribute('stroke') && computed.stroke && computed.stroke !== 'none') {
+        element.setAttribute('stroke', computed.stroke);
+      }
+      if (!element.getAttribute('fill') && computed.fill && computed.fill !== 'none') {
+        element.setAttribute('fill', computed.fill);
+      }
+    });
+
+    return new XMLSerializer().serializeToString(clone);
   }
 
   private svgToPng(svgText: string, width: number, height: number): Promise<string | null> {

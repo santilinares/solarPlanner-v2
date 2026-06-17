@@ -106,3 +106,28 @@ La decisión principal fue mantener la generación en frontend con `jsPDF` y reu
 - `server`: `npx vitest run src/__tests__/services/project.service.test.ts -t generatePlanData` passed.
 - `server`: `npm test -- project.service.test.ts` still has one unrelated pre-existing floating-point assertion failure in `estimateFromPolygon` (`22.4` vs `22.400000000000002`).
 - Local dev server responded with HTTP 200 at `http://127.0.0.1:4300`; Browser plugin visual verification could not run because this plugin install is missing `scripts/browser-client.mjs`.
+
+## 2026-06-17 - Fix blank chart series in generated PDF
+
+### Topic
+Corregir la captura de gráficos Highcharts para que las series se vean en el PDF, no solo los ejes y etiquetas.
+
+### Prompt summary
+El usuario reportó que en los gráficos generados aparecían los ejes y labels, pero no se veía la información pintada en las series.
+
+### Full prompt
+Hay un problema. Están los gráficos pero no se ve nada pintado en ellos. Estan los axis y labels pero no se ve lo que pintan
+
+### What was achieved
+Se ajustó el render temporal de Highcharts en `FileService` para convertir los gráficos a una versión estática antes de serializarlos a PNG. Ahora se desactivan animaciones y mouse tracking, se fuerza `reflow/redraw`, se espera un render estable y se serializan estilos calculados de elementos SVG relevantes.
+
+### Affected files
+- `client/src/app/core/services/file.service.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning notes
+El síntoma era consistente con capturar el SVG demasiado pronto o sin atributos visuales inline: los ejes se renderizan de inmediato, pero las series pueden estar aún animando o depender de estilos calculados. La solución evita duplicar lógica de gráficos y mantiene el enfoque de reutilizar las `Highcharts.Options` existentes.
+
+### Verification
+- `client`: `npm run typecheck` passed.
+- `client`: `npm run build` passed outside the sandbox; warnings were bundle budget/CommonJS warnings.
