@@ -7,6 +7,7 @@ export interface UserResponse {
   fullName: string;
   email?: string;
   role: 'user' | 'admin';
+  language: 'en' | 'es';
   method: 'local' | 'google';
   createdAt: string;
   projectCount?: number;

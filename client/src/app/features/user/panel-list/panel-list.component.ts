@@ -13,6 +13,7 @@ import { PanelService } from '@core/services/panel.service';
 import { Panel, PanelCreateRequest, PanelUpdateRequest } from '@core/models/panel.model';
 import { UserRole } from '@core/models';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { PanelFormComponent } from '@features/admin/panels/panel-form.component';
 
 @Component({
@@ -25,13 +26,13 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
         <div>
           <h1>
             <i class="pi pi-th-large icon-lg icon-primary"></i>
-            Solar Panels
+            {{ i18n.t('panels.title') }}
           </h1>
-          <p class="subtitle">Browse our comprehensive database of solar panel specifications</p>
+          <p class="subtitle">{{ i18n.t('panels.subtitle') }}</p>
         </div>
         @if (isAdmin()) {
           <p-button
-            label="Add Panel"
+            [label]="i18n.t('panels.addPanel')"
             icon="pi pi-plus"
             (onClick)="openAddModal()"
           />
@@ -50,11 +51,11 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
         }
         @if (availableFilterTypes().length > 0) {
           <button class="add-filter-btn" (click)="openAddFilter($event)">
-            <i class="pi pi-plus"></i> Add filter
+            <i class="pi pi-plus"></i> {{ i18n.t('common.addFilter') }}
           </button>
         }
         @if (activeChips().length > 0) {
-          <button class="clear-all-btn" (click)="clearAll()">Clear all</button>
+          <button class="clear-all-btn" (click)="clearAll()">{{ i18n.t('common.clearAll') }}</button>
         }
       </div>
 
@@ -62,7 +63,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
       <p-popover #addFilterPopover (onHide)="onPopoverHide()">
         <div class="filter-popover">
           @if (!selectedFilterType()) {
-            <p class="popover-title">Filter by</p>
+            <p class="popover-title">{{ i18n.t('common.filterBy') }}</p>
             <ul class="filter-type-list">
               @for (type of availableFilterTypes(); track type.key) {
                 <li class="filter-type-item" (click)="selectedFilterType.set(type.key)">
@@ -74,7 +75,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
           } @else {
             <div class="popover-input-step">
               <button class="back-btn" (click)="selectedFilterType.set(null)">
-                <i class="pi pi-arrow-left"></i> Back
+                <i class="pi pi-arrow-left"></i> {{ i18n.t('common.back') }}
               </button>
               <p class="popover-title">{{ currentFilterLabel() }}</p>
 
@@ -83,7 +84,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
                   <input
                     pInputText
                     [(ngModel)]="pendingSearch"
-                    placeholder="Brand or model..."
+                    [placeholder]="i18n.t('panels.brandPlaceholder')"
                     class="popover-input"
                     (keyup.enter)="applyFilter()"
                     autofocus
@@ -92,16 +93,16 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
                 @case ('technology') {
                   <p-select
                     [(ngModel)]="pendingTechnology"
-                    [options]="technologyOptions"
+                    [options]="technologyOptions()"
                     optionLabel="label"
                     optionValue="value"
-                    placeholder="Select technology"
+                    [placeholder]="i18n.t('panels.selectTechnology')"
                     class="popover-input"
                   />
                 }
               }
 
-              <p-button label="Apply" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
+              <p-button [label]="i18n.t('common.apply')" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
             </div>
           }
         </div>
@@ -130,10 +131,10 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
         <p-card class="empty-state">
           <div class="empty-content">
             <i class="pi pi-inbox empty-icon"></i>
-            <h3>No Panels Available</h3>
-            <p>No solar panels found in the database.</p>
+            <h3>{{ i18n.t('panels.emptyTitle') }}</h3>
+            <p>{{ i18n.t('panels.emptyText') }}</p>
             @if (isAdmin()) {
-              <p-button label="Add First Panel" icon="pi pi-plus" (onClick)="openAddModal()" />
+              <p-button [label]="i18n.t('panels.addFirst')" icon="pi pi-plus" (onClick)="openAddModal()" />
             }
           </div>
         </p-card>
@@ -153,7 +154,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
                       [text]="true"
                       [rounded]="true"
                       class="action-btn"
-                      pTooltip="Edit panel"
+                      [pTooltip]="i18n.t('panels.editPanel')"
                       tooltipPosition="top"
                       (onClick)="openEditModal(panel)"
                     />
@@ -163,7 +164,7 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
                       [text]="true"
                       [rounded]="true"
                       class="action-btn"
-                      pTooltip="Delete panel"
+                      [pTooltip]="i18n.t('panels.deletePanel')"
                       tooltipPosition="top"
                       (onClick)="deletePanel(panel)"
                     />
@@ -174,15 +175,15 @@ import { PanelFormComponent } from '@features/admin/panels/panel-form.component'
               <p class="panel-model">{{ panel.model }}</p>
               <div class="panel-specs">
                 <div class="spec-item">
-                  <span class="spec-label">Power Output</span>
+                  <span class="spec-label">{{ i18n.t('panels.powerOutput') }}</span>
                   <span class="spec-value solar-highlight">{{ panel.wattPeak }}W</span>
                 </div>
                 <div class="spec-item">
-                  <span class="spec-label">Efficiency</span>
+                  <span class="spec-label">{{ i18n.t('panels.efficiency') }}</span>
                   <span class="spec-value">{{ panel.efficiency }}%</span>
                 </div>
                 <div class="spec-item">
-                  <span class="spec-label">Price</span>
+                  <span class="spec-label">{{ i18n.t('panels.price') }}</span>
                   <span class="spec-value">{{ panel.price }}</span>
                 </div>
               </div>
@@ -481,6 +482,7 @@ export class PanelListComponent implements OnInit {
 
   private readonly panelService = inject(PanelService);
   private readonly authService = inject(AuthService);
+  readonly i18n = inject(LanguageService);
 
   protected readonly panels = signal<Panel[]>([]);
   protected readonly isLoading = signal(true);
@@ -500,23 +502,23 @@ export class PanelListComponent implements OnInit {
   pendingSearch = '';
   pendingTechnology: string | null = null;
 
-  readonly technologyOptions = [
-    { label: 'Monocrystalline', value: 'Monocrystalline' },
-    { label: 'Polycrystalline', value: 'Polycrystalline' },
-    { label: 'Thin film', value: 'Thin film' },
-  ];
+  readonly technologyOptions = computed(() => [
+    { label: this.i18n.t('panels.monocrystalline'), value: 'Monocrystalline' },
+    { label: this.i18n.t('panels.polycrystalline'), value: 'Polycrystalline' },
+    { label: this.i18n.t('panels.thinFilm'), value: 'Thin film' },
+  ]);
 
   readonly activeChips = computed(() => {
     const chips: { key: string; label: string }[] = [];
-    if (this.filterSearch())     chips.push({ key: 'search',     label: `Search: ${this.filterSearch()}` });
-    if (this.filterTechnology()) chips.push({ key: 'technology', label: `Technology: ${this.filterTechnology()}` });
+    if (this.filterSearch())     chips.push({ key: 'search',     label: `${this.i18n.t('common.search')}: ${this.filterSearch()}` });
+    if (this.filterTechnology()) chips.push({ key: 'technology', label: `${this.i18n.t('common.technology')}: ${this.filterTechnology()}` });
     return chips;
   });
 
   readonly availableFilterTypes = computed(() => {
     const all = [
-      { key: 'search',     label: 'Search by brand or model', icon: 'pi pi-search' },
-      { key: 'technology', label: 'Technology',               icon: 'pi pi-bolt' },
+      { key: 'search',     label: this.i18n.t('panels.searchByBrand'), icon: 'pi pi-search' },
+      { key: 'technology', label: this.i18n.t('common.technology'),    icon: 'pi pi-bolt' },
     ];
     const active = new Set(this.activeChips().map((c) => c.key));
     return all.filter((f) => !active.has(f.key));
@@ -630,7 +632,7 @@ export class PanelListComponent implements OnInit {
   }
 
   deletePanel(panel: Panel) {
-    if (!confirm(`Are you sure you want to delete ${panel.brand} ${panel.model}?`)) {
+    if (!confirm(this.i18n.t('panels.deleteConfirm', { name: `${panel.brand} ${panel.model}` }))) {
       return;
     }
 

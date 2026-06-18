@@ -17,6 +17,8 @@ const strongPassword = z
  */
 export const UserRoleEnum = z.enum(['user', 'admin']);
 
+export const UserLanguageEnum = z.enum(['en', 'es']);
+
 /**
  * Authentication method enumeration
  * @enum {string}
@@ -82,6 +84,7 @@ export type UserLoginInput = z.infer<typeof UserLoginSchema>;
  */
 export const UserUpdateProfileSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(120),
+  language: UserLanguageEnum.optional(),
 });
 
 /** Type inferred from UserUpdateProfileSchema - used for updating user profile */

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { LanguageService } from '@core/services/language.service';
 
 import { environment } from '../../../environments/environment';
 
@@ -19,21 +20,21 @@ import { environment } from '../../../environments/environment';
           <nav>
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
               <i class="pi pi-home"></i>
-              <span>Home</span>
+              <span>{{ i18n.t('nav.home') }}</span>
             </a>
             <button type="button" class="nav-link" (click)="openDocumentation()">
               <i class="pi pi-book"></i>
-              <span>Documentation</span>
+              <span>{{ i18n.t('nav.documentation') }}</span>
             </button>
             <button type="button" class="nav-link" (click)="openGithub()">
               <i class="pi pi-github"></i>
               <span>GitHub</span>
             </button>
             <a class="nav-button secondary" routerLink="/login" routerLinkActive="active">
-              Login
+              {{ i18n.t('nav.login') }}
             </a>
             <a class="nav-button primary" routerLink="/registration" routerLinkActive="active">
-              Register
+              {{ i18n.t('nav.register') }}
             </a>
           </nav>
         </div>
@@ -45,7 +46,7 @@ import { environment } from '../../../environments/environment';
 
       <footer class="visitor-footer">
         <div class="container">
-          <p>&copy; 2026 Solar Planner. All rights reserved.</p>
+          <p>{{ i18n.t('layout.footer') }}</p>
         </div>
       </footer>
     </div>
@@ -202,6 +203,8 @@ import { environment } from '../../../environments/environment';
   `]
 })
 export class VisitorLayoutComponent {
+  readonly i18n = inject(LanguageService);
+
   openGithub(): void {
     window.open(environment.githubUrl, '_blank', 'noopener,noreferrer');
   }

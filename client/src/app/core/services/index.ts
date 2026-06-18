@@ -7,3 +7,4 @@ export * from './file.service';
 export * from './cultivar.service';
 export * from './theme.service';
 export * from './geocoding.service';
+export * from './language.service';

@@ -1,9 +1,10 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input } from '@angular/core';
 import * as Highcharts from 'highcharts';
 import AccessibilityModule from 'highcharts/modules/accessibility';
 import { HighchartsChartModule } from 'highcharts-angular';
 import { DecimalPipe } from '@angular/common';
 import { DividerModule } from 'primeng/divider';
+import { LanguageService } from '@core/services/language.service';
 
 AccessibilityModule(Highcharts);
 
@@ -22,6 +23,7 @@ export interface EconomicValue {
   styleUrls: ['./production-charts.component.scss'],
 })
 export class ProductionChartsComponent {
+  readonly i18n = inject(LanguageService);
   readonly todayChartOptions = input<Highcharts.Options>({});
   readonly nextProdChartOptions = input<Highcharts.Options>({});
   readonly previousProdChartOptions = input<Highcharts.Options>({});

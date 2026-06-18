@@ -6,6 +6,7 @@ import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { getErrorMessage } from '@core/models';
 import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/password.validator';
 
@@ -19,14 +20,14 @@ import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/passwor
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-key solar-icon"></i>
-            <h2>Set New Password</h2>
-            <p class="subtitle">Choose a strong password for your account</p>
+            <h2>{{ i18n.t('auth.reset.title') }}</h2>
+            <p class="subtitle">{{ i18n.t('auth.reset.subtitle') }}</p>
           </div>
         </ng-template>
 
         <form [formGroup]="resetPasswordForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
-            <label for="password">New Password</label>
+            <label for="password">{{ i18n.t('profile.newPassword') }}</label>
             <p-password
               formControlName="password"
               [placeholder]="passwordHint"
@@ -45,10 +46,10 @@ import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/passwor
           </div>
 
           <div class="form-field">
-            <label for="confirmPassword">Confirm Password</label>
+            <label for="confirmPassword">{{ i18n.t('auth.reset.confirm') }}</label>
             <p-password
               formControlName="confirmPassword"
-              placeholder="Repeat your password"
+              [placeholder]="i18n.t('auth.reset.confirmPlaceholder')"
               [toggleMask]="true"
               [feedback]="false"
               class="w-full"
@@ -56,7 +57,7 @@ import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/passwor
             ></p-password>
             @if (resetPasswordForm.hasError('passwordMismatch') && resetPasswordForm.get('confirmPassword')?.touched) {
               <small class="error-text">
-                <i class="pi pi-exclamation-circle"></i> Passwords do not match
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.reset.passwordsMismatch') }}
               </small>
             }
           </div>
@@ -71,7 +72,7 @@ import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/passwor
 
           <p-button
             type="submit"
-            label="Reset Password"
+            [label]="i18n.t('auth.reset.submit')"
             icon="pi pi-check"
             [disabled]="loading() || resetPasswordForm.invalid"
             [loading]="loading()"
@@ -80,7 +81,7 @@ import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/passwor
 
           <div class="form-links">
             <a routerLink="/login" class="link">
-              <i class="pi pi-arrow-left"></i> Back to sign in
+              <i class="pi pi-arrow-left"></i> {{ i18n.t('auth.backToSignIn') }}
             </a>
           </div>
         </form>
@@ -215,6 +216,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  readonly i18n = inject(LanguageService);
 
   loading = signal(false);
   errorMessage = signal('');
@@ -258,7 +260,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       this.authService.resetPassword(this.token, { password }).subscribe({
         next: () => {
           this.loading.set(false);
-          this.successMessage.set('Password reset successful! Redirecting to login...');
+          this.successMessage.set(this.i18n.t('auth.reset.success'));
           this.redirectTimeout = setTimeout(() => {
             this.router.navigate(['/login']).catch(() => {
               window.location.href = '/login';
@@ -267,7 +269,7 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          const message: string = getErrorMessage(err, 'Failed to reset password. Link may be expired.');
+          const message: string = getErrorMessage(err, this.i18n.t('auth.reset.failed'));
           this.errorMessage.set(message);
         }
       });

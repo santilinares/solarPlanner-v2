@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, output } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import * as Highcharts from 'highcharts';
@@ -16,6 +16,7 @@ import { FieldsetModule } from 'primeng/fieldset';
 
 import { Panel, OptimalConfigResponse, ProjectConfigPreview } from '@core/models';
 import { OrientationOption } from '../../configure-project.component';
+import { LanguageService } from '@core/services/language.service';
 
 @Component({
   selector: 'app-configure-panel-form-step',
@@ -38,6 +39,7 @@ import { OrientationOption } from '../../configure-project.component';
   styleUrls: ['./configure-panel-form-step.component.scss'],
 })
 export class ConfigurePanelFormStepComponent {
+  readonly i18n = inject(LanguageService);
   readonly formGroup = input.required<FormGroup>();
   readonly panelsWithLabel = input.required<Array<Panel & { displayLabel: string }>>();
   readonly selectedPanelData = input<(Panel & { technology?: string; bifacial?: boolean }) | null>(null);

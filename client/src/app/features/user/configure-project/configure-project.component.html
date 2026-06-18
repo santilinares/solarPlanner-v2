@@ -3,7 +3,7 @@
     <div class="step-nav-bar">
       <div class="step-nav-left">
         <p-button
-            label="Back"
+            [label]="i18n.t('wizard.back')"
             icon="pi pi-arrow-left"
             severity="secondary"
             [rounded]="true"
@@ -12,7 +12,7 @@
             size="small"
         />
         <p-button
-            label="Exit Configure Mode"
+            [label]="i18n.t('wizard.exitConfigure')"
             icon="pi pi-times"
             severity="secondary"
             [outlined]="true"
@@ -21,7 +21,7 @@
             size="small"
         />
       </div>
-      <span class="step-nav-mode-label">Configure Mode</span>
+      <span class="step-nav-mode-label">{{ i18n.t('wizard.configureMode') }}</span>
       <div class="step-nav-right">
         @if (activeStep() < 2) {
           <p-button
@@ -34,7 +34,7 @@
           />
         } @else {
           <p-button
-            label="Save Changes"
+            [label]="i18n.t('wizard.saveChanges')"
             icon="pi pi-check"
             [rounded]="true"
             [loading]="isSaving()"
@@ -70,10 +70,10 @@
         <p-card class="error-card">
         <div class="error-content">
             <i class="pi pi-exclamation-triangle error-icon"></i>
-            <h2>Something went wrong</h2>
+            <h2>{{ i18n.t('projectView.errorTitle') }}</h2>
             <p>{{ errorMessage() }}</p>
             <p-button
-            label="Back to Projects"
+            [label]="i18n.t('projectView.backToProjects')"
             icon="pi pi-arrow-left"
             routerLink="/projects/all"
             severity="secondary"
@@ -94,18 +94,18 @@
                 type="text"
                 class="editable-name"
                 [formControl]="configForm.controls.name"
-                placeholder="Project Name"
+                [placeholder]="i18n.t('wizard.projectNamePlaceholder')"
                 autocomplete="off"
                 spellcheck="false"
             />
             </div>
             <p class="subtitle">
             <i class="pi pi-cog icon-lg"></i>
-            Configure your solar project
+            {{ i18n.t('configure.subtitle') }}
             </p>
         </div>
         <p-tag
-            [value]="hasUnsavedChanges() ? 'Unsaved Changes' : 'All Saved'"
+            [value]="hasUnsavedChanges() ? i18n.t('configure.unsavedChanges') : i18n.t('configure.allSaved')"
             [severity]="hasUnsavedChanges() ? 'warn' : 'success'"
             [rounded]="true"
             [icon]="hasUnsavedChanges() ? 'pi pi-pencil' : 'pi pi-check'"
@@ -120,11 +120,11 @@
             <ng-template #content>
             <!-- ── Metadata Strip ── -->
             <div class="metadata-strip" [formGroup]="configForm">
-                <p-tag [value]="formValue().country || 'Search a location'" icon="pi pi-globe" [rounded]="true" pTooltip="Auto-detected from location search" />
-                <p-tag [value]="timezoneLabel()" icon="pi pi-clock" [rounded]="true" pTooltip="Auto-detected from country" />
+                <p-tag [value]="formValue().country || i18n.t('configure.searchLocationFallback')" icon="pi pi-globe" [rounded]="true" [pTooltip]="i18n.t('configure.autoLocation')" />
+                <p-tag [value]="timezoneLabel()" icon="pi pi-clock" [rounded]="true" [pTooltip]="i18n.t('configure.autoCountry')" />
                 <div class="meta-separator"></div>
                 <div class="meta-editable">
-                <label for="strip-currency">Currency</label>
+                <label for="strip-currency">{{ i18n.t('configure.currency') }}</label>
                 <p-select
                     [options]="currencyOptions"
                     optionLabel="label"
@@ -136,7 +136,7 @@
                 />
                 </div>
                 <div class="meta-editable">
-                <label for="strip-price">Energy Price</label>
+                <label for="strip-price">{{ i18n.t('wizard.energyPriceStep') }}</label>
                 <p-inputnumber
                     formControlName="price"
                     inputId="strip-price"
@@ -220,12 +220,12 @@
                     <span class="material-symbols-outlined">straighten</span>
                     </div>
                     <div>
-                    <h2>Layout Insight</h2>
-                    <p>Area use and spacing signals for the planned layout.</p>
+                    <h2>{{ i18n.t('configure.layoutInsight') }}</h2>
+                    <p>{{ i18n.t('configure.layoutInsightText') }}</p>
                     </div>
                 </div>
                 <p-divider />
-                <div class="layout-mini-map" aria-label="Preview area coverage">
+                <div class="layout-mini-map" [attr.aria-label]="i18n.t('configure.previewAreaCoverage')">
                   <div class="layout-coverage-fill" [style.width.%]="configPreview()?.preview?.coverage ?? 0"></div>
                   <div class="layout-panel-rows">
                     <span></span>
@@ -239,19 +239,19 @@
                 </div>
                 <div class="layout-insight-grid">
                     <div>
-                      <span>Polygon Area</span>
+                      <span>{{ i18n.t('configure.polygonArea') }}</span>
                       <strong>{{ polygonAreaLabel() }}</strong>
                     </div>
                     <div>
-                      <span>Recommended Spacing</span>
+                      <span>{{ i18n.t('wizard.recommendedSpacing') }}</span>
                       <strong>{{ configPreview()?.preview?.rowSpacing != null ? (configPreview()!.preview.rowSpacing | number: '1.1-2') + ' m' : '—' }}</strong>
                     </div>
                     <div>
-                      <span>Preview Coverage</span>
+                      <span>{{ i18n.t('configure.previewCoverage') }}</span>
                       <strong>{{ configPreview()?.preview?.coverage != null ? (configPreview()!.preview.coverage | number: '1.0-1') + '%' : '—' }}</strong>
                     </div>
                     <div>
-                      <span>Panel Count</span>
+                      <span>{{ i18n.t('wizard.panelCount') }}</span>
                       <strong>{{ formValue().panelNumber ?? 0 }}</strong>
                     </div>
                 </div>
@@ -265,8 +265,8 @@
                   <span class="material-symbols-outlined">wb_sunny</span>
                 </div>
                 <div>
-                  <h2>Sun Path</h2>
-                  <p>Seasonal solar geometry and today’s clock-based sunlight data.</p>
+                  <h2>{{ i18n.t('projectView.sunPath') }}</h2>
+                  <p>{{ i18n.t('projectView.sunPathText') }}</p>
                 </div>
               </div>
 
@@ -291,18 +291,18 @@
                 <div class="sun-path-table">
                   <div class="sun-path-row sun-path-header">
                     <span></span>
-                    <span>Summer Solstice</span>
-                    <span>Equinox</span>
-                    <span>Winter Solstice</span>
+                    <span>{{ i18n.t('projectView.summerSolstice') }}</span>
+                    <span>{{ i18n.t('projectView.equinox') }}</span>
+                    <span>{{ i18n.t('projectView.winterSolstice') }}</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Solar noon altitude</span>
+                    <span class="row-label">{{ i18n.t('projectView.solarNoonAltitude') }}</span>
                     <span>{{ sp.summerSolstice.noonAltitude | number: '1.1-1' }}°</span>
                     <span>{{ sp.equinox.noonAltitude | number: '1.1-1' }}°</span>
                     <span>{{ sp.winterSolstice.noonAltitude | number: '1.1-1' }}°</span>
                   </div>
                   <div class="sun-path-row">
-                    <span class="row-label">Approx. daylight duration</span>
+                    <span class="row-label">{{ i18n.t('projectView.daylightDuration') }}</span>
                     <span>{{ sp.summerSolstice.daylightHours | number: '1.1-1' }} h</span>
                     <span>{{ sp.equinox.daylightHours | number: '1.1-1' }} h</span>
                     <span>{{ sp.winterSolstice.daylightHours | number: '1.1-1' }} h</span>
@@ -312,26 +312,26 @@
                   <div class="today-sunlight-header">
                     <span class="material-symbols-outlined">wb_twilight</span>
                     <div>
-                      <h3>Today’s Sunlight</h3>
-                      <p>Clock times from Open-Meteo for the project timezone.</p>
+                      <h3>{{ i18n.t('projectView.todaysSunlight') }}</h3>
+                      <p>{{ i18n.t('projectView.sunlightText') }}</p>
                     </div>
                   </div>
                   @if (sp.todaySunlight; as sunlight) {
                     <div class="today-sunlight-grid">
                       <div>
-                        <span>Sunrise</span>
+                        <span>{{ i18n.t('projectView.sunrise') }}</span>
                         <strong>{{ formatClockTime(sunlight.sunrise) }}</strong>
                       </div>
                       <div>
-                        <span>Sunset</span>
+                        <span>{{ i18n.t('projectView.sunset') }}</span>
                         <strong>{{ formatClockTime(sunlight.sunset) }}</strong>
                       </div>
                       <div>
-                        <span>Daylight</span>
+                        <span>{{ i18n.t('projectView.daylight') }}</span>
                         <strong>{{ sunlight.daylightHours | number: '1.1-1' }} h</strong>
                       </div>
                       <div>
-                        <span>Sunshine duration</span>
+                        <span>{{ i18n.t('projectView.sunshineDuration') }}</span>
                         <strong>{{ sunlight.sunshineHours != null ? (sunlight.sunshineHours | number: '1.1-1') + ' h' : '—' }}</strong>
                       </div>
                     </div>
@@ -339,19 +339,19 @@
                   } @else {
                     <div class="sun-path-warning">
                       <i class="pi pi-info-circle"></i>
-                      <span>Today’s sunlight data unavailable.</span>
+                      <span>{{ i18n.t('projectView.sunlightUnavailable') }}</span>
                     </div>
                   }
                 </div>
               } @else if (mapLat() == null || mapLng() == null) {
                 <div class="sun-path-warning">
                   <i class="pi pi-info-circle"></i>
-                  <span>Set a location to see sun path data.</span>
+                  <span>{{ i18n.t('configure.setLocationForSunPath') }}</span>
                 </div>
               } @else {
                 <div class="sun-path-warning">
                   <i class="pi pi-exclamation-triangle"></i>
-                  <span>Sun path data unavailable for this location.</span>
+                  <span>{{ i18n.t('projectView.sunPathUnavailable') }}</span>
                 </div>
               }
             </div>

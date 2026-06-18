@@ -7,12 +7,14 @@ import {
   input,
   output,
   effect,
+  inject,
   ViewEncapsulation,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 import { Coordinates } from '@core/models';
+import { LanguageService } from '@core/services/language.service';
 
 // Fix Leaflet's broken default icon paths when bundled with esbuild/webpack
 const defaultIcon = L.icon({
@@ -57,6 +59,7 @@ L.Marker.prototype.options.icon = defaultIcon;
 })
 export class LocationMapComponent implements AfterViewInit, OnDestroy {
   @ViewChild('mapContainer') mapContainer!: ElementRef<HTMLDivElement>;
+  private readonly i18n = inject(LanguageService);
 
   // --- Read-only inputs ---
   /** Center latitude. Required in read-only mode; ignored in editable+centerOnUser mode. */
@@ -99,7 +102,7 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
         this.searchMarker?.remove();
         this.searchMarker = L.marker([c.lat, c.lng])
           .addTo(this.map)
-          .bindPopup('Selected location')
+          .bindPopup(this.i18n.t('map.selectedLocation'))
           .openPopup();
       }
     });
@@ -129,7 +132,7 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
 
     // Render read-only elements only in non-editable mode
     if (!this.editable()) {
-      L.marker([lat, lng]).addTo(this.map).bindPopup('Project location').openPopup();
+      L.marker([lat, lng]).addTo(this.map).bindPopup(this.i18n.t('map.projectLocation')).openPopup();
     }
 
     // Pre-populate polygon (works in both modes)
@@ -192,7 +195,11 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
     );
 
     satellite.addTo(this.map!);
-    L.control.layers({ Street: street, Satellite: satellite, Topographic: topo }).addTo(this.map!);
+    L.control.layers({
+      [this.i18n.t('map.street')]: street,
+      [this.i18n.t('map.satellite')]: satellite,
+      [this.i18n.t('map.topographic')]: topo,
+    }).addTo(this.map!);
   }
 
   private setupDrawControls(): void {
@@ -205,7 +212,7 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
         rectangle: false,
         polygon: {
           allowIntersection: false,
-          drawError: { color: '#e1e100', message: "<strong>Oh snap!</strong> you can't draw that!" },
+          drawError: { color: '#e1e100', message: this.i18n.t('map.drawError') },
           shapeOptions: { color: '#f1c40f' },
         },
       },
@@ -230,7 +237,7 @@ export class LocationMapComponent implements AfterViewInit, OnDestroy {
   private setupUserLocation(): void {
     this.map!.locate({ setView: true, maxZoom: 18 });
     this.map!.on('locationfound', (e: L.LocationEvent) => {
-      L.marker(e.latlng).addTo(this.map!).bindPopup('You are here').openPopup();
+      L.marker(e.latlng).addTo(this.map!).bindPopup(this.i18n.t('map.youAreHere')).openPopup();
       this.userLocationFound.emit({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
     this.map!.on('locationerror', (e: L.ErrorEvent) => {

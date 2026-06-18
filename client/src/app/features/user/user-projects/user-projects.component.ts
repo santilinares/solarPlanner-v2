@@ -14,6 +14,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ProjectService } from '@core/services/project.service';
 import { AuthService, UserService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { UserRole, UserResponse } from '@core/models';
 import { Project } from '@core/models';
 
@@ -61,12 +62,12 @@ interface ProjectCardView {
         <div>
           <h1>
             <i class="pi pi-bolt icon-lg icon-primary"></i>
-            {{ isAdmin() ? (filterOwner() ? 'User Projects' : 'All Projects') : 'My Projects' }}
+            {{ isAdmin() ? (filterOwner() ? i18n.t('projects.userProjects') : i18n.t('projects.allProjects')) : i18n.t('projects.myProjects') }}
           </h1>
-          <p>{{ isAdmin() ? (filterOwner() ? 'Showing projects for a specific user' : 'Manage all user projects') : 'Manage your solar panel installations' }}</p>
+          <p>{{ isAdmin() ? (filterOwner() ? i18n.t('projects.showingSpecificUser') : i18n.t('projects.manageAll')) : i18n.t('projects.manageMine') }}</p>
         </div>
         @if (!isAdmin()) {
-          <p-button label="New Project" icon="pi pi-plus" routerLink="/projects/add" />
+          <p-button [label]="i18n.t('dashboard.newProject')" icon="pi pi-plus" routerLink="/projects/add" />
         }
       </header>
 
@@ -82,11 +83,11 @@ interface ProjectCardView {
         }
         @if (availableFilterTypes().length > 0) {
           <button class="add-filter-btn" (click)="openAddFilter($event)">
-            <i class="pi pi-plus"></i> Add filter
+            <i class="pi pi-plus"></i> {{ i18n.t('common.addFilter') }}
           </button>
         }
         @if (activeChips().length > 0) {
-          <button class="clear-all-btn" (click)="clearAll()">Clear all</button>
+          <button class="clear-all-btn" (click)="clearAll()">{{ i18n.t('common.clearAll') }}</button>
         }
       </div>
 
@@ -94,7 +95,7 @@ interface ProjectCardView {
       <p-popover #addFilterPopover (onHide)="onPopoverHide()">
         <div class="filter-popover">
           @if (!selectedFilterType()) {
-            <p class="popover-title">Filter by</p>
+            <p class="popover-title">{{ i18n.t('common.filterBy') }}</p>
             <ul class="filter-type-list">
               @for (type of availableFilterTypes(); track type.key) {
                 <li class="filter-type-item" (click)="selectedFilterType.set(type.key)">
@@ -106,7 +107,7 @@ interface ProjectCardView {
           } @else {
             <div class="popover-input-step">
               <button class="back-btn" (click)="selectedFilterType.set(null)">
-                <i class="pi pi-arrow-left"></i> Back
+                <i class="pi pi-arrow-left"></i> {{ i18n.t('common.back') }}
               </button>
               <p class="popover-title">{{ currentFilterLabel() }}</p>
 
@@ -115,7 +116,7 @@ interface ProjectCardView {
                   <input
                     pInputText
                     [(ngModel)]="pendingSearch"
-                    placeholder="Project name..."
+                    [placeholder]="i18n.t('projects.projectNamePlaceholder')"
                     class="popover-input"
                     (keyup.enter)="applyFilter()"
                     autofocus
@@ -125,7 +126,7 @@ interface ProjectCardView {
                   <input
                     pInputText
                     [(ngModel)]="pendingCountry"
-                    placeholder="e.g. Spain"
+                    [placeholder]="i18n.t('projects.countryPlaceholder')"
                     class="popover-input"
                     (keyup.enter)="applyFilter()"
                     autofocus
@@ -134,10 +135,10 @@ interface ProjectCardView {
                 @case ('projectType') {
                   <p-select
                     [(ngModel)]="pendingType"
-                    [options]="projectTypeOptions"
+                    [options]="projectTypeOptions()"
                     optionLabel="label"
                     optionValue="value"
-                    placeholder="Select type"
+                    [placeholder]="i18n.t('projects.selectType')"
                     class="popover-input"
                   />
                 }
@@ -145,7 +146,7 @@ interface ProjectCardView {
                   <p-datepicker
                     [(ngModel)]="pendingFrom"
                     [showIcon]="true"
-                    placeholder="Start date"
+                    [placeholder]="i18n.t('projects.startDate')"
                     class="popover-input"
                   />
                 }
@@ -153,7 +154,7 @@ interface ProjectCardView {
                   <p-datepicker
                     [(ngModel)]="pendingTo"
                     [showIcon]="true"
-                    placeholder="End date"
+                    [placeholder]="i18n.t('projects.endDate')"
                     class="popover-input"
                   />
                 }
@@ -163,7 +164,7 @@ interface ProjectCardView {
                     [options]="userOptions()"
                     optionLabel="label"
                     optionValue="value"
-                    placeholder="Select user"
+                    [placeholder]="i18n.t('projects.selectUser')"
                     [filter]="true"
                     filterBy="label"
                     class="popover-input"
@@ -171,7 +172,7 @@ interface ProjectCardView {
                 }
               }
 
-              <p-button label="Apply" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
+              <p-button [label]="i18n.t('common.apply')" icon="pi pi-check" size="small" (onClick)="applyFilter()" styleClass="apply-btn" />
             </div>
           }
         </div>
@@ -199,10 +200,10 @@ interface ProjectCardView {
         <p-card class="empty-state">
           <div class="empty-content">
             <i class="pi pi-sun"></i>
-            <h2>{{ isAdmin() ? 'No projects found' : 'No projects yet' }}</h2>
-            <p>{{ activeChips().length > 0 ? 'No projects match the active filters.' : (isAdmin() ? 'There are no user projects to display yet.' : 'Create your first solar panel project to get started') }}</p>
+            <h2>{{ isAdmin() ? i18n.t('projects.noProjectsFound') : i18n.t('projects.noProjectsYet') }}</h2>
+            <p>{{ activeChips().length > 0 ? i18n.t('projects.noMatches') : (isAdmin() ? i18n.t('projects.noAdminProjects') : i18n.t('projects.createFirst')) }}</p>
             @if (!isAdmin()) {
-              <p-button label="Create Project" icon="pi pi-plus" routerLink="/projects/add" />
+              <p-button [label]="i18n.t('projects.createProject')" icon="pi pi-plus" routerLink="/projects/add" />
             }
           </div>
         </p-card>
@@ -226,8 +227,8 @@ interface ProjectCardView {
                       [text]="true"
                       [rounded]="true"
                       [loading]="deletingProjectId() === project.id"
-                      ariaLabel="Delete project"
-                      pTooltip="Delete project"
+                      [ariaLabel]="i18n.t('projects.deleteProject')"
+                      [pTooltip]="i18n.t('projects.deleteProject')"
                       tooltipPosition="top"
                       (click)="deleteProject($event, project)"
                     />
@@ -256,11 +257,11 @@ interface ProjectCardView {
 
               <div class="project-specs">
                 <div class="spec-item">
-                  <span class="spec-label">Panels</span>
+                  <span class="spec-label">{{ i18n.t('projects.panels') }}</span>
                   <span class="spec-value">{{ project.panels }}</span>
                 </div>
                 <div class="spec-item">
-                  <span class="spec-label">Power</span>
+                  <span class="spec-label">{{ i18n.t('projects.power') }}</span>
                   <span class="spec-value">{{ project.power | number: '1.1-1' }}kW</span>
                 </div>
               </div>
@@ -571,6 +572,7 @@ export class UserProjectsComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
   private readonly route = inject(ActivatedRoute);
+  readonly i18n = inject(LanguageService);
 
   // Core state
   readonly projects = signal<ProjectCardView[]>([]);
@@ -602,30 +604,30 @@ export class UserProjectsComponent implements OnInit {
   pendingTo: Date | null = null;
   pendingOwner: string | null = null;
 
-  protected readonly projectTypeOptions = [
-    { label: 'Roof', value: 'roof' },
-    { label: 'Agrivoltaic', value: 'agrivoltaic' },
-  ];
+  protected readonly projectTypeOptions = computed(() => [
+    { label: this.i18n.t('projects.roof'), value: 'roof' },
+    { label: this.i18n.t('projects.agrivoltaic'), value: 'agrivoltaic' },
+  ]);
 
   readonly activeChips = computed(() => {
     const chips: { key: string; label: string }[] = [];
-    if (this.filterSearch())      chips.push({ key: 'search',      label: `Search: ${this.filterSearch()}` });
-    if (this.filterCountry())     chips.push({ key: 'country',     label: `Country: ${this.filterCountry()}` });
-    if (this.filterProjectType()) chips.push({ key: 'projectType', label: `Type: ${this.filterProjectType() === 'roof' ? 'Roof' : 'Agrivoltaic'}` });
-    if (this.filterFrom())        chips.push({ key: 'from',        label: `From: ${this.formatDate(this.filterFrom()!)}` });
-    if (this.filterTo())          chips.push({ key: 'to',          label: `To: ${this.formatDate(this.filterTo()!)}` });
-    if (this.filterOwner())       chips.push({ key: 'owner',       label: `Owner: ${this.ownerName()}` });
+    if (this.filterSearch())      chips.push({ key: 'search',      label: `${this.i18n.t('common.search')}: ${this.filterSearch()}` });
+    if (this.filterCountry())     chips.push({ key: 'country',     label: `${this.i18n.t('common.country')}: ${this.filterCountry()}` });
+    if (this.filterProjectType()) chips.push({ key: 'projectType', label: `${this.i18n.t('common.type')}: ${this.filterProjectType() === 'roof' ? this.i18n.t('projects.roof') : this.i18n.t('projects.agrivoltaic')}` });
+    if (this.filterFrom())        chips.push({ key: 'from',        label: `${this.i18n.t('common.from')}: ${this.formatDate(this.filterFrom()!)}` });
+    if (this.filterTo())          chips.push({ key: 'to',          label: `${this.i18n.t('common.to')}: ${this.formatDate(this.filterTo()!)}` });
+    if (this.filterOwner())       chips.push({ key: 'owner',       label: `${this.i18n.t('common.owner')}: ${this.ownerName()}` });
     return chips;
   });
 
   readonly availableFilterTypes = computed(() => {
     const all = [
-      { key: 'search',      label: 'Search by name',    icon: 'pi pi-search' },
-      { key: 'country',     label: 'Country',            icon: 'pi pi-map-marker' },
-      { key: 'projectType', label: 'Project type',       icon: 'pi pi-th-large' },
-      { key: 'from',        label: 'Install date from',  icon: 'pi pi-calendar' },
-      { key: 'to',          label: 'Install date to',    icon: 'pi pi-calendar' },
-      ...(this.isAdmin() ? [{ key: 'owner', label: 'Owner', icon: 'pi pi-user' }] : []),
+      { key: 'search',      label: this.i18n.t('projects.searchByName'),    icon: 'pi pi-search' },
+      { key: 'country',     label: this.i18n.t('common.country'),            icon: 'pi pi-map-marker' },
+      { key: 'projectType', label: this.i18n.t('projects.projectType'),       icon: 'pi pi-th-large' },
+      { key: 'from',        label: this.i18n.t('projects.installDateFrom'),  icon: 'pi pi-calendar' },
+      { key: 'to',          label: this.i18n.t('projects.installDateTo'),    icon: 'pi pi-calendar' },
+      ...(this.isAdmin() ? [{ key: 'owner', label: this.i18n.t('common.owner'), icon: 'pi pi-user' }] : []),
     ];
     const active = new Set(this.activeChips().map((c) => c.key));
     return all.filter((f) => !active.has(f.key));
@@ -742,12 +744,12 @@ export class UserProjectsComponent implements OnInit {
         if (response && response.data) {
           this.projects.set(response.data.map((p) => this.mapProject(p)));
         } else {
-          this.errorMessage.set('Invalid server response format.');
+          this.errorMessage.set(this.i18n.t('projects.invalidResponse'));
         }
         this.isLoading.set(false);
       },
       error: () => {
-        this.errorMessage.set('Could not load projects. Please try again in a moment.');
+        this.errorMessage.set(this.i18n.t('projects.loadFailed'));
         this.isLoading.set(false);
       },
     });
@@ -759,7 +761,7 @@ export class UserProjectsComponent implements OnInit {
 
     if (!this.isAdmin()) return;
 
-    const confirmed = window.confirm(`Delete project "${project.name}"? This action cannot be undone.`);
+    const confirmed = window.confirm(this.i18n.t('projects.deleteConfirm', { name: project.name }));
     if (!confirmed) return;
 
     this.deletingProjectId.set(project.id);
@@ -769,7 +771,7 @@ export class UserProjectsComponent implements OnInit {
         this.deletingProjectId.set(null);
       },
       error: () => {
-        this.errorMessage.set('Could not delete project. Please try again in a moment.');
+        this.errorMessage.set(this.i18n.t('projects.deleteFailed'));
         this.deletingProjectId.set(null);
       },
     });

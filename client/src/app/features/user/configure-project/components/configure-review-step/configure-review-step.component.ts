@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, output } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -8,6 +8,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { Coordinates, OptimalConfigResponse } from '@core/models';
 import { ConfigFormValue, ReviewChange } from '../../configure-project.component';
 import { ProjectConfigPreview } from '@core/models';
+import { LanguageService } from '@core/services/language.service';
 
 @Component({
   selector: 'app-configure-review-step',
@@ -17,6 +18,7 @@ import { ProjectConfigPreview } from '@core/models';
   styleUrls: ['./configure-review-step.component.scss'],
 })
 export class ConfigureReviewStepComponent {
+  readonly i18n = inject(LanguageService);
   readonly formValue = input.required<ConfigFormValue>();
   readonly locationSummary = input.required<string>();
   readonly polygonCoords = input.required<Coordinates[]>();

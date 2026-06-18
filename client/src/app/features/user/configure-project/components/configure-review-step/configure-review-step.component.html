@@ -1,15 +1,15 @@
 <div class="step-content">
   <div class="step-card review-card">
     <div class="review-card-header">
-      <h3><span class="material-symbols-outlined">tune</span> Changes to Save</h3>
+      <h3><span class="material-symbols-outlined">tune</span> {{ i18n.t('review.changesToSave') }}</h3>
     </div>
     <p-divider />
     @if (reviewChanges().length) {
       <div class="change-table">
         <div class="change-row change-header">
-          <span>Field</span>
-          <span>Before</span>
-          <span>After</span>
+          <span>{{ i18n.t('review.field') }}</span>
+          <span>{{ i18n.t('review.before') }}</span>
+          <span>{{ i18n.t('review.after') }}</span>
         </div>
         @for (change of reviewChanges(); track change.label) {
           <div class="change-row">
@@ -22,7 +22,7 @@
     } @else {
       <div class="review-empty">
         <i class="pi pi-check-circle"></i>
-        <span>No field changes detected.</span>
+        <span>{{ i18n.t('review.noChanges') }}</span>
       </div>
     }
   </div>
@@ -31,28 +31,28 @@
     <!-- Project & Metadata Summary -->
     <div class="step-card review-card">
       <div class="review-card-header">
-        <h3><i class="pi pi-file-edit"></i> Project & Metadata</h3>
+        <h3><i class="pi pi-file-edit"></i> {{ i18n.t('review.metadata') }}</h3>
       </div>
       <p-divider />
       <div class="review-items">
         <div class="review-item">
-          <span>Project Name</span>
+          <span>{{ i18n.t('wizard.projectName') }}</span>
           <strong>{{ formValue().name || '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Country</span>
+          <span>{{ i18n.t('common.country') }}</span>
           <strong>{{ formValue().country || '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Timezone</span>
+          <span>{{ i18n.t('configure.timezone') }}</span>
           <strong>{{ formValue().timezone || '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Currency</span>
+          <span>{{ i18n.t('configure.currency') }}</span>
           <strong>{{ formValue().currency || '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Energy Price</span>
+          <span>{{ i18n.t('wizard.energyPriceStep') }}</span>
           <strong>{{ formValue().price != null ? (formValue().price | number: '1.2-4') + '/kWh' : '—' }}</strong>
         </div>
       </div>
@@ -61,29 +61,29 @@
     <!-- Location & Area Summary -->
     <div class="step-card review-card">
       <div class="review-card-header">
-        <h3><i class="pi pi-map-marker"></i> Location & Area</h3>
+        <h3><i class="pi pi-map-marker"></i> {{ i18n.t('configure.locationArea') }}</h3>
         <p-button
           icon="pi pi-pencil"
           [rounded]="true"
           [textContent]="true"
           size="small"
-          pTooltip="Edit Location"
+          [pTooltip]="i18n.t('review.editLocation')"
           (onClick)="goToStep.emit(1)"
         />
       </div>
       <p-divider />
       <div class="review-items">
         <div class="review-item">
-          <span>Coordinates</span>
+          <span>{{ i18n.t('wizard.coordinates') }}</span>
           <strong>{{ locationSummary() }}</strong>
         </div>
         <div class="review-item">
-          <span>Installation Area</span>
-          <strong>{{ polygonCoords().length >= 3 ? polygonCoords().length + ' points defined' : 'Not defined' }}</strong>
+          <span>{{ i18n.t('review.installationArea') }}</span>
+          <strong>{{ polygonCoords().length >= 3 ? i18n.t('review.pointsDefined', { points: polygonCoords().length }) : i18n.t('review.notDefined') }}</strong>
         </div>
         @if (optimalConfig(); as oc) {
           <div class="review-item">
-            <span>Area Coverage</span>
+            <span>{{ i18n.t('wizard.areaCoverage') }}</span>
             <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
           </div>
         }
@@ -93,40 +93,40 @@
     <!-- Panel & Installation Summary -->
     <div class="step-card review-card">
       <div class="review-card-header">
-        <h3><i class="pi pi-sun"></i> Panel & Installation</h3>
+        <h3><i class="pi pi-sun"></i> {{ i18n.t('configure.panelInstallation') }}</h3>
         <p-button
           icon="pi pi-pencil"
           [rounded]="true"
           [textContent]="true"
           size="small"
-          pTooltip="Edit Panel Setup"
+          [pTooltip]="i18n.t('review.editPanelSetup')"
           (onClick)="goToStep.emit(1)"
         />
       </div>
       <p-divider />
       <div class="review-items">
         <div class="review-item">
-          <span>Solar Panel</span>
+          <span>{{ i18n.t('wizard.solarPanel') }}</span>
           <strong>{{ selectedPanelLabel() }}</strong>
         </div>
         <div class="review-item">
-          <span>Number of Panels</span>
+          <span>{{ i18n.t('wizard.panelCount') }}</span>
           <strong>{{ formValue().panelNumber || '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Tilt</span>
+          <span>{{ i18n.t('wizard.tilt') }}</span>
           <strong>{{ formValue().tilt != null ? formValue().tilt + '°' : '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Direction</span>
+          <span>{{ i18n.t('configure.orientationDirection') }}</span>
           <strong>{{ selectedDirectionLabel() }}</strong>
         </div>
         <div class="review-item">
-          <span>Azimuth</span>
+          <span>{{ i18n.t('projectView.azimuth') }}</span>
           <strong>{{ formValue().azimuth != null ? formValue().azimuth + '°' : '—' }}</strong>
         </div>
         <div class="review-item">
-          <span>Row Spacing</span>
+          <span>{{ i18n.t('wizard.rowSpacing') }}</span>
           <strong>{{ formValue().rawSpacing != null ? formValue().rawSpacing + ' m' : '—' }}</strong>
         </div>
       </div>
@@ -135,7 +135,7 @@
     <!-- Capacity Summary -->
     <div class="step-card review-card">
       <div class="review-card-header">
-        <h3><i class="pi pi-bolt"></i> Capacity</h3>
+        <h3><i class="pi pi-bolt"></i> {{ i18n.t('review.capacity') }}</h3>
         <p-tag
           [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
           [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
@@ -146,30 +146,30 @@
       <p-divider />
       <div class="review-items">
         <div class="review-item">
-          <span>Total Capacity</span>
+          <span>{{ i18n.t('wizard.totalCapacity') }}</span>
           <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
         </div>
         @if (configPreview(); as preview) {
           <div class="review-item">
-            <span>Preview Annual Production</span>
+            <span>{{ i18n.t('review.previewAnnualProduction') }}</span>
             <strong>{{ preview.preview.annualProductionKwh != null ? (preview.preview.annualProductionKwh | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
           </div>
           <div class="review-item">
-            <span>Production Delta</span>
+            <span>{{ i18n.t('review.productionDelta') }}</span>
             <strong>{{ annualProductionDelta() != null ? (annualProductionDelta()! | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
           </div>
           <div class="review-item">
-            <span>Savings Delta</span>
+            <span>{{ i18n.t('review.savingsDelta') }}</span>
             <strong>{{ annualSavingsDelta() != null ? (annualSavingsDelta()! | number: '1.0-0') + ' /yr' : '—' }}</strong>
           </div>
         }
         @if (optimalConfig(); as oc) {
           <div class="review-item">
-            <span>Est. Annual Production</span>
+            <span>{{ i18n.t('review.estimatedAnnualProduction') }}</span>
             <strong>{{ oc.estimatedProduction | number: '1.0-0' }} kWh/yr</strong>
           </div>
           <div class="review-item">
-            <span>Area Coverage</span>
+            <span>{{ i18n.t('wizard.areaCoverage') }}</span>
             <strong>{{ oc.coverage | number: '1.0-1' }}%</strong>
           </div>
         }
@@ -182,26 +182,26 @@
     <div class="total-capacity-content">
       <div class="capacity-sun-icon"><i class="pi pi-sun"></i></div>
       <div class="capacity-info">
-        <span>Estimated Total Capacity</span>
+        <span>{{ i18n.t('review.estimatedTotalCapacity') }}</span>
         <strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong>
       </div>
     </div>
   </div>
 
   @if (reviewChanges().length) {
-    <p-message severity="info" text="Saving solar-impacting changes will refresh production and analytics data." class="w-full" />
+    <p-message severity="info" [text]="i18n.t('review.refreshNotice')" class="w-full" />
   }
 
   @if (saveError()) {
     <p-message severity="error" [text]="saveError()!" class="w-full" />
   }
   @if (saveSuccess()) {
-    <p-message severity="success" text="Project updated successfully!" class="w-full" />
+    <p-message severity="success" [text]="i18n.t('review.saveSuccess')" class="w-full" />
   }
 
   <div class="save-action">
     <p-button
-      label="Save Changes"
+      [label]="i18n.t('wizard.saveChanges')"
       icon="pi pi-check"
       [rounded]="true"
       [loading]="isSaving()"
