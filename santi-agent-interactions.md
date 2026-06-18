@@ -4929,3 +4929,55 @@ El síntoma era consistente con capturar el SVG demasiado pronto o sin atributos
 ### Verification
 - `client`: `npm run typecheck` passed.
 - `client`: `npm run build` passed outside the sandbox; warnings were bundle budget/CommonJS warnings.
+
+## 2026-06-18 - Fix profile language preference save
+
+### Prompt summary
+The user reported that clicking the profile Save changes button did nothing after selecting a language.
+
+### Full prompt
+> Cuando doy click a save changes no pasa nada
+
+### What was achieved
+- Traced the silent failure to a mismatch between the backend `_id` field and the frontend `id` user model.
+- Normalized authentication and `/users/me` responses so the application always stores a consistent `User` with an `id` field.
+- Added a JWT `_id` fallback in profile and password updates to avoid failures during session hydration races.
+- Added a regression test for `_id` normalization.
+- Verified in the browser that Spanish saves successfully, displays a success toast and remains selected after a full reload.
+
+### Affected files
+- `client/src/app/core/services/auth.service.ts`
+- `client/src/app/core/services/auth.service.spec.ts`
+- `client/src/app/features/user/profile/profile.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning notes
+The profile method returned silently because `currentUser.id` was undefined: the server contract uses `_id`. Normalizing at the authentication boundary fixes the profile bug and prevents the same identifier mismatch in other authenticated screens. The JWT fallback keeps profile actions reliable before background profile hydration completes.
+
+### Verification
+- `cd client && npm run typecheck`
+- `cd client && npm test -- auth.service.spec.ts --runInBand`
+- `cd client && npm test -- profile.component.spec.ts --runInBand`
+- Browser save test followed by a full reload on `/projects/profile`
+
+## 2026-06-18 - Rename add-project site label
+
+### Prompt summary
+The user requested replacing the Spanish label "Sitio" with "Ubicación" in the add-project workflow.
+
+### Full prompt
+> Modifica en el add-project "Sitio" por "Ubicación"
+
+### What was achieved
+- Changed both Spanish add-project occurrences: the wizard step label and the review summary heading.
+- Kept the English translation unchanged.
+
+### Affected files
+- `client/src/app/core/i18n/translations.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning notes
+Both `wizard.siteStep` and `wizard.site` are used within add-project, so updating them together avoids inconsistent terminology between navigation and review.
+
+### Verification
+- `cd client && npm run typecheck`

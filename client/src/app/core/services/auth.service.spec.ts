@@ -72,6 +72,26 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(true);
       expect(service.currentUser()?.email).toBe('test@example.com');
     });
+
+    it('normalizes the server _id field to the app id field', () => {
+      const apiResponse = {
+        token: 'access-token',
+        user: {
+          _id: 'mongo-user-id',
+          email: 'test@example.com',
+          fullName: 'Test User',
+          role: 'user' as const,
+          language: 'en' as const,
+          method: 'local' as const,
+          createdAt: new Date().toISOString(),
+        },
+      };
+
+      service.login({ email: 'a@b.com', password: 'pass' }).subscribe();
+      httpMock.expectOne(`${environment.apiUrl}/auth/login`).flush(apiResponse);
+
+      expect(service.currentUser()?.id).toBe('mongo-user-id');
+    });
   });
 
   describe('register()', () => {
