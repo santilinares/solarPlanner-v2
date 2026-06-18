@@ -1213,7 +1213,8 @@ export class ProjectService {
     }
 
     const peakSunHours = project.lat ? 5.5 - Math.abs(project.lat) * 0.02 : 5;
-    const estimatedAnnualProduction = totalCapacityKw * peakSunHours * 365 * 0.85;
+    const fallbackAnnualProduction = totalCapacityKw * peakSunHours * 365 * 0.85;
+    const estimatedAnnualProduction = project.pvgisRef?.yearlyKwh ?? fallbackAnnualProduction;
 
     return {
       project: transformProjectToResponse(project),

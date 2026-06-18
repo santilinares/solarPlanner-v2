@@ -1,113 +1,4931 @@
-# Santi Agent Interactions
+# Solar Planner v2 - AI Agent Development Log
 
-## 2026-06-17 - Spanish language support and persisted user preference
+This document tracks all significant development work performed using AI assistance, serving as a development journal and knowledge base.
+
+---
+
+## 2026-06-17 - PDF report generation from existing project views
+
+### Topic
+Actualizar la generación de PDF para aprovechar los datos y gráficos ya existentes en Solar Planner v2.
 
 ### Prompt summary
-The user needed a plan and implementation for adding Spanish language support to an app that was only available in English. The language must be configurable from the user profile and persisted in the database so the latest selected language is restored whenever the user logs in.
+El usuario pidió implementar el plan aprobado para convertir el PDF en una versión documental de lo que ya muestra la app, reutilizando datos del proyecto, analíticas, preview de configuración y opciones de Highcharts, sin crear una UI paralela ni rediseñar el informe desde cero.
 
 ### Full prompt
-> Necesito que me propongas un plan para hacer un paquete de traducción para la app de español. Acualmentre solamente está disponible en ingles. Además hay que meter en la parte del perfil de usuario un boton para cambiar la configuración del idioma. Este dato debe estar persistido en la base de datos, de manera que siempre que un usuario inicie sesion se cargue el idioma seleccionado por ultima vez por el usuario
->
-> He prometido que la app estará en español también. Añade complejidad o simplemente es que hay que abarcar mas cosas? Me refiero a la opcion 2
->
-> Okk, lets go
+PLEASE IMPLEMENT THIS PLAN:
+# Actualizar PDF Aprovechando Datos y Gráficos Existentes
+
+## Resumen
+Actualizar la generación del PDF para que sea una versión documental de lo que ya muestra la app, sin crear una UI paralela ni una implementación visual nueva. El PDF reutilizará los datos ya cargados en los componentes y las opciones de Highcharts existentes, con una maquetación simple y mantenible.
+
+## Cambios Clave
+- Mejorar `FileService` para generar informes con secciones reutilizables: portada, KPIs, resumen del proyecto, tablas de supuestos, gráficos y footer.
+- Mantener la generación del PDF en frontend con `jsPDF`.
+- Exportar los gráficos existentes de Highcharts como imágenes e insertarlos en el PDF.
+- Corregir el cálculo de producción anual del PDF para priorizar `project.pvgisRef.yearlyKwh`; usar fallback solo si no existe.
+- Registrar el trabajo en `santi-agent-interactions.md` al final, porque habrá cambios de código.
+
+## View Mode
+- Actualizar el botón actual `Download Plan` para generar un informe enriquecido usando:
+  - `projectData`
+  - `PlanData`
+  - `analytics`
+  - `sunPathData`
+  - `todayChartOptions`
+  - `nextProdChartOptions`
+  - `previousProdChartOptions`
+  - `monthlyProductionChartOptions`
+  - `savingsChartOptions`
+- Incluir en el PDF:
+  - resumen del proyecto
+  - datos del panel
+  - capacidad instalada
+  - producción anual PVGIS
+  - producción de hoy si existe
+  - producción reciente/forecast si existe
+  - producción mensual
+  - métricas económicas: ahorro anual, payback, ROI 25 años, coste usado y fuente
+  - gráfico de proyección a 25 años si existe
+
+## Configure Mode
+- Añadir una acción separada tipo `Download Preview Report`.
+- Generar un PDF marcado claramente como preview si hay cambios sin guardar.
+- Usar:
+  - `configPreview`
+  - `optimalConfig`
+  - `reviewChanges`
+  - `sunPathData`
+  - `monthlyProductionChartOptions`
+  - `comparisonChartOptions`
+  - `sunPathChartOptions`
+- Incluir:
+  - configuración actual vs preview
+  - cambios pendientes
+  - impacto relativo
+  - producción mensual current/preview
+  - warnings del preview
+  - datos de orientación, paneles, cobertura y spacing
+
+## Interfaces y Tipos
+- Crear un tipo frontend para el contexto del PDF, por ejemplo `ProjectPdfReportContext`, con variante `mode: 'view' | 'configure-preview'`.
+- Mantener `PlanData` como respuesta del backend, pero usarlo como una fuente más del informe, no como único modelo.
+- Ajustar `PlanData.project` si hace falta para reflejar que `prodToday`, `nextProd` y `previousProd` son arrays reales en el proyecto transformado, no simples números.
+
+## Test Plan
+- Ejecutar `npm run typecheck` en `client`.
+- Ejecutar tests relevantes del cliente si existen para servicios/modelos modificados.
+- Ejecutar tests del servidor si se cambia `generatePlanData`.
+- Verificación manual:
+  - descargar PDF desde view mode con proyecto con PVGIS, analytics y gráficos.
+  - descargar PDF desde view mode con datos parciales.
+  - descargar PDF desde configure mode con preview disponible.
+  - comprobar que el PDF no falla si faltan gráficos o analíticas.
+
+## Supuestos
+- La prioridad es mantener coherencia con la app, no crear un diseño PDF independiente.
+- El PDF no necesita replicar exactamente las cards visuales; debe presentar el mismo contenido de forma clara.
+- La implementación debe minimizar cambios en backend.
+- El primer objetivo será view mode; configure mode se implementará después dentro del mismo enfoque, si el flujo base queda estable.
 
 ### What was achieved
-- Added a persisted `language` field to users in MongoDB with supported values `en` and `es`, defaulting to `en`.
-- Exposed `language` in backend user responses for login, refresh, current profile and admin user lists.
-- Extended profile update validation so users can save their language preference.
-- Added a frontend `LanguageService` with `en` and `es` translation dictionaries, local fallback storage and automatic `<html lang>` updates.
-- Applied the selected language automatically after login, refresh and session hydration through `/users/me`.
-- Added a profile language selector using PrimeNG and saved the preference through the existing profile endpoint.
-- Migrated the most visible first-pass UI surfaces to translation keys: visitor layout, user layout, login, register, profile, dashboard and key landing page copy.
-- Updated targeted backend and frontend tests for the new user language contract.
+Se reemplazó el PDF textual mínimo por un generador documental reutilizable basado en `ProjectPdfReportContext`, con soporte para `view` y `configure-preview`. El nuevo servicio genera portada, KPIs, resumen del proyecto, panel, analítica económica, datos solares, cambios pendientes, warnings y gráficos renderizados desde las opciones existentes de Highcharts. También se añadió el botón `Preview Report` en configure mode y se actualizó el flujo del botón `Download Plan` para enviar al PDF los datos ya cargados por la vista.
 
 ### Affected files
-- `server/src/models/user.model.ts`
+- `client/src/app/core/services/file.service.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/features/user/project-view/project-view.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `server/src/services/project.service.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning notes
+La decisión principal fue mantener la generación en frontend con `jsPDF` y reutilizar las `Highcharts.Options` ya calculadas por los componentes. Para evitar duplicar lógica de gráficos, el servicio renderiza temporalmente cada chart en un contenedor oculto, serializa el SVG, lo convierte a PNG con canvas y lo inserta en el PDF. En backend se mantuvo el endpoint existente y solo se corrigió la producción anual para priorizar `pvgisRef.yearlyKwh`, usando el cálculo anterior como fallback.
+
+### Verification
+- `client`: `npm run typecheck` passed.
+- `client`: `npm run build` passed outside the sandbox after Angular hit sandbox-only access errors; warnings were bundle budget/CommonJS warnings.
+- `server`: `npm run build` passed.
+- `server`: `npx vitest run src/__tests__/services/project.service.test.ts -t generatePlanData` passed.
+- `server`: `npm test -- project.service.test.ts` still has one unrelated pre-existing floating-point assertion failure in `estimateFromPolygon` (`22.4` vs `22.400000000000002`).
+- Local dev server responded with HTTP 200 at `http://127.0.0.1:4300`; Browser plugin visual verification could not run because this plugin install is missing `scripts/browser-client.mjs`.
+
+---
+
+## June 14, 2026 - Rango preliminar de producción en el wizard
+
+### Topic
+Mostrar una estimación parcial y honesta de producción en `add-project` sin llamar al modelo completo durante el wizard.
+
+### Summary of Prompt
+El usuario detectó que el wizard podía aumentar la producción estimada al cambiar orientación o tilt solo porque cabían más paneles, y pidió mostrar información parcial mediante un rango, aclarando que no usa el modelo completo de producción de la app.
+
+### What Was Achieved
+- Se extendió `OptimalConfigResponse` con `estimatedProductionRange` y `productionEstimateMode: 'preliminary'`.
+- `/projects/calculate` mantiene el cálculo ligero, sin PVGIS/Open-Meteo, y ahora aplica modificadores aproximados de orientación y tilt al rendimiento preliminar.
+- `estimatedProduction` se conserva como punto medio del rango para compatibilidad.
+- El wizard muestra “Preliminary Production Range” y un aviso explícito de que la estimación no usa el modelo completo.
+- El ahorro anual se etiqueta como preliminar y sigue usando el punto medio.
+- Se normalizó la altura/alineación de `p-select` y `p-inputNumber` en el paso de instalación.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Add Project Wizard: Preliminary Production Range And Honest Labeling
+> [...]
+> Add label/copy near the range: “This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.”"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El modelo completo ya considera tilt y azimuth mediante Open-Meteo y PVGIS al crear el proyecto, pero el cálculo del wizard era un estimado ligero basado en capacidad y horas solares simplificadas. Mostrar un número único como producción anual podía ser engañoso. El rango preliminar mantiene la UX rápida, reduce falsas certezas y deja claro que la vista del proyecto creado es la fuente autoritativa.
+
+---
+
+## June 14, 2026 - Validación de query compatible con Express 5
+
+### Topic
+Corrección persistente del `Validation error` en rutas con `validateQuery()`.
+
+### Summary of Prompt
+El usuario indicó que el mismo error seguía apareciendo en `GET /api/panels?page=1&limit=200` incluso después de aceptar `page` y `limit` en el schema de paneles.
+
+### What Was Achieved
+- Se actualizó el middleware compartido de validación para reemplazar `req.query` con `Object.defineProperty()` cuando valida queries.
+- Se mantuvo la asignación directa para `body` y `params`.
+- Se preservó el comportamiento de errores Zod con respuesta `Validation failed` y detalles por campo.
+- Se añadieron tests del middleware que reproducen una `req.query` estilo Express 5 no asignable y validan el error de Zod.
+- Se verificaron de nuevo los tests de schema y servicio de paneles.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Fix Query Validation Middleware For Express 5
+> [...]
+> The remaining `Validation error` on `GET /api/panels?page=1&limit=200` is likely not caused by `PanelQuerySchema` anymore."
+
+### Affected Files
+- `server/src/middleware/validation.middleware.ts`
+- `server/src/__tests__/middleware/validation.middleware.test.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El mensaje `Validation error`, distinto de `Validation failed`, señalaba que el error no venía de Zod sino de una excepción posterior. En Express 5, `req.query` puede estar expuesto mediante accessor y no admitir asignación directa. Definir la propiedad de forma explícita permite conservar los valores ya parseados/coercionados para los controllers sin romper las rutas que validan query params.
+
+---
+
+## June 14, 2026 - Paginación validada para carga de paneles
+
+### Topic
+Corrección del `Validation error` al entrar en `add-project` por `GET /api/panels?page=1&limit=200`.
+
+### Summary of Prompt
+El usuario confirmó en DevTools que el error ocurría al cargar la página de alta de proyecto y que la request fallida era `GET /api/panels?page=1&limit=200`, con token válido y respuesta 400 de validación.
+
+### What Was Achieved
+- Se añadió soporte backend para `page` y `limit` en `PanelQuerySchema`.
+- `PanelService.listPanels()` aplica `skip` y `limit` en la query de Mongoose y conserva `total` como conteo total filtrado.
+- Se mantuvieron los filtros existentes de paneles y el caso de búsqueda por `id`.
+- Se añadieron tests de schema para paginación válida e inválida.
+- Se añadieron tests de servicio para paginación, `total` y conservación del caso por `id`.
+- Se añadió un test del wizard para fijar que `add-project` carga `getAllPanels(1, 200)` al abrir.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Fix Panel Loading Validation Error
+> [...]
+> The current `Validation error` is caused by `GET /api/panels?page=1&limit=200`."
+
+### Affected Files
+- `server/src/schemas/panel.schema.ts`
+- `server/src/services/panel.service.ts`
+- `server/src/controllers/panel.controller.ts`
+- `server/src/__tests__/schemas/panel.schema.test.ts`
+- `server/src/__tests__/services/panel.service.test.ts`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El frontend ya tenía un contrato implícito de paginación en `PanelService.getAllPanels(page, limit)`, usado por `add-project` y otras pantallas. El backend, sin embargo, validaba la query de `/api/panels` sin aceptar esos parámetros, por lo que la request se rechazaba antes de llegar al controller. Implementar la paginación en el backend respeta el contrato existente del cliente y evita una solución local que solo ocultaría el problema en el wizard.
+
+---
+
+## June 14, 2026 - Helpers públicos para el wizard de creación
+
+### Topic
+Corrección del error `No token provided` al entrar en la configuración de paneles del flujo `add-project`.
+
+### Summary of Prompt
+El usuario reportó que al entrar en el paso de selección/configuración del panel aparecía la respuesta JSON `{"success":false,"message":"No token provided"}`.
+
+### What Was Achieved
+- Se hizo público `POST /api/projects/calculate`, porque calcula una configuración previa a crear proyecto y no accede a datos privados del usuario.
+- Se hicieron públicas las rutas de sugerencia de precio `GET /api/projects/pricing/electricity` y `GET /api/projects/electricity-price`.
+- Se mantuvieron protegidas las rutas de creación, listado, detalle, edición, eliminación y analíticas de proyectos.
+- Se actualizaron comentarios del controller para reflejar el acceso público de estos helpers.
+- Se verificó con `npm run build` en server, `npm run typecheck` en client, tests de `project.service` y `project.schema` en server, y test del `ProjectService` de Angular.
+
+### Full Prompt
+> `{"success":false,"message":"No token provided","timestamp":"2026-06-14T10:01:39.202Z"} Me salta este error cuando en add-project entro al paso de seleccionar el panel y su configuración`
+
+### Affected Files
+- `server/src/routes/project.routes.ts`
+- `server/src/controllers/project.controller.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El wizard llama a `/projects/calculate` antes de crear el proyecto para obtener paneles recomendados y espaciado óptimo. Ese cálculo solo usa los datos enviados en el payload y no necesita identidad de usuario, por lo que exigir `verifyUserJwtToken` podía bloquear la UX si el token local no estaba disponible aunque el usuario siguiera en la pantalla. La creación real del proyecto permanece protegida, que es donde sí se persisten datos asociados al usuario.
+
+---
+## June 7, 2026 - Fix seed-panels TypeScript imports and lint noise
+
+### Topic
+Fix the panel seeding script so it uses the real model and logger exports and no longer triggers TypeScript or ESLint errors.
+
+### Summary of Prompt
+User reported multiple TypeScript and ESLint errors in `server/src/scripts/seed-panels.ts`, including a missing `panels.model` import, an incorrect named logger import, unsafe `any` usage from JSON parsing and model access, and a floating promise at the script entry point.
+
+### What Was Achieved
+- Replaced the broken `../models/panels.model` import with `PanelModel` from `../models/panel.model`.
+- Switched the logger import to the default export from `../utils/logger`.
+- Typed the parsed CEC JSON records as `CECPanelRecord[]`.
+- Updated the upsert call to use `PanelModel.updateOne(...)` with proper typing.
+- Marked the entry invocation as `void seedPanels();` to satisfy the no-floating-promises rule.
+
+### Full Prompt
+> "Fix the typescript issues in this file: [seed-panels.ts diagnostics]"
+
+### Affected Files
+- `server/src/scripts/seed-panels.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+The first TypeScript error exposed the actual root cause: the script referenced a non-existent model file name. Once the import was corrected to the existing `panel.model.ts`, the remaining lint warnings were handled by aligning the logger import with the module's default export, narrowing the JSON parse result to the script's record type, and making the top-level async call explicitly ignored.
+
+## May 27, 2026 - Enforce strong password policy across client and server
+
+### Topic
+Enforce strict password requirements: minimum 8 characters, uppercase, lowercase, number and special character.
+
+### Summary of Prompt
+User requested that passwords require special characters, uppercase, lowercase and numbers in addition to the existing 8-character minimum. Also requested renaming the worktree branch to "more-strict-passwords".
+
+### What Was Achieved
+- Created `client/src/app/core/validators/password.validator.ts` with a reusable `strongPasswordValidator()` Angular validator and a shared `PASSWORD_HINT` constant.
+- Exported the validator from `core/index.ts`.
+- Updated `register.component.ts`, `reset-password.component.ts` and `profile.component.ts` to use `strongPasswordValidator()` instead of `Validators.minLength(8)`. Placeholder and error text now show the shared hint.
+- Added `[feedback]="true"` with strength regexes to all password fields that lacked it.
+- Updated `server/src/schemas/user.schema.ts` to define a shared `strongPassword` Zod refinement (uppercase, lowercase, number, special char + min 8) applied to `UserCreateSchema`, `UserChangePasswordSchema.newPassword` and `PasswordResetApplySchema.newPassword`. `currentPassword` in change-password was relaxed to `min(1)` so existing passwords always authenticate.
+- Updated `server/src/`__tests__`/schemas/user.schema.test.ts` to use compliant passwords and added new test cases for each missing character class.
+- Renamed the git branch from `claude/goofy-pasteur-58f0e5` to `claude/more-strict-passwords`.
+
+### Full Prompt
+> "Quiero Modificar el código para que la contraseña necesite tener caracteres especiales, mayus y minus y números además de la longitud de 8 chars. Dale a este worktree un nombre (si puedes) y que sea: 'more-strict-passwords'"
+
+### Affected Files
+- `client/src/app/core/validators/password.validator.ts` (new)
+- `client/src/app/core/index.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `client/src/app/features/user/profile/profile.component.ts`
 - `server/src/schemas/user.schema.ts`
-- `server/src/types/user.types.ts`
-- `server/src/services/auth.service.ts`
-- `server/src/services/user.service.ts`
 - `server/src/__tests__/schemas/user.schema.test.ts`
-- `server/src/__tests__/services/user.service.test.ts`
-- `client/src/app/core/models/user.model.ts`
-- `client/src/app/core/i18n/translations.ts`
-- `client/src/app/core/services/language.service.ts`
-- `client/src/app/core/services/auth.service.ts`
-- `client/src/app/core/services/user.service.ts`
-- `client/src/app/core/services/index.ts`
-- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+
+### Reasoning
+The previous validation only enforced minimum length, making passwords like `password123` or `abc12345` acceptable. Adding regex checks on each character class at both the Zod layer (server, authoritative) and the Angular validator layer (client, UX feedback) ensures the policy is enforced end-to-end. `currentPassword` is intentionally left with only `min(1)` to avoid locking out users who registered under the old policy — the new rules only apply when setting or changing a password.
+
+---
+
+## May 27, 2026 - Fix: Remove unused LocationMapComponent import
+
+### Topic
+Resolve Angular compiler warning NG8113 for ConfigureProjectComponent.
+
+### Summary of Prompt
+User reported NG8113 indicating `LocationMapComponent` is not used in the template.
+
+### What Was Achieved
+- Removed the unused `LocationMapComponent` import from the component file to silence the warning.
+
+### Full Prompt
+> "▲ [WARNING] NG8113: LocationMapComponent is not used within the template of ConfigureProjectComponent"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Reasoning
+The map is now rendered by `ConfigureLocationStepComponent`, so the direct `LocationMapComponent` import was unused and triggered NG8113. Removing it keeps the component imports clean.
+
+---
+
+## May 19, 2026 - Fusión de Settings en Profile + ThemeService (modo oscuro)
+
+### Topic
+Eliminar el `SettingsComponent` placeholder y fusionarlo en `ProfileComponent`, añadiendo una sección de Preferencias con toggle de modo oscuro persistido en localStorage.
+
+### Summary of Prompt
+El usuario observó que `SettingsComponent` era un placeholder vacío sin funcionalidad y `ProfileComponent` tenía gestión de cuenta y contraseña ya completa. Propuso fusionarlos en una sola página con separación visual, y añadir modo oscuro/claro e idioma (idioma pospuesto para otro momento).
+
+### What Was Achieved
+- **ThemeService** creado en `core/services/theme.service.ts`: se auto-inicializa en el constructor leyendo `localStorage('solar-planner-theme')` y aplica la clase `.dark-mode` en `document.documentElement`. PrimeNG ya tenía `darkModeSelector: '.dark-mode'` configurado en `app.config.ts`, por lo que el dark mode funciona inmediatamente.
+- **ProfileComponent** expandido con una tercera sección "Preferences" separada por `<p-divider>`, con un `<p-toggleswitch>` que invoca `themeService.toggle()`. El tema persiste entre recargas.
+- **Routing**: la ruta `/projects/settings` ahora redirige a `/projects/profile` con `redirectTo: 'profile'`.
+- **UserLayout**: eliminado el ítem "Settings" del dock primario (era redundante). El ítem de Profile en el dock inferior ahora tiene label "Profile & Settings" y matchea también `/projects/settings`.
+- **SettingsComponent eliminado** del proyecto.
+
+### Full Prompt
+> "que se te ocurre que podamos añadir en el apartado de settings (y quizas completar tambien el perfil de usuario). A mi se me ocurre algo como idioma, modo noche y modo light. Otra cosa que se me ocurre es tener en el perfil de usuario todo integrado, también las settings, ya que tenemos pocas cosas en las settings. Creo que lo mejor es fusionarlos y mediante UI separar visualmente la parte de gestion del perfil de usuario vs settings, que te parece?"
+
+### Affected Files
+- `client/src/app/core/services/theme.service.ts` — NUEVO
+- `client/src/app/core/services/index.ts` — añadido export de ThemeService
+- `client/src/app/features/user/profile/profile.component.ts` — añadida sección Preferences con ToggleSwitch
+- `client/src/app/features/user/settings/settings.component.ts` — ELIMINADO
+- `client/src/app/app.routes.ts` — settings → redirectTo profile
+- `client/src/app/layouts/user-layout/user-layout.component.ts` — eliminado Settings del dock, actualizado profileNavItem
+
+### Reasoning
+PrimeNG 21 ya tiene `darkModeSelector: '.dark-mode'` preconfigured, lo que hace que la implementación del theme sea trivial: basta con añadir/quitar esa clase en el `<html>`. Un `ThemeService` con `signal()` auto-inicializado desde localStorage es la forma más limpia sin necesitar APP_INITIALIZER ni ningún proveedor adicional. La fusión de Settings en Profile evita mantener una página casi vacía y mejora la coherencia de la navegación.
+
+---
+
+## May 19, 2026 - Plan de despliegue en markdown del proyecto
+
+### Topic
+Publicar dentro del repositorio un fichero markdown con el plan de despliegue de frontend en Vercel, backend en Render y base de datos en MongoDB Atlas.
+
+### Summary of Prompt
+El usuario pidió explícitamente dejar el plan en un archivo markdown dentro del proyecto.
+
+### What Was Achieved
+- Se creó un nuevo documento en la raíz del repositorio con el plan completo de despliegue.
+- El contenido incluye estado actual del código, fases, variables críticas, integración CORS/Auth y checklist de salida.
+
+### Full Prompt
+> "Puedes dejar el plan en un fichero markdown dentro del proyecto, porfa?"
+
+### Affected Files
+- `deployment-plan-vercel-render-atlas.md`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- La petición fue documental y concreta: mover el plan desde el workspace de sesión al repositorio para que quede versionable y accesible al equipo.
+- Se mantuvo el alcance de investigación + guía, sin introducir configuración de despliegue ejecutable en esta fase.
+
+---
+
+## May 3, 2026 - Lint Fix: estimateFromPolygon Async Removal
+
+### Topic
+Remove unnecessary async usage on estimateFromPolygon to satisfy ESLint require-await.
+
+### Summary of Prompt
+User asked about the ESLint @typescript-eslint/require-await warning on estimateFromPolygon, requested the best solution, asked if it would impact call sites, then approved the fix.
+
+### What Was Achieved
+- Removed async from estimateFromPolygon and updated the return type to be synchronous.
+- Kept the calculation logic intact so outputs remain identical.
+
+### Full Prompt
+> "Que podemos hacer con esto: [eslint require-await warning] Dame opciones"
+> "Para ti cual es la mejor solucion?"
+> "Esto afectaria a algun otro punto en el que se use este method?"
+> "Ok"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The method does not perform I/O or await any async work, so async adds a redundant Promise and triggers require-await.
+- Removing async keeps behavior the same and avoids extra Promise allocation; existing await call sites still work because awaiting a non-Promise resolves immediately.
+
+## April 19, 2026 - Bugfix: Sun Path Data 500 Error
+
+### Topic
+Fix: Sun path endpoint returning 500 Internal Server Error on the project view page.
+
+### Summary of Prompt
+User reported a 500 error on `GET /api/projects/:id/sun-path` when loading the configure-project component in view mode. Asked to investigate and propose a fix.
+
+### What Was Achieved
+Identified the root cause and applied a one-file fix that resolved the 500 error. The sun path table now loads correctly for any project that has an area polygon defined.
+
+### Full Prompt
+> "Muestra este fallo al cargar el view mode del configure-project component: http://127.0.0.1:1235/api/projects/.../sun-path 500 (Internal Server Error) [stack trace]"
+
+### Affected Files
+- `server/src/services/project.service.ts` — `getSunPath()` method (lines ~700-723)
+
+### Root Cause & Reasoning
+`getSunPath()` was checking `project.lat` and `project.lon` directly on the Mongoose document. However, `lat` and `lon` are **not persisted fields** in the DB schema — they are computed on-the-fly in `transformProjectToResponse()` via `calculateGeospatialFields(project.area)`. The raw document always returns `undefined` for these fields, causing the guard condition to throw unconditionally, which produced a 500.
+
+The fix: replace the `project.lat` / `project.lon` guard with a call to the existing `calculateGeospatialFields(project.area)` helper (already available in the same file), and derive the latitude from `geo.lat` instead.
+
+---
+
+## April 19, 2026 - Priority 3.2: Google OAuth Social Login
+
+### Topic
+Google OAuth social login — allows users to sign in or register using their Google account from both the login and registration pages.
+
+### Prompt Summary
+User requested implementation of Priority 3.2 (Google OAuth) from the deferred features plan. A plan and visual mockup of the button/flow were presented and approved before coding began.
+
+### What Was Achieved
+- Added `googleId` to the User model's `google` subdocument (stable identifier via Google's `sub` claim)
+- Installed `google-auth-library` on the server; added `loginWithGoogle(idToken)` to `AuthService` — verifies the token with Google's public keys, finds-or-creates the user, and blocks sign-in with 409 if a local account already exists with the same email
+- Added `GoogleAuthSchema` Zod validator, `googleAuth` controller, and `POST /api/auth/google` route (protected by `authLimiter`)
+- Added `GOOGLE_CLIENT_ID` to `server/.env` and `googleClientId` to both Angular environment files
+- Loaded Google Identity Services (GIS) SDK via `<script>` tag in `index.html`
+- Added `loginWithGoogle(idToken)` to the Angular `AuthService`
+- Both `LoginComponent` and `RegisterComponent` use `ngAfterViewInit` + `google.accounts.id.renderButton()` to render the official GIS button into a `div` container — this is the correct approach that opens a popup instead of doing a redirect (which was the root cause of the initial "route not found" bug)
+
+### Full Prompt
+> "Quiero que me implementes la funcionalidad de google auth, de prioridad 3, que corresponde a la 3.2. Dame primero una propuesta y los componentes que tienes que modificar, además de dependencias que tengas que añadir al proyecto (npm)"
+
+### Affected Files
+- `server/src/models/user.model.ts` — added `googleId` to `IUser.google` and schema
+- `server/src/services/auth.service.ts` — added `loginWithGoogle()`
+- `server/src/controllers/user.controller.ts` — added `googleAuth` controller
+- `server/src/routes/auth.routes.ts` — added `POST /api/auth/google`
+- `server/src/schemas/user.schema.ts` — added `GoogleAuthSchema` / `GoogleAuthInput`
+- `server/.env` — added `GOOGLE_CLIENT_ID`
+- `server/package.json` — added `google-auth-library`
+- `client/src/environments/environment.ts` — added `googleClientId`
+- `client/src/environments/environment.prod.ts` — added `googleClientId`
+- `client/src/index.html` — added GIS SDK script tag
+- `client/src/app/core/services/auth.service.ts` — added `loginWithGoogle()`
+- `client/src/app/features/visitor/login/login.component.ts` — `renderButton` in `ngAfterViewInit`, divider, container div
+- `client/src/app/features/visitor/register/register.component.ts` — same pattern
+
+### Key Reasoning
+- **`renderButton` over `prompt()`**: `google.accounts.id.prompt()` (One Tap) attempts a redirect flow on localhost, causing "route not found" in Angular. `renderButton()` renders Google's native button that always opens a popup, which is the correct UX for a custom sign-in page.
+- **`googleId` as stable key**: Google's `sub` claim is permanent; email can change. Lookup by `googleId` prevents duplicate accounts across sessions.
+- **Email conflict guard**: A Google sign-in attempt on an email already registered locally returns 409 with a clear message rather than silently merging accounts.
+- **No Passport.js**: The frontend-driven flow (frontend gets ID token → posts to backend) is lighter and consistent with the existing JWT-only auth pattern.
+
+---
+
+## 📅 April 19, 2026 - Priority 3.3: Visitor Quick Panel Estimate
+
+### Topic
+Implemented the visitor quick estimate feature (3.3 from the deferred features plan): an unauthenticated visitor draws a polygon on a map and gets an instant panel count estimate without registering.
+
+### Prompt Summary
+The user requested implementing feature 3.3, asking to reuse the `add-project` design language. After a design discussion, the agreed layout was: two-column (map left, controls right), no duplicate sticky header (visitor layout already provides one), result section with stat cards and a locked production block that blurs the annual data behind a CTA.
+
+### Full Prompt
+> "Quiero que implementemos la funcionalidad 3.3, pero me gustaría reutilizar el componente de add-project, ¿sería posible?"
+> (follow-up) "Me propones un diseño que vaya con el resto de diseños de la aplicación"
+> (follow-up) "Ok, me parece bien, lo único que el sticky header creo que es mejor que tenga a la izquierda el back to home y a la derecha un register"
+> (follow-up) "De donde te sacaste los datos de kwh/year, annual savings, CO2 avoided"
+> (follow-up) "Pero es que una aproximación burda es inutil, quizás dejaría esos 3 valores ocultos con un mensaje de que puede verse únicamente si inicias sesión"
+
+### What Was Achieved
+- **Backend**: Added `POST /api/projects/estimate` public endpoint (no auth). Uses fixed 2m × 4m panels, 2m row spacing, 85% utilisation. Returns `{ panelCount, areaSqm, estimatedKwp }`.
+- **Frontend**: New `EstimateComponent` at `/estimate` under the visitor layout. Two-column layout — map+search on the left, controls+result on the right. Result shows `panelCount`, `areaSqm`, `estimatedKwp`; annual production/savings/CO₂ are hidden behind a blur+lock overlay with a `min-height: 14rem` card that drives the user to register.
+- **Landing page**: Added "Try for Free" button linking to `/estimate`.
+
+### Affected Files
+- `server/src/schemas/project.schema.ts` — added `EstimateSchema` / `EstimateInput`
+- `server/src/services/project.service.ts` — added `estimateFromPolygon()` method
+- `server/src/controllers/project.controller.ts` — added `estimateProject` handler
+- `server/src/routes/project.routes.ts` — registered `POST /estimate` without auth middleware
+- `client/src/app/features/visitor/estimate/estimate.component.ts` — new component
+- `client/src/app/features/visitor/estimate/estimate.component.html` — template
+- `client/src/app/features/visitor/estimate/estimate.component.scss` — styles
+- `client/src/app/app.routes.ts` — added `/estimate` lazy route under visitor layout
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts` — added "Try for Free" CTA
+
+### Reasoning
+The annual production data (kWh, savings, CO₂) requires accurate location-based solar forecasts (Solcast) and local electricity prices — data only available after project creation by an authenticated user. Showing hardcoded approximations would be misleading. Instead, the values are visually blurred behind a lock overlay with a clear CTA, which is honest about the limitation and creates a natural incentive to register.
+
+---
+
+## 📅 April 15, 2026 - Priority 1 API Integrations (Foundation for Production Data)
+
+### Topic
+Implemented all four Priority 1 backend API integrations for the Solar Planner v2 thesis project: country resolution, timezone resolution, electricity price lookup, and Solcast PV production forecasts.
+
+### Summary of Request
+User requested implementation of Priority 1 tasks (1.1-1.4) from the deferred features implementation plan. These integrations are foundational for production data and unlock Priority 2 (data display & nightly refresh).
+
+### What Was Achieved
+
+#### 1.1 Country Resolution
+- Reverse-geocoded `(lat, lon)` → country name using `country-reverse-geocoding` package
+- Added `resolveCountry()` private method with fallback to user-provided data
+- Integrated into `createProject()` call chain (runs synchronously)
+
+#### 1.2 Timezone Resolution
+- Resolved IANA timezone from `(lat, lon)` using `geo-tz` package
+- Added `resolveTimezone()` private method with UTC fallback
+- Critical for Priority 2's nightly scheduler (3:47 AM local-time jobs)
+
+#### 1.3 Electricity Price & Currency Lookup
+- Integrated World Bank OpenAPI for electricity prices (free, no auth required)
+- Added `fetchElectricityPrice()` with region-specific fallback pricing table:
+  - Spain: €0.32/kWh, Germany: €0.38/kWh, France: €0.18/kWh, US: $0.14/kWh, Brazil: ₩0.08/kWh
+- Graceful error handling: logs warnings, always falls back to defaults so API failures never block project creation
+- Future iterations can add country-specific API sources (EU energy bulletin, World Bank dashboard)
+
+#### 1.4 Solcast Integration with Realistic Mock Data
+- Implemented `fetchSolcastData()` with two branches:
+  - **Real API path:** Calls Solcast forecasts + estimated_actuals endpoints, aggregates hourly → daily
+  - **Mock data path:** Generates realistic synthetic production curves based on:
+    - Solar geometry (latitude-based day length calculation)
+    - Bell curve production peaking at solar noon
+    - Daily variation (cloudy/sunny days simulated as 60-100% of theoretical)
+    - Proper timezone-aware data formatting
+- Data returned: `prodToday` (hourly forecasts for today), `nextProd` (6-day ahead daily aggregates), `previousProd` (6-day historical daily aggregates)
+- Environment flag `USE_MOCK_SOLCAST=true` enables mock data for development (avoids 10-request/day Solcast free tier limit)
+
+#### Integration Points
+- Modified `createProject()` to call all 4 APIs in parallel after geospatial field calculation
+- All API calls wrapped in error handling; failures log warnings but never block project creation
+- Updated project document with resolved `country`, `timezone`, `currency`, `price`, `prodToday`, `nextProd`, `previousProd`
+- Project model already had all required fields (`IProject` interface) — no schema migration needed
+
+#### Infrastructure
+- Created `server/src/env.ts` — environment variable validation layer
+  - Validates required vars on server startup
+  - Exposes `USE_MOCK_SOLCAST` flag for development
+  - Ready to add more API keys (future World Bank, EU sources)
+- Updated `server/.env.example` and `server/.env` with Solcast and mock data config
+- Added TypeScript type declaration (`server/src/types/country-reverse-geocoding.d.ts`) for untyped package
+
+### Full Prompt
+"Follow the implementation plan detailed in the markdown file i am passing you as context. Since most of these implementations are big, I would like you to take on the priority one tasks in this chat (1.1 - 1.4), not more than that."
+
+After planning & approval: "Yes, lets go"
+
+User feedback on approach:
+1. Realistic mock data generation (solar geometry-based)
+2. Warnings on API failures with fallback to defaults
+3. World Bank API for electricity prices (free, covers most countries); region-specific APIs (Spain, EU) can be added in follow-up PRs
+
+### Affected Files
+- `server/package.json` — Added: `country-reverse-geocoding@0.2.2`, `geo-tz@8.1.6`
+- `server/src/env.ts` — **NEW**: Environment variable validation
+- `server/src/types/country-reverse-geocoding.d.ts` — **NEW**: TypeScript type declarations
+- `server/src/services/project.service.ts` — Added 7 new private methods + modified `createProject()`:
+  - `resolveCountry()` — reverse geocoding
+  - `resolveTimezone()` — IANA timezone lookup
+  - `fetchElectricityPrice()` — World Bank API + fallback prices
+  - `fetchRealSolcastData()` — Real Solcast API calls
+  - `generateMockSolcastData()` — Realistic synthetic production data
+  - `extractTodayProduction()` — Transform Solcast response
+  - `aggregateProductionByDay()` — Hourly → daily aggregation
+- `server/.env.example` — Updated with Solcast and mock config
+- `server/.env` — Configured `USE_MOCK_SOLCAST=true` for development
+- `santi-agent-interactions.md` — This entry
+
+### Code Quality
+- ✅ TypeScript: `npx tsc --noEmit` passes (no compilation errors)
+- ✅ Linting: `npm run lint` passes for project.service.ts (no new errors)
+- ✅ Build: `npm run build` succeeds
+- ✅ Package management: Both new packages installed and locked in `package-lock.json`
+
+### Reasoning Snapshot
+
+**API Integration Pattern:**
+- Each API integration is isolated in a private method, making testing and future enhancements straightforward
+- All 4 integrations run in parallel inside `createProject()` for efficiency
+- Error handling is non-blocking: API failures log warnings but always complete with fallback data
+- This pattern ensures that a temporary API outage (e.g., Solcast unavailability) never prevents users from creating projects
+
+**Mock Data Realism:**
+- Solar geometry calculation (`declinationRad`, `cosH`, sunrise/sunset) derives from actual solar position formulas
+- Bell curve production (sine wave from sunrise to sunset) matches physical PV behavior
+- Day-to-day variation (random 60-100% of theoretical) simulates real weather impact
+- Production values scale with capacity (kW) and are properly rounded to 2 decimals
+- This ensures developers testing with mock data get realistic numbers, not obviously synthetic values
+
+**World Bank API Choice:**
+- Free tier, no API key required (reduces config overhead)
+- Covers ~190 countries (nearly all user locations)
+- Returns well-structured JSON with electricity prices in USD
+- Future iterations can add region-specific sources (Spain gov API, EU ENTSO-E) without breaking existing code
+- This layered approach balances immediate functionality with extensibility
+
+**Development Flag (`USE_MOCK_SOLCAST`):**
+- Solcast free tier: 10 requests/day
+- Mock flag lets developers test project creation without hitting quota
+- Flag can be set per-environment: `true` in dev/test, `false` in staging/prod (with valid API key)
+- Gracefully degrades: if real API fails, automatically falls back to mock data with warning
+
+---
+
+## 📅 March 15, 2026 - Logout Action Fix in User Dock
+
+### Topic
+Fixed the user dock logout action that appeared unresponsive.
+
+### Summary of Request
+User reported that clicking logout did nothing and asked why and how to fix it.
+
+### What Was Achieved
+- Identified incorrect event binding on logout button in user layout.
+- Updated the button binding:
+  - From: `(onClick)="logout()"`
+  - To: `(click)="logout()"`
+- Kept existing logout service behavior (token cleanup + redirect).
+
+### Full Prompt
+"When I try to log out nothing happens, why is that? How can we fix it?"
+
+"Aprrove"
+
+### Affected Files
 - `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- In this template, `pButton` is used as a directive on a native button element, so it must use native Angular click binding (`click`).
+- `onClick` did not trigger the component method, which made logout appear broken.
+
+---
+
+## 📅 March 10, 2026 - User Projects Grid Aligned with Panel List Auto-Fill Mechanism
+
+### Topic
+Updated the `My Projects` card grid to use the same responsive CSS grid mechanism as the panel list view.
+
+### Summary of Request
+User asked whether the projects page should use the same mechanism as panel list, then approved applying the change.
+
+### What Was Achieved
+- Replaced fixed breakpoint-based grid columns in `UserProjectsComponent`:
+  - From: `1` column base, `2` at `768px+`, `5` at `1024px+`
+  - To: `repeat(auto-fill, minmax(18.75rem, 1fr))`
+- Kept explicit mobile behavior at `max-width: 768px` with `grid-template-columns: 1fr`.
+- Result: smoother responsive scaling and consistency with panel list card behavior.
+
+### Full Prompt
+"Can we update the project list view so that it uses the same mechanism? Or the mechanism used in the project list view is better?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The auto-fill/minmax pattern adapts naturally to any available width, avoids abrupt breakpoint jumps, and keeps both list pages behaviorally consistent.
+
+---
+
+## 📅 March 10, 2026 - Enum-Safe Admin Role Check in User Layout
+
+### Topic
+Resolved TypeScript ESLint enum comparison error in the unified user layout.
+
+### Summary of Request
+User asked what the lint issue meant, then approved applying the fix.
+
+### What Was Achieved
+- Updated admin role comparison in `UserLayoutComponent` to use enum-safe comparison:
+  - From: `role === 'admin'`
+  - To: `role === UserRole.ADMIN`
+- Added `UserRole` import from `@core/models`.
+- Preserved fallback `this.authService.isAdmin()` behavior.
+
+### Full Prompt
+"What is this issue?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- `currentUser()?.role` is typed as `UserRole`; comparing it to a raw string literal triggers `@typescript-eslint/no-unsafe-enum-comparison`.
+- Comparing against `UserRole.ADMIN` keeps typing consistent and removes the lint error safely.
+
+---
+
+## 📅 March 10, 2026 - Reposition Add Panel Button Under Header Subtitle
+
+### Topic
+Moved the admin-only `Add Panel` action from the right side of the panel page header to directly below the subtitle text.
+
+### Summary of Request
+User requested placing the `Add Panel` button below the descriptive paragraph.
+
+### What Was Achieved
+- Updated panel list header template:
+  - Moved `Add Panel` button inside the left text block under subtitle.
+- Adjusted button styling for vertical spacing and inline placement.
+- Fixed a strict typing regression found during validation:
+  - Replaced string role check with enum-safe check (`UserRole.ADMIN`).
+- Verified diagnostics: no compile errors in edited file.
+
+### Full Prompt
+"Can you move the add panel button to below the paragraph?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Grouping the primary admin action under the section description improves visual hierarchy and keeps related context/action together.
+
+---
+
+## 📅 March 10, 2026 - Move Panel Modal Actions to Header and Remove Close Icon
+
+### Topic
+Relocated panel modal action buttons (`Cancel`, `Update/Create`) to the `p-dialog` header and removed the default close (`x`) icon.
+
+### Summary of Request
+User requested moving update/cancel actions into the modal header and removing the `x` exit button.
+
+### What Was Achieved
+- Updated `p-dialog` behavior:
+  - Set `[closable]="false"` to remove the default close icon.
+  - Replaced string header with `pTemplate="header"` for custom header content.
+- Added header action area with:
+  - `Cancel` button (calls `onCancel()`)
+  - `Update Panel` / `Create Panel` button (calls `onSubmit()` and preserves disabled/loading states)
+- Removed old action button row from the bottom of the form.
+- Added responsive styles for header action wrapping on smaller screens.
+- Verified diagnostics: no compile errors in the edited file.
+
+### Full Prompt
+"Can you move the update panel and cancel buttons to the p-dialog-header and remove the exit button (x)"
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Header actions improve discoverability and keep modal controls fixed at the top while the content scrolls.
+
+---
+
+## 📅 March 10, 2026 - Edit Panel Modal Boundary Containment Fix
+
+### Topic
+Prevented the edit panel form card from overflowing outside the PrimeNG modal boundaries.
+
+### Summary of Request
+User reported the edit panel card was going outside modal limits and requested strict prevention.
+
+### What Was Achieved
+- Enforced modal content containment:
+  - `p-dialog` content now uses fixed viewport-safe constraints:
+    - `max-height: 80vh`
+    - `overflow-y: auto`
+    - `overflow-x: hidden`
+- Added defensive width constraints across form layout to prevent horizontal overflow:
+  - `min-width: 0`, `max-width: 100%`, and `box-sizing` on core wrappers (`panel-form`, `step-card`, `form-grid`, `form-field`, `field-group`).
+  - PrimeNG controls now have strict `width/max-width/min-width` constraints.
+  - Added `overflow-x: hidden` on dialog content scope.
+- Improved action row resilience:
+  - `flex-wrap: wrap` for action buttons on constrained widths.
+
+### Full Prompt
+"Ok, but the edit panel card is going out of the boundaries of the modal. Prevent that at all costs."
+
+"Ok, lets try"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Overflow came from unconstrained nested grid/card elements and dialog content overflow settings; adding hard width constraints plus modal-level overflow policy prevents escape in both edit and create modes.
+
+---
+
+## 📅 March 10, 2026 - UI Refresh Blocker Fix (Dashboard Template Compile Error)
+
+### Topic
+Resolved a dashboard template typing error that was blocking clean client recompilation and making recent UI changes appear not reflected.
+
+### Summary of Request
+User reported that recent styling changes were not visible in the UI even with servers running.
+
+### What Was Achieved
+- Identified active compile error in dashboard greeting template:
+  - `user()?.name` was invalid for the `User` model.
+- Updated `DashboardComponent` to expose authenticated user signal to template.
+- Updated greeting binding to a valid field:
+  - `user()?.firstName || 'User'`.
+- Re-validated diagnostics: no errors in touched files.
+
+### Full Prompt
+"No changes are reflecting in the UI"
+
+"Try Again"
+
+"The servers are running with no issues"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Angular compile errors can stop/interrupt hot updates, which makes unrelated style changes look like they are not applied.
+
+---
+
+## 📅 March 10, 2026 - Panel Modal Styling Aligned with Configure-Project Forms
+
+### Topic
+Adjusted the panel create/edit modal form styles to mirror the visual language used in `configure-project` form cards for consistency.
+
+### Summary of Request
+User requested replicating styling from `configure-project` forms so the panel modal looks consistent, while deferring full shared-style extraction to a later phase.
+
+### What Was Achieved
+- Refined panel form layout to match configure-project patterns:
+  - Introduced `step-card` visual wrapper (same border, radius, subtle shadow behavior).
+  - Added `step-card-header` with icon/title/subtitle hierarchy.
+  - Reworked field layout using `form-grid` + `form-field` structure.
+  - Added `field-error` and `field-hint` styles aligned with configure-project typography and spacing.
+  - Styled dimensions section as nested card/group with consistent radius, border, and background treatment.
+- Preserved PrimeNG-based controls and modal behavior from previous modernization.
+- Confirmed diagnostics: no compile errors in touched files.
+
+### Full Prompt
+"Would it be possible to replicate the styling used in the configure-project component for the forms? I want it to look consistent. Actually, I have the goal of unifying all of these styling being used in different places in a common file, but that is not for now."
+
+"Yes, that would be nice"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Reusing existing visual tokens/patterns (`step-card`, form grid rhythm, hint/error system) achieves immediate consistency and reduces UI drift before extracting shared styles in a future refactor.
+
+---
+
+## 📅 March 10, 2026 - Remove Obsolete Admin Panels Component + PrimeNG Modal Modernization
+
+### Topic
+Removed the obsolete admin-only panels page component and modernized the panel create/edit popup to PrimeNG while preserving unified role-based panel management.
+
+### Summary of Request
+User requested deleting the old admin panel component before continuing, then modernizing the create/edit panel modal using PrimeNG.
+
+### What Was Achieved
+- Removed obsolete admin panels page component files:
+  - `features/admin/panels/panels.component.ts`
+  - `features/admin/panels/panels.component.html`
+  - `features/admin/panels/panels.component.scss`
+- Modernized `PanelFormComponent` popup UI with PrimeNG:
+  - Replaced custom overlay markup with `p-dialog`.
+  - Replaced native inputs/select with PrimeNG `pInputText`, `p-inputNumber`, and `p-select`.
+  - Replaced custom buttons with PrimeNG `pButton`.
+- Improved form behavior:
+  - Added signal `effect` to reset/patch form whenever the selected panel changes (fixes stale edit values across modal opens).
+  - Added explicit validation helper methods and `markAllAsTouched()` on invalid submit.
+  - Kept the same `save`/`cancel` output contract so parent integration remains unchanged.
+
+### Full Prompt
+"Yes, but before, remove the admin panel component. Then modernize the modal"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panels.component.ts` (deleted)
+- `client/src/app/features/admin/panels/panels.component.html` (deleted)
+- `client/src/app/features/admin/panels/panels.component.scss` (deleted)
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- With unified panel routes already in place, the separate admin panels page became dead code and safe to remove.
+- PrimeNG form/dialog components align this modal with the rest of the app UI and simplify consistent theming/accessibility behavior.
+
+---
+
+## 📅 March 9, 2026 - Unified Panels View with Role-Based CRUD Visibility
+
+### Topic
+Merged admin panel management into the standard panel listing screen and made create/edit/delete controls visible only for admin role/type users.
+
+### Summary of Request
+User requested unifying panel view and admin panel view into one screen and showing management actions (add/modify/delete) conditionally based on user role/type.
+
+### What Was Achieved
+- Unified management route to the user panel list view:
+  - `/projects/management/panels` now loads `PanelListComponent`.
+- Extended `PanelListComponent` with role-based behavior:
+  - Added `isAdmin` computed signal from authenticated user role/JWT.
+  - Added admin-only UI actions:
+    - `Add Panel` button in header
+    - `Add First Panel` in empty state
+    - Per-panel `Edit` and `Delete` buttons
+- Reused existing panel form modal for create/update from unified screen:
+  - Integrated `PanelFormComponent` in `PanelListComponent`.
+  - Added modal state/handlers for add/edit/save/delete flows.
+- Preserved read-only browse experience for non-admin users.
+
+### Full Prompt
+"Ok, I think the next step is to unify the panel view and the admin panel view into one (the panel view). And then add the visibility of adding a panel/modifying panels/deleting panels, based on the user type/role"
+
+"Ok. The second phase can include a modernization of the edit/create panel pop-up using primeng"
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Reusing one panel screen removes duplicated panel logic and keeps permissions centralized in role-derived UI state.
+- Admin route protection is still maintained by `adminGuard` while visibility in shared UI is role-driven.
+
+---
+
+## 📅 March 9, 2026 - Unified Role-Driven Authenticated Layout (No `/admin` Endpoints)
+
+### Topic
+Merged admin and user navigation into a single authenticated layout (`UserLayoutComponent`) and moved admin screens under non-`/admin` routes with role-based dock visibility.
+
+### Summary of Request
+User requested using one layout for both user and admin, showing admin actions in the dock only for admin users, changing profile icon/label in admin mode, and activating admin mode based on user role/type.
+
+### What Was Achieved
+- Removed dedicated `/admin` route tree and `AdminLayoutComponent` usage.
+- Added admin-managed routes under user routes:
+  - `/projects/management`
+  - `/projects/management/projects`
+  - `/projects/management/users`
+  - `/projects/management/panels`
+- Kept `adminGuard` on management routes for role-based protection.
+- Updated `UserLayoutComponent` to use role-driven UI:
+  - Added `isAdmin` computed signal based on authenticated user role/JWT.
+  - Added admin-only dock buttons that render only for admins.
+  - Made profile entry dynamic in admin mode (`Admin Profile` + admin-style icon).
+- Remapped admin feature links to new non-`/admin` paths.
+- Removed obsolete file:
+  - `client/src/app/layouts/admin-layout/admin-layout.component.ts`
+
+### Full Prompt
+"Can we unify the user and admin layouts in one so that we only use the user layout adding visibility to buttons in the dock only if you are admin? And for example, modify the profile icon when in admin mode. The admin mode must activate based on the user type"
+
+"Ok, do it"
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.html`
+- `client/src/app/features/admin/users-list/users-list.component.ts`
+- `client/src/app/layouts/admin-layout/admin-layout.component.ts` (deleted)
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A single authenticated layout reduces navigation duplication and keeps role-based UX consistent.
+- Guarded admin routes remain protected server-side and client-side while avoiding `'/admin'` endpoint debt.
+
+---
+
+## 📅 March 9, 2026 - Disable Editable Name Hover/Focus in View Mode
+
+### Topic
+Removed visual hover/focus underline feedback from the project name input while it is read-only in view mode.
+
+### Summary of Request
+User asked whether the effects could simply be disabled when read-only and then requested applying that change.
+
+### What Was Achieved
+- Added read-only specific CSS override for the project name input:
+  - `.editable-name:read-only:hover, .editable-name:read-only:focus { border-bottom-color: transparent; }`
+- Left editable/configure mode behavior untouched.
+
+### Full Prompt
+"Cant we just disable these when read-only?"
+
+"apply"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The template already toggles read-only with `[readonly]="isViewMode()"`, so targeting `:read-only` is the smallest and safest way to disable only view-mode effects.
+
+---
+
+## 📅 March 9, 2026 - Configure Mode Exit Button with Unsaved-Changes Confirmation
+
+### Topic
+Replaced configure-mode header navigation behavior by adding an `Exit Edit Mode` action in `step-nav-bar` and warning users about unsaved edits using PrimeNG ConfirmDialog.
+
+### Summary of Request
+User requested that in configure mode the `Back to Projects` button/link be removed, and a new `Exit Edit Mode` button be added in the step navigation bar alongside `Back`, with an alert if there are unsaved changes. User asked to use PrimeNG as much as possible.
+
+### What Was Achieved
+- Added a new `Exit Edit Mode` button next to `Back` inside `.step-nav-bar`.
+- Added PrimeNG confirmation dialog flow before exiting when there are unsaved changes:
+  - Uses `ConfirmationService` + `ConfirmDialogModule` + `<p-confirmDialog />`.
+  - Shows warning dialog when `hasUnsavedChanges()` is true.
+  - Navigates to the project view route on accept.
+- Implemented `onExitEditMode()` in component logic.
+- Removed the top "Back to Projects/Back to Project" link in configure mode by rendering it only in view mode.
+- Updated step-nav styles to support the new left action group and responsive wrapping.
+
+### Full Prompt
+"Now, when in configure mode, remove the back to projects button and include a exit edit mode button that alerts you if you have unsaved changes. use primeng as much as possible for making the process easy. Add this button in the step-nav-bar div alongside with the back button."
+
+"approve"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Reusing PrimeNG's native confirmation API avoids custom modal logic and reduces maintenance risk.
+- Keeping exit controls in `step-nav-bar` centralizes configure-mode actions in a single sticky control area.
+- Conditional rendering of the back link by mode prevents redundant or conflicting navigation affordances in edit flow.
+
+---
+
+## 📅 March 9, 2026 - Responsive Configure Page Gutter + Step Nav Alignment
+
+### Topic
+Replaced fixed horizontal margins in `configure-project` with a shared responsive gutter and aligned step navigation controls to the same spacing system.
+
+### Summary of Request
+User wanted the configure-project view to use almost all available screen width while keeping an approximate 5rem edge spacing on large displays, but without a rigid solution that could generate tech debt. User also requested the same spacing behavior for the buttons inside `step-nav-bar`.
+
+### What Was Achieved
+- Introduced a single responsive spacing token on the component host:
+  - `--configure-gutter: clamp(1rem, 4vw, 5rem);`
+- Replaced fixed page margin (`margin: 0 5rem`) with fluid width + centered layout:
+  - `width: min(100%, calc(100% - (var(--configure-gutter) * 2)))`
+  - `margin-inline: auto`
+- Applied the same gutter to the sticky navigation control row:
+  - `.step-nav-bar { padding: 0.1rem var(--configure-gutter); }`
+- Adjusted mobile breakpoint behavior to avoid spacing conflicts by resetting nav inline padding and preserving compact layout.
+
+### Full Prompt
+"I want the configure-project component to use almost all of the space in the screen available but leaving something like 5rem of margin. Help me set up in the best way that can adapt to different screens and cause less conflicts (so maybe adding 5rem of margin is not the solution). Apply the same config to the buttons in the step-nav-bar div"
+
+"If this is a good practice for what i want, then yes, I dont want solutions that will generate me tech debt"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A shared `clamp()` gutter centralizes horizontal spacing logic and scales across viewport sizes without relying on brittle fixed margins.
+- Using one spacing token for both page content and top step navigation keeps visual alignment consistent and reduces future style drift.
+
+---
+
+## 📅 March 9, 2026 - Full-Width Sticky Configure Header
+
+### Topic
+Made the configure-mode sticky header break out of parent container constraints to span the full available width.
+
+### Summary of Request
+User wanted `.configure-sticky-header` to bypass the `max-width` and padding of both `.configure-page` and `.user-content`, sitting flush at the top of the viewport when scrolling.
+
+### What Was Achieved
+- Moved `.configure-sticky-header` outside `<section class="configure-page">` in the template so it's no longer constrained by max-width or inner padding.
+- Applied negative margins (`-1.5rem` matching `.user-content` padding) to make the header extend edge-to-edge within the content area.
+- Added `:host { display: block; }` to ensure the component host participates correctly in block layout for negative margins.
+- Used bottom-only border-radius (`0 0 1rem 1rem`) and removed top border for a flush top-edge look.
+- Adjusted the responsive `768px` breakpoint to match `.user-content`'s reduced padding (`1rem`) at that size.
+- Verified diagnostics on edited files: no errors.
+
+### Full Prompt
+"I have modified the file myself. Basically the thing is I want the configure-sticky-header to use the whole available width and bypass the overall restriction of the configure-page div and the user-content div because I want the configure-sticky-header to be right at the vertical beginning of the page. How can we do that?"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Moving the sticky header outside `.configure-page` avoids fighting `max-width: 80rem` and `margin: 0 auto`.
+- Negative margins (`-1.5rem`) cancel out the `.user-content` padding, making the header span the full content column.
+- `:host { display: block }` ensures the component host behaves as a block container so negative margins on children work correctly.
+
+---
+
+## 📅 March 9, 2026 - Sticky Configure Header + Stepper Placement
+
+### Topic
+Moved configure-mode navigation controls and step indicator into a sticky top header, with the stepper row immediately below it.
+
+### Summary of Request
+User requested that, in configure mode, `Back`/`Next` buttons and current-step indicator appear at the top like a header, with the stepper right below, and that this section remains visible while vertically scrolling.
+
+### What Was Achieved
+- Reworked configure-mode template structure:
+  - Added a single sticky wrapper (`.configure-sticky-header`) containing:
+    - Top navigation row (`Back`, step indicator, `Next`/`Save`).
+    - Stepper row directly below using step buttons.
+- Kept step panels in normal document flow while binding step changes to the same `activeStep` signal.
+- Updated styles for sticky behavior and responsive layout of the new two-row header.
+- Verified diagnostics on edited files: no errors.
+
+### Full Prompt
+"I want to modify in this component the location of the stepper and the back and next buttons when the configure mode is on. I want the back and next buttons, and the indicator of the current step to be on the top of the screen, like a header, and right below it the stepper. I want the header to move with the screen if there is vertical scroll"
+
+"approve. There is no header on this user layout, so the first con wont appear"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Grouping navigation and step controls in one sticky container ensures both remain visible during scrolling and matches the requested header-first layout.
+
+---
+
+## 📅 March 11, 2026 - Auto-Detected Location Flow + Current-Location Search Icon
+
+### Topic
+Improved the Add Project `Location & Area` step so the flow accepts browser auto-detected location (without requiring typed search), and added a current-location icon action inside the search field.
+
+### Summary of Request
+User requested that step progression should not require manually typing in the search bar if location is auto-detected, and asked to add a trailing Material Symbols icon (`location_searching`) inside the search input to set map center to current location. User also requested a visual style effect on the Search button when the search input is non-empty.
+
+### What Was Achieved
+- Extended `LocationMapComponent` with a new output event (`userLocationFound`) emitted from successful geolocation.
+- Wired `AddProjectComponent` to consume map geolocation events and treat them as a valid selected location.
+- Added `useCurrentLocation()` action in Add Project for explicit current-location selection from the input-end icon.
+- Added reverse geocoding fallback flow so auto/manual current location resolves to readable address text when possible.
+- Updated step validation for `Location & Area` to use resolved location data (`hasValidLocation`) instead of requiring typed search query.
+- Added trailing icon button in the search input using Material Symbols:
+  - `<span class="material-symbols-outlined">location_searching</span>`
+- Added active visual state on Search button when input contains text (`search-action-btn-active`).
+- Build verification completed successfully (no compile errors after changes).
+
+### Full Prompt
+"The location and area can step dont let me go to the next step if I dont put a location in the search bar. It should auto detect the location and use that as location as if it was the search bar location. Also I want to add an icon inside the search bar (end of the search bar) to set the map to the current location. Use this icon map: <span class=\"material-symbols-outlined\">location_searching</span>"
+
+"Also, add a styling effect to the search button when something is added to the search bar (when not empty)"
+
+### Affected Files
+- `client/src/app/shared/components/location-map/location-map.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Emitting geolocation from the shared map component keeps location acquisition reusable and avoids duplicate map-state assumptions.
+- Validating on resolved location data (not input text) matches real UX intent: any reliably selected location should unlock step progression.
+- A trailing location target icon in the search input keeps the geolocation affordance discoverable and contextually close to manual search.
+
+---
+
+## 📅 March 9, 2026 - Panel & Installation Card Structure Alignment
+
+### Topic
+Aligned `Panel & Installation` card structure with the other cards by replacing PrimeNG `p-card` with a single `div.step-card` wrapper.
+
+### Summary of Request
+User asked to match the card to the rest of the layout, avoiding `p-card` and using one main `div` container before its internal elements.
+
+### What Was Achieved
+- Replaced the container of `Panel & Installation`:
+  - From: `<p-card class="step-card panel-installation-card"> ... </p-card>`
+  - To: `<div class="step-card panel-installation-card"> ... </div>`
+- Kept all inner content unchanged (`header`, `divider`, `form`).
+- Verified HTML diagnostics: no errors.
+
+### Full Prompt
+"Great, now for some reason the Panel & Installation card has a different configuration than the other cards. Can you match it to how the other cards are designed? Not using the p-card and using only one div before indicating the elements held inside the card?"
+
+"aplicalo"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Using the same structural pattern as the sibling cards improves visual consistency and avoids component-specific internal behavior.
+
+---
+
+## 📅 March 9, 2026 - Panel Name Info Icon
+
+### Topic
+Added an informational icon to the left of the selected panel name in the panel details header.
+
+### Summary of Request
+User requested adding PrimeIcons `pi-info-circle` to the left of `selectedPanelName()`.
+
+### What Was Achieved
+- Updated panel details header markup to include `pi pi-info-circle` before the panel name.
+- Added minimal styles for proper icon-text alignment and spacing.
+- Verified diagnostics on modified HTML/SCSS: no errors.
+
+### Full Prompt
+"On the left of the selectedPanelName I want to add this icon: pi-info-circle from primeng icons"
+
+"aplicalo"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- An inline-flex title wrapper keeps the icon aligned with the panel name and does not affect the subtitle layout below.
+
+---
+
+## 📅 March 9, 2026 - Wrapper Fix for Panel Info Card Sizing
+
+### Topic
+Replaced the nested PrimeNG card with a local wrapper to prevent width shrinkage after removing deep styling.
+
+### Summary of Request
+User reported the previous fix did not work and suggested adding a wrapper for the element that had relied on `ng-deep`.
+
+### What Was Achieved
+- Replaced nested `p-card` in panel details section with a plain wrapper `<div class="panel-info-card">`.
+- Preserved existing content structure and styling intent (title, subtitle, tags).
+- Reinforced wrapper sizing rules in SCSS:
+  - `.panel-info-card { display: block; width: 100%; }`
+  - `.panel-info-surface { width: 100%; display: block; box-sizing: border-box; }`
+- Verified diagnostics on modified HTML/SCSS: no errors.
+
+### Full Prompt
+"Eso no está funcionando, quizás necesitamos hacer un wrapper para el elemento para el que antes usabamos ng-deep"
+
+"ok"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A local wrapper removes dependence on PrimeNG internal structure, making width and spacing deterministic without `ng-deep`.
+
+---
+
+## 📅 March 9, 2026 - Panel Info Card Visual Polish (No ng-deep)
+
+### Topic
+Refined the panel detail card and tags visual style in the unified project screen and removed `ng-deep` usage from the component stylesheet.
+
+### Summary of Request
+User requested better styling for the new panel card/tags, required no `ng-deep`, asked to replace generic title with panel name, show `technology - dimensions` as paragraph, use value-only labels with `aria-label`, add PrimeNG icons/colors, and use a lighter gray card background with no shadow.
+
+### What Was Achieved
+- Updated panel detail card content:
+  - Title now uses selected panel name.
+  - Subtitle now uses `technology - dimensions`.
+- Updated tags:
+  - Value-only rendering (no label prefix text).
+  - Added `aria-label` and tooltip with each label.
+  - Added PrimeIcons and PrimeNG severities for colored chips.
+- Updated card visuals:
+  - Lighter gray surface (`var(--p-surface-100)`).
+  - No box shadow.
+- Removed all `ng-deep` selectors from `configure-project.component.scss`.
+- Verified diagnostics on edited files: no errors.
+
+### Full Prompt
+"Ok, but lets add a bit of style to that card and the labels, they look awful. And DO NOT use ng-deep!!!
+
+Instead of adding the Selected Panel Details title, directly use then name of the panel. Then add the technology and dimensions as a paragraph: technology - dimensions
+
+For the labels, do not include their name, use the values directly and use aria-label for showing their name when hovering. Also add primeng icons to them and give them some colors based always based on what is defined with primeng. For the background of the card, use a ligher gray and remove the box-shadow"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Kept the card as PrimeNG-based while moving visual control to a local surface wrapper to avoid deep selectors.
+- Used PrimeNG `severity` + PrimeIcons to provide visual differentiation without custom token violations.
+
+---
+
+## 📅 March 9, 2026 - Unified Project View/Configure Mode
+
+### Topic
+Unified `view-project` and `configure-project` into a single route-driven component with `view` and `configure` modes.
+
+### Summary of Request
+User requested reusing the configure view for project viewing, hiding stepper/navigation in view mode, adding a panel detail sub-card using PrimeNG tags, and adding total project area in Live Capacity Preview for both modes.
+
+### What Was Achieved
+- Routed both `/projects/:id` and `/projects/:id/configure` to `ConfigureProjectComponent`.
+- Added dual mode behavior inside `ConfigureProjectComponent`:
+  - `configure` mode: full stepper + sticky step navigation + save flow.
+  - `view` mode: no stepper header/navigation and read-only inputs.
+- Updated header behavior by mode:
+  - View mode shows `Back to Projects` and a `Configure` action button.
+  - Configure mode preserves unsaved/saved status tag.
+- Converted the Panel & Installation container to a PrimeNG `p-card`.
+- Added nested panel information card under selected panel, using `p-tag` for:
+  - Name, dimensions, efficiency, peak, technology, bifacial.
+- Added `Project Total Area` to Live Capacity Preview for both modes.
+- Verified diagnostics on changed files: no errors.
+
+### Full Prompt
+"I want to reuse the view I have created in the configure-project component for the view-project component. Basically I want it to look pretty much like the configure-project component but with a few tweaks:
+1. The stepper and the navigation header (back and next and current step) wont show
+2. For the panel and installation card (use primeng cards), we could add inside it a card just below the solar panel chosen that shows information about the panel like:
++ Name, dimensions, efficiency, peak, technology, if its bifacial. For these use primeng tags: p-tag.
+3. In the live capacity preview add the total area of the project.
+
+The thing is what I want to do is to unify the view-project component and the configure-component into one and add a configure mode and a view mode. When configure mode is toggled, the things I told you about on indication 1 will show. Therefore, what I told you on indications 2 and 3 should be part of both views.
+
+Is this possible to do?"
+
+"Ok, lets do it"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.html`
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `client/src/app/app.routes.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A route-driven mode avoids duplicating two nearly identical UIs and keeps future maintenance in one place.
+- Conditional rendering around stepper/nav satisfies view-mode requirements while preserving configure workflow.
+- Derived signals were added for panel tag data and project area to keep template logic simple.
+
+---
+
+## 📅 March 8, 2026 - Dock Style Reuse (Brand + Toggle)
+
+### Topic
+Applied the same collapsed-state alignment config to the dock toggle and refactored to avoid repeating style code.
+
+### Summary of Request
+User asked to apply the same config used for `.dock-brand` to `.dock-toggle` and requested reusing settings rather than duplicating declarations.
+
+### What Was Achieved
+- In collapsed state (`.user-dock:not(.expanded)`), merged selectors into one shared rule:
+  - `.dock-brand, .dock-toggle { justify-content: center; gap: 0; }`
+- Kept behavior unchanged for expanded mode.
+- Verified diagnostics on edited file: no errors.
+
+### Full Prompt
+"I want to apply the same config to the .dock-toggle class"
+
+"approve. Can we reutilize the dock brand settings, like not repeting the code?"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Grouped selectors provide consistent behavior and eliminate style duplication while preserving scoped collapsed-only behavior.
+
+---
+
+## 📅 March 8, 2026 - Dock Brand Centering (Collapsed State)
+
+### Topic
+Centered the dock brand icon when the left dock is collapsed.
+
+### Summary of Request
+User reported the brand anchor looked left-pushed due to spacing/padding behavior and requested the icon to be centered.
+
+### What Was Achieved
+- Added collapsed-only style override for `.dock-brand`:
+  - `justify-content: center`
+  - `gap: 0`
+- Preserved expanded-mode behavior (icon + label layout).
+- Verified edited file diagnostics: no errors.
+
+### Full Prompt
+"The dock brand has something weird inside the anchor element, it has some kind of padding or gap on the right. I want it to be in the middle, not pushed to the left"
+
+"approve"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- In collapsed mode, the brand text is hidden and the anchor still spans the dock width, so centering and removing the gap aligns the icon visually with the dock's icon-only design.
+
+---
+
+## 📅 March 8, 2026 - Dock Icon Spacing Fix (Collapsed Mode)
+
+### Topic
+Removed the extra right-side space around dock icons in collapsed mode while preserving expanded-mode alignment.
+
+### Summary of Request
+User observed remaining right-side space for dock icons and requested removing it.
+
+### What Was Achieved
+- Added collapsed-only style overrides in user layout dock:
+  - `gap: 0` for `.dock-item`
+  - `justify-content: center` for icon-only alignment
+  - `min-width: 0` on icon element in collapsed mode
+- Kept expanded mode spacing intact for icon + label readability.
+- Verified edited file diagnostics: no errors.
+
+### Full Prompt
+"All of the icons in the dock have a remaining space in right. Can you remove that space? Did you add it for a specific reason?"
+
+"approve"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The original gap/min-width values were useful for expanded mode text alignment; scoped collapsed-only overrides remove unwanted icon spacing without regressing expanded layout.
+
+---
+
+## 📅 March 8, 2026 - Dock Toggle Alignment Polish
+
+### Topic
+Polished the dock toggle button alignment and visual style in the user layout.
+
+### Summary of Request
+User requested making the dock toggle button pinned to the left like the rest of dock actions and removing its border.
+
+### What Was Achieved
+- Updated `.dock-toggle` alignment from centered to left-aligned (`align-self: flex-start`).
+- Removed the toggle border (`border: 0`) for a cleaner appearance.
+- Verified edited layout file diagnostics: no errors.
+
+### Full Prompt
+"Good first iteration. Now I want to make the toggle menu button to be pined to the left like the rest of the buttons in the dock. Also, remove the border in that button"
+
+"approved"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- Left alignment improves consistency with dock item alignment and visual rhythm.
+- Border removal reduces visual noise and better matches the minimal dock style direction.
+
+---
+
+## 📅 March 8, 2026 - User Layout Vertical Dock Navigation
+
+### Topic
+Replaced the user top navigation with a left vertical dock inspired by PrimeNG and Canva, including a collapsible icon-only/expanded mode.
+
+### Summary of Request
+User requested a left-side vertical dock/menu for the user layout with simple icons, hover labels, optional expansion to icon + text, and inclusion of existing tabs (`dashboard`, `create project`, `project list`, `panels`, `settings`, and `profile`). User also requested that new components be created as single `.ts` files containing template and styles.
+
+### What Was Achieved
+- Rebuilt `user-layout` as a left vertical, collapsible dock:
+  - Collapsed mode: icon-only navigation with tooltips.
+  - Expanded mode: icon + label entries.
+  - Active route highlighting and bottom profile/logout actions.
+- Kept/added dock tabs:
+  - Dashboard (`/projects`)
+  - Create Project (`/projects/add`)
+  - Project List (`/projects/all`)
+  - Panels (`/panels/all`)
+  - Settings (`/projects/settings`)
+  - Profile (`/projects/profile`)
+- Added new routed user pages as **single-file components** (`.ts` only with inline template/styles):
+  - `settings.component.ts`
+  - `profile.component.ts`
+- Updated user child routes to include `settings` and `profile`.
+- Ran frontend typecheck successfully after changes.
+
+### Full Prompt
+"I want to modify the user layout so that it uses a vertical dock on the left (either a dock or a menu but what i want is the simplicity of the dock icons - hover on the icon to see the name of the tab. It could be nice if the dock/menu could be expandable to show the icon + name.). And include in that dock the tabs I currently have (dashboard, create project, project list, panels, settings, and then a user profile or something)
+
+https://primeng.org/dock
+https://primeng.org/
+https://www.canva.com/
+
+I get the inspo from the primeng landing site example and from the canva vertical menu/dock (which is expandable)"
+
+"For the new components, create only one file (the ts file) and include everything there"
+
+### Affected Files
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `client/src/app/app.routes.ts`
+- `client/src/app/features/user/settings/settings.component.ts`
+- `client/src/app/features/user/profile/profile.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A custom dock-style sidebar provided better control for collapsible behavior and Canva-like interaction than a default top menubar.
+- PrimeNG tooltip integration preserves icon-only simplicity while keeping labels discoverable.
+- New pages were implemented as single-file standalone components to match the explicit user constraint.
+
+---
+
+## 📅 March 8, 2026 - px to rem Migration (Final Layout + Visitor Sweep)
+
+### Topic
+Completed an additional sweep for layout shells and remaining visitor pages to align sizing units with the global scale strategy.
+
+### Summary of Request
+User approved continuing with the final suggested batch including layouts and visitor screens.
+
+### What Was Achieved
+- Converted dimensional `px` values to `rem` in:
+  - `layouts/admin-layout.component.ts`
+  - `layouts/user-layout.component.ts`
+  - `layouts/visitor-layout.component.ts`
+  - `visitor/landing-page.component.ts`
+  - `visitor/forgot-password.component.ts`
+  - `visitor/reset-password.component.ts`
+- Converted where appropriate:
+  - shadows and inset shadows
+  - border-radius values
+  - hero/visual block width and height values
+  - max-width and grid min widths
+  - text-shadow numeric dimensions
+- Intentionally preserved `px` values for:
+  - media-query breakpoints
+  - border stroke widths/hairlines
+  - letter-spacing micro-typography
+- Diagnostics checked on all edited files: no errors.
+
+### Full Prompt
+"Yeah, do it"
+
+### Affected Files
+- `client/src/app/layouts/admin-layout/admin-layout.component.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- This pass targets shared shells and auth/landing surfaces where sizing consistency has high visible impact.
+- Breakpoints and border strokes were kept fixed in pixels to avoid responsive threshold drift and maintain crisp edges.
+
+---
+
+## 📅 March 8, 2026 - px to rem Migration (Continuation Batch)
+
+### Topic
+Continued converting hardcoded dimensional `px` values to `rem` across additional user/admin/visitor screens.
+
+### Summary of Request
+User approved continuing the migration pass after the previous high-impact batch.
+
+### What Was Achieved
+- Converted dimensional `px` values to `rem` in the following files:
+  - `user/dashboard.component.scss`
+  - `user/panel-list.component.ts` (inline styles)
+  - `admin/admin-dashboard.component.scss`
+  - `admin/panels.component.scss`
+  - `visitor/login.component.ts` (inline styles)
+  - `visitor/register.component.ts` (inline styles)
+- Included conversion of:
+  - `minmax(...px, ...)` grid minimums
+  - icon/card width and height values
+  - border radius values
+  - transform offsets
+  - auth card max widths
+- Intentionally preserved `px` values for:
+  - media-query breakpoints
+  - thin border strokes/hairlines
+  - letter-spacing fine-tuning
+- Ran diagnostics for all modified files: no errors.
+
+### Full Prompt
+"approved"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.scss`
+- `client/src/app/features/admin/panels/panels.component.scss`
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- This continuation keeps the unit system consistent with the global font-scale strategy while avoiding risky responsive shifts.
+- Border and breakpoint `px` values were kept intentionally to preserve crisp rendering and stable layout thresholds.
+
+---
+
+## 📅 March 8, 2026 - px to rem Migration (High-Impact User Screens)
+
+### Topic
+Executed a focused migration from hardcoded `px` sizing values to `rem` units in key user-facing screens.
+
+### Summary of Request
+User approved proceeding with the next pass after global scaling, specifically to start converting hardcoded `px` sizing to `rem` units.
+
+### What Was Achieved
+- Converted dimensional `px` values to `rem` across 4 high-impact files:
+  - `configure-project.component.scss`
+  - `add-project.component.scss`
+  - `view-project.component.ts` (inline styles)
+  - `user-projects.component.ts` (inline styles)
+- Updated major layout and UI dimensions including:
+  - max/min widths and heights
+  - card/map/placeholder sizes
+  - border-radius values
+  - transform offsets
+  - shadow and blur dimensions
+- Intentionally kept these in `px` for stability and predictable behavior:
+  - media query breakpoints
+  - thin border widths (`1px`, `2px`, `3px`)
+  - separator hairlines
+- Ran diagnostics on all edited files: no errors.
+
+### Full Prompt
+"Yeah, lets do it"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- This pass targeted the highest-impact user flows first to quickly improve consistency with the new root scaling strategy.
+- Breakpoints and thin borders were preserved in `px` to avoid unintended responsive and visual regressions.
+
+---
+
+## 📅 March 8, 2026 - Global UI Scale Calibration (100% Zoom)
+
+### Topic
+Implemented an app-wide density adjustment so screens render at a comfortable size on browser zoom 100%.
+
+### Summary of Request
+User reported that UI elements looked too large at 100% zoom and requested a global fix equivalent to their current 80% zoom workaround.
+
+### What Was Achieved
+- Added a global root scale variable in `client/src/styles.scss`:
+  - `--app-font-scale: 0.85` (desktop baseline)
+- Applied scale through root font-size:
+  - `html { font-size: calc(16px * var(--app-font-scale)); }`
+- Added responsive safeguards to preserve readability on smaller screens:
+  - `0.9` for widths `<= 1024px`
+  - `0.95` for widths `<= 640px`
+- Ran a scan for hardcoded `px` values in `client/src/app/**` to prepare next incremental conversion pass to `rem` where appropriate.
+
+### Full Prompt
+"Implement it. If there are hardcoded elements that use px as sizing, we will figure it out and adjust it to rem units"
+
+### Affected Files
+- `client/src/styles.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- A root font-size scale is the lowest-risk global approach because the codebase already uses many `rem`-based sizes and PrimeNG tokenized spacing.
+- Responsive overrides avoid over-shrinking text and touch targets on mobile devices.
+
+---
+
+## 📅 March 7, 2026 - Final Sweep (Feature Styles Token Hardening)
+
+### Topic
+Executed the final style sweep across feature components to remove remaining hardcoded hex/rgba values and fallback literals where practical.
+
+### Summary of Request
+User confirmed this would be the final sweep after the `configure-project` cleanup.
+
+### What Was Achieved
+- Replaced leftover hardcoded/fallback color values in feature components with PrimeNG Aura token values.
+- Removed fallback literals from token declarations where safe:
+  - `var(--p-primary-contrast-color, #fff)` → `var(--p-primary-contrast-color)`
+  - `var(--p-shadow-*, <rgba fallback>)` → `var(--p-shadow-*)`
+- Converted remaining white/black/rgba visual accents to token-safe equivalents using `color-mix(...)` where needed.
+- Kept all `::ng-deep` usage scoped as `:host ::ng-deep` and unchanged in behavior.
+- Confirmed no deprecated bridge token usage remained in `client/src/app/features/**`.
+
+### Full Prompt
+"OK. That will be the final sweep"
+
+### Affected Files
 - `client/src/app/features/visitor/login/login.component.ts`
 - `client/src/app/features/visitor/register/register.component.ts`
 - `client/src/app/features/visitor/landing-page/landing-page.component.ts`
-- `client/src/app/features/user/profile/profile.component.ts`
-- `client/src/app/features/user/dashboard/dashboard.component.ts`
-- `client/src/app/features/user/dashboard/dashboard.component.html`
-- Related frontend specs for auth, login, register, profile, user layout and auth refresh.
-
-### Reasoning notes
-The implementation keeps the language preference as part of the existing user profile contract instead of creating a separate preference endpoint. This is enough for the current scope, avoids unnecessary backend surface area and ensures login/refresh/profile hydration all receive the same preference. On the frontend, a small signal-based i18n service was chosen over a larger translation dependency because the app is already Angular 21 and signal-oriented, and the current need is a controlled `en/es` package with incremental migration of visible strings. The first implementation focuses on the user-critical flows and establishes a clear pattern for migrating the remaining deep project configuration and analytics screens.
-
-### Verification
-- `cd client && npm run typecheck`
-- `cd client && npm test -- profile.component.spec.ts --runInBand`
-- `cd client && npm test -- auth.service.spec.ts --runInBand`
-- `cd client && npm test -- user-layout.component.spec.ts --runInBand`
-- `cd client && npm test -- login.component.spec.ts --runInBand`
-- `cd client && npm test -- register.component.spec.ts --runInBand`
-- `cd server && npm run build`
-- `cd server && npm test -- user.schema.test.ts`
-- `cd server && npm test -- user.service.test.ts`
-
-## 2026-06-17 - Spanish translation second pass for deep app screens
-
-### Prompt summary
-The user asked for a second pass over the Spanish language work, extending translations beyond the first visible flows into deeper project, panel, admin, analytics and configuration screens.
-
-### Full prompt
-> Haz la segunda pasada
-
-### What was achieved
-- Expanded the translation dictionary with keys for password recovery, quick estimates, project lists, panel lists, admin dashboards, user management, panel forms, project detail, analytics, production charts, project creation and project configuration.
-- Migrated the deeper user and admin surfaces to `LanguageService` translation calls while keeping the existing Angular and PrimeNG component structure.
-- Localized the project configuration workflow, including location search, panel setup, advanced assumptions, review changes, impact preview charts, sun-path labels and save/discard messages.
-- Localized shared Leaflet map popups, layer names and draw validation text used by estimate and configuration flows.
-- Updated the configure review unit test stub to match the current form shape.
-
-### Affected files
-- `client/src/app/core/i18n/translations.ts`
-- `client/src/app/shared/components/location-map/location-map.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
 - `client/src/app/features/visitor/forgot-password/forgot-password.component.ts`
 - `client/src/app/features/visitor/reset-password/reset-password.component.ts`
-- `client/src/app/features/visitor/estimate/estimate.component.ts`
-- `client/src/app/features/visitor/estimate/estimate.component.html`
-- `client/src/app/features/user/user-projects/user-projects.component.ts`
-- `client/src/app/features/user/panel-list/panel-list.component.ts`
-- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.ts`
 - `client/src/app/features/admin/panels/panel-form.component.ts`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+
+### Reasoning Snapshot
+- The remaining issues were isolated cosmetic leftovers, so a small, direct sweep minimized risk while completing token consistency.
+- Changes were limited to style declarations only to avoid business logic or template behavior impact.
+
+---
+
+## 📅 March 7, 2026 - Configure Project Token Cleanup (Sectioned Pass)
+
+### Topic
+Completed a section-by-section style cleanup for the high-impact `configure-project` feature component to align with PrimeNG Aura tokens.
+
+### Summary of Request
+User requested continuing the refactor on `feature/frontend-modernization` by targeting `client/src/app/features/user/configure-project/configure-project.component.ts` in safe chunks, avoiding logic/layout changes, and preferring `--p-*` tokens over bridge/hardcoded colors.
+
+### What Was Achieved
+- **Section A: Header + Step Nav + Step Indicators**
+  - Replaced hardcoded header/nav/indicator colors with tokenized values (`--p-text-*`, `--p-primary-*`, `--p-content-border-color`).
+  - Updated sticky nav translucent background/shadow using token-aware `color-mix(...)`.
+
+- **Section B: Card Shells + Metadata-Adjacent Surfaces**
+  - Migrated card backgrounds, borders, and shadows to token-based surfaces/borders.
+  - Updated card heading/subtext and map container border to token equivalents.
+
+- **Section C: Status Badges/Messages**
+  - Migrated error, hint, map instruction/status, no-panel message, and optimal-config hint styles to semantic tokens (`--p-red-*`, `--p-green-*`, `--p-amber-*`, `--p-primary-*`).
+  - Replaced hardcoded warning/success/info backgrounds with tokenized `color-mix(...)` variants.
+
+- **Section D: Review/Summary + Capacity Highlights**
+  - Refactored remaining review block colors/borders and total-capacity highlight styles to token-based gradients and text colors.
+  - Migrated icon gradient palettes (panel/location/3D/capacity/general) from hardcoded values to semantic token gradients.
+
+- **Validation**
+  - Diagnostics run after each section: no TS/template/style errors in the edited file.
+  - Target-file sweep confirms no remaining `#hex`, `rgba(...)`, or deprecated bridge tokens in `configure-project.component.ts`.
+
+### Full Prompt
+"You are continuing a style refactor in `solarPlanner-v2` on branch `feature/frontend-modernization`... Start with: `client/src/app/features/user/configure-project/configure-project.component.ts` and do one section at a time with small, verifiable patches."
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning Snapshot
+- The component is large and high-risk for visual regressions, so changes were intentionally split into small, independently validated style-only patches.
+- Token-first replacements improve Aura theme consistency (light/dark) and reduce maintenance overhead from mixed palette sources.
+
+---
+
+## 📅 March 7, 2026 - Sweep Pass (Forgot/Reset/Admin Utility Views)
+
+### Topic
+Executed an additional sweep pass to modernize remaining low-complexity components with hardcoded color values.
+
+### Summary of Request
+User approved running the final sweep to clean leftover hardcoded colors and token inconsistencies.
+
+### What Was Achieved
+- **Forgot Password (`forgot-password.component.ts`)**
+  - Replaced hardcoded colors with PrimeNG tokens (`--p-text-*`, `--p-content-border-color`, `--p-primary-*`, `--p-red-*`, `--p-green-*`).
+  - Updated alert states and primary button colors to token-driven values.
+
+- **Reset Password (`reset-password.component.ts`)**
+  - Applied the same token migration pattern as forgot-password.
+  - Replaced direct red/blue state colors with `--p-red-*` and `--p-primary-*` tokens.
+
+- **Admin Projects List (`projects-list.component.ts`)**
+  - Replaced placeholder hardcoded colors with `--p-surface-0` and `--p-text-muted-color`.
+
+- **Admin Panel Form (`panel-form.component.ts`)**
+  - Migrated modal, inputs, errors, and action button palette from hardcoded values to PrimeNG tokens.
+  - Overlay and shadows updated to token-aware styles with safe fallbacks.
+
+- Diagnostics run across all edited files: **no errors found**.
+
+### Full Prompt
+"Yeah, lets do that"
+
+### Affected Files
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.ts`
+- `client/src/app/features/visitor/reset-password/reset-password.component.ts`
+- `client/src/app/features/admin/projects-list/projects-list.component.ts`
+- `client/src/app/features/admin/panels/panel-form.component.ts`
+
+### Reasoning Snapshot
+- This pass prioritized smaller, isolated components for low-risk improvements and immediate token consistency.
+- The large `configure-project.component.ts` still contains numerous intentional, branded hardcoded values and should be handled in a dedicated, carefully segmented pass to avoid visual regressions.
+
+---
+
+## 📅 March 7, 2026 - Medium Priority Cleanup (User + Admin Views)
+
+### Topic
+Continued component style refactor for medium-priority files with Aura token alignment and inline-style removal.
+
+### Summary of Request
+User asked to continue cleanup after high-priority components were completed.
+
+### What Was Achieved
+- **Users List (`users-list.component.ts`)**
+  - Removed inline icon styles and replaced with semantic classes (`icon-danger`, `icon-success`, `hero-icon`).
+  - Migrated deprecated bridge tokens:
+    - `--text-color-secondary` → `--p-text-muted-color`
+    - `--surface-hover` → `--p-content-hover-background`
+    - `--red-500` usage replaced by `--p-red-500` class styling.
+  - Reduced deep selectors to PrimeNG internal card body padding only.
+
+- **User Projects (`user-projects.component.ts`)**
+  - Migrated hardcoded color palette to PrimeNG tokens (`--p-text-color`, `--p-text-muted-color`, `--p-content-border-color`, `--p-primary-*`, `--p-yellow-*`).
+  - Replaced static RGBA/hex status and card backgrounds with token-driven `color-mix(...)` gradients and surfaces.
+  - Removed redundant `::ng-deep .btn-primary` hover override.
+
+- **View Project (`view-project.component.ts`)**
+  - Migrated hardcoded colors and gradients to PrimeNG token-based colors.
+  - Converted error and placeholder visuals to token-aware `color-mix(...)` backgrounds.
+  - Removed redundant `::ng-deep .btn-primary` hover override.
+
+- **Add Project (`add-project.component.scss`)**
+  - Performed focused token migration across key surfaces and semantic text states:
+    - hardcoded surface/text/border colors → `--p-surface-*`, `--p-text-*`, `--p-content-border-color`, `--p-primary-*`.
+  - Updated warning/info/success badges and map feedback blocks to token-based `color-mix(...)` backgrounds.
+  - Replaced focus ring/hover accents with theme token equivalents (`--focus-ring`, Prime shadows).
+
+- **Configure Project (`configure-project.component.ts`)**
+  - Verified by search that deprecated bridge tokens and hardcoded inline color styles targeted by this cleanup were not present, so no changes were needed in this pass.
+
+- Validation: diagnostics run on all modified files with **no errors found**.
+
+### Full Prompt
+"Ok, continue"
+
+### Affected Files
 - `client/src/app/features/admin/users-list/users-list.component.ts`
-- `client/src/app/features/user/project-view/project-view.component.ts`
-- `client/src/app/features/user/project-view/project-view.component.html`
-- `client/src/app/features/user/project-view/components/project-analytics/project-analytics.component.ts`
-- `client/src/app/features/user/project-view/components/project-analytics/project-analytics.component.html`
-- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.ts`
-- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.html`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+
+### Reasoning Snapshot
+- This batch prioritized replacing hardcoded and bridge-token color usage in medium-priority views while preserving component behavior and markup structure.
+- `configure-project` was intentionally left untouched after verification to avoid unnecessary churn in a large, already-modernized file.
+
+---
+
+## 📅 March 7, 2026 - Panel Views Cleanup (User + Admin)
+
+### Topic
+Continued Aura token migration and style cleanup for panel-related views (`panel-list`, admin `panels`, and `admin-dashboard`).
+
+### Summary of Request
+User requested to continue with the prioritized component cleanup sequence.
+
+### What Was Achieved
+- **User Panel List (`panel-list.component.ts`)**
+  - Removed inline icon styles and replaced with semantic classes.
+  - Migrated bridge token usage to PrimeNG tokens:
+    - `--text-color-secondary` / `--text-color-muted` → `--p-text-muted-color`
+    - `--surface-hover` → `--p-content-hover-background`
+  - Replaced hardcoded RGBA yellow accent with token-derived `color-mix(...)`.
+  - Reduced `::ng-deep` to PrimeNG internals for card body padding only.
+
+- **Admin Panels (`panels.component.html`, `panels.component.scss`)**
+  - Removed inline icon styles from template (`Manage Panels` header, empty-state, panel icon).
+  - Applied same token migration pattern as user panel list.
+  - Replaced RGBA backgrounds with token-derived `color-mix(...)`.
+  - Reduced deep selectors to required PrimeNG internals (`.p-button` width in action buttons, empty-state `.p-card-body` padding).
+
+- **Admin Dashboard (`admin-dashboard.component.html`, `admin-dashboard.component.scss`)**
+  - Removed inline icon/background styles and introduced semantic classes (`icon-primary`, `icon-solar`, `icon-danger`, `stat-icon-*`).
+  - Migrated bridge tokens:
+    - `--text-color-secondary` → `--p-text-muted-color`
+    - `--red-500` usage replaced with `--p-red-500` in styling classes
+  - Replaced hardcoded RGBA backgrounds with token-driven `color-mix(...)`.
+  - Reduced and scoped `::ng-deep` to PrimeNG internals (`.p-card-body`, `.p-card-content`).
+
+- Verified all touched files with diagnostics: **no errors found**.
+
+### Full Prompt
+"Continue"
+
+### Affected Files
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `client/src/app/features/admin/panels/panels.component.html`
+- `client/src/app/features/admin/panels/panels.component.scss`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.html`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.scss`
+
+### Reasoning Snapshot
+- Both user/admin panel views shared repeated anti-patterns (inline styles, bridge tokens, broad deep selectors), so applying a single consistent token-first pattern reduced maintenance overhead.
+- Deep selectors were retained only where PrimeNG internal DOM required targeted overrides.
+
+---
+
+## 📅 March 7, 2026 - Panel List Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored panel list component styling to remove inline styles, migrate to PrimeNG tokens, and reduce `::ng-deep` to required internals only.
+
+### Summary of Request
+User asked to continue the style cleanup sequence after dashboard updates.
+
+### What Was Achieved
+- Removed inline icon styles from template and replaced with semantic classes (`icon-primary`, `empty-icon`, `panel-bolt-icon`).
+- Migrated bridge token usage to PrimeNG Aura tokens:
+  - `--text-color-secondary` / `--text-color-muted` → `--p-text-muted-color`
+  - `--surface-hover` → `--p-content-hover-background`
+- Replaced hardcoded yellow RGBA panel icon background with token-driven blend using `color-mix(...)`.
+- Moved most styles out of deep selectors; kept `:host ::ng-deep` only for PrimeNG internal card body padding.
+- Preserved templates, behavior, and business logic.
+
+### Full Prompt
+"Continue"
+
+### Affected Files
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+
+### Reasoning Snapshot
+- Token-first styling ensures consistency with Aura light/dark theming.
+- Inline style removal improves maintainability and keeps templates cleaner.
+- Deep selectors are minimized to only required PrimeNG internals, reducing style leakage.
+
+---
+
+## 📅 March 7, 2026 - Dashboard Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored dashboard page styles to remove inline template styles, migrate to PrimeNG tokens, and reduce `::ng-deep` usage to PrimeNG internals only.
+
+### Summary of Request
+User requested to continue the component cleanup sequence after landing page updates.
+
+### What Was Achieved
+- Removed inline icon/background styles from `dashboard.component.html` and replaced them with semantic classes (`icon-primary`, `icon-solar`, `icon-blue`, `stat-icon-*`).
+- Migrated bridge tokens to PrimeNG native tokens in `dashboard.component.scss`:
+  - `--text-color-secondary` / `--text-color-muted` → `--p-text-muted-color`
+  - `--surface-border` → `--p-content-border-color`
+- Replaced hardcoded RGBA backgrounds with token-derived `color-mix(...)` values for better theme compatibility.
+- Removed custom deep hover override for `.btn-solar` that used hardcoded green values.
+- Reduced deep selectors to only required PrimeNG internals (`.p-card-body`) scoped under `:host ::ng-deep`.
+- Preserved structure, behavior, and component logic.
+
+### Full Prompt
+"Continue"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+
+### Reasoning Snapshot
+- Inline template styles were centralised into SCSS classes to improve maintainability and consistency.
+- PrimeNG Aura token equivalents were preferred over bridge aliases to align with the new styling baseline.
+- `::ng-deep` remained only where PrimeNG internal structure requires it, minimizing style leakage.
+
+---
+
+## 📅 March 7, 2026 - Landing Page Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored landing page component styles to remove inline styles, reduce `::ng-deep`, and use PrimeNG Aura tokens consistently.
+
+### Summary of Request
+User approved continuing the component cleanup sequence after typography updates, with the next target being `landing-page.component.ts`.
+
+### What Was Achieved
+- Removed all inline icon styles from template and replaced them with semantic CSS classes:
+  - `hero-sun-icon`, `feature-icon`, `feature-icon-primary`, `feature-icon-solar`.
+- Replaced bridge muted text token usage with PrimeNG token:
+  - `var(--text-color-secondary)` → `var(--p-text-muted-color)`.
+- Reduced `::ng-deep` usage to only PrimeNG internals (`.p-button`, `.p-card-header`, `.p-card-body`) and scoped it with `:host ::ng-deep`.
+- Removed redundant hover border-radius overrides on `btn-solar`/`btn-outline` that duplicated PrimeNG button defaults.
+- Kept visual behavior and structure intact while improving token consistency and maintainability.
+
+### Full Prompt
+"Yes, continue"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+
+### Reasoning Snapshot
+- Inline styles were migrated to classes to centralize styling concerns and improve maintainability.
+- `::ng-deep` was kept only where PrimeNG renders internal DOM outside straightforward component selectors.
+- Aura-native tokens were preferred over bridge aliases where direct equivalents existed.
+
+---
+
+## 📅 March 7, 2026 - Primary Font Switch to Inter
+
+### Topic
+Changed the application typography baseline to use Inter as the primary font family.
+
+### Summary of Request
+User requested replacing the current primary font and using Inter across the application.
+
+### What Was Achieved
+- Updated Google Fonts import to Inter in `index.html`.
+- Replaced fallback font stacks from Manrope to Inter in:
+  - `theme-light.scss`
+  - `theme-dark.scss`
+  - global `body` declaration in `styles.scss`
+- Verified touched files with diagnostics: no errors found.
+
+### Full Prompt
+"I want to use Inter as primary font"
+
+### Affected Files
+- `client/src/index.html`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles.scss`
+
+### Reasoning Snapshot
+- Keeping font import and fallback stacks aligned prevents inconsistent typography between token-driven and direct style usage.
+- Using Inter in both token-level and body-level fallbacks ensures reliable rendering even if a PrimeNG font token is missing at runtime.
+
+---
+
+## 📅 March 7, 2026 - Global Typography Fix + Register Style Cleanup
+
+### Topic
+Fixed global font fallback behavior and continued visitor style cleanup by refactoring `register.component.ts` toward Aura token usage.
+
+### Summary of Request
+User requested fixing the app typography first because the UI was falling back to an undesirable default font, then continuing immediately with the register component style refactor.
+
+### What Was Achieved
+- Replaced Google Font import in `index.html` from Roboto to Manrope and added `fonts.googleapis.com` preconnect.
+- Added robust fallback chain for font tokens in both theme bridge files:
+  - `--font-family: var(--p-font-family, 'Manrope', 'Segoe UI', system-ui, sans-serif)`
+- Added the same fallback at global usage site in `styles.scss` (`body { font-family: ... }`) to prevent browser-default fallback when token resolution fails.
+- Refactored `register.component.ts` styles:
+  - Consolidated fragmented `::ng-deep` usage into one scoped `:host ::ng-deep` block.
+  - Migrated error token usage from `--red-500` to `--p-red-500`.
+  - Removed redundant disabled button override block while preserving behavior and layout.
+- Verified all touched files with diagnostics: no compile or style errors.
+
+### Full Prompt
+"Before that, we are using no fonts and is using a awful default one. After fixing that well continue with the register component"
+
+### Affected Files
+- `client/src/index.html`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles.scss`
+- `client/src/app/features/visitor/register/register.component.ts`
+
+### Reasoning Snapshot
+- The root issue was token fallback: `body` depended on `--font-family`, which depended on `--p-font-family` without a hard fallback.
+- Adding fallback at both token definition and usage levels ensures stable typography in all load orders and theme states.
+- Register style refactor follows the same low-risk pattern used for visitor pages: keep visual behavior, reduce deep selector spread, and use PrimeNG native tokens directly.
+
+---
+
+## 📅 March 7, 2026 - Login Style Cleanup (Aura Token Alignment)
+
+### Topic
+Refactored `login.component.ts` styles to better align with PrimeNG Aura tokens and reduce `::ng-deep` footprint.
+
+### Summary of Request
+User approved starting the component-style cleanup plan from `login.component.ts` and requested migration toward PrimeNG `--p-*` tokens with safer scoped deep selectors.
+
+### What Was Achieved
+- Consolidated scattered deep overrides into a single scoped `:host ::ng-deep` block.
+- Kept PrimeNG defaults where possible and retained only required internal overrides for card body/header and password/input internals.
+- Migrated error color usage from bridge token `--red-500` to PrimeNG token `--p-red-500`.
+- Removed redundant/dead style override block for `.btn-primary` disabled state.
+- Preserved template structure, component logic, animations, and brand styling behavior.
+
+### Full Prompt
+"Pick up where we left off: Component Style Cleanup — Solar Planner v2 ... Ready to begin? Start with: 'Refactor login.component.ts to use PrimeNG Aura tokens and reduce ::ng-deep usage'"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+
+### Reasoning Snapshot
+- PrimeNG Aura should remain the source of truth for component theming, so bridge-token usage was reduced where direct `--p-*` tokens are available.
+- `::ng-deep` cannot be fully removed for PrimeNG internal DOM targets, but scoping under `:host` reduces global leakage.
+- A style-only refactor minimizes regression risk while improving long-term maintainability for subsequent component cleanup steps.
+
+---
+
+## 📅 March 4, 2026 - Meta-editable Styled as p-tag Pills
+
+### Topic
+Styled `.meta-editable` wrappers to visually match `p-tag` using PrimeNG tag CSS variables.
+
+### Summary of Request
+User wanted to wrap meta-editables inside a `p-tag`. Since PrimeNG Tag doesn't support content projection for arbitrary form controls, `.meta-editable` was styled to match `p-tag` exactly using `--p-tag-*` CSS variables.
+
+### What Was Achieved
+- `.meta-editable` now uses `--p-tag-primary-background`, `--p-tag-primary-color`, `--p-tag-font-size`, `--p-tag-font-weight`, `--p-tag-padding`, and `--p-tag-rounded-border-radius` — visually identical to `p-tag` and auto-switches with light/dark.
+- Embedded `p-select` and `p-inputnumber` rendered borderless/transparent so they blend into the tag pill.
+- Labels inherit color/weight from the wrapper — zero hardcoded values.
+
+### Full Prompt
+"Would it be possible to wrap the meta-editables around a p-tag? and inside the p-tag include the label and the p-select/p-inputnumber"
+
+### Affected Files
+`client/src/app/features/user/configure-project/configure-project.component.ts`
+
+---
+
+## 📅 March 4, 2026 - Meta-editable Height Alignment with p-tag
+
+### Topic
+Sized the `p-select` and `p-inputnumber` inside the metadata strip to match the height of the `p-tag` pills.
+
+### Summary of Request
+User wanted the meta-editable form controls (currency select, energy price input) to be the same height as the `p-tag` chips in the metadata strip.
+
+### What Was Achieved
+- Matched `font-size` to `0.875rem` (same as `p-tag` root) for `.meta-editable`, its label, and the inner `p-select` / `p-inputnumber`.
+- Set inner label padding to `0.25rem 0.5rem` (matching `p-tag`'s `padding` from the preset) on `.p-select-label` and `.p-inputnumber-input`.
+- Bumped label `font-weight` to `700` to match `p-tag`'s weight.
+
+### Full Prompt
+"Great. Now can you customize the meta-editables and the p-select and p-inputnumber to that they have the same size as the p-labels (same height)"
+
+### Affected Files
+`client/src/app/features/user/configure-project/configure-project.component.ts`
+
+---
+
+## 📅 March 4, 2026 - Meta-chip & Meta-editable Dark/Light Theme Support
+
+### Topic
+Made the metadata strip in configure-project follow the PrimeNG dark/light theme automatically.
+
+### Summary of Request
+User asked to modify `meta-chip` and `meta-editable` so they follow the dark/light themes from the PrimeNG preset. Suggested using `p-tag` for the chips to avoid extra maintenance code.
+
+### What Was Achieved
+- **Replaced** custom `<div class="meta-chip">` elements with PrimeNG `<p-tag>` components (already imported via `TagModule`). Tags automatically pick up `tag.colorScheme.light/dark` tokens from the preset for theming.
+- **Removed** ~15 lines of hardcoded `.meta-chip` / `.meta-chip i` CSS that used non-theme-aware colors (`var(--p-green-700)`, `var(--p-green-100)`).
+- **Updated** `.meta-separator` background to `var(--p-content-border-color)` (theme-aware).
+- **Updated** `.meta-editable label` color to `var(--p-text-muted-color)` (theme-aware).
+- Zero new CSS classes or custom color logic — all theming delegated to PrimeNG design tokens.
+
+### Full Prompt
+"Can you modify the meta-chip and meta-editable so that they can follow the dark and light themes from the preset in primeng? Maybe you can use p-label for the meta-chips? I dont want to add extra code that makes this not mantainable"
+
+### Affected Files
+`client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Reasoning
+- `TagModule` was already imported. Using `<p-tag>` with `[rounded]="true"` replaces the custom chip markup.
+- PrimeNG `p-tag` reads the `tag.colorScheme.light` / `tag.colorScheme.dark` tokens from the `SolarPreset`, so colors adapt automatically — no manual `@media (prefers-color-scheme)` or class toggles needed.
+- The existing custom `.meta-chip` CSS hardcoded `var(--p-green-700)` / `var(--p-green-100)` which only looked correct in dark mode; deleting it in favor of the preset-driven Tag eliminates the issue entirely.
+- For `meta-editable` labels and the separator, switching to `--p-text-muted-color` and `--p-content-border-color` achieves the same automatic theme adaptation without adding any component or wrapper.
+
+---
+
+## 📅 March 3, 2026 - Extract Shared Constants to project.constants.ts
+
+### Topic
+Identified and eliminated duplicated constant definitions in `configure-project.component.ts` by extracting them into a shared `project.constants.ts` file under `core/constants/`.
+
+### Summary of Request
+User confirmed that the last session had extracted components globally. They noticed the configure-project component was still +1100 lines and asked if it was actually using the global objects. After analysis, it was confirmed that `TimezoneOption`, `CurrencyOption`, `COUNTRY_TIMEZONE`, `COUNTRY_CURRENCY`, `orientationOptions`, `timezoneOptions`, and `currencyOptions` were all still locally duplicated in the component. User approved moving them to a new `project.constants.ts` constants file.
+
+### What Was Achieved
+- **Created `client/src/app/core/constants/project.constants.ts`** with all shared types and data:
+  - Interfaces: `OrientationOption`, `TimezoneOption`, `CurrencyOption`
+  - Maps: `COUNTRY_CURRENCY_MAP`, `COUNTRY_TIMEZONE_MAP`
+  - Arrays: `ORIENTATION_OPTIONS`, `TIMEZONE_OPTIONS`, `CURRENCY_OPTIONS`
+- **`configure-project.component.ts`**: Removed 3 local interface definitions + 2 private class record maps + 3 large options arrays (~90 lines). Now imports and references constants directly. Component reduced from **1459 → 1369 lines**.
+- **`metadata-strip.component.ts`**: Removed locally-defined `CurrencyOption` and `TimezoneOption` interfaces; now imports from `project.constants.ts` and re-exports with `export type { ... }` for backward compatibility.
+- Build passes with zero errors (`ng build --configuration=development` ✓).
+
+### Full Prompt
+"Yes, but add the constants under the name project.constants.ts"
+
+### Affected Files
+**New:** `client/src/app/core/constants/project.constants.ts`
+**Modified:** `client/src/app/features/user/configure-project/configure-project.component.ts`, `client/src/app/shared/components/metadata-strip/metadata-strip.component.ts`
+
+### AI Reasoning
+The constants were duplicated between the previously extracted `MetadataStripComponent` and the parent `configure-project.component.ts`. Centralizing them in `core/constants/project.constants.ts` follows the feature-first + core/shared architecture: `core/` holds app-wide singletons and constants, while `shared/` holds reusable UI components. Using `export type { ... }` in `metadata-strip.component.ts` preserves the existing public API for any consumers that import types from there.
+
+---
+
+## 📅 March 3, 2026 - Configure-Project Component Refactoring (Phase 1–2)
+
+### Topic
+Refactored the `ConfigureProjectComponent` based on a detailed analysis document (`CONFIGURE-PROJECT-ANALYSIS.md`). Extracted reusable components, consolidated CSS into SCSS partials, and eliminated all 11 `::ng-deep` selectors using the PrimeNG PT (Pass Through) API.
+
+### Summary of Request
+User approved a 3-phase plan:
+1. **Phase 1 (Quick Wins):** Extract `MetadataStripComponent` and `ReviewCardComponent`.
+2. **Phase 2 (ng-deep Elimination):** Replace all `::ng-deep` with PT API bindings and global SCSS overrides.
+3. **Phase 3 (SCSS Consolidation):** Extract shared styles into SCSS partial files.
+
+### What Was Achieved
+- **`MetadataStripComponent`** (`shared/components/metadata-strip/`) — encapsulates the metadata strip (country, timezone chips + currency select + energy price input). Uses `input()` signals and PrimeNG PT API bindings (`metaSelectPt`, `metaInputNumberPt`) with classes defined in `_meta-editable.scss`, replacing all 10 `::ng-deep` selectors targeting `.meta-editable`.
+- **`ReviewCardComponent`** (`shared/components/review-card/`) — reusable review summary card accepting `title`, `icon`, `items[]`, optional `badge`, and `editButton`. Used 4 times in Step 2 replacing ~140 lines of inline template.
+- **4 computed signals added** to `ConfigureProjectComponent`: `projectReviewItems`, `locationReviewItems`, `panelReviewItems`, `capacityReviewItems`, `capacityBadge` — each builds `ReviewItem[]` from existing signals, keeping logic in the component class.
+- **`errorCardPt`** PT binding added, replacing the last `::ng-deep .error-card` selector.
+- **7 SCSS partial files created:**
+  - `styles/components/_metadata-strip.scss`
+  - `styles/components/_review-card.scss`
+  - `styles/components/_step-card.scss`
+  - `styles/components/_step-navigation.scss`
+  - `styles/layout/_forms.scss`
+  - `styles/layout/_grids.scss`
+  - `styles/layout/_spacing.scss`
+  - `styles/primeng-overrides/_meta-editable.scss`
+- **`styles.scss` updated** with `@use` imports for all 8 new partials (components, layout, primeng-overrides sections).
+- **`ConfigureProjectComponent` styles array reduced** from ~1000 lines to ~300 lines (only component-specific, non-reusable styles remain inline).
+- **Zero `::ng-deep` selectors** remain in the component.
+- Build passes with no errors (`ng build --configuration=development` ✓).
+
+### Full Prompt
+> "Follow all of the recommendations detailed here, but not Location Search & Map Component extraction. Include: 2. Consolidate & Extract Shared Styles. Create a list for all the changes."
+> [approved] "Yes, lets go"
+
+### Affected Files
+**New:** `client/src/app/shared/components/metadata-strip/metadata-strip.component.ts`, `client/src/app/shared/components/review-card/review-card.component.ts`, `client/src/styles/components/_metadata-strip.scss`, `client/src/styles/components/_review-card.scss`, `client/src/styles/components/_step-card.scss`, `client/src/styles/components/_step-navigation.scss`, `client/src/styles/layout/_forms.scss`, `client/src/styles/layout/_grids.scss`, `client/src/styles/layout/_spacing.scss`, `client/src/styles/primeng-overrides/_meta-editable.scss`
+
+**Modified:** `client/src/app/features/user/configure-project/configure-project.component.ts`, `client/src/styles.scss`
+
+### AI Reasoning
+The component had grown to 1905 lines with 1000+ lines of inline CSS, which violated Angular's single-responsibility principle and made maintenance difficult. The approach prioritized:
+1. Using Angular 21 `input()` signals in new components (vs `@Input()`) for the modern API.
+2. Using PrimeNG's PT API for all PrimeNG overrides — avoids encapsulation violations that `::ng-deep` causes.
+3. SCSS `@use` over `@import` (the latter is deprecated in Dart Sass) for all new partials.
+4. Co-located styles: each extracted component could eventually have its own `.scss` file, but given the global nature of the overrides, the `styles/` folder structure was chosen for shared patterns.
+
+---
+
+
+
+### Topic
+Restructured the configure-project flow: removed the dedicated General Info stepper step, made the project name always inline-editable in the header, and added a metadata strip (country, timezone, currency, energy price) that auto-populates from reverse geocoding when the user searches for a location.
+
+### Summary of Request
+User wanted country and timezone to auto-update based on project location. Currency should be auto-mapped from country (EUR default). Energy price stays user-entered. Project name should always be editable inline. The General Info step should be removed; its fields (currency, price, country, timezone) should appear as a compact strip above the Panel Setup cards.
+
+### What Was Achieved
+- **Eliminated Step 1 (General Info)** — stepper reduced from 3 steps to 2: Panel Setup → Review & Save.
+- **Inline-editable project name** in the page header — styled as a heading with pencil hint; focus reveals a bottom border. No separate "name" field needed.
+- **Metadata strip** added above the 2×2 grid in Panel Setup: shows Country (auto, read-only chip), Timezone (auto, read-only chip with human-readable label), Currency (auto-set but overridable dropdown), and Energy Price (user input).
+- **Enhanced Nominatim address search** with `addressdetails=1&accept-language=en` — extracts `country` and `country_code` from results.
+- **Country → Timezone mapping** (~30 countries) using static `COUNTRY_TIMEZONE` map; values match existing `timezoneOptions`.
+- **Country → Currency mapping** (~30 countries) using static `COUNTRY_CURRENCY` map; defaults to EUR for unmapped countries.
+- **`applyLocationMetadata()`** method patches country, timezone, and currency into the form whenever an address search succeeds.
+- **`timezoneLabel` computed signal** resolves the raw timezone value to a human-readable label for display.
+- **`hasUnsavedChanges`** now tracks country, timezone, currency, and price in addition to existing fields.
+- Step navigation updated: "Step X of 2", labels adjusted, Review step edit buttons point to step 1.
+
+### Full Original Prompt
+"I think we could rethink some things related to the fields in the general information step. The country and timezone should update automatically when modifying the location of the project. For the currency we could have a mapping that sets a currency when the timezone is x (or the country) and use euro as default. Then for the energy price, that must be set by the user. The thing is, with this in mind, it does not make sense to have this step before the location setter. As for the project name, would it be possible to make the project name always editable? Like when showing the project name, make it always editable. So currency, price, country, timezone could be added to the panel setup as a strip on top of the location and area, and panel and instalation cards. Lets try that"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` (template, styles, logic)
+
+### Agent Reasoning
+Removing the General Info step reduces friction — all configuration now happens in a single step with the metadata strip providing context. The inline-editable name gives constant visibility and editability without a dedicated form section. Auto-detecting country/timezone/currency from the Nominatim geocoding response eliminates manual data entry for fields that are derivable from the map location. The currency remains overridable because users in border regions or using foreign currencies may need to change it. Static mappings were chosen over external timezone APIs to keep the app dependency-free and fast (acceptable for a thesis project with ~30-country coverage).
+
+---
+
+## 📅 March 1, 2026 - Restructure Configure-Project Stepper
+
+### Topic
+Major restructure of the `configure-project` component to improve UX: reorganized stepper steps, added 2-column Panel Setup layout, sticky navigation, optimal config auto-calculation, and 3D view placeholder.
+
+### Summary of Request
+User wanted to restructure the configure-project stepper so that (1) General Info only contains general info (no map), (2) Panel Setup shows location/area, panel config, 3D placeholder, and live capacity preview in a 2×2 grid, (3) polygon changes auto-recalculate optimal panel config, (4) an Optimal/Custom badge indicates when the user deviates from the computed optimal, and (5) navigation buttons are always visible via a sticky top bar instead of being at the bottom.
+
+### What Was Achieved
+- **Step 1 (General Info)** now only contains the general information card (name, country, timezone, currency, energy price). The location map was moved out.
+- **Step 2 (Panel Setup)** uses a **2×2 CSS grid layout**:
+  - **Top-left**: Location & Area card with address search, editable Leaflet map, and polygon status.
+  - **Top-right**: Panel & Installation card with panel selector, panel number, tilt, direction, azimuth, and row spacing.
+  - **Bottom-left**: 3D Installation View placeholder card.
+  - **Bottom-right**: Live Capacity Preview card with Optimal/Custom badge, panel stats, capacity, annual production estimate, and coverage %. Includes a "Restore optimal" link when a custom configuration is active.
+- **Step 3 (Review & Save)** shows 4 summary cards (General Info, Location & Area, Panel & Installation, Capacity) in a 2×2 review grid, plus the total capacity highlight card.
+- **Sticky navigation bar** placed between the header and stepper, always visible at the top. Contains Back/Next/Save buttons and a "Step X of 3 — Title" indicator. Navigation uses `activeStep.set()` instead of in-template `activateCallback`.
+- **Optimal config auto-calculation**: when the user changes the polygon, panel selection, or tilt, the server's `/projects/calculate` endpoint is called to compute the optimal panel count. The result auto-fills the panel number field. If the user manually changes the panel number, the badge switches from "Optimal" to "Custom" with a restore link.
+- **Form watchers** use `distinctUntilChanged()` and `debounceTime(500)` (for tilt) with `takeUntilDestroyed()` to avoid redundant API calls.
+- Page max-width increased from 1080px to 1280px to accommodate the 2-column layout.
+- Setup grid collapses to single column at ≤960px; form/review grids collapse at ≤768px.
+
+### Full Original Prompt
+"I want to modify the configure project component. The thing is, If we let the user redefine the area polygon, the most normal thing to do would be to recalculate the number of panels, row spacing, etc (optimal config). I think the proper way to do this would be to leave the general info tab only containing the general information card. Then I am thinking what to do in the panel setup part. Because I would like to add the following things as part of the setup: 1. Current location and area selected (that can be edited) 2. panel and installation card containing the chosen panel, number of panels given as per the optimal config, and the other values 3. Live capacity preview that changes depending on the configuration in the panel and installation card (that will change if the user changes the polygon area, but could also be modified if the user wants to. It could be nice to include some kind of indicator to show when the optimal config is showing in that card and when manual edition has been made) 4. 3D view of the installation (for now this could be just a placeholder). After this, a summary of the setup can be shown with a summary of this info (maybe cards of all the 4 steps described above). Another thing is. Either we avoid vertical scrolling in this whole configure-project component, or we reposition the back and next buttons to be on the top instead of at the bottom where the user might not see them."
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` (full rewrite)
+
+### Agent Reasoning
+Keeping 3 stepper steps (rather than 4-5) minimizes cognitive load while reorganizing content: Step 1 is lightweight general info, Step 2 packs the core technical config into a space-efficient 2×2 grid, and Step 3 provides a full summary. The sticky nav bar solves the "hidden buttons" problem without forcing no-scroll constraints. Auto-calculating optimal config on polygon/panel/tilt changes creates the "smart recalculation" UX the user described, while the Optimal/Custom badge and restore link give transparency and control over manual overrides. The `fetchOptimalConfig(autoApply)` pattern lets the initial load establish the optimal baseline without overriding the user's saved configuration.
+
+---
+
+## 📅 February 28, 2026 - Configure Project Map Loading Fix
+
+### Topic
+Fix map rendering issues in `configure-project` where the Leaflet map was not loading properly inside the stepper layout.
+
+### Summary of Request
+User reported: "For some reason the map in the configure-project component is not loading properly" and approved applying a targeted fix.
+
+### What Was Achieved
+- **Stabilized map initialization in shared Leaflet component** by adding post-render size invalidation passes (`invalidateSize`) after map creation.
+- **Added `ResizeObserver` support** in `LocationMapComponent` to automatically invalidate map size whenever host/container dimensions change (e.g., stepper panel render/layout changes).
+- **Improved map recenter robustness** by invalidating size before `flyTo` when the address-search center input changes.
+- **Added geolocation fallback in Configure Project** using `[centerOnUser]="mapLat() == null || mapLng() == null"` to avoid starting at `0,0` when no project coordinates exist.
+- **Lifecycle cleanup added** for timers and observer disconnection in `ngOnDestroy`.
+
+### Full Original Prompt
+"For some reason the map in the configure-project component is not loading properly"
+
+### Affected Files
+- `client/src/app/shared/components/location-map/location-map.component.ts`
+- `client/src/app/features/user/configure-project/configure-project.component.ts`
+
+### Agent Reasoning
+Leaflet often initializes incorrectly when its container is hidden or not fully measured (common in steppers/tabs/cards), producing blank or partially rendered maps. The root-cause fix is to trigger `invalidateSize()` after mount and on container size changes rather than only at initial `setView`. A small caller fallback was added so missing project coordinates do not force an initial center at Gulf of Guinea (`0,0`).
+
+---
+
+## 📅 Current Session - Project Infrastructure Analysis Updated (Fixes Documented)
+
+### Topic
+Updated `PROJECT-INFRASTRUCTURE-ANALYSIS.md` to reflect the optimized architecture after fixing critical bugs in the project management system.
+
+### Summary of Request
+User asked to "redo the project infrastructure analysis" after completing fixes to the project CRUD operations and geospatial field handling.
+
+### What Was Achieved
+
+**Documentation Updated in `PROJECT-INFRASTRUCTURE-ANALYSIS.md`:**
+
+All sections were completely rewritten to reflect the optimized state:
+
+1. **Section 3: Design Principles & Trade-offs** — Documented the advantages and trade-offs of on-demand geospatial field calculation
+2. **Section 4: CRUD Operations Summary** — Added comprehensive table showing all project operations working with proper authorization
+3. **Section 5: Communication Flow Examples** — Three flow diagrams showing the now-fixed workflow:
+   - Flow #1: Create Project (on-demand calculation in response)
+   - Flow #2: Update Project with area change
+   - Flow #3: Update Project without area (graceful null handling)
+4. **Section 6: Summary of Changes & Fixes** — Detailed before/after code examples for 5 critical issues fixed:
+   - Issue #1: updateProject() now uses findByIdAndUpdate instead of create
+   - Issue #2: Null check for optional area parameter
+   - Issue #3: Refactored to on-demand geospatial calculation (not stored in DB)
+   - Issue #4: updateProject() controller handler added
+   - Issue #5: PUT /projects/:id route added and properly scoped
+5. **Section 7: Architecture Summary** — Updated to show all 6 layers are ✅ fixed
+6. **Section 8: Data Consistency Matrix** — Revised to show lat/lon/surface calculated on-demand, not persisted
+7. **Conclusion** — Changed from "Critical bugs identified" to "Fixed & Optimized" with production-ready status
+
+### Full Original Prompt
+"Can you redo the project infrastructure analysis?"
+
+### Affected Files
+- `PROJECT-INFRASTRUCTURE-ANALYSIS.md` — Complete documentation refresh
+
+### Agent Reasoning
+The analysis document identified 5 critical bugs in an earlier session. After code fixes were implemented and tested, the document needed updating to serve as a reference for the optimized architecture. Key design principle documented:
+
+**On-Demand Calculation Pattern:** `lat`, `lon`, and `surface` are now calculated from `area` polygon on every response transformation (via `calculateGeospatialFields()`) instead of being persisted in the database. Benefits:
+- Single source of truth (area polygon only)
+- Guaranteed data consistency (impossible to become stale)
+- Minimal storage overhead
+- Simple update logic (no sync complexity)
+
+---
+
+## 📅 February 24, 2026 - Fix Dashboard Total Production Always Showing Zero
+
+### Topic
+`totalProduction` on the user dashboard was always `0` and never updated automatically.
+
+### Summary of Request
+User noticed "Total Production" was stuck at 0 and asked why it wasn't updating automatically.
+
+### What Was Achieved
+
+**Root cause identified (two layers):**
+1. **Server:** `getUserDashboard` and `getAdminDashboard` both computed `totalProduction` by summing `prodToday[].pv` across projects. However, `prodToday` is never written by any part of the application (no scheduler, no external API call, no update endpoint), so the array is always empty and the sum is always `0`.
+2. **Client:** `DashboardComponent.ngOnInit` loaded stats once and never re-fetched, so even if server data changed the UI would not reflect it.
+
+**Changes applied:**
+
+- **Server `getUserDashboard` and `getAdminDashboard`** — replaced the dead `prodToday` sum with a capacity-based annual production estimate using the same formula already present in `generatePlanData`: `capacityKW × peakSunHours × 365 × 0.85`. Peak sun hours are derived from the project's latitude (`max(2, 5.5 − |lat| × 0.02)`), falling back to `4 h` when latitude is absent.
+- **`DashboardComponent`** — added `OnDestroy`, a `POLL_INTERVAL_MS = 60_000` constant, and a `setInterval` started in `ngOnInit` that calls `loadDashboard()` every 60 seconds. The interval is cleared in `ngOnDestroy` to prevent memory leaks.
+- **Dashboard HTML** — updated the card header from "Total Production" → "Est. Annual Production" and the unit from `kWh` → `kWh / year` to correctly reflect that the value is an estimate, not a live reading.
+
+### Full Original Prompt
+"The total production is not updating automatically. Can we fix it? What is it dependant on?"
+
+### Affected Files
+- `server/src/services/project.service.ts` — `getUserDashboard` and `getAdminDashboard` methods
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+
+### Agent Reasoning
+The `totalProduction` field in the dashboard response is computed server-side at request time. Since `prodToday` is never populated (no live telemetry integration exists yet), the correct short-term fix is to derive the stat from the data that *is* available: panel wattage, panel count, and project latitude. This is consistent with the estimation logic already in `generatePlanData`. On the frontend, a simple `setInterval` polling pattern is the safest approach that avoids introducing RxJS `timer`/`takeUntilDestroyed` complexity while guaranteeing the value stays current and the interval is always cleaned up.
+
+---
+
+## 📅 February 20, 2026 - PrimeNG Style Architecture Cleanup
+
+### Topic
+Remove PrimeNG class overrides that were competing with the preset token system and enforce the project's styling rules.
+
+### Summary of Request
+User reported that some PrimeNG component tokens defined in `primeng-preset.ts` were being overridden by global SCSS and component-level CSS rules, preventing the preset from being the single source of truth.
+
+### What Was Achieved
+- **Removed "PRIMENG OVERRIDES" section from `styles.scss`**: Eliminated global selectors `.p-button`, `.p-card`, `.p-card-title`, `.p-card-content`, `.p-inputtext`, `.p-dropdown`, `.p-calendar`, `.p-inputnumber-input`. These ruled outside any `@layer`, so they always won over preset tokens (which are emitted inside `@layer primeng`).
+- **Added card `borderColor` token to preset**: Since the card border was previously only set in `styles.scss`, it was moved into the `card.colorScheme.light.root.borderColor` and `card.colorScheme.dark.root.borderColor` tokens (`#B7E4C7` / `#2D6A4F`) so no visual regression occurs.
+- **Added card `borderWidth` and `borderStyle` to preset root**: Ensures the border is rendered via the token system.
+- **Removed DataTable row hover `!important` override from `theme-dark.scss`**: The preset already defines `datatable.row.hoverBackground`; the `!important` CSS rule was silently winning over it.
+- **Fixed dark mode selector mismatch**: All selectors in `theme-dark.scss` were using `[data-theme="dark"]` while `app.config.ts` declares `darkModeSelector: '.dark-mode'`. Changed `:root[data-theme="dark"]` → `:root.dark-mode`, `[data-theme="dark"]` → `.dark-mode`, and updated the `prefers-reduced-motion` block accordingly.
+- **Added `.btn-lift` and `.card-hoverable` utility classes to `animations.scss`**: Preserves the opt-in lift/hover-shadow animations as composable classes instead of global PrimeNG overrides.
+- **Removed component-level PrimeNG token overrides**: Stripped `.p-button { padding }` from `dashboard.component.scss` (scoped inside `.btn-solar`) and `.p-button { font-weight: 600 }` from `admin-dashboard.component.scss` (redundant with preset token `button.root.label.fontWeight: '600'`).
+
+### Full Original Prompt
+"Necesito que revisemos por qué en algunos casos se está sobreescribiendo los valores que se han definido en algunos componentes css de primeng, que no estan permitiendo que coja como referencia los valores establecidos en el fichero primeng-preset."  
+"Vale, hagamos lo que dices y eliminemos por completo los primeng overrides..."
+
+### Affected Files
+- `client/src/styles.scss`
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles/animations.scss`
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.scss`
+
+### Reasoning Snapshot
+- With `cssLayer: { name: 'primeng', order: 'theme, primeng' }`, any CSS rule written outside a layer wins over preset tokens regardless of specificity. Global `.p-button` / `.p-card` selectors in `styles.scss` were exactly this problem.
+- The `[data-theme="dark"]` vs `.dark-mode` mismatch meant PrimeNG dark tokens activated correctly but the app's own CSS variables (`--surface-ground`, `--text-color`, etc.) never switched, causing a split state.
+- Scoped component overrides like `.stat-card .p-card-body { padding }` are allowed per styling rules (wrapper-scoped); only unscoped or token-duplicating ones were removed.
+- Utility classes in `animations.scss` preserve the desired micro-interactions without polluting PrimeNG's token chain.
+
+---
+
+## 📅 February 18, 2026 - Projects List Loading - Pagination & Validation Fix
+
+### Topic
+Fix user projects list not loading due to missing endpoint implementation and pagination support.
+
+### Summary of Request
+User reported that the projects list view was not loading projects for authenticated users. The frontend kept showing a loading state indefinitely.
+
+### What Was Achieved
+- **Fixed Frontend Service**: Changed `getMyProjects()` endpoint from `/api/projects/my` (non-existent) to `/api/projects` (correct endpoint that auto-filters by user).
+- **Added Pagination to Backend Query Schema**: Expanded `ProjectQuerySchema` to include `page` (default: 1) and `limit` (default: 10, max: 100) parameters with proper coercion.
+- **Updated ProjectListResponse Type**: Changed from `{ projects: [...], total }` to `{ data: [...], total, page, limit, totalPages }` to match frontend expectations.
+- **Implemented Backend Pagination Logic**: 
+  - Extract and validate `page` and `limit` from query parameters.
+  - Calculate proper skip: `(page - 1) * limit`.
+  - Apply MongoDB `.skip()` and `.limit()` to optimize queries.
+  - Calculate `totalPages` for response.
+- **Fixed TypeScript Casting Issue**: Added `unknown` intermediate cast in controller to avoid type mismatch when validation middleware transforms `req.query`.
+- **Added Client Debugging**: Improved error logging in component's `loadProjects()` method to surface API response structure and errors to browser console.
+
+### Full Original Prompt
+```
+User 1: "The projects all view is not correctly loading the projects that correspond to a user"
+User 2: "Now it keeps loading but does not show anything"
+User 3: "Maybe the issue is with what happens after the isloading is set to true"
+User 4: "[TypeScript compilation error in project.controller.ts:41 - Conversion of ParsedQs type]"
+```
+
+### Affected Files
+- `client/src/app/core/services/project.service.ts` (endpoint fix)
+- `client/src/app/features/user/user-projects/user-projects.component.ts` (improved error handling & logging)
+- `server/src/schemas/project.schema.ts` (pagination parameters added)
+- `server/src/types/project.types.ts` (ProjectListResponse structure updated)
+- `server/src/services/project.service.ts` (pagination logic implemented)
+- `server/src/controllers/project.controller.ts` (TypeScript type casting fix)
+
+### Reasoning Snapshot
+- **Endpoint Mismatch**: The backend's `listProjects` controller auto-filters by user, so the frontend's `/my` suffix was unnecessary and incorrect.
+- **Missing Pagination**: The backend accepted `page` and `limit` query params but didn't validate/process them; the schema and query logic were incomplete.
+- **Response Structure Mismatch**: Frontend expected `{ data, total, page, limit, totalPages }` but service was returning `{ projects, total }`.
+- **Type Safety**: Using `unknown` intermediate cast tells TypeScript to trust the runtime transformation by validation middleware.
+- **Observability**: Added console logging to help diagnose API response structure and errors in development without needing server logs.
+
+### Testing Notes
+- Component now properly handles paginated responses after backend fixes.
+- Error messages now surface in browser console for easier debugging.
+- Server should start without TypeScript errors when restarted with `npm run dev:watch`.
+
+### Next Steps
+- Start server: `cd server && npm run dev:watch`
+- Check browser DevTools console for `Projects response:` logs to verify data flow.
+- If projects still don't appear, console logs will show the actual API response structure for further debugging.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Completion (All 14 Components)
+
+### Topic
+Complete PrimeNG preset token coverage by adding the final 6 missing components: Skeleton, Message, Menubar, Password, DataView, and Tag.
+
+### Summary of Request
+User approved adding all remaining component tokens in a single iteration to complete preset coverage.
+
+### What Was Achieved
+- Added Skeleton component tokens for loading placeholders with light/dark background and animation colors.
+- Added Message component tokens with colorScheme variants (info, success, warn, error, secondary) for all states.
+- Added Menubar component tokens for navigation styling, including item hover/active states and mobile button.
+- Added Password component tokens for meter strength indicator (weak/medium/strong) and overlay positioning.
+- Added DataView component tokens for list/grid header, content, footer, and paginator styling.
+- Added Tag component tokens with semantic color variants (primary, secondary, success, info, warn, danger, contrast).
+- All components include light/dark colorScheme support for full theme consistency.
+
+### Full Original Prompt
+"Yes, add all of those in this next iteration"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+
+### Reasoning Snapshot
+- Closes the gap between Aura base and project's PrimeNG component usage (8/14 → 14/14 components covered).
+- All tokens follow the Aura structure: primitive → semantic → colorScheme.light/dark for consistency.
+- Reduces reliance on CSS overrides; enables proper token-first styling for all used components.
+- Aligns with PrimeNG best practice: "Configure in preset, avoid CSS hacks."
+
+---
+
+## 📅 February 15, 2026 - Dashboard HTML/SCSS Migration
+
+### Topic
+Move dashboard template and styles into dedicated files for SCSS token usage.
+
+### Summary of Request
+User asked to proceed straight to the dashboard migration after preset expansion.
+
+### What Was Achieved
+- Extracted the dashboard template to a dedicated HTML file.
+- Extracted the dashboard styles to a dedicated SCSS file.
+- Wired the component to `templateUrl` and `styleUrls`.
+
+### Full Original Prompt
+"Expand into those 3 and then lets go straight to the migration"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+- `client/src/app/features/user/dashboard/dashboard.component.scss`
+
+### Reasoning Snapshot
+- Keeps the component ready for SCSS tokens without changing UI behavior.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Expansion (Select + DataTable)
+
+### Topic
+Extend the PrimeNG preset with select, datatable, and focus-ring tokens.
+
+### Summary of Request
+User asked to expand preset into select, datatable, and focus ring, then proceed to migration.
+
+### What Was Achieved
+- Added form field focus ring tokens and select overlay tokens.
+- Added datatable tokens for headers, row hover, and scheme-specific borders.
+- Removed overlapping datatable CSS overrides from global styles.
+
+### Full Original Prompt
+"Proceed and also generate a table of the component tokens that are missing in the primeng preset file"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles.scss`
+
+### Reasoning Snapshot
+- Keeps table and select styling inside the preset while avoiding duplicate overrides.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Expansion (Buttons, Inputs, Cards)
+
+### Topic
+Expand the preset with component tokens for buttons, inputs, and cards.
+
+### Summary of Request
+User approved continuing the preset expansion.
+
+### What Was Achieved
+- Added form field sizing, button root tokens, input border radius, and card spacing/shadows to the preset.
+- Reduced overlapping PrimeNG overrides in global styles while keeping hover lift effects.
+
+### Full Original Prompt
+"Ok. continue expanding the preset. I approve"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles.scss`
+
+### Reasoning Snapshot
+- Moves core component styling into PrimeNG tokens and keeps only the behavior-specific overrides in CSS.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Button/Form Tokens + Theme Cleanup
+
+### Topic
+Align button and form field styling with PrimeNG component tokens and reduce overlapping overrides.
+
+### Summary of Request
+User approved adding component tokens and trimming SCSS overrides to better follow PrimeNG presets.
+
+### What Was Achieved
+- Added form field semantic tokens and warning button component tokens derived from theme values.
+- Removed overlapping PrimeNG component overrides from light/dark theme files.
+
+### Full Original Prompt
+"Yeah lets do that"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+
+### Reasoning Snapshot
+- Token-first styling reduces duplication and aligns with PrimeNG styled-mode recommendations.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Token Expansion
+
+### Topic
+Expand the PrimeNG preset with primitive, semantic, and component tokens derived from theme SCSS.
+
+### Summary of Request
+User asked to avoid oversimplifying and to extract config values from theme-light/theme-dark files.
+
+### What Was Achieved
+- Added primitive palettes (green, yellow, blue) based on existing theme values.
+- Mapped semantic tokens for primary, surfaces, form field hover border, and focus ring.
+- Added card component tokens for light/dark schemes.
+
+### Full Original Prompt
+"Dont oversimply it, extract the configs from the theme scss files"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+
+### Reasoning Snapshot
+- Keeps PrimeNG styling aligned with current design tokens while avoiding heavy CSS overrides.
+
+---
+
+## 📅 February 15, 2026 - PrimeNG Preset Extraction
+
+### Topic
+Adopt PrimeNG styled-mode preset structure using existing theme tokens.
+
+### Summary of Request
+User asked to follow PrimeNG recommendations by using a preset while keeping the current theme-light/theme-dark approach.
+
+### What Was Achieved
+- Extracted the PrimeNG preset definition to a dedicated file for easier maintenance.
+- Wired the preset back into the PrimeNG provider configuration.
+
+### Full Original Prompt
+"Ok, lets do that, but not overkilled. Use the preset like files we already have (theme-light and theme-dark), and remember to follow the rules inside the FRONTEND-MODERNIZATION file"
+
+### Affected Files
+- `client/src/styles/primeng-preset.ts`
+- `client/src/app/app.config.ts`
+
+### Reasoning Snapshot
+- Keeps the styled-mode preset aligned with the existing token system without refactoring the themes.
+
+---
+
+## 📅 February 15, 2026 - Dashboard Button Color Fix
+
+### Topic
+Remove unintended yellow background from the Dashboard "New Project" button.
+
+### Summary of Request
+User reported the button background was yellow and wanted it removed.
+
+### What Was Achieved
+- Removed the explicit yellow background/border override on the button.
+- Switched hover glow to a neutral shadow.
+
+### Full Original Prompt
+"Also, for some reason the button has a yellow background color. Can we remove that? I think its because of the hover effect that may not be configured properly"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+
+### Reasoning Snapshot
+- The yellow styling came from explicit overrides; removing them restores the theme defaults.
+
+---
+
+## 📅 February 15, 2026 - Dashboard Button Padding Tweak
+
+### Topic
+Adjust spacing inside the Dashboard "New Project" button.
+
+### Summary of Request
+User asked to add padding inside the button without expanding into new files.
+
+### What Was Achieved
+- Added padding to the PrimeNG button content via the existing inline styles.
+
+### Full Original Prompt
+"I dont want to expand much in files now. I just want to adjust the space between the content inside the button and the edge of the button"
+
+### Affected Files
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+
+### Reasoning Snapshot
+- Kept the change minimal and localized to the existing inline styles as requested.
+
+---
+
+## 📅 February 14, 2026 - Projects Flow Screen Rebuild (Client-First)
+
+### Topic
+Rebuild of user project flow screens (`My Projects`, `Project Detail`, `Create Project`) based on `FRONTEND-MODERNIZATION.md`, without server-side changes.
+
+### Summary of Request
+User requested to begin redoing screens for projects list, project details, and new project creation using provided Figma AI specifications, while keeping work client-side first and deferring server updates.
+
+### What Was Achieved
+- Replaced placeholder `My Projects` page with a complete responsive grid of project cards, including:
+  - Header with CTA button.
+  - Loading, error, and empty states.
+  - Card thumbnail, metadata, and status badge behavior.
+- Replaced placeholder `Project Detail` page with complete layout:
+  - Sticky header with back navigation and metadata.
+  - Main content sections (Installation Area and 3D placeholders).
+  - Sidebar cards for project stats and panel configuration.
+  - Loading and error states.
+- Modernized `Create Project` page while preserving existing map draw + estimation flow:
+  - Updated visual hierarchy, spacing, card system, colors, and controls.
+  - Kept form behavior, polygon drawing, and estimation logic intact.
+- Implemented client-side contract adaptation/mapping so UI can match new screen contract without touching server APIs yet.
+- Verified with successful development build.
+
+### Full Original Prompt
+"If the data contracts differ, let me know the differences and we will then review if the missing parameters are worth adding. The idea is to first modify everything on the client side and then adjust the server side if necessary."
+
+### Affected Files
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `client/src/app/features/user/view-project/view-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+
+### Contract Notes (Client-First)
+- Existing project payload is currently geo/engineering-oriented.
+- New UI expects list/detail-friendly fields (`location`, `panels`, `power`, `status`, etc.).
+- Screen components currently map/derive these fields client-side from existing API response shape and fallbacks.
+
+### Validation
+- `ng build --configuration development` completed successfully.
+
+---
+
+## 📅 February 14, 2026 - Native Angular Enter/Leave Animation Migration
+
+### Topic
+Migration from deprecated `provideAnimations` usage to native Angular `animate.enter` / `animate.leave` patterns.
+
+### Summary of Request
+User reported that `provideAnimations` is deprecated and requested using Angular MCP documentation to determine the correct modern animation approach.
+
+### What Was Achieved
+- Confirmed through Angular MCP docs (Angular v21) that `provideAnimations` is deprecated and native CSS with `animate.enter` / `animate.leave` is the recommended direction.
+- Removed deprecated provider wiring from application config.
+- Implemented native enter/leave animations in key user-facing screens:
+  - Validation messages and auth messages in login/register forms.
+  - Loading/empty/data state transitions in panel list view.
+- Added reusable global leave utility class for cleaner transition exits.
+- Validated migration with development build success.
+
+### Full Original Prompt
+"Provide animations is deprecated, use the Angular MCP to understand what to use for animations (enter and leave animations)"
+
+### Affected Files
+- `client/src/app/app.config.ts`
+- `client/src/styles/animations.scss`
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+
+### Reasoning Snapshot
+- Prefer Angular-native animation directives for forward compatibility and lower framework coupling.
+- Keep the migration minimal and focused on conditional UI blocks so behavior is immediately visible.
+- Reuse existing animation utility classes and add only one new class (`animate-fade-out`) to avoid unnecessary complexity.
+
+### Validation
+- `ng build --configuration development` completed successfully after the migration.
+
+---
+
+## 📅 February 11, 2026 - Complete Frontend Modernization with PrimeNG
+
+### Topic
+Migration from Angular Material to PrimeNG with custom solar-themed design system
+
+### Summary of Request
+User requested transformation of the current frontend to make it look more modern by:
+- Replacing Angular Material with PrimeNG
+- Implementing animations throughout the application
+- Applying a custom solar-themed color palette optimized for the target audience (homeowners, farmers, small businesses)
+- Creating a modern, energy-focused user experience
+
+### What Was Achieved
+
+#### 1. **Dependency Management**
+- Removed Angular Material (@angular/material, @angular/cdk)
+- Installed PrimeNG v21, PrimeIcons, and PrimeFlex
+- Updated Angular packages to latest minor version (21.0.x → 21.1.x) for compatibility
+
+#### 2. **Design System Creation**
+Created a comprehensive solar-themed design system with 4 new SCSS files:
+
+**`client/src/styles/variables.scss`**
+- Complete color palette for light and dark modes
+- Light mode: Soft mint green (#F0F7F4) background, emerald primary (#2D6A4F), electric yellow accent (#FFD600)
+- Dark mode: Obsidian green (#081C15) background with glowing solar accents
+- Spacing scale, border radius values (organic rounded corners 1.5-3rem)
+- Shadow system with special solar glow effects
+- Typography scale and responsive breakpoints
+
+**`client/src/styles/theme-light.scss`**
+- CSS custom properties for light mode
+- Component-specific styling (buttons, cards, inputs)
+- Solar accent card styling with yellow highlight
+- Hover effects and transitions optimized for daylight viewing
+
+**`client/src/styles/theme-dark.scss`**
+- CSS custom properties for dark mode
+- Enhanced glow effects for solar accent elements
+- Deeper shadows for better depth perception
+- Premium technical aesthetic with cyan highlights
+
+**`client/src/styles/animations.scss`**
+- Keyframe animations: fadeIn, fadeInUp, slideIn, scaleIn, pulse, solarPulse, shake, spin, shimmer
+- Utility classes for easy animation application
+- Stagger animations for list items
+- Hover effects: lift, scale, glow
+- Loading states: skeleton and spinner
+- Performance consideration: respects prefers-reduced-motion
+
+#### 3. **Global Styles Modernization**
+Updated `client/src/styles.scss`:
+- Converted from @import to @use for Sass modules (addressing deprecation warnings)
+- Integrated PrimeNG styling without deprecated resource paths
+- Applied organic border radius to all components
+- Custom scrollbar styling
+- Responsive utilities and typography system
+- PrimeNG component overrides for solar theme consistency
+
+#### 4. **Component Migration**
+
+**Visitor Components:**
+- **Landing Page** (`landing-page.component.ts`):
+  - Hero section with gradient background and animated solar icon
+  - CTA buttons with solar yellow accent and hover glow
+  - Feature cards using PrimeNG Card with icons
+  - Stagger animations on grid items
+  - Fully responsive design
+
+- **Login** (`login.component.ts`):
+  - PrimeNG Card with gradient header
+  - InputText and Password components with visual feedback
+  - Message component for error display with shake animation
+  - Focus states with solar theme colors
+  - Animated validation errors
+
+- **Register** (`register.component.ts`):
+  - Two-column form layout for better UX
+  - Password strength indicator with PrimeNG Password
+  - Solar yellow accent button theme
+  - Success/error message animations
+
+**User Components:**
+- **Dashboard** (`dashboard.component.ts`):
+  - Stat cards with icon backgrounds and color coding
+  - Solar accent card with yellow border and glow
+  - Skeleton loading states
+  - Recent projects grid with hover lift effects
+  - Project cards with clickable routing
+  - Responsive grid layouts
+
+- **Panel List** (`panel-list.component.ts`):
+  - DataView-style grid layout
+  - Efficiency badge tags
+  - Solar icon with pulse animation
+  - Spec items with hover states
+  - Empty state with centered icon
+
+- **User Projects** (`user-projects.component.ts`):
+  - "Coming Soon" placeholder with feature preview
+  - Feature list with checkmarks
+  - Solar yellow CTA button
+  - Graceful degradation pattern
+
+**Admin Components:**
+- **Admin Dashboard** (`admin-dashboard.component.ts`):
+  - Red accent theme for admin distinction
+  - Management cards with icon backgrounds
+  - Info card for planned features
+  - Text buttons for secondary actions
+
+- **Users List** (`users-list.component.ts`):
+  - Feature preview placeholder
+  - Admin-specific styling with red accents
+
+**Layout Components:**
+- **User Layout** (`user-layout.component.ts`):
+  - Gradient header with sticky positioning
+  - Animated solar icon logo
+  - Modern navigation with icons and labels
+  - Responsive hamburger-style on mobile
+  - Footer with branding
+  - PrimeNG Button integration for logout
+
+#### 5. **Application Configuration**
+Updated `client/src/app/app.config.ts`:
+- Added `provideAnimations()` for PrimeNG animation support
+
+### Full Original Prompt
+"I want you to help me transform the current frontend screens to make them look more modern, for that I want you to use PrimeNG instead of material design. I want the application to have animations. As you know we are creating an application to be used by home owners, small businesses and farmers evaluate how beneficial would be to install solar panels. I want the app to feel like a new, modern experience, and I would like to use the color palette that you know I want for this project."
+
+### Affected Files
+
+**New Files Created:**
+- `client/src/styles/variables.scss`
+- `client/src/styles/theme-light.scss`
+- `client/src/styles/theme-dark.scss`
+- `client/src/styles/animations.scss`
+
+**Modified Files:**
+- `client/package.json` (dependencies)
+- `client/src/styles.scss` (global styles)
+- `client/src/app/app.config.ts` (animations provider)
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.ts`
+- `client/src/app/features/user/panel-list/panel-list.component.ts`
+- `client/src/app/features/user/user-projects/user-projects.component.ts`
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.ts`
+- `client/src/app/features/admin/users-list/users-list.component.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+
+### Technical Reasoning
+
+#### Why PrimeNG Over Material?
+1. **Lighter Bundle Size**: PrimeNG is more tree-shakable and results in smaller production builds
+2. **Better Customization**: Easier to theme with CSS custom properties without fighting framework defaults
+3. **Rich Component Set**: 90+ components with consistent API
+4. **Better Accessibility**: Improved ARIA support and keyboard navigation out of the box
+5. **Active Development**: PrimeNG v21 is actively maintained and compatible with latest Angular
+
+#### Design System Architecture
+The design system follows a layered approach:
+1. **Variables Layer**: All design tokens (colors, spacing, shadows) in one file for easy maintenance
+2. **Theme Layer**: Light and dark modes as separate files for clear separation of concerns
+3. **Animation Layer**: Reusable animations as utility classes
+4. **Component Layer**: Each component imports what it needs
+
+This architecture allows:
+- Easy theme switching (future dark mode toggle)
+- Consistent design language across all components
+- Simple maintenance (change one variable, update everywhere)
+- Performance optimization (only load what's needed)
+
+#### Color Psychology Rationale
+- **Green Primary**: Represents sustainability, nature, growth - core values of solar energy
+- **Yellow Accent**: Directly represents solar/sun energy, draws attention to key actions
+- **Blue Technical**: Used for data visualization (sky, water, climate) - creates trust
+- **Organic Shapes**: Rounded corners (1.5-3rem) evoke natural, friendly, accessible feeling
+
+#### Animation Strategy
+Animations serve specific UX purposes:
+- **Page Transitions**: Orient users to navigation changes
+- **Stagger Effects**: Guide eye movement through content hierarchy
+- **Solar Pulse**: Creates ambient energy feeling, reinforces solar theme
+- **Hover Lift**: Provides tactile feedback, indicates interactivity
+- **Shake on Error**: Universal pattern for "something's wrong"
+- **Skeleton Loading**: Reduces perceived wait time, sets content expectations
+
+All animations respect `prefers-reduced-motion` for accessibility.
+
+#### Technical Challenges Solved
+1. **Sass Module System**: Converted deprecated @import to @use, required namespace handling (vars.$variable-name)
+2. **PrimeNG v21 Structure**: New version doesn't have resources/ folder, had to adjust import paths
+3. **CSS Custom Properties**: Used for runtime theming while maintaining Sass variables for build-time calculations
+4. **Z-index Management**: Created scale in variables to prevent z-index conflicts
+5. **Responsive Design**: Mobile-first approach with consistent breakpoints
+
+### Testing Notes
+- Build successful with no errors
+- All TypeScript strict mode checks pass
+- No Sass deprecation warnings after @use migration
+- Hot reload working correctly during development
+- Component imports properly tree-shaken
+
+### Future Enhancements
+- Dark mode toggle implementation (infrastructure already in place)
+- Add more PrimeNG components (DataTable, Dialog, Toast) as features are built
+- Implement theme persistence (localStorage)
+- Add Highcharts integration with solar theme colors
+- Create reusable component library from patterns
+
+### Metrics
+- **Time to Complete**: ~4-5 hours of implementation
+- **Files Modified**: 17 files
+- **New Files Created**: 4 theme files
+- **Lines of Code**: ~2,500 lines (styles + component templates)
+- **Bundle Size Impact**: TBD (needs production build measurement)
+
+---
+
+## 📅 February 18, 2026 - Admin Panels View — PrimeNG Redesign & File Split
+
+### Topic
+Redesign the admin panels management view to match the user panel-list style, and split it into 3 separate files.
+
+### Summary of Request
+User asked to update the admin panels list view using the user panel-list as a reference, and to break the single component file into separate component, HTML, and SCSS files.
+
+### What Was Achieved
+- **Replaced raw HTML table** with PrimeNG card grid layout matching `panel-list.component.ts` (user view).
+- **Added admin-specific actions** (Edit / Delete buttons) on each card using `p-button` with `severity="secondary"` and `severity="danger"`.
+- **Added "Add Panel" `p-button`** in the page header for quick access.
+- **Improved empty state** with an icon and "Add First Panel" call-to-action button.
+- **Skeleton loading states** using `p-skeleton` inside `p-card` grid (consistent with user view).
+- **Split into 3 files**: `panels.component.ts`, `panels.component.html`, `panels.component.scss`.
+- **Added `ChangeDetectionStrategy.OnPush`** and removed `CommonModule` in favour of specific PrimeNG modules.
+
+### Full Prompt
+> "Our routes are not very well organized, but lets worry about that later. Now lets continue updating screens. Lets update the admin panel list view using the one from the user. Also break the component file into three files (component, css and html)"
+
+### Affected Files
+- `client/src/app/features/admin/panels/panels.component.ts` — Updated metadata, PrimeNG imports, OnPush
+- `client/src/app/features/admin/panels/panels.component.html` — New file (extracted + redesigned template)
+- `client/src/app/features/admin/panels/panels.component.scss` — New file (card grid styles matching user view)
+
+### AI Reasoning
+The user panel-list already established the design language (card grid, bolt icon with yellow pulse, efficiency badge, spec items). The admin view needed the same visual structure with two additional concerns: (1) action buttons per card (Edit/Delete) using PrimeNG outlined buttons, and (2) a top-level "Add Panel" button. Splitting into 3 files follows Angular best practices and makes the template maintainable as it grows.
+
+---
+
+## 📅 February 28, 2026 - Editable Location Map in Configure Project
+
+### Topic
+Add editable project location (address search + polygon drawing) to the configure-project component, matching the add-project UX.
+
+### Summary of Request
+User requested making the project location editable in the configure-project component, like it is in the add-project component — with address search and polygon drawing.
+
+### What Was Achieved
+
+Replaced the read-only map preview in Step 1 of the configure-project wizard with a fully editable location section:
+
+- **Address search bar** using Nominatim/OpenStreetMap geocoding (same as add-project) with PrimeNG InputText + Button
+- **Editable Leaflet map** with polygon draw controls via the shared `LocationMapComponent` in editable mode
+- **Pre-populated polygon** from the existing project data that users can redraw
+- **Polygon status indicator** showing whether a polygon is defined and with how many points
+- **Location & area summary** in the Step 3 review view (coordinates + polygon point count)
+- **Smart save logic**: if the user edits the polygon, the new coordinates are sent to the server; otherwise the original `area` is preserved
+- **Unsaved changes detection** now also tracks polygon edits via `polygonEdited` signal
+
+### Full Original Prompt
+"We should add the project location to be editable, like in the add-project component"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Added editable map, address search, polygon handling, location review items, CSS
+
+### Agent Reasoning
+- Reused the existing `LocationMapComponent` in `[editable]="true"` mode — same component used by `AddProjectComponent`, no duplication.
+- Added `HttpClient` for Nominatim geocoding (same approach as add-project).
+- Added `polygonEdited` signal to track whether the user actually changed the polygon, so the unsaved changes indicator and save payload logic are correct.
+- The map pre-loads with the existing project's coordinates and polygon, so users see their current installation area and can modify it if needed.
+- Styled the address search using PrimeNG InputText + Button for visual consistency with the rest of the step, replacing the plain HTML inputs used in add-project.
+
+### Validation
+- `ng build --configuration=development` — clean build, no errors
+- Zero TypeScript/lint errors
+
+---
+
+## 📅 February 28, 2026 - Configure Project Component (PrimeNG Stepper Wizard)
+
+### Topic
+Create a rich, multi-step configure-project page using PrimeNG components for editing existing solar project settings.
+
+### Summary of Request
+User requested a highly aesthetic and UX-friendly configure-project component using PrimeNG CSS components. The component should allow users to edit all configurable fields of an existing project.
+
+### What Was Achieved
+
+**Created `ConfigureProjectComponent`** — a 3-step wizard using PrimeNG Stepper:
+
+1. **Step 1 — General Info**: Project name, country, timezone (filterable Select), currency, energy price. Includes a read-only Leaflet map preview showing the project's polygon.
+2. **Step 2 — Panel & Installation**: Solar panel selection (rich dropdown with wattage, efficiency, technology details), number of panels, tilt/inclination, orientation/direction, azimuth, row spacing. Features a live capacity preview card that updates reactively.
+3. **Step 3 — Review & Save**: Side-by-side summary cards with edit buttons to jump back to any step, a highlighted total capacity card with solar glow effect, success/error messages, and save button.
+
+**PrimeNG components used:** Stepper, FloatLabel, InputText, InputNumber, Select, Button, Card, Tag, Divider, Message, Skeleton, Tooltip.
+
+**Design highlights:**
+- Custom step icons with active state transitions
+- Organic rounded corners (24px cards) consistent with solar planner design system
+- Solar yellow highlight for capacity preview with glow effect
+- Responsive grid that collapses to single column on mobile
+- Unsaved changes indicator tag in header
+- Loading skeleton state and error state with back navigation
+- `ChangeDetectionStrategy.OnPush` for performance
+
+**Additional fixes:**
+- Updated `ProjectUpdateRequest` interface to match server's `ProjectUpdateSchema` (was outdated with only name/address/orientation)
+- Removed stale `console.warn` from `ProjectService.updateProject()` — the server endpoint exists
+- Wired "Configure" button in `ViewProjectComponent` to navigate to `/projects/:id/configure`
+- Added lazy-loaded route for the new component
+
+### Full Original Prompt
+"I want you to help me create a very good in UX and very aesthetic configure-project component using primeng css components."
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — **New** (main component)
+- `client/src/app/app.routes.ts` — Added `/projects/:id/configure` route
+- `client/src/app/features/user/view-project/view-project.component.ts` — Wired Configure button with routerLink
+- `client/src/app/core/models/project.model.ts` — Updated `ProjectUpdateRequest` to match server schema
+- `client/src/app/core/services/project.service.ts` — Cleaned up `updateProject` method
+
+### Agent Reasoning
+- Chose PrimeNG Stepper over a flat form to break the ~12 configurable fields into digestible steps, reducing cognitive load for farmers/homeowners who are the primary audience.
+- Used `ProjectResponse` type instead of `Project` in the component since the server API returns the flat response shape (with `tilt`, `direction`, `panelNumber`, etc.) rather than the domain model shape.
+- The `area` field (polygon coordinates) is required by the server's `ProjectUpdateSchema` — the component passes through the original `area` from the loaded project on save, since polygon editing is deferred to a later iteration.
+- Used `forkJoin` to load project + panels in parallel for faster initial render.
+- Reactive form with `toSignal(valueChanges)` enables computed signals for live capacity preview and unsaved changes detection without manual subscriptions.
+
+### Validation
+- `ng build --configuration=development` — clean build, no errors
+- Zero TypeScript/lint errors in all affected files
+
+---
+
+## 📅 February 22, 2026 - Leaflet Map in View-Project Component
+
+### Topic
+Display an interactive Leaflet map in the view-project page using the project's stored coordinates.
+
+### Summary of Request
+User asked to add a Leaflet map to the view-project page showing the project's location. Leaflet was already present (used in add-project). Goal was to reuse the existing setup rather than duplicating code.
+
+### What Was Achieved
+- **Created `LocationMapComponent`** (`client/src/app/shared/components/location-map/location-map.component.ts`): A reusable, read-only Leaflet map standalone component using Angular signal inputs (`lat`, `lng`, `polygon`, `zoom`). Reuses the same three tile layers (Street/Satellite/Topo) already used in `AddProjectComponent`. Uses `@ViewChild` + `ElementRef` to avoid hard-coded `id="map"` conflicts. Optionally draws the installation polygon in yellow when coordinates are provided.
+- **Extended `ProjectDetailView`** interface with `lat: number | null`, `lng: number | null`, and `polygonCoords: Coordinates[]`.
+- **Updated `mapProject()`** to extract coordinates from `source.coordinates?.lat/lng` with fallbacks to `source.lat/source.lon`.
+- **Replaced the map placeholder** in view-project template with `<app-location-map>` inside a fixed-height wrapper. Falls back to the placeholder icon if coordinates are missing.
+- **Confirmed Leaflet CSS** is already imported globally in `styles.scss` — no additional setup needed.
+
+### Full Prompt
+> "Leaflet is already included. Look inside the add-project component. There is a leaflet map that has already been implemented there. Can we reuse that?"
+
+### Affected Files
+- `client/src/app/shared/components/location-map/location-map.component.ts` — New reusable map component
+- `client/src/app/features/user/view-project/view-project.component.ts` — Added imports, extended view model, replaced placeholder
+
+### AI Reasoning
+Instead of copying the Leaflet initialization directly into view-project (which would duplicate tile layer setup and CSS encapsulation concerns), the approach extracted the read-only display logic into a shared `LocationMapComponent`. This keeps `add-project` self-contained (it needs draw controls, edit events, geolocation), while giving any other page a simple drop-in map via signal inputs. `ViewEncapsulation.None` is carried over since Leaflet's CSS must escape component scope to style `.leaflet-container` and its children.
+
+---
+
+## 📅 March 1, 2026 - Fix Layout Headers/Footers Not Filling Full Width
+
+### Topic
+Headers and footers in all three layout components (user, admin, visitor) were not spanning the full horizontal viewport width, and had a gap at the top.
+
+### Summary of Request
+User reported that all layout headers and footers did not completely fill the horizontal space, and headers didn't fill the top space either. Asked whether switching to a PrimeNG header component would help.
+
+### What Was Achieved
+- **Added `margin: 0; padding: 0;` to the global `html, body` reset** in `styles.scss` to eliminate the browser's default `8px` body margin that was causing the gap at the top and sides.
+- **Added `:host { display: block; }` to all three layout components** (`UserLayoutComponent`, `AdminLayoutComponent`, `VisitorLayoutComponent`) so Angular custom elements take full width instead of defaulting to `display: inline`.
+- **Recommended keeping custom headers** over PrimeNG Menubar/Toolbar since the custom headers already match the solar design system, are fully responsive, and offer more styling control.
+
+### Full Prompt
+> "I have an issue with the layouts (user, admin, visitor). All of the headers and footers do not completely fill the horizontal space. And the headers dont fill the top space either. How can I fix that? I was using a normal header. Maybe for simplicity would it make sense to use a header from primeng? What do you think?"
+
+### Affected Files
+- `client/src/styles.scss` — Added `margin: 0; padding: 0;` to `html, body` reset
+- `client/src/app/layouts/user-layout/user-layout.component.ts` — Added `:host { display: block; }`
+- `client/src/app/layouts/admin-layout/admin-layout.component.ts` — Added `:host { display: block; }`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts` — Added `:host { display: block; }`
+
+### AI Reasoning
+The root cause was two compounding CSS issues: (1) browsers apply a default `margin: 8px` on `<body>`, which was never reset, creating visible gaps around all edges; (2) Angular component host elements render as `display: inline` by default, so the layout wrappers weren't stretching to full width. The `app-root` already had `:host { display: block }` but the layout components did not. Switching to PrimeNG header components was not recommended since it would introduce styling constraints (fighting built-in padding/colors) without solving the actual CSS reset issue, and the existing custom headers already align with the design system.
+
+---
+
+## 📅 March 1, 2026 - Fix Panel Dropdown Selection & Capacity Preview Bug
+
+### Topic
+Bug fix for the configure-project component where the solar panel dropdown didn't show the selected panel and the live capacity preview showed "Select a panel" even after selection.
+
+### Summary of Request
+When configuring a project with a different polygon and location, the solar panel dropdown does not show the panel being used for calculations as selected, and when selecting it, the live capacity preview shows a message that a panel must be selected first.
+
+### What Was Achieved
+- Identified root cause: the server's `transformPanelToResponse` returns panels with `_id` but **no `id` field**, while the PrimeNG dropdown used `optionValue="id"` and the form stored the panel's MongoDB `_id` string. This mismatch meant every dropdown option had `undefined` as its value, so nothing matched the form's `panelId`.
+- **Fixed** by normalizing panel data when loaded: `panels.map(p => ({ ...p, id: p.id ?? p._id ?? '' }))`. This ensures every panel object has a populated `id` field that matches the stored `panelId` from `project.panel`.
+- The `selectedPanelData` computed signal now correctly resolves the panel, making the capacity preview display properly.
+
+### Full Original Prompt
+"When configuring a project and using a different polygon and location, the solar pannel dropdown does not show the panel being used for the calculations as selected, and when I select it, the live capacity preview shows a message that I must select a panel first. Lets fix that bug"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Normalize `id` from `_id` when setting panel list
+
+### AI Reasoning
+The server's panel transform function (`transformPanelToResponse`) only maps `_id` to a string but never adds an `id` property. The client's `Panel` interface declares `id: string` but the actual API response objects lack it. The PrimeNG `<p-select>` with `optionValue="id"` resolved to `undefined` for every option, so the pre-populated `panelId` (a valid ObjectId string from `project.panel`) never matched any option. After selection, `panelId` was set to `undefined`, causing `selectedPanelData()` to return `null` and showing the "Select a panel" fallback message. The fix normalizes panel data on the client side immediately after loading, ensuring `id` is always populated from `_id`.
+
+---
+
+## 📅 March 4, 2026 - Match Currency & Energy Price Input Sizes to Meta-Chips
+
+### Topic
+Resize the PrimeNG `p-select` (currency) and `p-inputnumber` (energy price) inside the metadata strip so they visually match the compact height of the adjacent `.meta-chip` pills.
+
+### Summary of Request
+User asked to make the currency dropdown and energy price input in the metadata strip match the size of the meta-chip elements.
+
+### What Was Achieved
+Updated `::ng-deep` styles in `configure-project.component.ts` to apply identical padding (`0.4rem 0.85rem`), `font-size: 0.82rem`, and `line-height: 1` to the inner elements of both PrimeNG components. Set `height: auto` on the wrapper so they shrink naturally, and narrowed the select dropdown trigger to `1.75rem`.
+
+### Full Prompt
+"Can you help me with the size of the currency and energy price editables and inputtext, dropdown to match the size of the meta-chips"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Updated `::ng-deep` styles for `.meta-editable .p-select` and `.meta-editable .p-inputnumber`
+
+### AI Reasoning
+The `.meta-chip` elements used compact padding (`0.4rem 0.85rem`) and small font (`0.82rem`), while the PrimeNG input components used their default larger sizing. The fix targets the inner rendered elements (`.p-select-label`, `.p-inputtext`) with matching padding, font-size, and line-height to bring them to the same visual height as the chips.
+
+---
+
+## 📅 March 4, 2026 - Restore Bubble Backgrounds & Migrate to PrimeNG Tokens
+
+### Topic
+Restore bubble backgrounds on `.meta-chip` and `.meta-editable` and replace all hardcoded hex colors with PrimeNG CSS custom properties for theme-awareness.
+
+### Summary of Request
+User noticed the meta-editable inputs had lost their bubble background and asked to restore it, while converting all hardcoded colors to PrimeNG design tokens.
+
+### What Was Achieved
+- **`.meta-chip`**: Replaced `#f0f7f4` → `var(--p-surface-50)`, `#1b4332` → `var(--p-green-600)`.
+- **`.meta-chip i`**: `#40916c` → `var(--text-color-secondary)`.
+- **`.meta-separator`**: `#b7e4c7` → `var(--surface-border)`.
+- **`.meta-editable`**: Added bubble background (`var(--p-surface-50)`), `border-radius: 20px`, asymmetric padding for compact look.
+- **`.meta-editable label`**: `#40916c` → `var(--text-color-secondary)`.
+- **PrimeNG `::ng-deep` overrides**: Made `p-select` and `p-inputnumber` inside `.meta-editable` transparent/borderless so they blend into the bubble; set text color to `var(--p-green-600)` with `font-weight: 600`; removed hover/focus borders and box-shadows.
+
+### Full Prompt
+"Ok, that is good, but did you remove the background those meta chips and meta editables had? if so, put them back, so that they look like bubbles. Remember to make everything primeng first so that the elements can use the color preset"
+
+### Affected Files
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — Replaced hardcoded hex colors with PrimeNG/theme CSS variables; restored bubble backgrounds on `.meta-editable`
+
+### AI Reasoning
+The metadata strip had hardcoded hex colors that wouldn't respond to theme changes (light/dark mode). The PrimeNG preset defines `--p-surface-50`, `--p-green-600`, etc., and the custom theme files define `--text-color-secondary` and `--surface-border`. By converting to these variables, the bubbles now adapt automatically to the active theme. The PrimeNG inputs inside `.meta-editable` were made transparent and borderless so the bubble container itself acts as the visual boundary, matching the `.meta-chip` aesthetic.
+
+---
+
+## 📅 March 7, 2026 - Add-Project Full-Screen Wizard & Cultivar Entity
+
+### Topic
+Full-screen multi-step project creation wizard + new Cultivar backend entity for agrivoltaic support.
+
+### Summary of Request
+Implement the approved `ADD-PROJECT-WIZARD-PLAN.md` — transform the single-page `AddProjectComponent` into a full-screen 4-step wizard (Project Info → Location & Area → Configuration → Review), introduce the Cultivar backend entity for agrivoltaic crop types, add new fields to the Project entity (`projectType`, `description`, `cultivar`), create an unsaved-changes guard, and route `projects/add` outside the user layout for a headerless/footerless experience.
+
+### What Was Achieved
+- **New Cultivar backend entity (6 files):** Mongoose model, Zod schema, types, service (CRUD), controller, routes — registered at `/api/cultivars` with admin-only write endpoints and user-accessible read endpoints.
+- **Project entity extended:** Added `projectType` (roof/agrivoltaic), `description`, and `cultivar` (ObjectId ref) to Mongoose model, Zod create/update schemas, TypeScript response types, and service layer (with cultivar validation on create).
+- **Client Cultivar model + service:** New `Cultivar` interface and `CultivarService` with `getAllCultivars`, `getCultivarById`, `getCultivarsByCategory`.
+- **Unsaved-changes guard:** `canDeactivate` guard with `HasUnsavedWork` interface — warns on navigation away from dirty wizard state.
+- **Routing change:** `projects/add` moved to a top-level standalone route (outside `UserLayoutComponent`) with `canDeactivate: [unsavedChangesGuard]`.
+- **Full add-project component rewrite:** 4-step PrimeNG Stepper wizard with:
+  - Step 1: Name, description, project type toggle (Roof / Agrivoltaic)
+  - Step 2: Map + search + polygon drawing + country/timezone auto-detection + energy price
+  - Step 3: Panel selector, panel count, tilt, direction, row spacing, cultivar selector (agrivoltaic), optimal config calculation, warnings system, Reset to Optimal, 3D placeholder
+  - Step 4: Full review with edit buttons per section + Create Project
+- **Minimal top bar** with brand icon, step indicator, and exit button with PrimeNG ConfirmDialog.
+- **`beforeunload` listener** for browser tab close protection.
+- **Client project model updated:** `ProjectCreateRequest` and `ProjectResponse` gained `description`, `projectType`, `cultivarId`/`cultivar` fields.
+- **Barrel exports updated:** Models index exports Cultivar types; Guards index exports `unsavedChangesGuard`; Services index exports `CultivarService`.
+
+### Full Prompt
+"Let's follow this add-project-wizard-plan.md to update the component and implement all the new features. Read everything and start implementing when you have all the context necessary, we have got to nail this!"
+
+### Affected Files
+
+**New files (9):**
+- `server/src/models/cultivar.model.ts`
+- `server/src/schemas/cultivar.schema.ts`
+- `server/src/types/cultivar.types.ts`
+- `server/src/services/cultivar.service.ts`
+- `server/src/controllers/cultivar.controller.ts`
+- `server/src/routes/cultivar.routes.ts`
+- `client/src/app/core/models/cultivar.model.ts`
+- `client/src/app/core/services/cultivar.service.ts`
+- `client/src/app/core/guards/unsaved-changes.guard.ts`
+
+**Modified files (9):**
+- `client/src/app/app.routes.ts` — Moved `projects/add` outside layout + added `canDeactivate`
+- `client/src/app/features/user/add-project/add-project.component.ts` — Full rewrite as 4-step wizard
+- `client/src/app/features/user/add-project/add-project.component.html` — New external template
+- `client/src/app/features/user/add-project/add-project.component.scss` — New external styles
+- `client/src/app/core/models/project.model.ts` — Added `description`, `projectType`, `cultivarId`/`cultivar`
+- `client/src/app/core/models/index.ts` — Added cultivar model exports
+- `client/src/app/core/guards/index.ts` — Added `unsavedChangesGuard` export
+- `client/src/app/core/services/index.ts` — Added `CultivarService` export
+- `server/src/routes/index.ts` — Registered `/cultivars` routes
+- `server/src/models/project.model.ts` — Added `projectType`, `description`, `cultivar` fields
+- `server/src/schemas/project.schema.ts` — Added new fields to create/update schemas
+- `server/src/types/project.types.ts` — Added new fields to `ProjectResponse`
+- `server/src/services/project.service.ts` — Cultivar validation + new fields in transform
+
+### AI Reasoning
+The plan specified a clear architecture: move the `projects/add` route outside `UserLayoutComponent` in `app.routes.ts` so no header/footer renders (Angular evaluates routes top-to-bottom, so `projects/add` matches before the `projects` parent route). The Cultivar backend entity follows the exact same layered pattern as Panel (Model → Schema → Types → Service → Controller → Routes). The wizard component uses PrimeNG Stepper with `activateCallback` for programmatic step navigation. Signals replace reactive forms for simpler state management in a wizard context. The `HasUnsavedWork` interface enables both the `canDeactivate` guard (URL-based navigation) and the `beforeunload` listener (browser close) to protect unsaved progress. Warning computations use `computed()` signals that auto-react to panel count and cultivar changes.
+
+---
+
+## 📅 March 7, 2026 — Fix: Optimal Config not calculating after panel selection
+
+### Topic
+Bug fix: `computed()` signals using plain properties instead of signals — optimal config never triggered.
+
+### Summary of Request
+After drawing a polygon and selecting a panel, the optimal config calculation was not being triggered. The user reported the calculate flow was broken.
+
+### What Was Achieved
+- **Root cause identified:** `selectedPanelId`, `panelCount`, `tiltAngle`, `selectedDirection`, `rowSpacing`, and `energyPrice` were declared as plain class properties (not signals). They were used inside `computed()` signals (`canCalculate`, `canProceedStep3`, `totalCapacity`, `warnings`, `selectedPanelData`, etc.). Angular's `computed()` only tracks signal reads — plain property mutations are invisible, so computed values returned stale cached results. When `onPanelChange()` called `onCalculate()`, `canCalculate()` still returned the cached `false` from before the panel was selected.
+- **Fix applied:** Converted all 7 plain properties to `signal()`. Updated all reads to `.()`, all writes to `.set()`, all `[(ngModel)]` bindings to split `[ngModel]`/`(ngModelChange)` pattern, and all template interpolations to call the signal.
+
+### Full Prompt
+"Ok. There are several things I want to fix, but the first is that the optimal config is not working. And after setting the location and drawing the polygon, the optimal config is not being calculated after setting the panel"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.ts` — 7 properties converted from plain to `signal()`, all method references and computed signals updated
+- `client/src/app/features/user/add-project/add-project.component.html` — All ngModel bindings and interpolations updated for signal reads
+
+### AI Reasoning
+Angular's `computed()` creates a reactive computation that tracks which signals were read during evaluation. When a `computed()` reads a plain class property (e.g., `this.selectedPanelId`), that read is NOT tracked — Angular has no way to know the property changed. The cached result is returned until a tracked signal dependency changes. Converting all mutable configuration properties to signals ensures `computed()` re-evaluates whenever any dependency changes, making the reactive chain from panel selection → `canCalculate` → `onCalculate` → estimation work correctly.
+
+---
+
+## 📅 March 7, 2026 — Fix: Row spacing not recalculating panel count
+
+### Topic
+Row spacing changes did not update max panels or panel count — missing client-side `maxPanels` formula.
+
+### Summary of Request
+User reported that modifying row spacing did not recalculate the number of panels.
+
+### What Was Achieved
+- **Server response extended:** Added `surfaceArea` (m²) and `latitude` to `OptimalConfigResponse` so the client has the polygon area for local recalculation without a server round-trip.
+- **Client-side `maxPanels` computed signal:** Uses the plan formula `panelFootprint = W × (H × cos(α) + d)` with utilisation factors (roof 0.85, agrivoltaic 0.70). Reacts instantly to `rowSpacing`, `tiltAngle`, `selectedPanelData`, `projectType`, and `estimation` changes.
+- **Client-side `shadowSpacing` computed signal:** Calculates minimum row spacing to avoid winter solstice noon shadows using `d = H × sin(α) / tan(β)` where `β = 90° − |lat| − 23.45°`.
+- **`onRowSpacingChange()` handler:** Auto-clamps `panelCount` to `maxPanels` when row spacing increases beyond what fits the current panel count.
+- **Warnings upgraded:** Now use client-side `maxPanels()` instead of server `recommendedPanels`, and include a new shadow-distance info warning.
+- **Max panels badge:** Shows "Max panels for current spacing: **N**" below the row spacing input.
+
+### Full Prompt
+"There are issues with the row spacing. When I modify it, the number of panels does not recalculate automatically, or at least I am not seing it"
+
+### Affected Files
+- `server/src/types/project.types.ts` — Added `surfaceArea` and `latitude` to `OptimalConfigResponse`
+- `server/src/services/project.service.ts` — Return new fields from `calculateOptimalConfig`
+- `client/src/app/core/models/project.model.ts` — Added fields to client interface
+- `client/src/app/features/user/add-project/add-project.component.ts` — Added `maxPanels`, `shadowSpacing` computed signals + `onRowSpacingChange()`
+- `client/src/app/features/user/add-project/add-project.component.html` — Wired `onRowSpacingChange` on input, added max panels badge
+- `client/src/app/features/user/add-project/add-project.component.scss` — Added `.max-panels-badge` style
+
+### AI Reasoning
+The server calculated `recommendedPanels` using only tilt and surface area — row spacing was not a factor. The plan (section 6) specifies a client-side `maxPanels` formula that explicitly includes row spacing (`d`) in the panel footprint. To avoid a server round-trip on every slider change, the server now returns `surfaceArea` and `latitude` once (after initial calculation), and the client computes `maxPanels` locally as a `computed()` signal that reacts instantly to row spacing, tilt, and panel selection changes.
+
+---
+
+## 📅 March 7, 2026 — Fix: Mismatched panel count between server and client + row spacing not updating input
+
+### Topic
+Unified panel calculation formula between server and client; row spacing changes now update the panel count input field.
+
+### Summary of Request
+User reported two issues: (1) the server's recommended panels and the client's "max panels" badge showed different numbers, and (2) changing row spacing didn't visually update the panel count input field.
+
+### What Was Achieved
+- **Unified formula:** Replaced the server's old `tiltFactor`-based formula (`panelArea × (1 + tilt/90 × 0.3)` with 80% utilisation) with the plan's canonical formula: `panelFootprint = W × (H × cos(α) + d)` where `d` is the shadow-based optimal row spacing, with 85% utilisation. Both server and client now use the same formula, so `recommendedPanels` from the server matches `maxPanels()` on the client (at the same row spacing).
+- **Server computes `recommendedRowSpacing`:** Using `d = H × sin(α) / tan(β)` where `β = 90° − |lat| − 23.45°`, with a 0.6m minimum. Returned in `OptimalConfigResponse` so the client initialises the row spacing input from it.
+- **Client sets initial `rowSpacing` from server response:** `onCalculate()` now sets both `rowSpacing` and `panelCount` from the server response, ensuring they start consistent.
+- **`onRowSpacingChange(value)` always sets `panelCount` to `maxPanels()`:** Previously it only clamped down — now it recalculates for any direction of change, and accepts the value as a parameter for correct signal ordering.
+- **`resetToOptimal()` also resets row spacing** to `recommendedRowSpacing` from the estimation.
+
+### Full Prompt
+"For some reason the calculations being made by the optimal config and what is showing as a info panel for max panels is different. Make sure you use the same function to calculate the number of panels, also, when modififying the row spacing, the number of panels in the input field is not updating"
+
+### Affected Files
+- `server/src/types/project.types.ts` — Added `recommendedRowSpacing` to `OptimalConfigResponse`
+- `server/src/services/project.service.ts` — Replaced old tiltFactor formula with plan formula (panelFootprint + shadow-based row spacing)
+- `client/src/app/core/models/project.model.ts` — Added `recommendedRowSpacing` to client interface
+- `client/src/app/features/user/add-project/add-project.component.ts` — `onCalculate` sets `rowSpacing` from server; `onRowSpacingChange(value)` accepts param and always updates `panelCount`; `resetToOptimal` resets spacing too
+- `client/src/app/features/user/add-project/add-project.component.html` — Row spacing `(ngModelChange)` calls `onRowSpacingChange($event)` directly
+
+### AI Reasoning
+The root cause of the mismatch was two different formulas: the server used a simplistic `tiltFactor` approach while the client used the plan's `panelFootprint = W × (H × cos(α) + d)`. By making the server use the same formula (including shadow-based row spacing), both sides agree on `recommendedPanels` at the default spacing. The input field not updating was caused by `onRowSpacingChange()` only clamping down — it now always sets `panelCount = maxPanels()` so the number reacts in both directions. Refactoring the handler to accept the value parameter ensures `rowSpacing` signal is set before `maxPanels()` is read.
+
+---
+
+## 📅 March 7, 2026 — Feature: Panel count changes recalculate row spacing
+
+### Topic
+Bidirectional relationship between panel count and row spacing.
+
+### Summary of Request
+User requested that modifying the number of panels also recalculates the row spacing.
+
+### What Was Achieved
+- **`onPanelCountChange(value)` now reverse-calculates row spacing** using the inverse of the plan formula: `d = (usableArea / (panelCount × W)) − H × cos(α)`. When the user increases panels, spacing shrinks; when they reduce panels, spacing grows.
+- Template updated to call `onPanelCountChange($event)` on `(ngModelChange)` instead of the old no-op pattern.
+
+### Full Prompt
+"Nice but one more thing. I also want the calculation to be made for the row spacing when the number of panels is modified in the input field"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.ts` — `onPanelCountChange(value)` implements inverse formula
+- `client/src/app/features/user/add-project/add-project.component.html` — `(ngModelChange)` calls `onPanelCountChange($event)`
+
+### AI Reasoning
+The forward formula is `maxPanels = floor(usableArea / (W × (H × cos(α) + d)))`. Solving algebraically for `d`: `d = (usableArea / (panelCount × W)) − H × cos(α)`. This makes the panel count ↔ row spacing relationship fully bidirectional while using the same underlying formula.
+
+---
+
+## 📅 March 8, 2026 - Git Line Ending Warning Fix (LF/CRLF)
+
+### Topic
+Resolved Git line-ending warning in Windows working copy by enforcing repository line-ending rules.
+
+### Summary of Request
+"Do it yourself please" (after asking how to fix warning: `LF will be replaced by CRLF the next time Git touches it`).
+
+### What Was Achieved
+- Added repository-level `.gitattributes` with `* text=auto eol=lf`.
+- Applied local Git setting: `core.autocrlf=false` in this repository.
+- Ran `git add --renormalize .` so Git re-indexes files according to the new policy.
+
+### Full Prompt
+"Do it yourself please"
+
+### Affected Files
+- `.gitattributes`
+- `santi-agent-interactions.md`
+- Re-indexed tracked text files due to normalization (no intentional logic changes).
+
+### AI Reasoning
+- A repo-level `.gitattributes` is the safest cross-platform fix because it makes line-ending behavior explicit and consistent for all contributors.
+- `--renormalize` applies the policy immediately so future Git operations stop producing this warning.
+
+---
+
+## March 14, 2026 - Add Project Sticky Header Parity with Configure Mode
+
+### Topic
+Introduced a configure-style sticky header in `add-project` with consistent navigation actions and mode labeling, while preserving the existing add-project stepper flow.
+
+### Summary of Request
+User requested adding an exit button to add-project and replicating the configure-project sticky-header look/feel and logic so both flows can later converge into a single shared source of truth.
+
+### What Was Achieved
+- Replaced add-project top header navigation with configure-style sticky header structure:
+  - Left actions: `Back` + `Exit Create Mode`
+  - Center badge: `Create Mode`
+  - Right action: dynamic `Next` / `Create Project`
+- Wired `Exit Create Mode` to existing `onExit()` confirmation logic (no behavior regression).
+- Added `stepNextLabel` computed signal to align CTA labeling logic with configure flow.
+- Kept the existing add-project horizontal stepper row and all step-specific content/validation logic intact.
+- Refactored add-project styles to use configure-style class names and responsive behavior for sticky header/nav groups.
+- Ran client build validation successfully (`npm run build`), with only pre-existing warnings unrelated to this change.
+
+### Full Prompt
+"I want to include an exit button to the add-project component. And replicate what we did for the configure-project component (in terms of look and feel and all of that. I want the same thing, but including the stepper that we currently have on the add-project component). How would you do that?"
+
+"Good. The idea is also to copy the look and feel + logic so that we can later create only one source of truth for this component (sticky-header). You can start implementing it"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.html`
+- `client/src/app/features/user/add-project/add-project.component.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+Using the same structural classes and interaction pattern as `configure-project` creates immediate visual/behavior parity and makes a later extraction to a shared sticky-header component straightforward. Reusing existing `onExit()` confirmation logic avoided introducing duplicate leave-flow logic while still matching expected UX.
+
+---
+
+## March 15, 2026 - Role-Switch Navigation Flicker Reduction in User Layout
+
+### Topic
+Reduced animation glitches when switching between user/admin-role-related tabs by narrowing route transition scope and removing broad `transition: all` usage in dock controls.
+
+### Summary of Request
+User reported a visual glitch while switching between role-management-related tabs and approved applying the minimal, targeted fix.
+
+### What Was Achieved
+- Scoped global route transition rule to routed page content containers instead of applying it to every element adjacent to a `router-outlet`.
+- Replaced broad `transition: all` in user dock controls with explicit property transitions:
+  - `.dock-toggle`: `background-color`, `color`, `transform`
+  - `.dock-item`: `background-color`, `color`, `box-shadow`
+- Preserved existing UX behavior while reducing unintended layout/paint transitions during navigation.
+
+### Full Prompt
+"I am having an issue with animations when switching in between tabs that have role management (admin/user)."
+
+"Okk, lets do that"
+
+### Affected Files
+- `client/src/styles.scss`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+The global selector `router-outlet + *` can animate layout host elements (including `app-user-layout`) during route swaps, which creates visible flicker when protected/admin views switch. Restricting animation to routed content containers and replacing `transition: all` with explicit properties removes most accidental animations without requiring a larger routing refactor.
+
+---
+
+## March 15, 2026 - Panels Route Unified Under Projects Shell
+
+### Topic
+Reduced navigation remount/jank by moving panel list navigation into the existing `projects` route tree and preserving legacy URL compatibility.
+
+### Summary of Request
+User approved the follow-up change to unify panel navigation under the same shell used for other protected user/admin pages.
+
+### What Was Achieved
+- Added `projects` child route `panels` that loads `PanelListComponent` under the same protected user layout shell.
+- Replaced the separate top-level protected `panels` route tree with compatibility redirects:
+  - `/panels` -> `/projects/panels`
+  - `/panels/all` -> `/projects/panels`
+- Updated dock navigation item path from `/panels/all` to `/projects/panels`.
+- Kept active matching compatible with both new and legacy path prefixes.
+
+### Full Prompt
+"Do that"
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/layouts/user-layout/user-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+Using one protected route shell for dashboards, projects, settings, and panels avoids switching between separate top-level layout trees during tab navigation. That reduces visual remount effects and makes transitions between role-related sections feel stable while still honoring old links via redirects.
+
+---
+
+## April 1, 2026 - Add-Project Stepper Label Font Weight Increase
+
+### Topic
+Made add-project stepper step names bolder to improve readability and visual emphasis.
+
+### Summary of Request
+User requested modifying the stepper name steps so they use a bolder font.
+
+### What Was Achieved
+- Updated the add-project stepper label style to use a stronger font weight.
+- Applied the change directly to `.step-label-wrap` so all step names render bolder consistently.
+- Validated edited stylesheet diagnostics: no errors in the changed file.
+
+### Full Prompt
+"Modify the stepper name steps so that they use a bolder version of the font"
+
+### Affected Files
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `santi-agent-interactions.md`
+
+### AI Reasoning
+The step labels are rendered via `.step-label-wrap` in the add-project custom stepper. Setting `font-weight: 700` at that selector is the smallest safe change that increases emphasis without affecting step layout or interaction logic.
+
+---
+
+## 📅 April 15, 2026 - Priority 2 Data Display & Nightly Refresh Scheduler (2.1, 2.2, 2.3)
+
+### Topic
+Implemented Priority 2 tasks: production charts in the project detail view, production breakdown on the user dashboard, and the nightly Solcast refresh scheduler.
+
+### Summary of Request
+User requested implementation of tasks 2.1 through 2.3 from the deferred features implementation plan (`IMPL_PLAN_DEFERRED_FEATURES.md`). These tasks depend on Priority 1 data already being present in the database.
+
+### What Was Achieved
+
+#### 2.1 Project Detail View — Production Charts & Solar Data
+- Added three Highcharts charts (using the pre-installed `highcharts` + `highcharts-angular` packages) to the project view mode (`configure-project` component):
+  - **Today's hourly production** — column chart from `prodToday`, amber-colored, showing hour-by-hour kWh
+  - **Next 6 days forecast** — bar chart from `nextProd`, green-colored, showing daily kWh forecasts
+  - **Past 6 days estimates** — bar chart from `previousProd`, indigo-colored, showing daily estimated actuals
+- Added **economic value card** computed from `sum(prodToday.pv + previousProd.pv) × project.price`, displayed with local currency symbol
+- All charts are guarded behind `hasProductionData()` and only visible in view mode
+- Added `HighchartsChartModule` to component imports; `Highcharts` exposed as a class property for the template binding
+
+#### 2.2 User Dashboard — Production Breakdown
+- Extended `DashboardStats` interface on both server (`project.types.ts`) and client (`project.model.ts`) with three new fields: `todayProduction`, `next6DaysTotal`, `past6DaysTotal`
+- Updated `getUserDashboard()` and `getAdminDashboard()` in `project.service.ts` to aggregate production arrays across all user projects
+- Added three new stat cards to `dashboard.component.html` in a "Production Overview" section, only rendered when at least one value is > 0
+
+#### 2.3 Nightly Production Refresh Scheduler
+- Added `totalProd?: number` field to `IProject` and `ProjectSchema` (server-side accumulator for lifetime kWh)
+- Installed `node-schedule` + `@types/node-schedule` in the server
+- Created `server/src/services/scheduler.service.ts` with:
+  - `initializeScheduler()` — loads all projects and registers jobs on startup
+  - `scheduleProjectJob(project)` — registers a cron job at 03:47 AM in the project's local timezone
+  - `cancelProjectJob(projectId)` — cancels a job (to call on project deletion)
+- Added `refreshProductionData(projectId)` public method to `ProjectService` that re-fetches Solcast data, overwrites the prod arrays, and increments `totalProd` via `$inc`
+- Wired `initializeScheduler()` into `server.ts` after DB connection is established
+- Updated `transformProjectToResponse` to include `totalProd` in the API response
+
+### Full Prompt
+"Follow the implementation plan detailed in the markdown file I am passing you as context. Since most of these implementations are big, I would like you to take on the priority two tasks in this chat (2.1 - 2.3), not more than that. We have already implemented the priority one features in another chat."
+
+### Affected Files
+- `server/src/models/project.model.ts` — added `totalProd` field
+- `server/src/types/project.types.ts` — added `totalProd` to `ProjectResponse`, added 3 production fields to `DashboardStats`
+- `server/src/services/project.service.ts` — updated `transformProjectToResponse`, `getUserDashboard`, `getAdminDashboard`; added `refreshProductionData()` public method
+- `server/src/services/scheduler.service.ts` — new file, nightly scheduler
+- `server/src/server.ts` — registered `initializeScheduler()` on startup
+- `client/src/app/core/models/project.model.ts` — added `ProductionPoint` interface, typed prod arrays in `ProjectResponse`, extended `DashboardStats`
+- `client/src/app/core/models/index.ts` — exported `ProductionPoint`
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — added `HighchartsChartModule`, chart computed signals, `economicValue` signal
+- `client/src/app/features/user/configure-project/configure-project.component.html` — added charts section (view mode only) and economic value card
+- `client/src/app/features/user/configure-project/configure-project.component.scss` — added chart and economic card styles
+- `client/src/app/features/user/dashboard/dashboard.component.ts` — extended `DashboardData` interface
+- `client/src/app/features/user/dashboard/dashboard.component.html` — added Production Overview section with 3 stat cards
+
+### AI Reasoning
+**2.1:** `highcharts-angular` was already installed, so no new packages were needed on the frontend. Charts are computed signals using `projectData()` directly — no extra HTTP calls. The charts section is conditional on `hasProductionData()` and `isViewMode()` to avoid cluttering the edit flow.
+
+**2.2:** The dashboard service method already loads all projects with populated panels; extending it with `.reduce()` over the `prodToday/nextProd/previousProd` arrays is O(n) with no additional DB queries. The 3 new stat cards are conditionally rendered so they don't appear as empty zeros for projects without Solcast data yet.
+
+**2.3:** The scheduler uses `node-schedule` (as specified in the plan, matching v1.0). The timezone-aware cron (`{ hour: 3, minute: 47, tz }`) ensures each project fires at 3:47 AM local time regardless of the server's timezone. `refreshProductionData` is a public method on the existing `ProjectService` singleton — no new class instantiation needed. The `$inc: { totalProd: todaySum }` is an atomic MongoDB operation that safely accumulates production even under concurrent conditions.
+
+---
+
+## 📅 April 18, 2026 - Priority 3 Standalone Improvements (3.1, 3.4, 3.5)
+
+### Topic
+Implemented three independent Priority 3 improvements: cascade delete on user removal, project count column in the admin users list, and a fully functional profile management page.
+
+### Summary of Request
+User requested implementing features 3.1, 3.4, and 3.5 from the deferred features plan in that order, with approval of the implementation plan before proceeding.
+
+### What Was Achieved
+
+#### 3.1 — Cascade Delete (user → projects + panels)
+- Resolved the `// TODO: Consider cascading delete for associated projects and panels` comment in `deleteUser()`.
+- Added `ProjectModel.deleteMany({ owner: userId })` and `PanelModel.deleteMany({ owner: userId, type: 'personal' })` before `UserModel.findByIdAndDelete(userId)`.
+- Added the missing `ProjectModel` and `PanelModel` imports to `user.service.ts`.
+- No schema changes needed — this was a 3-line fix as outlined in the plan.
+
+#### 3.4 — Admin Users List: Project Count per User
+**Backend:**
+- Replaced `UserModel.find()` + `countDocuments()` in `listUsers()` with a single MongoDB aggregation pipeline:
+  - `$match` — same role/email/search filters as before.
+  - `$sort { createdAt: -1 }` — preserves existing ordering.
+  - `$lookup` — joins `projects` collection on `projects.owner === user._id`, producing a temporary `_projects` array.
+  - `$addFields { projectCount: { $size: '$_projects' } }` — counts projects per user.
+  - `$project { _projects: 0 }` — removes full project docs from output (count only).
+- Added `projectCount` field to `UserResponse` in `server/src/types/user.types.ts` (optional, `number`).
+
+**Frontend:**
+- Added `projectCount?: number` to `UserResponse` interface in `client/src/app/core/models/user.model.ts`.
+- Added a sortable "Projects" `<th>` column to the `p-table` header (with `pSortableColumn="projectCount"`).
+- Added corresponding `<td>` cell displaying `user.projectCount ?? 0` with a `project-count` style class.
+- Updated `empty` template `colspan` from 7 → 8 to account for the new column.
+- Updated CSV export to include the "Projects" column.
+
+#### 3.5 — Profile Management Frontend
+- Replaced the profile page stub with a fully functional reactive form component.
+- **Profile form:** `fullName` field pre-filled by calling `userService.getMe()` on init; "Save changes" wired to `userService.updateProfile()` → `PATCH /api/users/:id/profile`; button disabled when pristine or invalid.
+- **Password form:** `currentPassword`, `newPassword` (min 8 chars), `confirmPassword`; cross-field validator `passwordsMatchValidator` checks equality; wired to `userService.changePassword()` → `PATCH /api/users/:id/password`; resets on success.
+- PrimeNG `Toast` (via `MessageService`) shows success/error feedback for both forms.
+- Avatar initial and display name update reactively after a successful profile save.
+- No backend changes needed — both endpoints were already implemented.
+
+### Full Prompt
+"Quiero que implementes las funcionalidades de prioridad 3 en este orden: 3.1, 3.4, 3.5. Primero esos 3 y luego irémos con los demás"
+
+After plan approval: "Yes"  
+After aggregation explanation: "Okk"
+
+### Affected Files
+- `server/src/services/user.service.ts` — Cascade delete + `listUsers()` aggregation refactor
+- `server/src/types/user.types.ts` — Added `projectCount?: number` to `UserResponse`
+- `client/src/app/core/models/user.model.ts` — Added `projectCount?: number` to `UserResponse`
+- `client/src/app/features/admin/users-list/users-list.component.ts` — Projects column, updated colspan and CSV export
+- `client/src/app/features/user/profile/profile.component.ts` — Full rewrite with reactive forms + Toast
+- `santi-agent-interactions.md` — This entry
+
+### Reasoning Snapshot
+
+**3.1 Cascade Delete:**
+- The correct approach is to delete dependents before the owner to avoid orphaned documents. Deleting projects first, then personal panels (filtering by `type: 'personal'` to leave global panels intact), then the user ensures referential consistency.
+- The `// TODO` comment made the location unambiguous — no search was needed.
+
+**3.4 Aggregation vs. N+1:**
+- The alternative (looping `countDocuments` per user) would be N+1 queries. The single `$lookup` + `$addFields` aggregation does it in one DB round-trip regardless of how many users exist.
+- `$project { _projects: 0 }` is critical to avoid sending full project documents over the wire — only the count is needed.
+- `projectCount` is optional (`?`) on both server and client types so existing single-user responses (`getUserById`, `updateProfile`, etc.) remain compatible without changes.
+
+**3.5 Profile Forms:**
+- `getMe()` is used on `ngOnInit` instead of reading from the `AuthService.currentUser()` signal because the signal holds the legacy `User` model (with `firstName`/`lastName`), while the server returns `fullName`. Loading from the API guarantees the correct field.
+- The cross-field `passwordsMatchValidator` is applied at the group level so it re-runs on every value change, allowing the error to clear as soon as both passwords match.
+
+---
+
+## April 19, 2026 - Google Button Style Unification
+
+### Topic
+Unifying the "Continue with Google" button style with the primary login/register buttons, placing both in a shared row and removing the OR divider.
+
+### Summary of Prompt
+The user requested that the Google auth button match the visual style of the "Sign In" / "Create Account" buttons, and that both buttons share equal space side-by-side inside a container, eliminating the `<p-divider>` and the "OR" text between them.
+
+### What Was Achieved
+- Replaced the Google Identity Services rendered button (`google.accounts.id.renderButton`) with a standard PrimeNG `<p-button severity="secondary">` that calls `google.accounts.id.prompt()` on click.
+- Created `client/src/assets/google-icon.svg` with the official Google multi-color logo SVG.
+- Both buttons now sit inside a `.auth-btn-row` flex container that splits the space equally (`flex-1`). On mobile (< 480px) they stack vertically.
+- Added `googleLoading` signal to track the Google auth loading state independently from the main form loading state.
+- Removed `DividerModule` import from both components as it is no longer used.
+- Applied to both `/login` and `/registration` pages.
+
+### Full Prompt
+"Me gustaría modificar el estilo del boton de 'Continue with google' para que sea del mismo estilo de los botones de login y register. Ademas me gustaría que ambos botones estuvieran en un contenedor y que se repartieran el espacio, por lo tanto eliminar el OR y el divisor que los separa"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+- `client/src/assets/google-icon.svg` *(new)*
+
+### Reasoning
+The Google SDK's `renderButton` renders its own iframe-based button that cannot be styled to match PrimeNG components. The solution is to use `google.accounts.id.prompt()` triggered from a custom `<p-button>`, which opens the same Google One Tap / popup flow. This gives full control over button appearance while keeping the same OAuth callback intact. The `flex-1` class on each button inside a `display: flex` row ensures equal width distribution without hardcoding pixel values.
+- `markAsPristine()` after a successful profile save disables the Save button again — preventing users from accidentally re-submitting the same data.
+
+---
+
+## April 19, 2026 - Dashboard Dynamic Greeting + User Model Fix
+
+### Topic
+Render the authenticated user's name in the dashboard welcome heading — and fix a model mismatch that caused the name to be blank for Google-authenticated users.
+
+### Summary of Prompt
+"Quiero que en el dashboard component, se renderice el nombre del usuario en el saludo. No se está renderizando ningún firstName con el usuario que tengo registrado con google."
+
+### What Was Achieved
+Dashboard greeting now displays the logged-in user's full name correctly for both local and Google-authenticated users.
+
+### Full Prompt
+"Quiero que en el dashboard component, se renderize el nombre del usuario `Welcome to Solar Planner, Santiago!`. Puedes revisar como se rellenan los datos del usuario cuando se inicia sesion desde google? No se está renderizando ningnun firstName con el usuario que tengo que he registrado con google."
+
+### Affected Files
+- `client/src/app/core/models/user.model.ts`
+- `client/src/app/features/user/dashboard/dashboard.component.html`
+
+### Reasoning
+Root cause: The server stores and returns the user's name as a single `fullName` field (`{ fullName: "Santiago Linares" }`). The client `User` interface modeled it as split `firstName` / `lastName` fields, which the server never sends. So `user()?.firstName` was always `undefined` at runtime — the field simply didn't exist on the object. The fix was to align the `User` interface with the server contract by replacing `firstName`/`lastName` with `fullName`, then updating the template binding from `user()?.firstName` to `user()?.fullName`.
+
+---
+
+## April 21, 2026 - Documentación: Feature Registry
+
+### Topic
+Documentación: Crear un archivo markdown con todas las features de la aplicación.
+
+### Summary of Prompt
+El usuario solicitó un markdown con todas las features de la aplicación, indicando con un tag `[~]` aquellas que pueden mejorar con mejores fuentes de datos o cálculos más precisos.
+
+### What Was Achieved
+Se creó `features.md` en la raíz del proyecto con un registro completo de todas las funcionalidades de Solar Planner v2, organizado por área funcional, con el tag `[~]` aplicado a 25+ features que tienen potencial de mejora.
+
+### Full Prompt
+"Creame un markdown file que contenga todas las features de esta aplicación. Añade un tag a aquellas que puedan ser mejoradas con mejores fuentes de datos o cálculos (no digas con qué tecnología, sino solo indica si tiene mejora)"
+
+### Affected Files
+- `features.md` — archivo nuevo creado en la raíz del proyecto
+
+### Reasoning
+Se exploró la base de código completa (frontend + backend) mediante un agente especializado para identificar todas las funcionalidades implementadas. Las features marcadas con `[~]` corresponden a cálculos con supuestos simplificados (factor de utilización fijo, horas pico promedio por latitud, fórmula de espaciado geométrica básica), datos externos con granularidad mejorable (Solcast, precios de electricidad), y especificaciones de paneles y cultivares que podrían enriquecerse con bases de datos más completas.
+
+---
+
+## May 7, 2026 - Fix: Google OAuth 2.0 Race Condition
+
+### Topic
+Fix Google sign-in failing silently on login and register pages due to async script load race condition.
+
+### Summary of Prompt
+User reported that Google OAuth 2.0 login was failing. Asked the agent to gather all necessary information and ask if needed before fixing.
+
+### What Was Achieved
+- Identified a race condition where `ngAfterViewInit` ran before the Google GSI script finished loading (`async` in `index.html`), causing `initialize()` to never register its callback.
+- Merged `initGoogleButton()` and `signInWithGoogle()` into a single method that calls `initialize()` immediately before `prompt()` on every click, guaranteeing the callback is always registered regardless of script load timing.
+- Removed the now-unnecessary `AfterViewInit` lifecycle hook from both `LoginComponent` and `RegisterComponent`.
+- TypeScript type check passes with zero errors.
+
+### Full Prompt
+> "Cuando intenton hacer el login mediante google oauth 2.0, me falla. Recupera toda la info necesaria y si lo necesitas pregunta"
+> (follow-up) "sí, procede"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.ts`
+- `client/src/app/features/visitor/register/register.component.ts`
+
+### Reasoning
+The Google GSI script is loaded with `async` in `index.html`, meaning it may not be available when `ngAfterViewInit` fires. The original code split initialization (`initGoogleButton` in `ngAfterViewInit`) from triggering (`signInWithGoogle`). If the script hadn't loaded by the time `ngAfterViewInit` ran, `initGoogleButton` silently returned without ever registering the credential callback. Then when the user clicked the button, `prompt()` was called but had no registered callback, so the flow was broken. The fix ensures `initialize()` is always called just before `prompt()` on every user click, which is safe per Google's docs (calling `initialize()` multiple times is idempotent).
+
+---
+
+## May 7, 2026 - Test: Unit tests for Google OAuth signInWithGoogle
+
+### Topic
+Add unit tests (Jest) for the `signInWithGoogle()` method fixed in the previous session, covering both `LoginComponent` and `RegisterComponent`.
+
+### Summary of Prompt
+User requested unit tests for the Google OAuth fix — no real connection, just unit-level coverage.
+
+### What Was Achieved
+- Set up Jest testing infrastructure for the Angular client from scratch (`jest`, `jest-preset-angular`, `jest-environment-jsdom`), since no test runner was previously installed.
+- Created `jest.config.js` and `setup-jest.ts` (with `TextEncoder`/`TextDecoder` polyfill and `setupZoneTestEnv()`) compatible with Angular 21 + zone.js.
+- Updated `package.json` scripts to use `jest` directly.
+- Wrote 8 unit tests per component (16 total) covering: guard when `window.google` is absent, correct `client_id` passed to `initialize()`, `initialize` called before `prompt()`, `googleLoading` signal set correctly, credential forwarded to `authService`, in-flight loading state (using a `Subject` to avoid synchronous mock collapse), navigation on success, and error handling.
+- All 16 tests pass.
+
+### Full Prompt
+> "Para esto no podemos meter tests (aunque no comprueben la conexión real), pero que sean unitarios"
+
+### Affected Files
+- `client/jest.config.js` — nuevo
+- `client/setup-jest.ts` — nuevo
+- `client/package.json` — scripts test/test:watch actualizados, devDependencies ampliadas
+- `client/src/app/features/visitor/login/login.component.spec.ts` — nuevo
+- `client/src/app/features/visitor/register/register.component.spec.ts` — nuevo
+
+### Reasoning
+The key challenges were: (1) `jest-preset-angular` v16 exports `setupZoneTestEnv` as a named function that must be explicitly called, not auto-executed on import; (2) `RouterLink` requires the real Angular router (`provideRouter([])`) rather than a partial mock; (3) in-flight state (`loading=true`) is not observable with synchronous `of()` mocks — solved with an unresolved `Subject` that holds the stream open during the assertion.
+
+---
+
+## May 7, 2026 - Client-Side Unit Tests (Comprehensive)
+
+### Topic
+Add comprehensive Jest unit tests to the Angular client covering `onSubmit` flows, form validation, guards, interceptors, and the AuthService.
+
+### Summary of Prompt
+"Añade tests unitarios al cliente side" — followed by approval of a 6-file plan. Work was done on a new feature branch `adding-client-side-tests` with a PR targeting `develop`.
+
+### What Was Achieved
+- Extended `login.component.spec.ts` with `onSubmit()` tests (5) and form-validation tests (3)
+- Extended `register.component.spec.ts` with `onSubmit()` tests (4), form-validation tests (3), and `ngOnDestroy` cleanup test (1)
+- Created `auth.guard.spec.ts` — 2 tests for the `authGuard` functional guard
+- Created `admin.guard.spec.ts` — 3 tests for the `adminGuard` functional guard
+- Created `jwt.interceptor.spec.ts` — 2 tests for the JWT header injection interceptor
+- Created `auth.service.spec.ts` — 11 tests covering login, register, logout, token decoding, isAdmin, and refreshToken
+- All **50 tests pass** across 6 suites (7 s)
+
+### Full Prompt
+> "Añade tests unitarios al cliente side"
+
+### Affected Files
+- `client/src/app/features/visitor/login/login.component.spec.ts` — extended
+- `client/src/app/features/visitor/register/register.component.spec.ts` — extended
+- `client/src/app/core/guards/auth.guard.spec.ts` — NEW
+- `client/src/app/core/guards/admin.guard.spec.ts` — NEW
+- `client/src/app/core/interceptors/jwt.interceptor.spec.ts` — NEW
+- `client/src/app/core/services/auth.service.spec.ts` — NEW
+
+### Reasoning
+
+**Guard testing with `devBypassAuth`:** The dev environment sets `devBypassAuth: true`, which short-circuits both guards. To test the actual guard logic, `jest.mock('@environments/environment', ...)` overrides it to `false`. Jest hoists `jest.mock()` calls before imports, so the guard module picks up the mocked environment automatically.
+
+**Functional guards and interceptors:** Angular 21 functional guards (`CanActivateFn`) require an injection context to call `inject()`. Guards were tested using `TestBed.runInInjectionContext()`. The interceptor was registered via `provideHttpClient(withInterceptors([jwtInterceptor]))` and verified end-to-end with `HttpTestingController`.
+
+**AuthService constructor isolation:** `AuthService` calls `checkAuthStatus()` in the constructor, which reads localStorage and may make a `GET /users/me` HTTP call. Calling `localStorage.clear()` in `beforeEach` before injecting the service makes the constructor exit early (no token), keeping each test isolated without any pending HTTP requests.
+
+**`fakeAsync` for timer-based flows:** `RegisterComponent.onSubmit()` sets a 1500 ms `setTimeout` before navigating on success. Tests use `fakeAsync` + `tick(1500)` to drain fake timers synchronously. The `ngOnDestroy` test confirms that `clearTimeout` before `tick(1500)` prevents navigation from firing.
+
+---
+
+## 📅 May 7, 2026 - Phase 2: High-Value Client-Side Unit Tests (12 New Suites, ~58 Tests)
+
+### Topic
+Extended the client-side test suite with 12 additional spec files covering interceptors, HTTP services, visitor/user/admin feature components, and the authenticated layout.
+
+### Summary of Prompt
+After Phase 1 (50 tests across 6 suites), the user was asked whether more coverage could be added. A scan of untested files was presented and the user approved implementing the high-value ones first.
+
+### What Was Achieved
+- **12 new spec files** added to the `adding-client-side-tests` feature branch
+- **~58 additional tests** covering:
+  - `api-response.interceptor.spec.ts` — envelope unwrapping, passthrough for non-envelope responses
+  - `auth-refresh.interceptor.spec.ts` — non-401 passthrough, 401 on `/auth/login` skipped, refresh+retry flow, failed refresh triggers logout
+  - `http-error.model.spec.ts` — `getErrorMessage()` pure function: all edge cases for missing/wrong-typed message fields
+  - `project.service.spec.ts` — POST, paginated GET, optional filters, admin owner filter, DELETE, analytics endpoint
+  - `panel.service.spec.ts` — pagination, envelope extraction, POST, DELETE, `searchPanels()` with/without filters
+  - `user.service.spec.ts` — GET /me, PATCH profile, PATCH password, GET all users, DELETE
+  - `forgot-password.component.spec.ts` — form validation states, does-nothing-when-invalid, service call, success/error message handling
+  - `reset-password.component.spec.ts` — token from query param, route param fallback, empty token, mismatch validator, service call with token, redirect after 2s, `ngOnDestroy` cancel
+  - `profile.component.spec.ts` — ngOnInit form population, displayName/avatarInitial signals, mismatch validator, `saveProfile()`/`changePassword()` calls and toast feedback
+  - `user-layout.component.spec.ts` — `isAdmin` computed signal (regular/admin role/`isAdmin()` mock), `visiblePrimaryNavItems` filtering, `isRouteActive()` exact+prefix match, `logout()`
+  - `admin-dashboard.component.spec.ts` — forkJoin calls all three services, count signals populated on success, loading cleared on error
+  - `panel-form.component.spec.ts` — invalid initial state, `isEditMode` true/false, form pre-population, `hasError()`, `onCancel()` emit, `onSubmit()` invalid/valid paths
+
+### Full Prompt
+> "Are there any other client side tests that can be added? Do a scan and come back with a list of them and their tests"
+> "Sure, more coverage wont hurt, right? Implement the high value first and then commit the changes to the feature branch we just created"
+
+### Affected Files
+- `client/src/app/core/interceptors/api-response.interceptor.spec.ts` — NEW
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — NEW
+- `client/src/app/core/models/http-error.model.spec.ts` — NEW
+- `client/src/app/core/services/project.service.spec.ts` — NEW
+- `client/src/app/core/services/panel.service.spec.ts` — NEW
+- `client/src/app/core/services/user.service.spec.ts` — NEW
+- `client/src/app/features/visitor/forgot-password/forgot-password.component.spec.ts` — NEW
+- `client/src/app/features/visitor/reset-password/reset-password.component.spec.ts` — NEW
+- `client/src/app/features/user/profile/profile.component.spec.ts` — NEW
+- `client/src/app/layouts/user-layout/user-layout.component.spec.ts` — NEW
+- `client/src/app/features/admin/admin-dashboard/admin-dashboard.component.spec.ts` — NEW
+- `client/src/app/features/admin/panels/panel-form.component.spec.ts` — NEW
+- `santi-agent-interactions.md`
+
+### Reasoning
+
+**`MessageService` as component-level provider:** PrimeNG's `MessageService` is declared in `providers` inside the component decorator, not at root. `TestBed.inject(MessageService)` gets the root-level token (which may differ). The correct approach is `fixture.debugElement.injector.get(MessageService)` to get the instance the component actually uses.
+
+**Signal inputs and `setInput()`:** Angular 21 signal inputs declared with `input()` cannot be set via property assignment in tests. `fixture.componentRef.setInput('panel', value)` is the correct API — it triggers the same reactivity as a parent template binding.
+
+**Computed signal re-evaluation:** Angular computed signals only re-evaluate when their tracked reactive signal dependencies change. Calling `jest.fn().mockReturnValue(true)` on a plain function dependency doesn't trigger re-computation. The workaround is to mutate a tracked signal (e.g. `currentUser.set(null)`) to force the computed to re-read all its dependencies including the plain function.
+
+**`RouterLink` and the real Router:** Providing `{ provide: Router, useValue: mockRouter }` alongside `provideRouter([])` breaks `RouterLink`'s internal navigation (it reads from `router.root` which the mock lacks). The correct pattern: use `provideRouter([{ path: '**', component: DummyComponent }])`, let Angular provide the real Router, and spy on its `navigate` method via `jest.spyOn(router, 'navigate').mockResolvedValue(true)`.
+
+**Module-level interceptor state:** `auth-refresh.interceptor.ts` uses module-level `isRefreshing` and `refreshTokenSubject` variables. Tests must use synchronous observables (`of()`, `throwError()`) to ensure each request completes within the same synchronous tick and leaves `isRefreshing = false` for the next test case.
+
+---
+
+## May 17, 2026 - Security Enhancement: HttpOnly Cookie para Refresh Token
+
+### Topic
+Migración del refresh token de `localStorage` a cookie HttpOnly + Secure + SameSite=Strict.
+
+### Summary of prompt
+El usuario preguntó si la app seguía un modelo parecido al estándar de autenticación con access token corto, refresh token largo en cookie HttpOnly, con rotación y revocación. Tras el análisis, se identificó que el refresh token estaba en `localStorage` (vulnerable a XSS), no había cookie HttpOnly, y no había revocación en servidor. El usuario pidió implementar la mejora significativa de mover el refresh token a cookie HttpOnly en la rama `feature/enhance-authentication`.
+
+### Full prompt
+> "Quiero tener la mejora significativa. Veamos como se comporta y si no da muchos problemas la incorporamos a la rama develop. He creado explícitamente esta rama feature para desarrollar esta solución y probarla"
+
+### What was achieved
+- **Servidor:** Instalado `cookie-parser`. Añadido middleware en `app.ts`. Creado helper `setRefreshCookie` en el controlador con opciones `httpOnly: true`, `secure` (sólo en producción), `sameSite: 'strict'`, `maxAge: 7d`, `path: '/api/auth'`. Actualizados `registerUser`, `loginUser`, `googleAuth` para setear la cookie y devolver solo `{ token, user }` en el body. Actualizado `refreshAccessToken` para leer el token de `req.cookies` en vez del body. Añadido endpoint `POST /api/auth/logout` que limpia la cookie con `res.clearCookie`.
+- **Cliente:** Eliminado todo uso de `localStorage` para el refresh token. Actualizado `logout()` para llamar primero a `POST /api/auth/logout` (con `withCredentials: true`) y luego limpiar estado local — garantizando que el logout funciona incluso si el servidor falla. Añadido `withCredentials: true` en todas las llamadas a endpoints de auth. Eliminado método `getRefreshToken()`. Actualizada la interfaz `AuthResponse` para eliminar `refreshToken` del tipo cliente.
+- **Tests:** Actualizados `auth.service.spec.ts` y `auth-refresh.interceptor.spec.ts` para reflejar el nuevo comportamiento. Todos los tests pasan: 19/19 en servidor, 17/17 en cliente.
+
+### Affected files
+- `server/src/app.ts` — añadido `cookieParser()`
+- `server/src/controllers/user.controller.ts` — helper cookie + handlers actualizados + `logoutUser`
+- `server/src/routes/auth.routes.ts` — añadida ruta `POST /logout`
+- `server/package.json` — añadido `cookie-parser` + `@types/cookie-parser`
+- `client/src/app/core/models/user.model.ts` — eliminado `refreshToken` de `AuthResponse`
+- `client/src/app/core/services/auth.service.ts` — sin localStorage para refresh, `withCredentials`, logout async
+- `client/src/app/core/interceptors/auth-refresh.interceptor.spec.ts` — STUB_RESPONSE actualizado
+- `client/src/app/core/services/auth.service.spec.ts` — tests actualizados para nuevo comportamiento
+
+### AI reasoning
+El cambio principal es que el refresh token deja de viajar en el body de la respuesta HTTP y en `localStorage`, y pasa a ser una cookie HttpOnly que el navegador gestiona automáticamente. Esto elimina el vector de ataque XSS: aunque se inyecte JavaScript malicioso en la página, no puede leer la cookie. El `path: '/api/auth'` limita aún más la exposición: el navegador solo envía la cookie a rutas bajo ese prefijo. El acceso token (corto) sigue en localStorage porque es necesario leerlo desde JavaScript para adjuntarlo al header `Authorization`. La rotación ya existía — se generan nuevos tokens en cada refresh. La revocación en servidor (guardar hash en BD) queda identificada como mejora futura, pero queda fuera del alcance de este cambio.
+
+---
+
+## May 23, 2026 - Refactorización Container/Presenter del God Component configure-project
+
+### Topic
+Descomponer el componente `configure-project` (God Component: 835 TS + 946 HTML + 935 SCSS) en componentes Container/Presenter bien delimitados, extraer `GeocodingService`, y producir documentación académica de la decisión para el TFG.
+
+### Summary of Prompt
+El usuario detectó que `configure-project` contenía dos pantallas funcionalmente distintas (vista y configuración) bajo una misma clase Angular, lo que hacía imposible testarlas de forma aislada. Solicitó una refactorización respaldada por buenas prácticas de frontend y fuentes académicas/industriales, con un documento Markdown que argumente la decisión.
+
+### What Was Achieved
+- **Separación de rutas (Fase 1):** La ruta `/projects/:id` (modo lectura) pasa a ser servida por el nuevo `ProjectViewComponent`. La ruta `/projects/:id/configure` mantiene `ConfigureProjectComponent` en modo edición puro. Cada container posee únicamente los servicios y señales que le corresponden.
+- **GeocodingService extraído (Fase 2):** Las llamadas HTTP a Nominatim, y las tablas de lookup `COUNTRY_CURRENCY` / `COUNTRY_TIMEZONE`, se mueven a un servicio singleton `GeocodingService` en `core/services/`. El componente ya no inyecta `HttpClient` directamente.
+- **Sub-componentes del stepper (Fase 3):** Tres presenters extraídos bajo `configure-project/components/`: `ConfigureLocationStepComponent`, `ConfigurePanelFormStepComponent` y `ConfigureReviewStepComponent`. Todos reciben estado vía `input()` y emiten eventos vía `output()`. Ninguno inyecta servicios.
+- **Sub-componentes del view (Fase 4):** Dos presenters bajo `project-view/components/`: `ProjectAnalyticsComponent` (métricas + gráfico de 25 años) y `ProductionChartsComponent` (valor económico + 3 gráficos de producción). Las opciones de gráficos Highcharts se computan en el container y llegan como `input()`.
+- **Specs (Fase 5):** `geocoding.service.spec.ts` cubre URL Nominatim, mapeo lat/lon, lookups de currency/timezone y error handling. `configure-review-step.component.spec.ts` cubre renderizado de datos del formValue, estado del botón Save y emisión de outputs.
+- **REFACTORING_DECISIONS.md:** Documento académico en `client/REFACTORING_DECISIONS.md` con justificación respaldada por Fowler (God Component), Martin (SRP), Abramov (Container/Presenter), Angular Style Guide, Lieberherr & Holland (Ley de Demeter) y Feathers (testabilidad).
+
+### Full Prompt
+> "Quiero hacer una refactorización del componente de configure-project para poder testearlo y modularizarlo, ya que contiene dos funcionalidades en una: view y configure y lo hace complicado de testear. Quiero que la refactorización esté respaldada por buenas prácticas para cuando ocurre con este tipo de componentes no solo de angular sino en general de frontend, ya que el problema está en el componente de angular, que aunque está dividido en .ts, .html y .scss es bastante grande y complejo. Refinemos un plan que podemos llevar a implementación"
+
+### Affected Files
+
+**Creados (15 ficheros):**
+- `client/src/app/features/user/project-view/project-view.component.ts / .html / .scss`
+- `client/src/app/features/user/project-view/components/project-analytics/project-analytics.component.ts / .html / .scss`
+- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.ts / .html / .scss`
+- `client/src/app/features/user/configure-project/components/configure-location-step/configure-location-step.component.ts / .html / .scss`
+- `client/src/app/features/user/configure-project/components/configure-panel-form-step/configure-panel-form-step.component.ts / .html / .scss`
+- `client/src/app/features/user/configure-project/components/configure-review-step/configure-review-step.component.ts / .html / .scss / .spec.ts`
+- `client/src/app/core/services/geocoding.service.ts / .spec.ts`
+- `client/REFACTORING_DECISIONS.md`
+
+**Modificados (5 ficheros):**
+- `client/src/app/app.routes.ts` — ruta `:id` apunta a `ProjectViewComponent`
+- `client/src/app/core/services/index.ts` — export de `GeocodingService`
+- `client/src/app/features/user/configure-project/configure-project.component.ts` — eliminado view mode, HTTP, Highcharts; añadido sub-componentes y `GeocodingService`
+- `client/src/app/features/user/configure-project/configure-project.component.html` — eliminado bloque view mode; wired sub-componentes
+- `client/src/app/features/user/configure-project/configure-project.component.scss` — eliminados estilos de view mode
+
+### AI reasoning
+El patrón Container/Presenter (Abramov 2015) fue la solución más directa para un God Component con dos modos de pantalla: en lugar de bifurcar toda la template con `@if (isViewMode())`, se crea un componente container independiente por cada ruta. Los sub-componentes presenters son puros por diseño — solo reciben `input()` y emiten `output()`, sin inyecciones de servicios — lo que los hace trivialmente testeables con `setInput()` y event spies. La extracción de `GeocodingService` aplica la Ley de Demeter: el componente no debe saber que la búsqueda de coordenadas implica HTTP. El uso de `display: contents` en el `:host` de `ConfigurePanelFormStepComponent` resolvió el reto de que ese presenter renderiza dos tarjetas que deben participar en el grid 2×2 del padre como si fueran children directos.
+
+---
+
+## May 24, 2026 - Upgrade Express 4 → 5.2 y Mongoose 8 → 9.6 (worktree de prueba)
+
+### Topic
+Evaluar y ejecutar la migración de Express 4.19 a Express 5.2 y Mongoose 8.1 a Mongoose 9.6 en un git worktree aislado, identificando todos los cambios necesarios y dejando el servidor compilando limpio.
+
+### Summary of prompt
+"Potencialmente que implicaría pasarnos a mongoose 9.6 y express 5.2? Haz la prueba en un worktree" → seguido de "Lets do it" para aplicar todos los fixes.
+
+### What was achieved
+- Bump de versiones en `server/package.json`: `express ^4.19.2 → ^5.2.0`, `mongoose ^8.1.1 → ^9.6.0`, `@types/express ^4.17.21 → ^5.0.0`
+- Identificados y corregidos todos los breaking changes de TypeScript: 24 errores en 8 archivos → 0 errores relacionados con el upgrade
+- 204/204 tests pasando tras la migración (misma cifra que antes)
+- Descubierto bug pre-existente: archivo `server/src/data/capex-benchmarks-eu.ts` no existe en ninguna rama
+
+### Full prompt
+"Potencialmente que implica migrar a mongoose 9.6 y express 5.2? Haz la prueba en un worktree. Lets do it."
+
+### Affected files
+- `server/package.json` — versiones de express, mongoose, @types/express
+- `server/src/utils/response.ts` — `noContent`: `res.send()` → `res.end()`, return type `Response` → `void`
+- `server/src/utils/asyncHandler.ts` — tipo fn ampliado a `Promise<any> | any`
+- `server/src/controllers/project.controller.ts` — `req.params.id as string` (8 lugares), `estimateProject` ahora async
+- `server/src/controllers/user.controller.ts` — `req.params.id as string` (4 lugares)
+- `server/src/controllers/panel.controller.ts` — `req.params.id as string` (3 lugares)
+- `server/src/controllers/cultivar.controller.ts` — `req.params.id as string` (3 lugares)
+- `server/src/services/panel.service.ts` — `FilterQuery` → type alias local `Record<string, any>`
+- `server/src/services/cultivar.service.ts` — ídem
+- `server/src/services/project.service.ts` — ídem
+- `server/src/services/user.service.ts` — ídem
+- `server/src/models/user.model.ts` — pre-save hook async: eliminado parámetro `next`, errores propagados con throw natural
+- `server/src/models/cultivar.model.ts` — validator `this` type: `this: ICultivar` → `(this as unknown as ICultivar)`
+
+### AI reasoning
+Express 5 endureció los tipos de `req.params` (`string | string[]` en lugar de `string`) y hace que `res.send()` sin argumento lance TypeError en runtime. Express 5 también requiere que los callbacks de `asyncHandler` devuelvan `Promise` explícitamente. Mongoose 9 eliminó completamente el export `FilterQuery<T>` — es un tipo interno `_QueryFilter<T>` que no es accesible ni directamente ni vía namespace. La solución pragmática fue un type alias local `type FilterQuery<_T> = Record<string, any>` que es estructuralmente asignable al tipo interno de Mongoose. El hook pre-save async en Mongoose 9 ya no acepta `next` como callback — en funciones async, basta con retornar o lanzar para controlar el flujo. El resultado neto es que todos los cambios son de tipos TypeScript sin impacto en comportamiento de runtime.
+
+---
+
+## May 29, 2026 - Feature: Deshabilitar toggle manual de dark/light mode
+
+### Topic
+Eliminar el botón de alternancia de tema y delegar el modo oscuro/claro exclusivamente a la preferencia del sistema operativo (media query `prefers-color-scheme`).
+
+### Summary of prompt
+El usuario quería desactivar la funcionalidad de cambio manual entre modo oscuro y claro, dejando únicamente que la aplicación respete lo que el navegador/SO tenga configurado por defecto.
+
+### What was achieved
+- `ThemeService` simplificado: elimina la persistencia en `localStorage` y el método `toggle()`. Ahora lee `window.matchMedia('(prefers-color-scheme: dark)').matches` al iniciar y registra un listener para que el tema se actualice automáticamente si el usuario cambia la preferencia del sistema en tiempo real.
+- Sección "Preferences" completa eliminada de `ProfileComponent`: bloque HTML del toggle, import de `ToggleSwitchModule`, import de `FormsModule` (solo necesario para el toggle), import de `ThemeService`, propiedad inyectada `themeService`, módulos `DividerModule` y `ToggleSwitchModule` del array `imports`, y todos los estilos CSS relacionados (`.preferences-section`, `.pref-row`, `.pref-info`).
+
+### Full prompt
+> Tengo ahora mismo integrado en develop una funcionalidad para cambiar de modo noche a modo light y viceversa. Quiero desactivar esa función, es decir el botón que obliga a hacer el cambio, por tanto, sólamente quedaría lo que pille por defecto del navegador.
+
+### Affected files
+- `client/src/app/core/services/theme.service.ts` — reescrito para usar `prefers-color-scheme` sin localStorage ni toggle público
+- `client/src/app/features/user/profile/profile.component.ts` — eliminado toggle de tema, imports y estilos asociados
+
+### AI reasoning
+El `ThemeService` original usaba `localStorage` para persistir la preferencia y exponía un método `toggle()` que el componente de perfil llamaba. Al eliminar el control manual, la fuente de verdad pasa a ser `window.matchMedia('(prefers-color-scheme: dark)')`. Se añade un `addEventListener('change', ...)` para que la clase `.dark-mode` en `document.documentElement` se sincronice automáticamente si el usuario cambia la preferencia del SO mientras tiene la app abierta — sin necesidad de recargar la página. En el componente de perfil, la sección "Preferences" completa pierde sentido y se eliminó junto con todos los imports y estilos que solo existían para soportarla.
+
+---
+
+## May 30, 2026 - Resolución de TODOs de dificultad media (#9, #6, #7)
+
+### Topic
+Implementación de los tres primeros TODOs de dificultad media en ramas feature independientes.
+
+### Summary of Prompt
+El usuario indicó el orden de implementación: TODO #9 (peak sun hours), TODO #6 (separación de filas con azimut), TODO #7 (transacción MongoDB). Se para antes del TODO #8 para discutirlo.
+
+### What Was Achieved
+
+**Rama `feature/solve-todos-medium-peak-sun-hours` (TODO #9):**
+- `calculateOptimalConfig` recibe ahora un `projectId` opcional. Cuando se proporciona, busca `pvgisRef.yearlyPOAIrradiation` del proyecto en BD y calcula `peakSunHours = POA / 365` — dato real de PVGIS en vez de `5.5 - |lat| × 0.02`. Fallback a la fórmula empírica para estimaciones standalone sin ID de proyecto.
+- El controlador `calculateOptimalConfig` ya pasaba `req.params.id` sin usarlo — ahora se lo pasa al servicio.
+
+**Rama `feature/solve-todos-medium-row-spacing` (TODO #6):**
+- La fórmula de separación de filas incluye el factor `|cos(azimut - 180°)|` que proyecta la sombra en el eje N-S. Paneles sur (180°): factor 1.0 sin cambio. Paneles este/oeste (90°/270°): factor 0, separación reducida al mínimo de acceso 0.6m.
+- `OptimalConfigSchema` gana campo `azimuth` opcional (0–360°, convenio brújula).
+- Dos nuevos tests verifican la reducción para paneles este-orientados y la invarianza sur.
+
+**Rama `feature/solve-todos-medium-db-transaction` (TODO #7):**
+- `createProject` refactorizado: las tres llamadas externas (ENTSO-E, Open-Meteo, PVGIS) se hacen ANTES de cualquier escritura en BD. La sesión MongoDB cubre solo `create` + `findByIdAndUpdate` — operaciones rápidas.
+- `session.withTransaction()` garantiza que si el update falla, el create se revierte automáticamente. No quedan documentos huérfanos.
+- Panel buscado una sola vez (validación) y reutilizado para producción — elimina un round-trip redundante.
+- Test actualizado: mock de `startSession` via `importOriginal` para preservar `Types.ObjectId` en runtime; mock de `create` en forma de array `[{...}]`.
+
+### Full Prompt
+> "Lo haremos en este orden: primero el TODO 9, luego el TODO 6, luego el TODO 7 y finalmente pararemos a ver como hacemos lo del TODO 8"
+
+### Affected Files
+- `server/src/services/project.service.ts` (TODO #9 + #7)
+- `server/src/controllers/project.controller.ts` (TODO #9)
+- `server/src/schemas/project.schema.ts` (TODO #6)
+- `server/src/__tests__/services/project.service.test.ts` (TODO #6 + #7)
+
+### Reasoning
+Para el TODO #7: el patrón correcto con transacciones MongoDB es hacer todo el trabajo costoso (IO externo) FUERA de la transacción. Meter las llamadas HTTP dentro de una sesión habría agotado el timeout de 60s con cualquier API lenta. Para el TODO #9: `calculateOptimalConfig` ya tenía `/:id` en la URL pero el controlador nunca lo usaba — pasarlo al servicio para un `.select('pvgisRef').lean()` es barato y da irradiación real sin llamadas extra.
+## May 30, 2026 - Resolución de TODOs marcados en el código (triviales y bajos)
+
+### Topic
+Auditoría y resolución sistemática de todos los comentarios TODO del proyecto, comenzando por los de dificultad trivial y baja, organizados en ramas feature independientes.
+
+### Summary of Prompt
+El usuario solicitó inspeccionar todos los TODOs del proyecto y crear una tabla de análisis (fichero, problema, comentario, solución propuesta, interacción requerida, delegabilidad a IA, dificultad y alternativas con las APIs ya integradas). Tras la revisión, se aprobó una organización de ramas con una rama base `feature/solve-todos` desde `develop`, sub-ramas para triviales, bajos y una rama por cada medio. Se implementaron las dos primeras ramas.
+
+### What Was Achieved
+
+**Rama `feature/solve-todos-trivial` (5 cambios):**
+- `direction` en `ProjectCreateSchema` ahora es `z.enum([...8 direcciones...])` en vez de `z.string()`, rechazando valores inválidos en la capa HTTP.
+- `panelId` y `cultivarId` validados como MongoDB ObjectId reutilizando `ObjectIdSchema` de `user.schema.ts`, evitando `CastError` de Mongoose.
+- Eliminado índice geoespacial `2dsphere` comentado de `project.model.ts` (no necesario para el TFG).
+- Eliminado stub comentado de endpoint Prometheus `/metrics` de `app.ts`.
+- Eliminado bloque comentado de `pino-pretty` de `logger.ts`.
+
+**Rama `feature/solve-todos-low` (3 cambios):**
+- Corregida la fórmula `noonAltitude` en `calculateSunPosition`: `90 - (lat - dec)` → `90 - |lat - dec|`, que es correcta para ambos hemisferios.
+- Añadida corrección de longitud al cálculo de `sunrise`/`sunset`: `solarNoon = 12 - longitude/15`, eliminando el sesgo UTC+0 que era exacto solo en el meridiano de Greenwich. La longitud ya se calculaba en `getSunPath` pero no se pasaba a `calculateSunPosition`.
+- Eliminado comentario `TODO` obsoleto de `client/panel.service.ts`: el endpoint `PUT /panels/:id` ya estaba implementado en el servidor.
+
+### Full Prompt
+> "Quiero que inspecciones todos los TODOs que hay marcados en el proyecto y en una tabla me indiques en que fichero se encuentra, cual es el problema, que dice el comentario del todo, como podría solucionarse, si requiere de mi interacción porque puede llevarse a cabo de diversas maneras, o si puede delegarse a un agente de IA y que tan complicado es."
+>
+> (Seguido de aprobación del plan de ramas y solicitud de implementación empezando por triviales y bajos.)
+
+### Affected Files
+
+**feature/solve-todos-trivial:**
+- `server/src/schemas/project.schema.ts` — direction enum, ObjectId imports
+- `server/src/models/project.model.ts` — índice geoespacial eliminado
+- `server/src/app.ts` — stub Prometheus eliminado
+- `server/src/utils/logger.ts` — bloque pino-pretty eliminado
+
+**feature/solve-todos-low:**
+- `server/src/services/project.service.ts` — fórmula noonAltitude + sunrise/sunset + longitud
+- `client/src/app/core/services/panel.service.ts` — TODO obsoleto eliminado
+
+### Reasoning
+Se detectó durante la auditoría que varios TODOs podían resolverse mejor usando datos de las APIs ya integradas. El más relevante: `peakSunHours` usaba una fórmula empírica hardcoded, pero PVGIS ya devuelve `H(i)_y` (irradiación anual sobre plano inclinado) almacenado en `pvgisRef.yearlyPOAIrradiation` — `psh = yearlyPOAIrradiation / 365` sin ninguna llamada extra. Para `sunrise`/`sunset`, Open-Meteo tiene parámetros `daily=sunrise,sunset` que darían mayor precisión, pero se optó por la corrección matemática de longitud como solución proporcional al alcance de una rama "low". Los 5 TODOs triviales eran en su mayoría dead code y validaciones ausentes, ninguno requería decisión de negocio salvo los que se consultaron al usuario (#11, #12, #13 — todos con respuesta "borrar").
+
+---
+
+## June 6, 2026 - Rediseño del wizard de creación de proyectos solares
+
+### Topic
+Refactor UX del componente `add-project` para creación roof-only, sugerencia ENTSO-E de precio energético y cálculo óptimo consistente desde backend.
+
+### Summary of Prompt
+El usuario pidió examinar `add-project`, `project.controller.ts`, `project.service.ts` y el modelo de proyecto para mejorar la experiencia de creación: recolocar el precio energético, integrarlo con ENTSO-E como sugerencia editable, retirar agrivoltaica de esta versión, unificar los cálculos de configuración óptima y embellecer la página de review.
+
+### What Was Achieved
+- `add-project` pasa a un wizard de 5 pasos: proyecto, ubicación/área, precio energético, instalación y review.
+- Se oculta agrivoltaica del alta de proyecto: sin tipo de instalación, cultivos, altura mínima ni review agrivoltaica, manteniendo compatibilidad backend/modelo para datos existentes.
+- Se añadió `GET /api/projects/electricity-price?countryCode=ES` para sugerir precio ENTSO-E y se permite que el usuario lo sobrescriba antes de crear.
+- `ProjectCreateSchema` y el modelo cliente aceptan `country`, `countryCode`, `timezone`, `currency`, `price` y `azimuth` en el cálculo desde polígono.
+- `createProject` preserva el precio del usuario; solo consulta ENTSO-E cuando no hay precio en el payload.
+- El cálculo óptimo del wizard usa `/projects/calculate` como fuente única para paneles recomendados, separación de filas y producción anual estimada.
+- La review se rediseñó con tarjetas compactas y botones de edición por sección.
+- Se añadieron pruebas server para schema/precio/cálculo y una spec cliente para lógica del wizard.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Add Project Wizard UX And Calculation Plan
+> 
+> ## Summary
+> Refactor the add-project flow into a clearer roof-only wizard for this version, remove agrivoltaic UI/dependencies from the component, integrate ENTSO-E as a suggested electricity price before project creation, and make optimal configuration calculations come from one backend source of truth.
+> 
+> [...]"
+
+### Affected Files
 - `client/src/app/features/user/add-project/add-project.component.ts`
 - `client/src/app/features/user/add-project/add-project.component.html`
-- `client/src/app/features/user/configure-project/configure-project.component.ts`
-- `client/src/app/features/user/configure-project/configure-project.component.html`
-- `client/src/app/features/user/configure-project/components/configure-location-step/configure-location-step.component.ts`
-- `client/src/app/features/user/configure-project/components/configure-location-step/configure-location-step.component.html`
-- `client/src/app/features/user/configure-project/components/configure-panel-form-step/configure-panel-form-step.component.ts`
-- `client/src/app/features/user/configure-project/components/configure-panel-form-step/configure-panel-form-step.component.html`
-- `client/src/app/features/user/configure-project/components/configure-review-step/configure-review-step.component.ts`
-- `client/src/app/features/user/configure-project/components/configure-review-step/configure-review-step.component.html`
-- `client/src/app/features/user/configure-project/components/configure-review-step/configure-review-step.component.spec.ts`
+- `client/src/app/features/user/add-project/add-project.component.scss`
+- `client/src/app/features/user/add-project/add-project.component.spec.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/core/models/index.ts`
+- `client/src/app/core/services/project.service.ts`
+- `client/jest.config.js`
+- `client/package.json`
+- `client/package-lock.json`
+- `server/src/controllers/project.controller.ts`
+- `server/src/routes/project.routes.ts`
+- `server/src/schemas/project.schema.ts`
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/schemas/project.schema.test.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `server/src/controllers/user.controller.ts`
+
+### Reasoning
+El problema principal era de consistencia: el frontend calculaba spacing, máximos y producción con fórmulas locales mientras el backend ya tenía el cálculo físico más completo. Se eliminó esa duplicación en el alta y se guardó un baseline óptimo recibido del backend para distinguir `Optimal` vs `Custom`. El precio energético se separó en su propio paso porque afecta la interpretación económica, no la geometría del sitio. ENTSO-E se trata explícitamente como sugerencia porque el precio real de factura puede incluir peajes, impuestos o contratos que el mercado diario no representa. Durante la validación se detectó además que `country-reverse-geocoding` puede devolver códigos alpha-3 como `ESP`; se normalizó a alpha-2 para que ENTSO-E reciba `ES`.
+
+---
+
+## June 7, 2026 - Alineacion visual del estimador publico con add-project
+
+### Topic
+Rediseño del componente `estimate` para compartir look and feel con el nuevo wizard de `add-project`.
+
+### Summary of Prompt
+El usuario pidio que el componente `client/src/app/features/visitor/estimate/` tuviera la misma UI y sensacion visual que el flujo de `add-project`.
+
+### What Was Achieved
+- El estimador publico ahora usa una cabecera sticky tipo wizard con stepper de 3 pasos: location, draw area y estimate.
+- Se sustituyo la iconografia custom por Material Symbols, manteniendo PrimeNG para botones/campos donde ya encaja con el proyecto.
+- La busqueda de ubicacion, el mapa, los avisos y el resumen de area usan los mismos patrones visuales del `add-project` rediseñado.
+- El resultado se presenta como tarjeta compacta con metric grid, estado y bloque bloqueado para el analisis completo.
+- El CTA de registro/inicio de sesion se rediseño para encajar con el lenguaje visual del wizard.
+
+### Full Prompt
+> "I want the [estimate](client/src/app/features/visitor/estimate/) component to have the same UI and look and feel as this add-project. I want the [estimate](client/src/app/features/visitor/estimate/) component to have the same UI and look and feel as this add-project."
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El estimador es una herramienta publica mas corta que el alta de proyecto, por lo que no se copio el wizard de cinco pasos completo. Se adapto a tres estados reales del flujo para mantener claridad sin meter pasos falsos. El objetivo fue reutilizar la gramatica visual de `add-project`: cabecera sticky, stepper, section heading, site summary strip, feedback banners, metric cards y acciones compactas. Tambien se eliminaron PrimeIcons del template del estimador para alinearlo con el uso dominante de Material Symbols en la aplicacion.
+
+---
+
+## June 14, 2026 - Unificacion del calculo del estimador publico
+
+### Topic
+Reutilizar el motor de calculo optimo del backend para el estimador publico sin autenticacion.
+
+### Summary of Prompt
+El usuario pidio implementar el plan para que `POST /api/projects/estimate` dejara de usar una formula paralela simple y delegara en el mismo calculo optimo usado por `add-project` y `configure-project`, manteniendo la experiencia publica sin auth y sin cambiar el contrato del frontend.
+
+### What Was Achieved
+- `estimateFromPolygon` ahora es async y delega en `calculateOptimalConfig` con defaults publicos.
+- El endpoint publico mantiene la misma respuesta: `panelCount`, `areaSqm` y `estimatedKwp`.
+- `estimateProject` espera la promesa del servicio.
+- Los comentarios del schema explican que el estimate usa defaults publicos a traves del motor optimo.
+- Los tests del servicio se ajustaron para validar defaults publicos y el contrato de respuesta.
+
+### Full Prompt
+> "PLEASE IMPLEMENT THIS PLAN:
+> # Unificar El Cálculo Del Estimador Público Con El Motor Óptimo
+>
+> ## Summary
+> Cambiar el estimador público para que deje de usar una fórmula paralela simple y pase a reutilizar el mismo motor backend que `add-project`/`configure-project`, manteniendo la ruta pública y la experiencia sin auth. El visitante seguirá sin elegir panel ni tilt: el backend aplicará defaults públicos.
+>
+> [...]"
+
+### Affected Files
+- `server/src/services/project.service.ts`
+- `server/src/controllers/project.controller.ts`
+- `server/src/schemas/project.schema.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La formula antigua del estimador publico usaba un spacing fijo de 2m y no tenia en cuenta latitud, inclinacion ni orientacion, mientras el alta de proyecto ya usaba un calculo de spacing basado en sombras. Para evitar resultados incoherentes entre la puerta de entrada publica y el wizard autenticado, se mantuvo el endpoint publico pero se convirtio su implementacion en una adaptacion con defaults: panel de 2m x 4m, 400W, tilt 30 y azimuth sur. Asi no se añade seleccion de panel al visitante ni se consulta MongoDB, pero el calculo de capacidad queda alineado con el motor optimo.
+
+---
+
+## June 14, 2026 - Limpieza de acciones del estimador publico
+
+### Topic
+Eliminar botones duplicados y normalizar los CTAs del componente `estimate`.
+
+### Summary of Prompt
+El usuario pidio quitar los botones de login y registro de la barra interna del estimador, porque el header global ya los incluye. Tambien pidio que los botones `Create free project` y `Sign in` tuvieran el mismo tamano, y que el texto del primero pasara a ser `Create project`.
+
+### What Was Achieved
+- Se eliminaron los botones duplicados de login y registro de la barra sticky interna de `estimate`.
+- El CTA principal del bloque bloqueado ahora dice `Create project`.
+- El CTA de `Sign in` usa un boton secundario propio con las mismas dimensiones base que el CTA principal.
+- Se ajusto el comportamiento responsive para que ambos botones mantengan consistencia en mobile.
+
+### Full Prompt
+> "En la barra de "estimate" hay botones de login y de register. Esos botones sobran porque en el header ya tenemos esos botones. Eliminalos. Luego necesito que el tamaño de los botones de create free project y login sean del mismo tamaño. Modifica el boton de "create free project" a "create project""
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La barra del estimador ya vive dentro del layout publico, por lo que repetir login y registro competia con el header global y hacia el primer viewport mas ruidoso. En el bloque de analisis completo se mantuvieron dos acciones, pero se paso el login a una variante secundaria local para compartir altura, padding y ritmo visual con el CTA principal sin depender del tamaño propio de PrimeNG. El cambio es solo visual y no altera la navegacion ni el flujo de calculo.
+
+---
+
+## June 14, 2026 - Padding lateral del stepper del estimador
+
+### Topic
+Alinear el espaciado del header stepper de `estimate` con `add-project` y `configure-project`.
+
+### Summary of Prompt
+El usuario indico que el panel stepper del estimador no tenia padding lateral y pidio añadirlo como en los flujos de alta/configuracion de proyecto.
+
+### What Was Achieved
+- Se añadio padding horizontal al contenedor `.estimate-page`.
+- Se mantuvo el margen negativo del sticky header para conservar el panel full-width con contenido respirando por dentro.
+- Se ajusto el padding del area de contenido para evitar doble acolchado lateral.
+- Se adapto el mismo comportamiento para mobile con padding de `1rem`.
+
+### Full Prompt
+> "Otra cosa. no hay padding a los lados del panel stepper. añadelo como estan en add project o configure project"
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El layout publico renderiza el contenido con padding vertical pero sin padding horizontal, mientras el layout autenticado aporta `1.5rem` alrededor de `add-project` y `configure-project`. Como el sticky header usa margen negativo para ocupar todo el ancho del contenedor y padding interno para alinear sus controles, el estimador necesitaba recrear ese acolchado en su propia raiz. Asi el stepper queda visualmente alineado con los wizards autenticados sin tocar el layout global de visitantes.
+
+---
+
+## June 14, 2026 - Compactar cabecera del estimador
+
+### Topic
+Reducir el espacio vertical sobre la tarjeta `Estimator assumptions`.
+
+### Summary of Prompt
+El usuario indico que sobraba espacio encima de la tarjeta de supuestos del estimador y pidio subirla un poco, probablemente ajustando el titulo y descripcion.
+
+### What Was Achieved
+- Se redujo el `gap` vertical de la seccion principal del estimador.
+- Se compacto ligeramente el margen inferior del titulo.
+- Se redujo un poco el tamaño y line-height de la descripcion de cabecera.
+
+### Full Prompt
+> "Sobra un espacio arriba de la tarjeta de Estimator assumptions. Sube la tarjeta un poco más. imagino que tendrás que tocar algo en el titulo, descripcion de la tarjeta"
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La tarjeta ya estaba alineada al inicio del grid, asi que el hueco visible venia de la separacion entre la cabecera descriptiva y el layout principal. Compactar la cabecera mueve la tarjeta hacia arriba sin usar margenes negativos ni afectar la estructura responsive del estimador.
+
+---
+
+## June 14, 2026 - Alinear tarjeta de supuestos con la cabecera izquierda
+
+### Topic
+Eliminar el hueco real sobre `Estimator assumptions` causado por la estructura del grid.
+
+### Summary of Prompt
+El usuario indico que el espacio superior seguia estando ahi despues de compactar la cabecera del estimador.
+
+### What Was Achieved
+- Se movio la cabecera `Quick Panel Estimate` dentro de la columna izquierda del layout.
+- La tarjeta `Estimator assumptions` ahora puede empezar arriba de la columna derecha, alineada con la cabecera del flujo.
+- Se mantuvo el contenido y orden visual del estimador sin cambiar la logica.
+
+### Full Prompt
+> "El espacio sigue estando allí"
+
+### Affected Files
+- `client/src/app/features/visitor/estimate/estimate.component.html`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El hueco persistia porque la cabecera estaba antes del grid y ocupaba una fila completa, empujando tanto el mapa como la columna lateral. Mover la cabecera a la columna izquierda elimina esa fila global: el usuario ve el titulo sobre la busqueda y, al mismo tiempo, la tarjeta de supuestos arranca en la parte superior de la columna derecha.
+## June 7, 2026 - Seguimiento de errores en runtime del wizard y gráficos
+
+### Topic
+Diagnóstico de error 400 en `GET /api/projects/electricity-price` y warning de accesibilidad de Highcharts.
+
+### Summary of Prompt
+El usuario reportó que al ejecutar la app veía `400 Bad Request` en `/api/projects/electricity-price?countryCode=ES` y pegó un warning de Highcharts sobre el módulo `accessibility.js`.
+
+### What Was Achieved
+- Se revisó que en el código actual la ruta `/projects/electricity-price` está definida antes de `/:id`, por lo que el 400 apunta a un backend viejo aún en ejecución que interpreta `electricity-price` como un ID de proyecto.
+- Se añadió el módulo oficial de accesibilidad de Highcharts en `ProductionChartsComponent`, eliminando el warning sin desactivar accesibilidad.
+- Se verificó con `npm run typecheck` en cliente.
+
+### Full Prompt
+> "I am running the project and I am seeing issues with some api calls:
+> http://127.0.0.1:1235/api/projects/electricity-price?countryCode=ES 400 (Bad Request)
+> [...]
+> and then this other:
+> (pasted text)"
+
+### Affected Files
+- `client/src/app/features/user/project-view/components/production-charts/production-charts.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El 400 encaja con una instancia de backend que no ha cargado la nueva ruta: sin esa ruta, Express matchea `/electricity-price` como `/:id`, Mongoose intenta castear ese string como ObjectId y el middleware devuelve `Invalid ID format` con status 400. El warning de Highcharts sí era una mejora directa del frontend; importar `highcharts/modules/accessibility` es preferible a silenciarlo con `accessibility.enabled = false`.
+
+---
+
+## June 7, 2026 - Ruta de precio energético sin colisión y fallback frontend
+
+### Topic
+Corrección adicional del error `400 Bad Request` en la sugerencia de precio energético durante `add-project`.
+
+### Summary of Prompt
+El usuario seguía viendo `GET /api/projects/electricity-price?countryCode=ES 400 (Bad Request)` desde `fetchEnergyPriceSuggestion` al resolver la ubicación en el wizard.
+
+### What Was Achieved
+- Se añadió una ruta alias más explícita: `GET /api/projects/pricing/electricity`.
+- El cliente ahora usa `/projects/pricing/electricity` en vez de `/projects/electricity-price`, reduciendo riesgo de colisión con rutas dinámicas `/:id`.
+- `ProjectService.getElectricityPriceSuggestion()` captura errores HTTP y devuelve `{ price: null, currency: null, source: 'unavailable' }`, para que el wizard mantenga el precio editable aunque el backend viejo o ENTSO-E fallen.
+- Se añadieron tests del servicio Angular para endpoint correcto y fallback en error 400.
+- Se verificó con `npm run typecheck`, `npm test -- project.service.spec.ts --runInBand` y `npm run build` en server.
+
+### Full Prompt
+> "add-project.component.ts:512
+> GET http://127.0.0.1:1235/api/projects/electricity-price?countryCode=ES 400 (Bad Request)
+> fetchEnergyPriceSuggestion @ add-project.component.ts:512
+> [...]"
+
+### Affected Files
+- `client/src/app/core/services/project.service.ts`
+- `client/src/app/core/services/project.service.spec.ts`
+- `server/src/routes/project.routes.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Aunque el código actual tenía `/electricity-price` antes de `/:id`, una ruta más específica bajo `/pricing/electricity` evita ambigüedades y facilita distinguir endpoints auxiliares de recursos de proyecto. El fallback frontend es necesario porque ENTSO-E es una sugerencia, no un bloqueo de creación: si la sugerencia falla, el usuario debe poder seguir usando o editando el precio por defecto.
+
+---
+
+## June 15, 2026 - Fix merge-conflict syntax breakages after PR merge
+
+### Topic
+Repair TypeScript parse errors introduced while merging solar planning feature branches.
+
+### Summary of Prompt
+The user had merged two conflicting feature branches and asked to reproduce `npm start`, inspect the reported errors, read PRs #21 and #22 if possible, and then fix the problems.
+
+### What Was Achieved
+- Reproduced the app startup failures after installing missing root, client, and server dependencies.
+- Fixed broken merge fragments in the server project controller, project service, project response types, and project service tests.
+- Fixed broken merge fragments in the Angular project model and project service.
+- Verified `server` TypeScript compilation with `npx tsc --noEmit --pretty false`.
+- Verified Angular TypeScript with `npm run typecheck`.
+- Verified the Angular development build outside the Codex filesystem sandbox with `npx ng build --configuration development`.
+- Verified the server starts successfully when the required environment variables are supplied temporarily.
+
+### Full Prompt
+> "Please fix those problems and try again. I authenticated you so you should be able to see it. What is the exact workspace you say does not have access?"
+
+### Affected Files
+- `server/src/controllers/project.controller.ts`
+- `server/src/services/project.service.ts`
+- `server/src/types/project.types.ts`
+- `server/src/__tests__/services/project.service.test.ts`
+- `client/src/app/core/models/project.model.ts`
+- `client/src/app/core/services/project.service.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+The compiler errors pointed to conflict-resolution leftovers where new exports or methods had been inserted before closing the previous object, method, interface, or mock block. Restoring those missing closers made the server exports visible again and allowed both client and server TypeScript to parse. The remaining `npm start` server failure was configuration-related, not code-related: this Codex worktree has no `server/.env`, so `loadEnv()` rejects startup until required values are present.
+
+---
+
+## June 15, 2026 - Modern landing page redesign
+
+### Topic
+Rediseño responsive del home público de Solar Planner v2.0.
+
+### Summary of Prompt
+El usuario pidió inspeccionar primero la implementación actual del home, rutas, módulos PrimeNG e iconos configurados; después pidió implementar una nueva landing page moderna para un TFG centrado en estimación fotovoltaica, con navbar, hero visual, timeline interactiva, secciones de funcionalidades, tecnologías y GitHub.
+
+### What Was Achieved
+- Se rediseñó la landing pública con un hero técnico, mockup CSS de mapa/área/paneles y métricas de ejemplo.
+- Se añadió una timeline interactiva con estado Angular, controles previous/next y selección de hitos.
+- Se añadieron secciones de funcionalidades, stack tecnológico y contribución open-source.
+- Se actualizó el navbar público con Solar Planner, badge v2.0, Home, Documentation, GitHub, Login y Register.
+- Se configuró `environment.githubUrl` para centralizar los enlaces externos de GitHub.
+- Se convirtió la ruta pública de layout y home a `loadComponent` para mantener el bundle inicial bajo el presupuesto de error.
+- Se verificó con typecheck, build y revisión en navegador integrado en desktop y móvil.
+
+### Full Prompt
+> "Implement the new landing page for Solar Planner v2.0 using the project information already inspected. [...] Redesign the current home page as a modern, visual and responsive landing page for a Final Year Project application focused on photovoltaic project estimation. [...] Add githubUrl to both environment files. [...] Create a top navigation bar [...] Create a strong but clean hero section [...] Add a section titled Development Journey [...] Add a section titled Everything you need to design and evaluate solar projects [...] Add a concise section titled Built with modern technologies [...] Add a final highlighted section titled Open to contributing. Built to evolve."
+
+### Affected Files
+- `client/src/app/app.routes.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `client/src/environments/environment.ts`
+- `client/src/environments/environment.prod.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El navbar público pertenecía al layout visitante, por lo que actualizarlo allí evitó duplicar navegación dentro del home. La documentación no tenía ruta propia, así que el enlace se resolvió como ancla local a la sección de timeline. La URL de GitHub se movió a los environments para evitar hardcoding repetido. Al fallar inicialmente el build por presupuesto de bundle, se lazy-loadearon `VisitorLayoutComponent` y `LandingPageComponent`, siguiendo el patrón ya usado por las rutas protegidas y reduciendo el bundle inicial.
+
+---
+
+## June 15, 2026 - Landing polish: timeline, hero mockup and header stacking
+
+### Topic
+Mejora visual del home y corrección de solape entre header público y stepper de estimación.
+
+### Summary of Prompt
+El usuario indicó que la landing estaba bien como base, pero quería que `Development Journey` pareciera más una línea temporal, que el panel visual del hero estuviera mejor construido, que se añadieran logos de tecnologías y que el header dejara de solaparse con el stepper en `/estimate`.
+
+### What Was Achieved
+- Se reemplazó el mockup del hero por una ventana tipo dashboard con barra superior, mapa, área seleccionada, paneles solares alineados y métricas laterales.
+- Se rediseñó `Development Journey` como línea temporal real con eje horizontal, nodos, hito activo y adaptación vertical en móvil.
+- Se añadieron badges/logos visuales para MongoDB, Express.js, Angular, Node.js y PrimeNG sin introducir librerías externas.
+- Se elevó el `z-index` del header visitante y se corrigió el sticky stepper de `/estimate` para que no invada la zona del navbar.
+- Se verificó `npm run typecheck`, `npm run build`, `/`, `/estimate` y viewport móvil de 390px.
+
+### Full Prompt
+> "No está mal, pero quiero que el development journey sea mas linea temporal y el supuesto panel que tienes en el hero está mal hecho. Añade logos de las tecnologías usadas. El header funciona mal cuando entras en /estimate porque se solapa con el stepper (el stepper esta por encima del header y lo tapa un poco)"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/app/features/visitor/estimate/estimate.component.scss`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El solape se debía a que el stepper visitante era sticky con margen negativo y competía con el header. Darle al header una capa superior y retirar el margen negativo del stepper evita la colisión. Para el hero, un layout dashboard con mapa y panel lateral transmite mejor la funcionalidad del producto que un dibujo decorativo. Para la timeline, los nodos sobre una línea continua hacen más evidente la progresión temporal y siguen funcionando en móvil al convertirse en eje vertical.
+
+---
+
+## June 15, 2026 - Local SVG technology logos and TypeScript stack card
+
+### Topic
+Añadir TypeScript al stack tecnológico y reemplazar badges tipográficos por logos SVG locales.
+
+### Summary of Prompt
+El usuario pidió añadir TypeScript al stack de tecnologías y confirmó que quería usar SVG locales con logos oficiales para las tecnologías listadas.
+
+### What Was Achieved
+- Se creó `client/src/assets/tech/` con SVG locales para MongoDB, Express.js, Angular, Node.js, TypeScript y PrimeNG.
+- Se añadió TypeScript a la sección `Built with modern technologies`.
+- Se actualizó el componente para usar `NgOptimizedImage` y cargar los logos desde assets locales.
+- Se verificó en navegador que los seis logos cargan correctamente al llegar a la sección.
+- Se validó con `npm run typecheck`.
+
+### Full Prompt
+> "Al stack de tecnologías añade typescript. Dime que necesitas para poner los logos de cada una de las tecnologías"
+>
+> "Ok vamos a usar svg locales con logos oficiales"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/assets/tech/angular.svg`
+- `client/src/assets/tech/express.svg`
+- `client/src/assets/tech/mongodb.svg`
+- `client/src/assets/tech/nodejs.svg`
+- `client/src/assets/tech/primeng-logo.svg`
+- `client/src/assets/tech/typescript.svg`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Los logos como assets locales evitan depender de internet en runtime y hacen que la landing sea estable en desarrollo, build y despliegue. `NgOptimizedImage` encaja con el estándar Angular del proyecto para imágenes estáticas. TypeScript se añadió como una tecnología explícita porque forma parte central del frontend Angular y del backend Node/Express del proyecto.
+
+---
+
+## June 15, 2026 - Replace Angular and PrimeNG logo assets
+
+### Topic
+Sustitución de logos de tecnologías por assets solicitados por el usuario.
+
+### Summary of Prompt
+El usuario pidió usar un logo de Angular desde Logo Search y un logo de PrimeNG desde PNGKey, guardando ambos dentro del proyecto en assets locales.
+
+### What Was Achieved
+- Se sustituyó `client/src/assets/tech/angular.svg` por una variante de Angular enlazada desde Logo Search, usando `devicons/devicon` como fuente directa.
+- Se descargó el PNG de PrimeNG desde PNGKey y se guardó como `client/src/assets/tech/primeng.png`.
+- Se actualizó la landing para apuntar al PNG local de PrimeNG.
+- Se eliminó el SVG temporal local de PrimeNG creado anteriormente.
+- Se verificó `npm run typecheck`, `npm run build` y carga en navegador de Angular/PrimeNG sin assets rotos.
+
+### Full Prompt
+> "Añade este logo de angular https://logosear.ch/logos/angular/index.html en lugar del actual. Usa este para primeng: https://www.pngkey.com/maxpic/u2e6w7u2i1i1q8y3/ (pero añadelos al proyecto en assets"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/assets/tech/angular.svg`
+- `client/src/assets/tech/primeng.png`
+- `client/src/assets/tech/primeng-logo.svg`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El enlace de Logo Search es un índice con múltiples variantes; se eligió la variante `angular-original.svg` de `devicons/devicon` porque es un asset técnico común y directo. PNGKey exponía el PNG final en metadata y en el elemento de imagen principal, por lo que se descargó ese recurso y se apuntó la landing al asset local para evitar dependencias externas en runtime.
+
+---
+
+## June 15, 2026 - Project evolution timeline redesign
+
+### Topic
+Rediseño de `Development Journey` como evolución real del proyecto.
+
+### Summary of Prompt
+El usuario pidió que la timeline explicara cómo ha progresado Solar Planner desde v1, desarrollada por Rayeen Hamada, hasta v2, desarrollada por Santiago Linares, y que el diseño fuera más minimalista, sin flechas y con efectos interactivos al hacer hover.
+
+### What Was Achieved
+- Se sustituyeron los hitos mensuales por tres etapas narrativas: `Solar Planner v1`, `Solar Planner v2` y `Open Evolution`.
+- Se documentó v1 como base de Rayeen Hamada con Angular 17, JavaScript, stack MEAN anterior, estimación PVGIS, gráficos completos y generación PDF.
+- Se documentó v2 como refactor de Santiago Linares con Angular 21.1, TypeScript 5.9, Express 5.2, Mongoose 9.6, PrimeNG 21.1, look and feel modernizado, modelo basado en NREL PVWatts V5 y analíticas económicas.
+- Se eliminaron las flechas previous/next y se mantuvo interacción por click sobre nodos.
+- Se simplificó el diseño visual con línea fina, nodos minimalistas y hover con elevación/highlight.
+- Se verificó `npm run typecheck`, `npm run build` y cambio de estado en navegador al pulsar la etapa v2.
+
+### Full Prompt
+> "Ahora el timeline quiero que sea más bien para que indiquemos como ha ido progresando el proyecto (v1 fue desarrollada por Rayeen Hamada y contenia estimaciones con PVGIS, gr;aficos completos, generacion de PDF y usaba angular 17 con código en javascript, mismo stack, pero más antiguo. Luego el v2 desarrrolaldo por Santiago Linares, que ha sido un refactor de la app subiendolo a angular 21, las versiones de lo demas que puedes ver tu aqui, añadiendo una modernización del look and feel, un modelo de calculo que no delega todo en PVGIS y se basa en el motor de NREL PVWATTS V5 Manual, con gr;aficos economicos tambien. Quiero que el timeline sea más minimalista en su diseño sin las flechas y más interactivo con efectos al hacer hover"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La timeline anterior contaba una planificación mensual genérica, pero el usuario necesitaba una narrativa de evolución del producto. La nueva estructura compara v1 y v2 con un tercer punto de continuidad, que ayuda a leer el proyecto como una base técnica en evolución. Las versiones de v2 se tomaron de los `package.json` locales para evitar inventar números.
+
+---
+
+## June 16, 2026 - PrimeNG Timeline and AnimateOnScroll landing integration
+
+### Topic
+Migración del timeline del home a componentes PrimeNG y animación de secciones al hacer scroll.
+
+### Summary of Prompt
+El usuario aprobó el plan para implementar en el home page el timeline vertical de PrimeNG y `AnimateOnScroll`, manteniendo la misma fuente usada por el resto de la aplicación.
+
+### What Was Achieved
+- Se importaron `TimelineModule` y `AnimateOnScrollModule` en el componente standalone del landing page.
+- Se sustituyó el timeline custom por `<p-timeline>` vertical con templates de marker, opposite y content.
+- Se mantuvo la interacción por click/teclado para seleccionar la etapa activa del proyecto.
+- Se aplicó `pAnimateOnScroll` a las secciones principales del home con una animación suave de entrada.
+- Se eliminaron los estilos y selectores responsive del timeline anterior.
+- Se verificó `npm run typecheck`, `npm run build` del cliente y el DOM/interacción en el navegador integrado.
+
+### Full Prompt
+> "Para el home page quiero implementar usanod primeng estos dos elementos:
+> - https://primeng.org/timeline para el timeline vertical
+> - https://primeng.org/animateonscroll
+>
+> Usa la misma fuente para todo lo que metas. La que se usa por toda la app"
+>
+> "Aprobado"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+PrimeNG ya es la librería UI principal del proyecto, así que usar su `Timeline` reduce código propio para la estructura vertical y deja el diseño alineado con el stack. `AnimateOnScroll` se aplicó como mejora progresiva sobre secciones completas, usando clases locales y heredando la tipografía global (`Inter, "Segoe UI", system-ui, sans-serif`) para no introducir otra fuente ni una estética distinta.
+
+---
+
+## June 17, 2026 - GitHub repository links and landing CTA cleanup
+
+### Topic
+Actualización de enlaces de GitHub y mejora de botones del home.
+
+### Summary of Prompt
+El usuario pidió que los enlaces de GitHub apuntasen al repositorio `santilinares/solarPlanner-v2`, que documentación apuntase al `README.md`, contributing a `CONTRIBUTING.md`, que el botón `View on GitHub` tuviera más contraste y que se eliminara el botón `Star Repository`.
+
+### What Was Achieved
+- Se actualizó la URL base del repositorio a `https://github.com/santilinares/solarPlanner-v2`.
+- Se añadieron URLs configurables para `README.md` y `CONTRIBUTING.md` en entornos de desarrollo y producción.
+- Se cambió el enlace de `Documentation` del header para abrir el README del repositorio.
+- Se mejoró el contraste del botón `View on GitHub` del hero con una clase específica.
+- Se eliminó el botón `Star the Repository`.
+- Se añadió un botón `Contributing Guide` que abre `CONTRIBUTING.md`.
+- Se validó con `npm run typecheck`, `npm run build` del cliente y revisión en navegador integrado.
+
+### Full Prompt
+> "Los links a github deben tener:
+> - [santilinares/solarPlanner-v2](https://github.com/santilinares/solarPlanner-v2)
+> - Para el contributing este: [CONTRIBUTING.md](https://github.com/santilinares/solarPlanner-v2/blob/main/CONTRIBUTING.md)
+> - Para la documentacion este: [README.md](https://github.com/santilinares/solarPlanner-v2/blob/main/README.md)
+>
+> El boton de view on github no tiene suficiente contraste
+> Elimina el boton de star repository"
+>
+> "Dale"
+
+### Affected Files
+- `client/src/environments/environment.ts`
+- `client/src/environments/environment.prod.ts`
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Centralizar las URLs en los archivos de entorno evita duplicar rutas de GitHub en componentes y mantiene la configuración consistente entre desarrollo y producción. El botón de estrella no era una acción útil dentro de la app, mientras que enlazar a la guía de contribución aprovecha el enlace solicitado y encaja con la sección open source.
+
+---
+
+## June 17, 2026 - Contributing CTA contrast improvement
+
+### Topic
+Mejora de contraste del botón `Contributing Guide` en el home.
+
+### Summary of Prompt
+El usuario indicó que el botón `Contributing Guide` no tenía suficiente contraste sobre el panel de contribución.
+
+### What Was Achieved
+- Se añadió una clase específica `contributing-button` al botón.
+- Se ajustó el color del texto a blanco y el borde a blanco semitransparente de alta visibilidad.
+- Se mantuvo como CTA secundario respecto a `View on GitHub`.
+- Se verificó con `npm run typecheck` y revisión en navegador integrado.
+
+### Full Prompt
+> "Contributing guide no tiene suficiente contraste"
+>
+> "dale"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El botón era `outlined` y heredaba un estilo secundario demasiado tenue sobre un fondo oscuro. Una clase local permite mejorar contraste sin alterar otros botones PrimeNG ni cambiar la jerarquía visual de la sección.
+
+---
+
+## June 17, 2026 - Future work roadmap copy update
+
+### Topic
+Actualización del contenido del timeline para reflejar futuras líneas de trabajo del proyecto.
+
+### Summary of Prompt
+El usuario pidió modificar `Open Evolution` para incorporar futuros trabajos sobre agrovoltaica, 3D, sombras, topografía, componentes eléctricos y destino de la energía generada. También pidió sustituir `Refactor` por una palabra que transmitiera mejora, modernización y escalabilidad.
+
+### What Was Achieved
+- Se cambió la etiqueta de `Solar Planner v2` de `Refactor` a `Modernization`.
+- Se cambió `Open Evolution` para presentarlo como `Future Work`.
+- Se resumieron las futuras líneas de trabajo en tres puntos de alto nivel:
+  - compatibilidad cultivo-instalación y beneficios agrovoltaicos,
+  - representación 3D, obstáculos y sombras dinámicas anuales,
+  - análisis topográfico, componentes eléctricos, almacenamiento y flujos de energía.
+- Se mantuvo el contenido lo bastante compacto para no sobrecargar el timeline.
+- Se verificó con `npm run typecheck` y navegador integrado.
+
+### Full Prompt
+> "Para la parte de open evolution modificalo para tener en cuenta esto:
+> Futuro Trabajo 1. Incorporar un modelo de compatibilidad entre cultivos e instalaciones fotovoltaicas...
+> Futuro Trabajo 2. Añadir una representación 3D del área de instalación...
+> Futuro Trabajo 3. Implementar un sistema capaz de calcular dinámicamente las sombras proyectadas...
+> Futuro Trabajo 4. Desarrollar mecanismos específicos para analizar la topografía del terreno...
+> Futuro Trabajo 5. Incorporar entidades específicas para inversores, baterías, reguladores y sistemas de almacenamiento...
+> Futuro Trabajo 6. Extender el análisis para representar qué ocurre con la energía generada...
+>
+> Y en lugar de refactor, usa una palabra que implique mejora, modernización, escalabilidad, etc."
+>
+> "Dale"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El texto original de `Open Evolution` era demasiado genérico para una sección de roadmap. Se condensaron los seis futuros trabajos en tres bullets más legibles para el home, manteniendo el significado técnico sin convertir el timeline en una sección documental extensa.
+
+---
+
+## June 17, 2026 - Visitor footer year update
+
+### Topic
+Actualización del año mostrado en el footer público.
+
+### Summary of Prompt
+El usuario pidió cambiar el año del footer de 2025 a 2026.
+
+### What Was Achieved
+- Se actualizó el copyright del layout público a `© 2026 Solar Planner`.
+- Se verificó con `npm run typecheck`.
+
+### Full Prompt
+> "Cambia el footer para que el año sea 2026 en lugar de 2025"
+
+### Affected Files
+- `client/src/app/layouts/visitor-layout/visitor-layout.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El footer mostraba un año desactualizado para la versión actual del proyecto. Se realizó el cambio directamente en el layout público compartido para que aplique a todas las páginas visitantes.
+
+---
+
+## June 17, 2026 - Hero illustration asset replacement
+
+### Topic
+Sustitución del mockup generado por CSS del hero por una ilustración local.
+
+### Summary of Prompt
+El usuario proporcionó una imagen para reemplazar la ilustración actual del hero y pidió probar si podía incorporarse tal cual o replicarse.
+
+### What Was Achieved
+- Se copió la imagen proporcionada al proyecto como `client/src/assets/landing/solar-home-hero.png`.
+- Se reemplazó el mockup HTML/CSS del hero por una imagen local usando `NgOptimizedImage`.
+- Se ajustó el estilo de la imagen para mantener buen encuadre, bordes y sombra dentro del hero.
+- Se eliminaron estilos y propiedades TypeScript que solo pertenecían al mockup anterior.
+- Se validó con `npm run typecheck`, `npm run build` del cliente y revisión en navegador integrado.
+
+### Full Prompt
+> "Modifica la ilustracion que tienes en el hero y mete la que te he pasado. No se si puedes meterla tal cual o puedes replicar el diseño"
+>
+> "Vamos a probar"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `client/src/assets/landing/solar-home-hero.png`
+- `santi-agent-interactions.md`
+
+### Reasoning
+Usar la imagen como asset local preserva exactamente el estilo visual solicitado y evita depender de recursos externos en runtime. Al sustituir el mockup por una imagen optimizada se simplifica el componente y se reduce CSS específico que ya no era necesario.
+
+---
+
+## June 17, 2026 - Hero illustration dark variant replacement
+
+### Topic
+Sustitución de la ilustración del hero por una variante más oscura.
+
+### Summary of Prompt
+El usuario proporcionó una segunda imagen para usarla en lugar de la ilustración anterior del hero.
+
+### What Was Achieved
+- Se reemplazó el asset `client/src/assets/landing/solar-home-hero.png` por la nueva imagen proporcionada.
+- Se mantuvo el mismo nombre y ruta del asset para evitar cambios adicionales en el template.
+- Se verificó en navegador que la imagen carga correctamente desde `assets/landing/solar-home-hero.png`.
+
+### Full Prompt
+> "Usa esta imagen mejor"
+
+### Affected Files
+- `client/src/assets/landing/solar-home-hero.png`
+- `santi-agent-interactions.md`
+
+### Reasoning
+La segunda imagen tiene un fondo oscuro y una iluminación verde/amarilla que encaja mejor con el hero actual, por lo que bastó con reemplazar el asset existente sin tocar el componente.
+
+---
+
+## June 17, 2026 - Transparent hero illustration styling
+
+### Topic
+Ajuste de la imagen del hero para usar su transparencia real sobre el fondo de la sección.
+
+### Summary of Prompt
+El usuario aclaró que la imagen no debía verse como si tuviera fondo propio, sino integrarse con el fondo del hero aprovechando su transparencia.
+
+### What Was Achieved
+- Se comprobó que el PNG tiene canal alfa y esquinas transparentes.
+- Se eliminó el fondo CSS blanco y la sombra rectangular aplicada a `.hero-illustration`.
+- Se sustituyó la sombra de caja por `filter: drop-shadow(...)` para mantener profundidad sin crear una tarjeta.
+- Se verificó en navegador que el fondo computado de la imagen es transparente y no tiene `box-shadow`.
+
+### Full Prompt
+> "Pero la idea es que no tenga fondo y se use el fondo del hero. Porque la imagen no tiene fondo"
+>
+> "dale"
+
+### Affected Files
+- `client/src/app/features/visitor/landing-page/landing-page.component.ts`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El asset ya era transparente, pero el CSS de la imagen añadía un fondo claro y una sombra rectangular que lo hacía parecer una tarjeta. El `drop-shadow` conserva profundidad visual respetando la silueta transparente de la ilustración.
+
+## 2026-06-17 - Fix blank chart series in generated PDF
+
+### Topic
+Corregir la captura de gráficos Highcharts para que las series se vean en el PDF, no solo los ejes y etiquetas.
+
+### Prompt summary
+El usuario reportó que en los gráficos generados aparecían los ejes y labels, pero no se veía la información pintada en las series.
+
+### Full prompt
+Hay un problema. Están los gráficos pero no se ve nada pintado en ellos. Estan los axis y labels pero no se ve lo que pintan
+
+### What was achieved
+Se ajustó el render temporal de Highcharts en `FileService` para convertir los gráficos a una versión estática antes de serializarlos a PNG. Ahora se desactivan animaciones y mouse tracking, se fuerza `reflow/redraw`, se espera un render estable y se serializan estilos calculados de elementos SVG relevantes.
+
+### Affected files
+- `client/src/app/core/services/file.service.ts`
+- `santi-agent-interactions.md`
 
 ### Reasoning notes
-The second pass focused on breadth inside existing screens rather than introducing a heavier i18n dependency or changing feature architecture. The translation service already solved persisted language selection and runtime lookup, so the safest move was to continue replacing user-facing strings with dictionary keys and to leave technical identifiers, brand names and test-only literals alone unless they leaked into the UI. Chart labels and shared map text were included because they are visible in the main project workflows.
+El síntoma era consistente con capturar el SVG demasiado pronto o sin atributos visuales inline: los ejes se renderizan de inmediato, pero las series pueden estar aún animando o depender de estilos calculados. La solución evita duplicar lógica de gráficos y mantiene el enfoque de reutilizar las `Highcharts.Options` existentes.
 
 ### Verification
-- `cd client && npm run typecheck`
-- `cd client && npm test -- configure-review-step.component.spec.ts --runInBand`
+- `client`: `npm run typecheck` passed.
+- `client`: `npm run build` passed outside the sandbox; warnings were bundle budget/CommonJS warnings.

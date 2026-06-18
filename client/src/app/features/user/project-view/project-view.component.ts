@@ -290,8 +290,31 @@ export class ProjectViewComponent implements OnInit {
     this.isDownloadingPlan.set(true);
     this.projectService.getPlanData(this.projectId()).subscribe({
       next: (planData: PlanData) => {
-        this.fileService.generateProjectPDF(planData);
-        this.isDownloadingPlan.set(false);
+        this.fileService.generateProjectPDF({
+          mode: 'view',
+          project: this.projectData() ?? planData.project,
+          planData,
+          panelDetails: planData.panelDetails,
+          totalCapacityKw: planData.totalCapacityKw,
+          analytics: this.analytics(),
+          sunPathData: this.sunPathData(),
+          charts: [
+            { title: 'Today Production', options: this.todayChartOptions() },
+            { title: 'Forecast Production', options: this.nextProdChartOptions() },
+            { title: 'Recent Production', options: this.previousProdChartOptions() },
+            { title: 'Monthly Production Estimate', options: this.monthlyProductionChartOptions() },
+            { title: '25-Year Avoided Cost Projection', options: this.savingsChartOptions() },
+          ],
+        }).then(() => {
+          this.isDownloadingPlan.set(false);
+        }).catch(() => {
+          this.isDownloadingPlan.set(false);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Download Failed',
+            detail: 'Could not generate the project plan. Please try again.',
+          });
+        });
       },
       error: () => {
         this.isDownloadingPlan.set(false);
