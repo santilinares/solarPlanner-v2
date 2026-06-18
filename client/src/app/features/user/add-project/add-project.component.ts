@@ -30,6 +30,7 @@ import { PanelListResponse, PanelService } from '@core/services/panel.service';
 import { ProjectService } from '@core/services/project.service';
 import { HasUnsavedWork } from '@core/guards/unsaved-changes.guard';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
+import { LanguageService } from '@core/services/language.service';
 
 interface StepDef {
   label: string;
@@ -72,21 +73,22 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
+  readonly i18n = inject(LanguageService);
 
   private navigationSubscription?: Subscription;
 
   readonly activeStep = signal(0);
-  readonly steps: StepDef[] = [
-    { label: 'Project', icon: 'description' },
-    { label: 'Site', icon: 'map' },
-    { label: 'Energy Price', icon: 'bolt' },
-    { label: 'Installation', icon: 'solar_power' },
-    { label: 'Review', icon: 'fact_check' },
-  ];
+  readonly steps = computed<StepDef[]>(() => [
+    { label: this.i18n.t('wizard.projectStep'), icon: 'description' },
+    { label: this.i18n.t('wizard.siteStep'), icon: 'map' },
+    { label: this.i18n.t('wizard.energyPriceStep'), icon: 'bolt' },
+    { label: this.i18n.t('wizard.installationStep'), icon: 'solar_power' },
+    { label: this.i18n.t('wizard.reviewStep'), icon: 'fact_check' },
+  ]);
 
   readonly stepNextLabel = computed(() => {
-    const nextStep = this.steps[this.activeStep() + 1];
-    return nextStep ? `Next: ${nextStep.label}` : 'Next';
+    const nextStep = this.steps()[this.activeStep() + 1];
+    return nextStep ? this.i18n.t('wizard.nextStep', { step: nextStep.label }) : this.i18n.t('wizard.next');
   });
 
   readonly projectName = signal('');
@@ -126,11 +128,11 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   readonly isSubmitting = signal(false);
 
   readonly directionOptions = [
-    { label: 'South', value: 'south', azimuth: 180 },
-    { label: 'South-East', value: 'southeast', azimuth: 135 },
-    { label: 'South-West', value: 'southwest', azimuth: 225 },
-    { label: 'East', value: 'east', azimuth: 90 },
-    { label: 'West', value: 'west', azimuth: 270 },
+    { label: this.i18n.t('direction.south'), value: 'south', azimuth: 180 },
+    { label: this.i18n.t('direction.southeast'), value: 'southeast', azimuth: 135 },
+    { label: this.i18n.t('direction.southwest'), value: 'southwest', azimuth: 225 },
+    { label: this.i18n.t('direction.east'), value: 'east', azimuth: 90 },
+    { label: this.i18n.t('direction.west'), value: 'west', azimuth: 270 },
   ];
 
   readonly panelOptions = computed(() =>
@@ -238,7 +240,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   }
 
   goToStep(step: number): void {
-    if (step >= 0 && step < this.steps.length && (step <= this.activeStep() || this.canProceed())) {
+    if (step >= 0 && step < this.steps().length && (step <= this.activeStep() || this.canProceed())) {
       this.activeStep.set(step);
     }
   }
@@ -250,7 +252,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   }
 
   onNext(): void {
-    if (!this.canProceed() || this.activeStep() >= this.steps.length - 1) return;
+    if (!this.canProceed() || this.activeStep() >= this.steps().length - 1) return;
     const next = this.activeStep() + 1;
     this.activeStep.set(next);
     if (next === 3 && this.canCalculate()) {
@@ -273,14 +275,14 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
     this.isSearching.set(true);
     this.searchError.set(null);
 
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1&accept-language=en`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1&accept-language=${this.i18n.currentLanguage()}`;
     this.http
       .get<Array<{ lat: string; lon: string; display_name?: string; address?: { country?: string; country_code?: string } }>>(url)
       .subscribe({
         next: (results) => {
           this.isSearching.set(false);
           if (results.length === 0) {
-            this.searchError.set('Location not found. Try a more specific address.');
+            this.searchError.set(this.i18n.t('estimate.locationNotFound'));
             return;
           }
           const result = results[0];
@@ -294,14 +296,14 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
         },
         error: () => {
           this.isSearching.set(false);
-          this.searchError.set('Search failed. Please try again.');
+          this.searchError.set(this.i18n.t('estimate.searchFailed'));
         },
       });
   }
 
   useCurrentLocation(): void {
     if (!navigator.geolocation) {
-      this.searchError.set('Geolocation is not supported by this browser.');
+      this.searchError.set(this.i18n.t('estimate.geoUnsupported'));
       return;
     }
 
@@ -312,19 +314,19 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
         this.isLocating.set(false);
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        this.applyResolvedLocation(lat, lng, 'Current location');
+        this.applyResolvedLocation(lat, lng, this.i18n.t('estimate.currentLocation'));
         this.reverseGeocode(lat, lng);
       },
       () => {
         this.isLocating.set(false);
-        this.searchError.set('Unable to access your location. Please allow location permission.');
+        this.searchError.set(this.i18n.t('estimate.geoDenied'));
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
   onUserLocationFound(coords: Coordinates): void {
-    this.applyResolvedLocation(coords.lat, coords.lng, 'Current location');
+    this.applyResolvedLocation(coords.lat, coords.lng, this.i18n.t('estimate.currentLocation'));
     this.reverseGeocode(coords.lat, coords.lng);
   }
 
@@ -496,7 +498,7 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
   }
 
   private reverseGeocode(lat: number, lng: number): void {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}&format=json&addressdetails=1&accept-language=en`;
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}&format=json&addressdetails=1&accept-language=${this.i18n.currentLanguage()}`;
     this.http
       .get<{ display_name?: string; address?: { country?: string; country_code?: string } }>(url)
       .subscribe({
@@ -504,12 +506,12 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
           this.applyResolvedLocation(
             lat,
             lng,
-            res.display_name ?? 'Current location',
+            res.display_name ?? this.i18n.t('estimate.currentLocation'),
             res.address?.country,
             res.address?.country_code,
           );
         },
-        error: () => this.addressResult.set(this.addressResult().trim() || 'Current location'),
+        error: () => this.addressResult.set(this.addressResult().trim() || this.i18n.t('estimate.currentLocation')),
       });
   }
 
@@ -569,11 +571,11 @@ export class AddProjectComponent implements OnInit, OnDestroy, HasUnsavedWork {
 
   private showExitConfirmation(onAccept: () => void): void {
     this.confirmationService.confirm({
-      header: 'Leave project creation?',
-      message: 'Your progress will not be saved. Are you sure you want to exit?',
+      header: this.i18n.t('wizard.exitHeader'),
+      message: this.i18n.t('wizard.exitMessage'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Leave',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.i18n.t('wizard.leave'),
+      rejectLabel: this.i18n.t('panelForm.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: onAccept,
     });

@@ -8,6 +8,7 @@ import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { LoginRequest, getErrorMessage } from '@core/models';
 import { environment } from '@environments/environment';
 
@@ -30,14 +31,14 @@ import { environment } from '@environments/environment';
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-sign-in solar-icon"></i>
-            <h2>Welcome Back</h2>
-            <p class="subtitle">Sign in to access your solar planning dashboard</p>
+            <h2>{{ i18n.t('auth.login.title') }}</h2>
+            <p class="subtitle">{{ i18n.t('auth.login.subtitle') }}</p>
           </div>
         </ng-template>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
-            <label for="email">Email Address</label>
+            <label for="email">{{ i18n.t('auth.email') }}</label>
             <input
               pInputText
               id="email"
@@ -49,16 +50,16 @@ import { environment } from '@environments/environment';
             />
             @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
               <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Valid email is required
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.emailRequired') }}
               </small>
             }
           </div>
 
           <div class="form-field">
-            <label for="password">Password</label>
+            <label for="password">{{ i18n.t('auth.password') }}</label>
             <p-password
               formControlName="password"
-              placeholder="Enter your password"
+              [placeholder]="i18n.t('auth.passwordPlaceholder')"
               [toggleMask]="true"
               [feedback]="false"
               class="w-full"
@@ -66,7 +67,7 @@ import { environment } from '@environments/environment';
             ></p-password>
             @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
               <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Password is required
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.passwordRequired') }}
               </small>
             }
           </div>
@@ -84,7 +85,7 @@ import { environment } from '@environments/environment';
           <div class="auth-btn-row">
             <p-button
               type="submit"
-              label="Sign In"
+              [label]="i18n.t('auth.signIn')"
               icon="pi pi-sign-in"
               [disabled]="loading() || loginForm.invalid"
               [loading]="loading()"
@@ -92,7 +93,7 @@ import { environment } from '@environments/environment';
 
             <p-button
               type="button"
-              label="Continue with Google"
+              [label]="i18n.t('auth.google')"
               [disabled]="loading()"
               [loading]="googleLoading()"
               severity="secondary"
@@ -106,10 +107,10 @@ import { environment } from '@environments/environment';
 
           <div class="form-links">
             <a routerLink="/forgot_password" class="link">
-              <i class="pi pi-question-circle"></i> Forgot password?
+              <i class="pi pi-question-circle"></i> {{ i18n.t('auth.forgotPassword') }}
             </a>
             <a routerLink="/registration" class="link">
-              <i class="pi pi-user-plus"></i> Create account
+              <i class="pi pi-user-plus"></i> {{ i18n.t('auth.createAccountLink') }}
             </a>
           </div>
         </form>
@@ -276,6 +277,7 @@ export class LoginComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  readonly i18n = inject(LanguageService);
 
   loading = signal(false);
   googleLoading = signal(false);
@@ -317,7 +319,7 @@ export class LoginComponent implements OnInit {
           },
           error: (err: unknown) => {
             this.loading.set(false);
-            this.errorMessage.set(getErrorMessage(err, 'Google sign-in failed. Please try again.'));
+            this.errorMessage.set(getErrorMessage(err, this.i18n.t('auth.googleFailed')));
           },
           complete: () => {
             this.loading.set(false);
@@ -345,7 +347,7 @@ export class LoginComponent implements OnInit {
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(getErrorMessage(err, 'Login failed. Please try again.'));
+          this.errorMessage.set(getErrorMessage(err, this.i18n.t('auth.loginFailed')));
         },
         complete: () => {
           this.loading.set(false);

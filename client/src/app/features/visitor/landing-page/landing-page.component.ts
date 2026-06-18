@@ -7,6 +7,7 @@ import { TimelineModule } from 'primeng/timeline';
 import { AnimateOnScrollModule } from 'primeng/animateonscroll';
 
 import { environment } from '../../../../environments/environment';
+import { LanguageService } from '@core/services/language.service';
 
 interface TimelineMilestone {
   title: string;
@@ -39,29 +40,28 @@ interface TechnologyCard {
       <section class="hero-section" aria-labelledby="hero-title">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <span class="eyebrow">Plan. Simulate. Optimize.</span>
-            <h1 id="hero-title">Design better solar projects with confidence</h1>
+            <span class="eyebrow">{{ i18n.t('landing.eyebrow') }}</span>
+            <h1 id="hero-title">{{ i18n.t('landing.heroTitle') }}</h1>
             <p class="hero-subtitle">
-              Solar Planner helps you design, simulate and evaluate photovoltaic installations using real data,
-              technical indicators and clear visual reports.
+              {{ i18n.t('landing.heroSubtitle') }}
             </p>
 
-            <div class="hero-indicators" aria-label="Platform strengths">
-              <span><i class="pi pi-check-circle" aria-hidden="true"></i> Accurate simulations</span>
-              <span><i class="pi pi-database" aria-hidden="true"></i> Data-driven decisions</span>
-              <span><i class="pi pi-leaf" aria-hidden="true"></i> Sustainable future</span>
+            <div class="hero-indicators" [attr.aria-label]="i18n.t('landing.capabilities')">
+              <span><i class="pi pi-check-circle" aria-hidden="true"></i> {{ i18n.t('landing.indicatorSimulations') }}</span>
+              <span><i class="pi pi-database" aria-hidden="true"></i> {{ i18n.t('landing.indicatorData') }}</span>
+              <span><i class="pi pi-leaf" aria-hidden="true"></i> {{ i18n.t('landing.indicatorFuture') }}</span>
             </div>
 
             <div class="hero-actions">
               <p-button
-                label="Try Now"
+                [label]="i18n.t('landing.tryNow')"
                 icon="pi pi-arrow-right"
                 iconPos="right"
                 [raised]="true"
                 (onClick)="goToEstimate()"
               />
               <p-button
-                label="View on GitHub"
+                [label]="i18n.t('landing.github')"
                 icon="pi pi-github"
                 styleClass="github-hero-button"
                 (onClick)="openGithub()"
@@ -69,10 +69,10 @@ interface TechnologyCard {
             </div>
           </div>
 
-          <div class="hero-visual" aria-label="Solar project planning preview">
+          <div class="hero-visual" [attr.aria-label]="i18n.t('landing.previewAlt')">
             <img
               ngSrc="assets/landing/solar-home-hero.png"
-              alt="Illustration of solar panels powering a home"
+              [alt]="i18n.t('landing.previewAlt')"
               width="1536"
               height="1024"
               priority
@@ -93,9 +93,9 @@ interface TechnologyCard {
       >
         <div class="container">
           <div class="section-heading">
-            <span class="section-kicker">Roadmap</span>
-            <h2 id="journey-title">Development Journey</h2>
-            <p>From initial prototype to an evolving open-source platform.</p>
+            <span class="section-kicker">{{ i18n.t('landing.roadmap') }}</span>
+            <h2 id="journey-title">{{ i18n.t('landing.journeyTitle') }}</h2>
+            <p>{{ i18n.t('landing.journeySubtitle') }}</p>
           </div>
 
           <p-timeline [value]="timelineMilestones" align="left" layout="vertical" class="project-timeline">
@@ -153,8 +153,8 @@ interface TechnologyCard {
       >
         <div class="container">
           <div class="section-heading">
-            <span class="section-kicker">Capabilities</span>
-            <h2 id="features-title">Everything you need to design and evaluate solar projects</h2>
+            <span class="section-kicker">{{ i18n.t('landing.capabilities') }}</span>
+            <h2 id="features-title">{{ i18n.t('landing.featuresTitle') }}</h2>
           </div>
 
           <div class="feature-grid">
@@ -187,8 +187,8 @@ interface TechnologyCard {
       >
         <div class="container">
           <div class="section-heading compact">
-            <span class="section-kicker">Stack</span>
-            <h2 id="technology-title">Built with modern technologies</h2>
+            <span class="section-kicker">{{ i18n.t('landing.stack') }}</span>
+            <h2 id="technology-title">{{ i18n.t('landing.techTitle') }}</h2>
           </div>
 
           <div class="tech-grid">
@@ -221,17 +221,16 @@ interface TechnologyCard {
             <span></span>
           </div>
           <div class="contribution-copy">
-            <span class="section-kicker">Open source</span>
-            <h2 id="contribution-title">Open to contributing. Built to evolve.</h2>
+            <span class="section-kicker">{{ i18n.t('landing.openSource') }}</span>
+            <h2 id="contribution-title">{{ i18n.t('landing.contributionTitle') }}</h2>
             <p>
-              Solar Planner v2.0 is a Final Year Project designed as a solid foundation for future improvements.
-              Contributions, issues and new ideas can help extend its technical and functional scope.
+              {{ i18n.t('landing.contributionText') }}
             </p>
           </div>
           <div class="contribution-actions">
-            <p-button label="View on GitHub" icon="pi pi-github" (onClick)="openGithub()" />
+            <p-button [label]="i18n.t('landing.github')" icon="pi pi-github" (onClick)="openGithub()" />
             <p-button
-              label="Contributing Guide"
+              [label]="i18n.t('landing.contributingGuide')"
               icon="pi pi-book"
               [outlined]="true"
               severity="secondary"
@@ -930,6 +929,7 @@ interface TechnologyCard {
 })
 export class LandingPageComponent {
   private readonly router = inject(Router);
+  readonly i18n = inject(LanguageService);
 
   readonly timelineMilestones: TimelineMilestone[] = [
     {

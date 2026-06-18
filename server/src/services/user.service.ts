@@ -26,6 +26,7 @@ export class UserService {
       fullName: user.fullName,
       email,
       role: user.role,
+      language: user.language ?? 'en',
       method: user.method,
       createdAt: user.createdAt.toISOString(),
     };
@@ -60,6 +61,9 @@ export class UserService {
     }
 
     user.fullName = data.fullName;
+    if (data.language) {
+      user.language = data.language;
+    }
     await user.save();
 
     return this.transformUserToResponse(user);
@@ -175,6 +179,7 @@ export class UserService {
         fullName: u.fullName,
         email: u.method === 'local' ? u.local?.email : u.google?.email,
         role: u.role,
+        language: u.language ?? 'en',
         method: u.method,
         createdAt: u.createdAt.toISOString(),
         projectCount: u.projectCount,

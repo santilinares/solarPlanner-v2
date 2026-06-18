@@ -14,6 +14,7 @@ const STUB_RESPONSE: AuthResponse = {
     email: 'test@example.com',
     fullName: 'Test User',
     role: UserRole.USER,
+    language: 'en',
     isActive: true,
     createdAt: new Date(),
   },

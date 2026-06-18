@@ -4,9 +4,12 @@ export interface User {
   email: string;
   fullName: string;
   role: UserRole;
+  language: SupportedLanguage;
   isActive: boolean;
   createdAt: Date;
 }
+
+export type SupportedLanguage = 'en' | 'es';
 
 export enum UserRole {
   USER = 'user',
@@ -19,6 +22,7 @@ export interface UserResponse {
   fullName: string;
   email?: string;
   role: 'user' | 'admin';
+  language: SupportedLanguage;
   method: 'local' | 'google';
   createdAt: string;
   projectCount?: number;

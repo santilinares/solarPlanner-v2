@@ -7,6 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '@core/services/user.service';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
+import { LanguageService } from '@core/services/language.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -18,9 +19,9 @@ import { PanelService } from '@core/services/panel.service';
         <div>
           <h1>
             <i class="pi pi-shield icon-lg icon-danger"></i>
-            Admin Overview
+            {{ i18n.t('admin.overview') }}
           </h1>
-          <p class="welcome-text">Operations center for users, projects, and panel management.</p>
+          <p class="welcome-text">{{ i18n.t('admin.subtitle') }}</p>
         </div>
       </header>
 
@@ -29,12 +30,12 @@ import { PanelService } from '@core/services/panel.service';
           <div class="stat-icon stat-icon-danger">
             <i class="pi pi-users icon-lg icon-danger"></i>
           </div>
-          <h3>Users</h3>
+          <h3>{{ i18n.t('admin.users') }}</h3>
           <p class="stat-value">{{ loading() ? '--' : (usersCount() ?? '--') }}</p>
-          <span class="stat-unit">Directory and permissions</span>
+          <span class="stat-unit">{{ i18n.t('admin.usersUnit') }}</span>
           <a routerLink="/projects/management/users" class="stat-link">
             <i class="pi pi-arrow-right"></i>
-            Manage users
+            {{ i18n.t('admin.manageUsers') }}
           </a>
         </p-card>
 
@@ -42,12 +43,12 @@ import { PanelService } from '@core/services/panel.service';
           <div class="stat-icon stat-icon-primary">
             <i class="pi pi-folder icon-lg icon-primary"></i>
           </div>
-          <h3>Projects</h3>
+          <h3>{{ i18n.t('admin.projects') }}</h3>
           <p class="stat-value">{{ loading() ? '--' : (projectsCount() ?? '--') }}</p>
-          <span class="stat-unit">Portfolio supervision</span>
+          <span class="stat-unit">{{ i18n.t('admin.projectsUnit') }}</span>
           <a routerLink="/projects/all" class="stat-link">
             <i class="pi pi-arrow-right"></i>
-            Review projects
+            {{ i18n.t('admin.reviewProjects') }}
           </a>
         </p-card>
 
@@ -55,12 +56,12 @@ import { PanelService } from '@core/services/panel.service';
           <div class="stat-icon stat-icon-solar">
             <i class="pi pi-th-large icon-lg icon-solar"></i>
           </div>
-          <h3>Panels</h3>
+          <h3>{{ i18n.t('nav.panels') }}</h3>
           <p class="stat-value">{{ loading() ? '--' : (panelsCount() ?? '--') }}</p>
-          <span class="stat-unit">Catalog and specifications</span>
+          <span class="stat-unit">{{ i18n.t('admin.panelsUnit') }}</span>
           <a routerLink="/projects/management/panels" class="stat-link">
             <i class="pi pi-arrow-right"></i>
-            Manage panels
+            {{ i18n.t('admin.managePanels') }}
           </a>
         </p-card>
       </div>
@@ -71,12 +72,12 @@ import { PanelService } from '@core/services/panel.service';
             <i class="pi pi-lightbulb icon-2xl icon-primary"></i>
           </div>
           <div>
-            <h3>Planned Enhancements</h3>
+            <h3>{{ i18n.t('admin.planned') }}</h3>
             <ul>
-              <li>Live system metrics and trend cards</li>
-              <li>Audit timeline for admin actions</li>
-              <li>Operational health alerts and monitoring</li>
-              <li>Exportable reports for stakeholder summaries</li>
+              <li>{{ i18n.t('admin.planMetrics') }}</li>
+              <li>{{ i18n.t('admin.planAudit') }}</li>
+              <li>{{ i18n.t('admin.planHealth') }}</li>
+              <li>{{ i18n.t('admin.planReports') }}</li>
             </ul>
           </div>
         </div>
@@ -350,6 +351,7 @@ export class AdminDashboardComponent {
   private readonly userService = inject(UserService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
+  readonly i18n = inject(LanguageService);
 
   readonly loading = signal(true);
   readonly usersCount = signal<number | null>(null);

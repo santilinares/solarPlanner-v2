@@ -81,6 +81,14 @@ describe('UserUpdateProfileSchema', () => {
     expect(UserUpdateProfileSchema.safeParse({ fullName: 'Updated Name' }).success).toBe(true);
   });
 
+  it('accepts supported language preferences', () => {
+    expect(UserUpdateProfileSchema.safeParse({ fullName: 'Updated Name', language: 'es' }).success).toBe(true);
+  });
+
+  it('rejects unsupported language preferences', () => {
+    expect(UserUpdateProfileSchema.safeParse({ fullName: 'Updated Name', language: 'fr' }).success).toBe(false);
+  });
+
   it('rejects fullName shorter than 2 chars', () => {
     expect(UserUpdateProfileSchema.safeParse({ fullName: 'X' }).success).toBe(false);
   });

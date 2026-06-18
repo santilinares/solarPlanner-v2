@@ -3,11 +3,10 @@
     <div class="economic-value-content">
       <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
       <div class="economic-info">
-        <span>Estimated Recent Avoided Cost</span>
+        <span>{{ i18n.t('production.recentAvoidedCost') }}</span>
         <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
         <small>
-          Estimated gross value of recent solar production: {{ ev.totalKwh | number: '1.1-1' }} kWh × {{ price() | number: '1.2-4' }}/kWh.
-          It represents avoided grid energy cost before installation, maintenance, taxes, financing, or export compensation.
+          {{ i18n.t('production.recentAvoidedCostText', { kwh: (ev.totalKwh | number: '1.1-1'), price: (price() | number: '1.2-4') }) }}
         </small>
       </div>
     </div>
@@ -20,8 +19,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">wb_sunny</span></div>
         <div>
-          <h2>Today's Production Curve</h2>
-          <p>Forecasted PV output for today as an hourly solar curve.</p>
+          <h2>{{ i18n.t('production.todayCurve') }}</h2>
+          <p>{{ i18n.t('production.todayCurveText') }}</p>
         </div>
       </div>
       <p-divider />
@@ -37,8 +36,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">event_upcoming</span></div>
         <div>
-          <h2>Next 6 Days Forecast</h2>
-          <p>Projected production by hourly interval across the forecast window.</p>
+          <h2>{{ i18n.t('production.nextForecast') }}</h2>
+          <p>{{ i18n.t('production.nextForecastText') }}</p>
         </div>
       </div>
       <p-divider />
@@ -56,8 +55,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-past"><span class="material-symbols-outlined">history</span></div>
         <div>
-          <h2>Recent Production Trend</h2>
-          <p>Estimated production by hourly interval across the recent history window.</p>
+          <h2>{{ i18n.t('production.recentTrend') }}</h2>
+          <p>{{ i18n.t('production.recentTrendText') }}</p>
         </div>
       </div>
       <p-divider />

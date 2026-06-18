@@ -4,8 +4,8 @@
       <span class="material-symbols-outlined">location_searching</span>
     </div>
     <div>
-      <h2>Location & Area</h2>
-      <p>Search for an address and draw the installation area polygon.</p>
+      <h2>{{ i18n.t('configure.locationArea') }}</h2>
+      <p>{{ i18n.t('configure.locationAreaText') }}</p>
     </div>
   </div>
 
@@ -16,11 +16,11 @@
       <input
         pInputText
         type="text"
-        placeholder="Search address or place…"
+        [placeholder]="i18n.t('configure.searchPlace')"
         [value]="addressQuery()"
         (input)="addressQuery.set($any($event.target).value)"
         (keydown.enter)="triggerSearch()"
-        aria-label="Search location"
+        [attr.aria-label]="i18n.t('wizard.searchLocation')"
         class="w-full"
       />
     </span>
@@ -30,8 +30,8 @@
       [loading]="isSearching()"
       [disabled]="isSearching() || !addressQuery().trim()"
       (onClick)="triggerSearch()"
-      pTooltip="Search location"
-      aria-label="Go to location"
+      [pTooltip]="i18n.t('wizard.searchLocation')"
+      [attr.aria-label]="i18n.t('configure.goToLocation')"
       size="small"
     />
   </div>
@@ -55,20 +55,20 @@
   @if (polygonCoords().length === 0) {
     <div class="map-instructions">
       <i class="pi pi-info-circle"></i>
-      <span>Use the polygon draw tool on the map to define the installation area.</span>
+      <span>{{ i18n.t('wizard.drawPolygon') }}</span>
     </div>
   } @else {
     <div class="map-status">
       <i class="pi pi-check-circle"></i>
-      <span>Polygon defined with {{ polygonCoords().length }} points</span>
+      <span>{{ i18n.t('configure.polygonDefined', { points: polygonCoords().length }) }}</span>
     </div>
     <div class="location-metrics">
       <div>
-        <span>Area</span>
+        <span>{{ i18n.t('projectView.area') }}</span>
         <strong>{{ areaLabel() }}</strong>
       </div>
       <div>
-        <span>Centroid</span>
+        <span>{{ i18n.t('configure.centroid') }}</span>
         <strong>{{ mapLat() != null && mapLng() != null ? (mapLat() | number: '1.4-4') + ', ' + (mapLng() | number: '1.4-4') : '—' }}</strong>
       </div>
     </div>

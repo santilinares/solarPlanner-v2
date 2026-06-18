@@ -14,6 +14,7 @@ const USER_STUB: User = {
   email: 'user@test.com',
   fullName: 'Regular User',
   role: UserRole.USER,
+  language: 'en',
   isActive: true,
   createdAt: new Date(),
 };
@@ -87,20 +88,20 @@ describe('UserLayoutComponent', () => {
     it('returns true for an exact-match item when the URL matches exactly', fakeAsync(() => {
       router.navigateByUrl('/projects');
       tick();
-      expect(component.isRouteActive({ label: 'Dashboard', icon: '', path: '/projects', exact: true })).toBe(true);
+      expect(component.isRouteActive({ labelKey: 'nav.dashboard', icon: '', path: '/projects', exact: true })).toBe(true);
     }));
 
     it('returns false for an exact-match item when the URL is a child route', fakeAsync(() => {
       router.navigateByUrl('/projects/add');
       tick();
-      expect(component.isRouteActive({ label: 'Dashboard', icon: '', path: '/projects', exact: true })).toBe(false);
+      expect(component.isRouteActive({ labelKey: 'nav.dashboard', icon: '', path: '/projects', exact: true })).toBe(false);
     }));
 
     it('returns true for a prefix-match item when the URL starts with that prefix', fakeAsync(() => {
       router.navigateByUrl('/projects/all');
       tick();
       expect(
-        component.isRouteActive({ label: 'List', icon: '', path: '/projects/all', matchPrefixes: ['/projects/all'] }),
+        component.isRouteActive({ labelKey: 'nav.projectList', icon: '', path: '/projects/all', matchPrefixes: ['/projects/all'] }),
       ).toBe(true);
     }));
   });

@@ -11,6 +11,7 @@ import {
   ForgotPasswordRequest,
   ResetPasswordRequest,
 } from '../models';
+import { LanguageService } from './language.service';
 
 /**
  * JWT Token Payload structure
@@ -28,6 +29,7 @@ interface JwtPayload {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly languageService = inject(LanguageService);
   private readonly authUrl = `${environment.apiUrl}/auth`;
   private readonly usersUrl = `${environment.apiUrl}/users`;
 
@@ -160,6 +162,7 @@ export class AuthService {
   private handleAuthSuccess(response: AuthResponse): void {
     localStorage.setItem('token', response.token);
     this.currentUser.set(response.user);
+    this.languageService.setLanguage(response.user.language ?? 'en');
     this.isAuthenticated.set(true);
   }
 
@@ -189,6 +192,7 @@ export class AuthService {
           .subscribe((user) => {
             if (user) {
               this.currentUser.set(user);
+              this.languageService.setLanguage(user.language ?? 'en');
             }
           });
       } else {

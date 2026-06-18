@@ -6,6 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
 @Component({
@@ -18,14 +19,14 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-lock solar-icon"></i>
-            <h2>Reset Password</h2>
-            <p class="subtitle">Enter your email and we'll send you a reset link</p>
+            <h2>{{ i18n.t('auth.forgot.title') }}</h2>
+            <p class="subtitle">{{ i18n.t('auth.forgot.subtitle') }}</p>
           </div>
         </ng-template>
 
         <form [formGroup]="forgotPasswordForm" (ngSubmit)="onSubmit()">
           <div class="form-field">
-            <label for="email">Email Address</label>
+            <label for="email">{{ i18n.t('auth.email') }}</label>
             <input
               pInputText
               id="email"
@@ -37,7 +38,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
             />
             @if (forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched) {
               <small class="error-text">
-                <i class="pi pi-exclamation-circle"></i> Valid email is required
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.emailRequired') }}
               </small>
             }
           </div>
@@ -52,7 +53,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
           <p-button
             type="submit"
-            label="Send Reset Link"
+            [label]="i18n.t('auth.forgot.send')"
             icon="pi pi-send"
             [disabled]="loading() || forgotPasswordForm.invalid"
             [loading]="loading()"
@@ -61,7 +62,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 
           <div class="form-links">
             <a routerLink="/login" class="link">
-              <i class="pi pi-arrow-left"></i> Back to sign in
+              <i class="pi pi-arrow-left"></i> {{ i18n.t('auth.backToSignIn') }}
             </a>
           </div>
         </form>
@@ -188,6 +189,7 @@ import { ForgotPasswordRequest, getErrorMessage } from '@core/models';
 export class ForgotPasswordComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  readonly i18n = inject(LanguageService);
 
   loading = signal(false);
   errorMessage = signal('');
@@ -208,12 +210,12 @@ export class ForgotPasswordComponent {
       this.authService.forgotPassword(data).subscribe({
         next: (response) => {
           this.loading.set(false);
-          this.successMessage.set(response.message ?? 'Password reset link sent to your email!');
+          this.successMessage.set(response.message ?? this.i18n.t('auth.forgot.success'));
           this.forgotPasswordForm.reset();
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          const message: string = getErrorMessage(err, 'Failed to send reset link. Please try again.');
+          const message: string = getErrorMessage(err, this.i18n.t('auth.forgot.failed'));
           this.errorMessage.set(message);
         }
       });

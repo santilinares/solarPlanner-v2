@@ -3,10 +3,11 @@ import { RouterOutlet, RouterLink, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { UserRole } from '@core/models';
 
 interface DockItem {
-  readonly label: string;
+  readonly labelKey: string;
   readonly icon: string;
   readonly path: string;
   readonly exact?: boolean;
@@ -19,20 +20,20 @@ interface DockItem {
   imports: [RouterOutlet, RouterLink, ButtonModule, TooltipModule],
   template: `
     <div class="user-shell">
-      <aside class="user-dock" aria-label="User Navigation Dock">
+      <aside class="user-dock" [attr.aria-label]="i18n.t('nav.dashboard')">
         <div class="dock-top">
-          <a class="dock-brand" routerLink="/projects" aria-label="Solar Planner Dashboard">
+          <a class="dock-brand" routerLink="/projects" [attr.aria-label]="i18n.t('nav.dashboard')">
             <i class="pi pi-sun"></i>
           </a>
 
-          <nav class="dock-nav" aria-label="Primary">
+          <nav class="dock-nav" [attr.aria-label]="i18n.t('nav.dashboard')">
             @for (item of visiblePrimaryNavItems(); track item.path) {
               <a
                 class="dock-item"
                 [routerLink]="item.path"
                 [class.active]="isRouteActive(item)"
-                [attr.aria-label]="item.label"
-                [pTooltip]="item.label"
+                [attr.aria-label]="labelFor(item)"
+                [pTooltip]="labelFor(item)"
                 tooltipPosition="right"
               >
                 <i [class]="item.icon"></i>
@@ -46,8 +47,8 @@ interface DockItem {
             class="dock-item profile"
             [routerLink]="profileNavItem().path"
             [class.active]="isRouteActive(profileNavItem())"
-            [attr.aria-label]="profileNavItem().label"
-            [pTooltip]="profileNavItem().label"
+            [attr.aria-label]="labelFor(profileNavItem())"
+            [pTooltip]="labelFor(profileNavItem())"
             tooltipPosition="right"
           >
             <i [class]="profileNavItem().icon"></i>
@@ -59,9 +60,9 @@ interface DockItem {
             class="dock-item logout"
             [text]="true"
             icon="pi pi-sign-out"
-            [ariaLabel]="'Logout'"
+            [ariaLabel]="i18n.t('nav.logout')"
             (click)="logout()"
-            pTooltip="Logout"
+            [pTooltip]="i18n.t('nav.logout')"
             tooltipPosition="right"
           >
           </button>
@@ -281,6 +282,7 @@ interface DockItem {
 export class UserLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  readonly i18n = inject(LanguageService);
 
   readonly isAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
@@ -289,25 +291,25 @@ export class UserLayoutComponent {
 
   readonly primaryNavItems: readonly DockItem[] = [
     {
-      label: 'Dashboard',
+      labelKey: 'nav.dashboard',
       icon: 'pi pi-home',
       path: '/projects',
       exact: true,
     },
     {
-      label: 'Create Project',
+      labelKey: 'nav.createProject',
       icon: 'pi pi-plus-circle',
       path: '/projects/add',
       matchPrefixes: ['/projects/add'],
     },
     {
-      label: 'Project List',
+      labelKey: 'nav.projectList',
       icon: 'pi pi-bolt',
       path: '/projects/all',
       matchPrefixes: ['/projects/all'],
     },
     {
-      label: 'Panels',
+      labelKey: 'nav.panels',
       icon: 'pi pi-th-large',
       path: '/projects/panels',
       matchPrefixes: ['/projects/panels', '/panels'],
@@ -316,13 +318,13 @@ export class UserLayoutComponent {
 
   readonly adminNavItems: readonly DockItem[] = [
     {
-      label: 'Admin Overview',
+      labelKey: 'nav.adminOverview',
       icon: 'pi pi-shield',
       path: '/projects/management',
       exact: true,
     },
     {
-      label: 'Manage Users',
+      labelKey: 'nav.manageUsers',
       icon: 'pi pi-users',
       path: '/projects/management/users',
       matchPrefixes: ['/projects/management/users'],
@@ -336,7 +338,7 @@ export class UserLayoutComponent {
   );
 
   readonly profileNavItem = computed<DockItem>(() => ({
-    label: this.isAdmin() ? 'Admin Profile' : 'Profile & Settings',
+    labelKey: this.isAdmin() ? 'nav.adminProfile' : 'nav.profileSettings',
     icon: this.isAdmin() ? 'pi pi-user-plus' : 'pi pi-user',
     path: '/projects/profile',
     matchPrefixes: ['/projects/profile', '/projects/settings'],
@@ -354,6 +356,10 @@ export class UserLayoutComponent {
     }
 
     return currentUrl.startsWith(item.path);
+  }
+
+  labelFor(item: DockItem): string {
+    return this.i18n.t(item.labelKey);
   }
 
   logout(): void {

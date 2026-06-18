@@ -10,26 +10,26 @@
       <div class="step-card-header">
         <div class="step-card-icon capacity-icon"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
-          <h2>System Performance</h2>
-          <p>Performance, payback and gross avoided-cost metrics based on PVGIS annual reference data.</p>
+          <h2>{{ i18n.t('analytics.systemPerformance') }}</h2>
+          <p>{{ i18n.t('analytics.systemPerformanceText') }}</p>
         </div>
       </div>
       <p-divider />
       <div class="capacity-grid">
         <div class="capacity-item highlight">
-          <span class="capacity-label">Capacity Factor</span>
+          <span class="capacity-label">{{ i18n.t('analytics.capacityFactor') }}</span>
           <strong>{{ a.capacityFactor | number: '1.1-1' }} %</strong>
         </div>
         <div class="capacity-item">
-          <span class="capacity-label">Performance Ratio</span>
+          <span class="capacity-label">{{ i18n.t('analytics.performanceRatio') }}</span>
           <strong>{{ a.performanceRatio != null ? (a.performanceRatio | number: '1.1-1') + ' %' : '—' }}</strong>
         </div>
         <div class="capacity-item">
-          <span class="capacity-label">Payback</span>
-          <strong>{{ a.paybackYears != null ? (a.paybackYears | number: '1.1-1') + ' years' : '—' }}</strong>
+          <span class="capacity-label">{{ i18n.t('projectView.payback') }}</span>
+          <strong>{{ a.paybackYears != null ? (a.paybackYears | number: '1.1-1') + ' ' + i18n.t('projectView.yearsShort') : '—' }}</strong>
         </div>
         <div class="capacity-item">
-          <span class="capacity-label">25-Year Gross ROI Estimate</span>
+          <span class="capacity-label">{{ i18n.t('projectView.roi25') }}</span>
           <strong>{{ a.roi25Years != null ? (a.roi25Years | number: '1.0-0') + ' %' : '—' }}</strong>
         </div>
       </div>
@@ -40,8 +40,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">payments</span></div>
         <div>
-          <h2>Estimated Annual Avoided Cost</h2>
-          <p>Estimated yearly avoided energy cost, calculated as PVGIS yearly production × energy price. This is a gross estimate, not net profit.</p>
+          <h2>{{ i18n.t('analytics.estimatedAnnualAvoidedCost') }}</h2>
+          <p>{{ i18n.t('analytics.annualAvoidedCostText') }}</p>
         </div>
       </div>
       <p-divider />
@@ -49,22 +49,22 @@
         <div class="economic-value-content">
           <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
           <div class="economic-info">
-            <span>Estimated Annual Avoided Cost</span>
+            <span>{{ i18n.t('analytics.estimatedAnnualAvoidedCost') }}</span>
             <strong>{{ getCurrencySymbol(currency()) }} {{ a.annualSavingsEur | number: '1.0-0' }}</strong>
             <small>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh/yr × {{ price() | number: '1.2-4' }}/kWh</small>
           </div>
         </div>
         <div class="assumption-grid">
-          <div><span>Energy price</span><strong>{{ price() | number: '1.2-4' }} {{ currency() }}/kWh</strong></div>
-          <div><span>PVGIS yearly production</span><strong>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh</strong></div>
-          <div><span>Installation cost</span><strong>{{ a.installationCostUsed != null ? getCurrencySymbol(currency()) + ' ' + (a.installationCostUsed | number: '1.0-0') : '—' }}</strong></div>
-          <div><span>Cost source</span><strong>{{ a.installationCostSource === 'benchmark' ? 'Benchmark' : a.installationCostSource === 'user' ? 'User input' : 'Missing' }}</strong></div>
-          <div><span>Degradation model</span><strong>2.0% first year, 0.5%/yr</strong></div>
+          <div><span>{{ i18n.t('analytics.energyPrice') }}</span><strong>{{ price() | number: '1.2-4' }} {{ currency() }}/kWh</strong></div>
+          <div><span>{{ i18n.t('analytics.pvgisYearly') }}</span><strong>{{ pvgisYearlyKwh() | number: '1.0-0' }} kWh</strong></div>
+          <div><span>{{ i18n.t('analytics.installationCost') }}</span><strong>{{ a.installationCostUsed != null ? getCurrencySymbol(currency()) + ' ' + (a.installationCostUsed | number: '1.0-0') : '—' }}</strong></div>
+          <div><span>{{ i18n.t('analytics.costSource') }}</span><strong>{{ costSourceLabel(a.installationCostSource) }}</strong></div>
+          <div><span>{{ i18n.t('analytics.degradationModel') }}</span><strong>{{ i18n.t('analytics.degradationValue') }}</strong></div>
         </div>
       } @else {
         <div class="sun-path-warning">
           <i class="pi pi-info-circle"></i>
-          <span>Set an energy price to see avoided-cost estimates.</span>
+          <span>{{ i18n.t('analytics.setPrice') }}</span>
         </div>
       }
     </div>
@@ -76,8 +76,8 @@
       <div class="step-card-header">
         <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">monitoring</span></div>
         <div>
-          <h2>25-Year Avoided Cost Projection</h2>
-          <p>Long-term gross avoided-cost projection using PVGIS annual production, panel degradation, energy price, and installation cost context. It does not include inflation, maintenance, taxes, financing, or export compensation.</p>
+          <h2>{{ i18n.t('analytics.projectionTitle') }}</h2>
+          <p>{{ i18n.t('analytics.projectionText') }}</p>
         </div>
       </div>
       <p-divider />

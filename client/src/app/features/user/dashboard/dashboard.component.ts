@@ -1,10 +1,11 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageModule } from 'primeng/message';
 import { ButtonModule } from 'primeng/button';
 import { AuthService, ProjectService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 
 interface DashboardData {
   totalProjects: number;
@@ -24,6 +25,7 @@ interface DashboardData {
 
 @Component({
   selector: 'app-dashboard',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, CardModule, SkeletonModule, MessageModule, ButtonModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
@@ -31,6 +33,7 @@ interface DashboardData {
 export class DashboardComponent implements OnInit, OnDestroy {
   private readonly projectService = inject(ProjectService);
   private readonly authService = inject(AuthService);
+  readonly i18n = inject(LanguageService);
 
   // Exposed for template greeting.
   readonly user = this.authService.currentUser;
@@ -60,7 +63,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Failed to load dashboard data');
+        this.error.set(this.i18n.t('dashboard.loadFailed'));
         this.loading.set(false);
       }
     });

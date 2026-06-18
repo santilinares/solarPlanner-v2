@@ -51,6 +51,7 @@ function makeMockUser(overrides: Record<string, unknown> = {}) {
     local: { email: 'test@example.com', password: 'hashed' },
     fullName: 'Test User',
     role: 'user',
+    language: 'en',
     createdAt: new Date('2024-01-01'),
     verifyPassword: vi.fn().mockResolvedValue(true),
     save: vi.fn().mockResolvedValue(undefined),
@@ -77,6 +78,7 @@ describe('UserService', () => {
       expect(result._id).toBe('user-id-123');
       expect(result.email).toBe('test@example.com');
       expect(result.fullName).toBe('Test User');
+      expect(result.language).toBe('en');
     });
 
     it('throws when user is not found', async () => {
@@ -111,6 +113,20 @@ describe('UserService', () => {
       expect(mockUser.save).toHaveBeenCalled();
       expect(mockUser.fullName).toBe('New Name');
       expect(result.fullName).toBe('New Name');
+    });
+
+    it('updates language and returns updated user', async () => {
+      const mockUser = makeMockUser();
+      mockFindById.mockResolvedValueOnce(mockUser);
+
+      const result = await service.updateProfile('user-id-123', {
+        fullName: 'New Name',
+        language: 'es',
+      });
+
+      expect(mockUser.save).toHaveBeenCalled();
+      expect(mockUser.language).toBe('es');
+      expect(result.language).toBe('es');
     });
 
     it('throws when user is not found', async () => {
@@ -170,6 +186,7 @@ describe('UserService', () => {
       method: 'local',
       local: { email: 'test@example.com' },
       role: 'user',
+      language: 'en',
       createdAt: new Date('2024-01-01'),
       projectCount: 3,
     };
@@ -185,6 +202,7 @@ describe('UserService', () => {
       expect(result.page).toBe(1);
       expect(result.limit).toBe(20);
       expect(result.users[0].projectCount).toBe(3);
+      expect(result.users[0].language).toBe('en');
     });
 
     it('returns empty list when no users match', async () => {

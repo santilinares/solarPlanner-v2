@@ -24,6 +24,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService } from 'primeng/api';
 import { UserService } from '@core/services/user.service';
 import { AuthService } from '@core/services/auth.service';
+import { LanguageService } from '@core/services/language.service';
 import { UserResponse } from '@core/models';
 
 @Component({
@@ -51,15 +52,15 @@ import { UserResponse } from '@core/models';
         <div>
           <h1>
             <i class="pi pi-users icon-danger"></i>
-            User Management
+            {{ i18n.t('users.management') }}
           </h1>
           <p class="subtitle">
-            {{ loading() ? 'Loading...' : allUsers().length + ' users registered' }}
+            {{ loading() ? i18n.t('users.loading') : i18n.t('users.registered', { count: allUsers().length }) }}
           </p>
         </div>
         <div class="header-actions">
           <p-button
-            label="Export CSV"
+            [label]="i18n.t('users.exportCsv')"
             icon="pi pi-download"
             severity="secondary"
             [outlined]="true"
@@ -77,7 +78,7 @@ import { UserResponse } from '@core/models';
             <input
               pInputText
               type="text"
-              placeholder="Search by name or email…"
+              [placeholder]="i18n.t('users.searchPlaceholder')"
               [value]="searchTerm()"
               (input)="searchTerm.set($any($event.target).value)"
               class="search-input"
@@ -85,10 +86,10 @@ import { UserResponse } from '@core/models';
           </p-iconfield>
 
           <p-select
-            [options]="roleOptions"
+            [options]="roleOptions()"
             optionLabel="label"
             optionValue="value"
-            placeholder="All roles"
+            [placeholder]="i18n.t('users.allRoles')"
             [showClear]="true"
             [ngModel]="roleFilter()"
             (ngModelChange)="roleFilter.set($event)"
@@ -99,7 +100,7 @@ import { UserResponse } from '@core/models';
 
         @if (selectedUsers().length > 0) {
           <p-button
-            [label]="'Delete ' + selectedUsers().length + ' selected'"
+            [label]="i18n.t('users.deleteSelected', { count: selectedUsers().length })"
             icon="pi pi-trash"
             severity="danger"
             [outlined]="true"
@@ -136,7 +137,7 @@ import { UserResponse } from '@core/models';
             [rows]="10"
             [rowsPerPageOptions]="[10, 25, 50]"
             [showCurrentPageReport]="true"
-            currentPageReportTemplate="{first}–{last} of {totalRecords} users"
+            [currentPageReportTemplate]="i18n.t('users.pageReport', { first: '{first}', last: '{last}', totalRecords: '{totalRecords}' })"
             [sortField]="'fullName'"
             [sortOrder]="1"
             styleClass="p-datatable-sm"
@@ -147,20 +148,20 @@ import { UserResponse } from '@core/models';
                   <p-tableHeaderCheckbox />
                 </th>
                 <th pSortableColumn="fullName">
-                  Name <p-sortIcon field="fullName" />
+                  {{ i18n.t('users.name') }} <p-sortIcon field="fullName" />
                 </th>
-                <th>Email</th>
-                <th>Method</th>
+                <th>{{ i18n.t('users.email') }}</th>
+                <th>{{ i18n.t('users.method') }}</th>
                 <th pSortableColumn="role">
-                  Role <p-sortIcon field="role" />
+                  {{ i18n.t('users.role') }} <p-sortIcon field="role" />
                 </th>
                 <th pSortableColumn="projectCount">
-                  Projects <p-sortIcon field="projectCount" />
+                  {{ i18n.t('users.projects') }} <p-sortIcon field="projectCount" />
                 </th>
                 <th pSortableColumn="createdAt">
-                  Joined <p-sortIcon field="createdAt" />
+                  {{ i18n.t('users.joined') }} <p-sortIcon field="createdAt" />
                 </th>
-                <th style="width: 10rem">Actions</th>
+                <th style="width: 10rem">{{ i18n.t('users.actions') }}</th>
               </tr>
             </ng-template>
 
@@ -189,18 +190,18 @@ import { UserResponse } from '@core/models';
                 <!-- Auth method -->
                 <td>
                   @if (user.method === 'google') {
-                    <p-tag value="Google" severity="info" icon="pi pi-google" />
+                    <p-tag [value]="i18n.t('users.google')" severity="info" icon="pi pi-google" />
                   } @else {
-                    <p-tag value="Local" severity="secondary" icon="pi pi-key" />
+                    <p-tag [value]="i18n.t('users.local')" severity="secondary" icon="pi pi-key" />
                   }
                 </td>
 
                 <!-- Role -->
                 <td>
                   @if (user.role === 'admin') {
-                    <p-tag value="Admin" severity="danger" icon="pi pi-shield" />
+                    <p-tag [value]="i18n.t('users.admin')" severity="danger" icon="pi pi-shield" />
                   } @else {
-                    <p-tag value="User" severity="info" icon="pi pi-user" />
+                    <p-tag [value]="i18n.t('users.user')" severity="info" icon="pi pi-user" />
                   }
                 </td>
 
@@ -220,7 +221,7 @@ import { UserResponse } from '@core/models';
                     <p-button
                       [icon]="user.role === 'admin' ? 'pi pi-user-minus' : 'pi pi-user-plus'"
                       [severity]="user.role === 'admin' ? 'warn' : 'success'"
-                      [pTooltip]="user.role === 'admin' ? 'Revoke admin' : 'Promote to admin'"
+                      [pTooltip]="user.role === 'admin' ? i18n.t('users.revokeAdmin') : i18n.t('users.promoteAdmin')"
                       tooltipPosition="top"
                       [rounded]="true"
                       [text]="true"
@@ -230,7 +231,7 @@ import { UserResponse } from '@core/models';
                     <p-button
                       icon="pi pi-folder-open"
                       severity="secondary"
-                      pTooltip="View projects"
+                      [pTooltip]="i18n.t('users.viewProjects')"
                       tooltipPosition="top"
                       [rounded]="true"
                       [text]="true"
@@ -239,7 +240,7 @@ import { UserResponse } from '@core/models';
                     <p-button
                       icon="pi pi-trash"
                       severity="danger"
-                      pTooltip="Delete user"
+                      [pTooltip]="i18n.t('users.deleteUser')"
                       tooltipPosition="top"
                       [rounded]="true"
                       [text]="true"
@@ -255,7 +256,7 @@ import { UserResponse } from '@core/models';
               <tr>
                 <td colspan="8" class="empty-state">
                   <i class="pi pi-search empty-icon"></i>
-                  <p>No users match your search.</p>
+                  <p>{{ i18n.t('users.noMatch') }}</p>
                 </td>
               </tr>
             </ng-template>
@@ -433,6 +434,7 @@ export class UsersListComponent {
   private readonly authService = inject(AuthService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly router = inject(Router);
+  readonly i18n = inject(LanguageService);
 
   readonly loading = signal(true);
   readonly allUsers = signal<UserResponse[]>([]);
@@ -462,10 +464,10 @@ export class UsersListComponent {
 
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
 
-  protected readonly roleOptions = [
-    { label: 'Users', value: 'user' },
-    { label: 'Admins', value: 'admin' },
-  ];
+  protected readonly roleOptions = computed(() => [
+    { label: this.i18n.t('users.users'), value: 'user' },
+    { label: this.i18n.t('users.admins'), value: 'admin' },
+  ]);
 
   constructor() {
     this.userService.getAllUsers()
@@ -499,11 +501,11 @@ export class UsersListComponent {
 
   protected confirmDelete(user: UserResponse): void {
     this.confirmationService.confirm({
-      message: `Delete <strong>${user.fullName}</strong>? This cannot be undone.`,
-      header: 'Delete User',
+      message: this.i18n.t('users.deleteMessage', { name: user.fullName }),
+      header: this.i18n.t('users.deleteHeader'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Delete',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.i18n.t('common.delete'),
+      rejectLabel: this.i18n.t('panelForm.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.deleteUser(user),
     });
@@ -511,12 +513,13 @@ export class UsersListComponent {
 
   protected confirmBulkDelete(): void {
     const count = this.selectedUsers().length;
+    const label = count > 1 ? this.i18n.t('users.selectedPlural') : this.i18n.t('users.selectedSingular');
     this.confirmationService.confirm({
-      message: `Delete <strong>${count} selected user${count > 1 ? 's' : ''}</strong>? This cannot be undone.`,
-      header: 'Delete Users',
+      message: this.i18n.t('users.deleteBulkMessage', { count, label }),
+      header: this.i18n.t('users.deleteUsersHeader'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Delete all',
-      rejectLabel: 'Cancel',
+      acceptLabel: this.i18n.t('users.deleteAll'),
+      rejectLabel: this.i18n.t('panelForm.cancel'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         const deletes$ = this.selectedUsers().map(u => this.userService.deleteUser(u._id));
@@ -536,7 +539,14 @@ export class UsersListComponent {
   }
 
   protected exportCsv(): void {
-    const headers = ['Name', 'Email', 'Role', 'Auth Method', 'Projects', 'Joined'];
+    const headers = [
+      this.i18n.t('users.csvName'),
+      this.i18n.t('users.email'),
+      this.i18n.t('users.role'),
+      this.i18n.t('users.csvAuthMethod'),
+      this.i18n.t('users.projects'),
+      this.i18n.t('users.joined'),
+    ];
     const rows = this.filteredUsers().map(u => [
       `"${u.fullName}"`,
       u.email ?? '',

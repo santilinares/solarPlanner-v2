@@ -14,6 +14,7 @@ const STUB_USER: User = {
   email: 'test@example.com',
   fullName: 'Test User',
   role: UserRole.USER,
+  language: 'en',
   isActive: true,
   createdAt: new Date(),
 };
@@ -85,15 +86,18 @@ describe('ProfileComponent', () => {
 
   describe('saveProfile()', () => {
     it('calls userService.updateProfile with userId and new fullName', () => {
-      component.profileForm.setValue({ fullName: 'Jane Doe' });
+      component.profileForm.setValue({ fullName: 'Jane Doe', language: 'es' });
       component.profileForm.markAsDirty();
       component.saveProfile();
 
-      expect(mockUserService.updateProfile).toHaveBeenCalledWith('u-1', { fullName: 'Jane Doe' });
+      expect(mockUserService.updateProfile).toHaveBeenCalledWith('u-1', {
+        fullName: 'Jane Doe',
+        language: 'es',
+      });
     });
 
     it('shows a success toast on successful update', () => {
-      component.profileForm.setValue({ fullName: 'Jane Doe' });
+      component.profileForm.setValue({ fullName: 'Jane Doe', language: 'en' });
       component.profileForm.markAsDirty();
       component.saveProfile();
 
@@ -104,7 +108,7 @@ describe('ProfileComponent', () => {
 
     it('shows an error toast when the update fails', () => {
       mockUserService.updateProfile.mockReturnValue(throwError(() => new Error('Server error')));
-      component.profileForm.setValue({ fullName: 'Jane Doe' });
+      component.profileForm.setValue({ fullName: 'Jane Doe', language: 'en' });
       component.profileForm.markAsDirty();
       component.saveProfile();
 
