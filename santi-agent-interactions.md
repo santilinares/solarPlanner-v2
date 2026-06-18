@@ -4905,6 +4905,37 @@ El usuario aclaró que la imagen no debía verse como si tuviera fondo propio, s
 ### Reasoning
 El asset ya era transparente, pero el CSS de la imagen añadía un fondo claro y una sombra rectangular que lo hacía parecer una tarjeta. El `drop-shadow` conserva profundidad visual respetando la silueta transparente de la ilustración.
 
+---
+
+## June 18, 2026 - Production dependency stabilization
+
+### Topic
+Estabilizacion de dependencias npm para cliente y servidor antes del despliegue.
+
+### Summary of Prompt
+El usuario aprobo empezar por el primer paso del plan de accion: estabilizar dependencias y locks tras el diagnostico de problemas con `npm install` y build.
+
+### What Was Achieved
+- Se alineo Angular 21 del cliente a versiones parcheadas: framework `21.2.17`, Angular CLI/build `21.2.15`.
+- Se actualizo PrimeNG a `21.1.9`.
+- Se actualizo el servidor a `axios@1.18.0`, `nodemailer@9.0.1`, `follow-redirects@1.16.0` y `form-data@4.0.6`.
+- Se regeneraron `package-lock.json` de cliente y servidor.
+- Se verifico `npm audit --omit=dev` con cero vulnerabilidades de produccion en cliente y servidor.
+- Se verifico `npm run typecheck` en cliente y `npm run build` en servidor.
+
+### Full Prompt
+> "Si, aprobado"
+
+### Affected Files
+- `client/package.json`
+- `client/package-lock.json`
+- `server/package.json`
+- `server/package-lock.json`
+- `santi-agent-interactions.md`
+
+### Reasoning
+El objetivo era reducir riesgo de produccion sin introducir una migracion mayor. Por eso se eligio el ultimo patch seguro de Angular 21 en vez de saltar a Angular 22, manteniendo compatibilidad con PrimeNG 21. En servidor se aplicaron actualizaciones directas y transitivas para eliminar vulnerabilidades de produccion; Nodemailer se actualizo a la version mayor segura porque su uso en el proyecto es basico (`createTransport` y `sendMail`) y el build TypeScript confirmo compatibilidad.
+
 ## 2026-06-17 - Fix blank chart series in generated PDF
 
 ### Topic
