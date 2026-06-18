@@ -319,7 +319,7 @@ export class ProfileComponent implements OnInit {
 
   saveProfile(): void {
     if (this.profileForm.invalid) return;
-    const userId = this.authService.currentUser()?.id;
+    const userId = this.authService.currentUser()?.id ?? this.authService.getDecodedToken()?._id;
     if (!userId) return;
 
     this.savingProfile.set(true);
@@ -357,7 +357,7 @@ export class ProfileComponent implements OnInit {
 
   changePassword(): void {
     if (this.passwordForm.invalid) return;
-    const userId = this.authService.currentUser()?.id;
+    const userId = this.authService.currentUser()?.id ?? this.authService.getDecodedToken()?._id;
     if (!userId) return;
 
     this.savingPassword.set(true);
