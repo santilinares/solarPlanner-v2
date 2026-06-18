@@ -36,6 +36,7 @@ import { FieldsetModule } from 'primeng/fieldset';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
 import { GeocodingService } from '@core/services/geocoding.service';
+import { FileService } from '@core/services/file.service';
 import {
   ProjectResponse,
   Panel,
@@ -118,6 +119,7 @@ export class ConfigureProjectComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
+  private readonly fileService = inject(FileService);
   private readonly destroyRef = inject(DestroyRef);
 
   // ─── State ───
@@ -135,6 +137,7 @@ export class ConfigureProjectComponent implements OnInit {
   readonly activeStep = signal(1);
   readonly configPreview = signal<ProjectConfigPreview | null>(null);
   readonly isPreviewLoading = signal(false);
+  readonly isDownloadingPreviewReport = signal(false);
 
   // ─── Map / Location State ───
   readonly mapLat = signal<number | null>(null);
@@ -782,6 +785,40 @@ export class ConfigureProjectComponent implements OnInit {
         this.saveError.set('Failed to save. Please check your inputs and try again.');
         this.isSaving.set(false);
       },
+    });
+  }
+
+  downloadPreviewReport(): void {
+    const project = this.projectData();
+    if (!project) return;
+
+    this.isDownloadingPreviewReport.set(true);
+    this.fileService.generateProjectPDF({
+      mode: 'configure-preview',
+      project,
+      totalCapacityKw: this.totalCapacityKw(),
+      sunPathData: this.sunPathData(),
+      configPreview: this.configPreview(),
+      optimalConfig: this.optimalConfig(),
+      reviewChanges: this.reviewChanges(),
+      selectedPanelLabel: this.selectedPanelLabel(),
+      selectedDirectionLabel: this.selectedDirectionLabel(),
+      projectTotalArea: this.projectTotalArea(),
+      hasUnsavedChanges: this.hasUnsavedChanges(),
+      charts: [
+        { title: 'Relative Impact', options: this.comparisonChartOptions() },
+        { title: 'Monthly Production Estimate', options: this.monthlyProductionChartOptions() },
+        { title: 'Sun Path', options: this.sunPathChartOptions() },
+      ],
+    }).then(() => {
+      this.isDownloadingPreviewReport.set(false);
+    }).catch(() => {
+      this.isDownloadingPreviewReport.set(false);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Download Failed',
+        detail: 'Could not generate the preview report. Please try again.',
+      });
     });
   }
 
