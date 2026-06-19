@@ -4,19 +4,19 @@
       <div class="step-nav-left">
         <a class="link-btn" routerLink="/">
           <span class="material-symbols-outlined">arrow_back</span>
-          Home
+          {{ i18n.t('estimate.home') }}
         </a>
       </div>
 
       <div class="step-nav-mode-label">
         <span class="material-symbols-outlined">speed</span>
-        Quick estimate
+        {{ i18n.t('estimate.mode') }}
       </div>
 
       <div class="step-nav-right" aria-hidden="true"></div>
     </div>
 
-    <div class="sticky-stepper-row" aria-label="Estimate steps">
+    <div class="sticky-stepper-row" [attr.aria-label]="i18n.t('estimate.steps')">
       <div class="step-btn" [class.step-btn-active]="!addressResult()" [class.step-btn-completed]="addressResult()">
         <span class="step-icon-wrapper" [class.active]="!addressResult()" [class.completed]="addressResult()">
           @if (addressResult()) {
@@ -27,7 +27,7 @@
         </span>
         <span class="step-label-wrap">
           <span class="material-symbols-outlined">location_on</span>
-          Location
+          {{ i18n.t('estimate.location') }}
         </span>
       </div>
 
@@ -52,7 +52,7 @@
         </span>
         <span class="step-label-wrap">
           <span class="material-symbols-outlined">polyline</span>
-          Draw area
+          {{ i18n.t('estimate.drawArea') }}
         </span>
       </div>
 
@@ -73,7 +73,7 @@
         </span>
         <span class="step-label-wrap">
           <span class="material-symbols-outlined">calculate</span>
-          Estimate
+          {{ i18n.t('estimate.estimate') }}
         </span>
       </div>
     </div>
@@ -87,15 +87,15 @@
             <div class="section-heading">
               <span class="material-symbols-outlined section-icon">solar_power</span>
               <div>
-                <h1>Quick Panel Estimate</h1>
-                <p>Search your site, draw the usable installation area, and get an instant roof-style capacity estimate.</p>
+                <h1>{{ i18n.t('estimate.title') }}</h1>
+                <p>{{ i18n.t('estimate.subtitle') }}</p>
               </div>
             </div>
 
             <div class="form-group">
               <div class="label-row">
-                <label for="estimate-address">Site location</label>
-                <span class="helper-text">Address, city, or current position</span>
+                <label for="estimate-address">{{ i18n.t('estimate.siteLocation') }}</label>
+                <span class="helper-text">{{ i18n.t('estimate.siteHelper') }}</span>
               </div>
 
               <div class="location-search">
@@ -110,7 +110,7 @@
                     [value]="addressQuery()"
                     (input)="addressQuery.set($any($event.target).value)"
                     (keydown.enter)="searchAddress()"
-                    placeholder="Search address or city..."
+                    [placeholder]="i18n.t('estimate.searchPlaceholder')"
                     class="w-full location-input"
                   />
                   <button
@@ -118,15 +118,15 @@
                     class="location-target-btn"
                     [disabled]="isLocating()"
                     (click)="useCurrentLocation()"
-                    aria-label="Use current location"
-                    title="Use current location"
+                    [attr.aria-label]="i18n.t('estimate.useCurrentLocation')"
+                    [title]="i18n.t('estimate.useCurrentLocation')"
                   >
                     <span class="material-symbols-outlined">my_location</span>
                   </button>
                 </p-iconfield>
 
                 <p-button
-                  label="Search"
+                  [label]="i18n.t('estimate.search')"
                   [outlined]="true"
                   [loading]="isSearching()"
                   [disabled]="isSearching() || !addressQuery().trim()"
@@ -163,12 +163,12 @@
             @if (hasDrawnArea()) {
               <div class="feedback-banner feedback-success">
                 <span class="material-symbols-outlined">check_circle</span>
-                <span>Area defined with <strong>{{ drawnPolygonPoints().length }}</strong> vertices. You can calculate now.</span>
+                <span>{{ i18n.t('estimate.areaDefined', { vertices: drawnPolygonPoints().length }) }}</span>
               </div>
             } @else {
               <div class="feedback-banner feedback-neutral">
                 <span class="material-symbols-outlined">gesture</span>
-                <span>Use the polygon tool on the map to draw the area available for panels.</span>
+                <span>{{ i18n.t('estimate.drawHint') }}</span>
               </div>
             }
           </div>
@@ -177,20 +177,20 @@
             <div class="guidance-card">
               <header>
                 <span class="material-symbols-outlined">info</span>
-                <strong>Estimator assumptions</strong>
+                <strong>{{ i18n.t('estimate.assumptions') }}</strong>
               </header>
               <div class="guidance-list">
                 <div>
                   <span class="material-symbols-outlined">crop_square</span>
-                  <p>Standard 2 m x 4 m panel footprint</p>
+                  <p>{{ i18n.t('estimate.assumptionFootprint') }}</p>
                 </div>
                 <div>
                   <span class="material-symbols-outlined">architecture</span>
-                  <p>30 degree tilt with practical spacing</p>
+                  <p>{{ i18n.t('estimate.assumptionTilt') }}</p>
                 </div>
                 <div>
                   <span class="material-symbols-outlined">grid_view</span>
-                  <p>85% area utilisation for access and margins</p>
+                  <p>{{ i18n.t('estimate.assumptionUse') }}</p>
                 </div>
               </div>
             </div>
@@ -202,7 +202,7 @@
               (click)="onCalculate()"
             >
               <span class="material-symbols-outlined">{{ isCalculating() ? 'progress_activity' : 'calculate' }}</span>
-              <span>{{ isCalculating() ? 'Calculating...' : 'Calculate Estimate' }}</span>
+              <span>{{ isCalculating() ? i18n.t('estimate.calculating') : i18n.t('estimate.calculate') }}</span>
             </button>
 
             @if (estimateError()) {
@@ -216,26 +216,26 @@
               <div class="result-block animate-fade-in-up">
                 <header class="result-header">
                   <div>
-                    <span class="eyebrow">Instant estimate</span>
-                    <strong>Your site can fit about {{ r.panelCount }} panels</strong>
+                    <span class="eyebrow">{{ i18n.t('estimate.instant') }}</span>
+                    <strong>{{ i18n.t('estimate.resultTitle', { count: r.panelCount }) }}</strong>
                   </div>
                   <span class="status-pill">
                     <span class="material-symbols-outlined">check_circle</span>
-                    Ready
+                    {{ i18n.t('estimate.ready') }}
                   </span>
                 </header>
 
                 <div class="metric-grid">
                   <div>
-                    <span>Panels</span>
+                    <span>{{ i18n.t('estimate.panels') }}</span>
                     <strong>{{ r.panelCount }}</strong>
                   </div>
                   <div>
-                    <span>Area</span>
+                    <span>{{ i18n.t('estimate.area') }}</span>
                     <strong>{{ r.areaSqm | number: '1.0-0' }} m²</strong>
                   </div>
                   <div>
-                    <span>Peak power</span>
+                    <span>{{ i18n.t('estimate.peakPower') }}</span>
                     <strong>{{ r.estimatedKwp.toFixed(1) }} kWp</strong>
                   </div>
                 </div>
@@ -244,37 +244,37 @@
                   <div class="locked-preview" aria-hidden="true">
                     <div class="locked-preview-label-row">
                       <span class="material-symbols-outlined">monitoring</span>
-                      <span>Full production analysis</span>
+                      <span>{{ i18n.t('estimate.fullProduction') }}</span>
                     </div>
                     <div class="production-items">
                       <div class="production-item">
                         <span class="production-value">-- -- --</span>
-                        <small>kWh / year</small>
+                        <small>{{ i18n.t('estimate.kwhYear') }}</small>
                       </div>
                       <div class="production-divider"></div>
                       <div class="production-item">
                         <span class="production-value">EUR -- --</span>
-                        <small>annual savings</small>
+                        <small>{{ i18n.t('estimate.annualSavings') }}</small>
                       </div>
                       <div class="production-divider"></div>
                       <div class="production-item">
                         <span class="production-value">-- --</span>
-                        <small>t CO2 avoided</small>
+                        <small>{{ i18n.t('estimate.co2Avoided') }}</small>
                       </div>
                     </div>
                   </div>
 
                   <div class="locked-overlay">
                     <span class="material-symbols-outlined locked-icon">lock</span>
-                    <strong>Save the project for the full analysis</strong>
-                    <small>Registered projects include production forecasts, local energy prices, savings, and CO2 estimates.</small>
+                    <strong>{{ i18n.t('estimate.saveForFull') }}</strong>
+                    <small>{{ i18n.t('estimate.saveForFullText') }}</small>
                     <div class="locked-cta-row">
                       <button type="button" class="primary-action compact" (click)="onGetStarted()">
-                        <span>Create project</span>
+                        <span>{{ i18n.t('estimate.createProject') }}</span>
                         <span class="material-symbols-outlined">arrow_forward</span>
                       </button>
                       <button type="button" class="secondary-action compact" routerLink="/login">
-                        <span>Sign in</span>
+                        <span>{{ i18n.t('estimate.signIn') }}</span>
                       </button>
                     </div>
                   </div>

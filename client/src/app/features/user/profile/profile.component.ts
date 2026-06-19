@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -17,10 +18,12 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
+import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
+import { LanguageService } from '@core/services/language.service';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const newPassword = control.get('newPassword')?.value;
@@ -39,19 +42,20 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
     CardModule,
     InputTextModule,
     PasswordModule,
+    SelectModule,
     ToastModule,
   ],
   providers: [MessageService],
   template: `
     <p-toast />
 
-    <section class="profile-page animate-fade-in-up" aria-label="User profile">
+    <section class="profile-page animate-fade-in-up" [attr.aria-label]="i18n.t('profile.aria')">
       <header class="profile-header">
         <div class="avatar" aria-hidden="true">
           <span>{{ avatarInitial() }}</span>
         </div>
         <div>
-          <p class="eyebrow">Account</p>
+          <p class="eyebrow">{{ i18n.t('profile.account') }}</p>
           <h1>{{ displayName() }}</h1>
           <p class="email-text">{{ authService.currentUser()?.email || '' }}</p>
         </div>
@@ -61,26 +65,38 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 
         <!-- Profile form -->
         <p-card styleClass="profile-card">
-          <ng-template pTemplate="title">Account Information</ng-template>
+          <ng-template pTemplate="title">{{ i18n.t('profile.accountInfo') }}</ng-template>
           <ng-template pTemplate="content">
-            <p class="card-description">Update your display name across all your projects.</p>
+            <p class="card-description">{{ i18n.t('profile.accountDescription') }}</p>
             <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="form-body">
               <div class="field">
-                <label for="fullName">Full name</label>
+                <label for="fullName">{{ i18n.t('profile.fullName') }}</label>
                 <input
                   pInputText
                   id="fullName"
                   formControlName="fullName"
-                  placeholder="Your full name"
+                  [placeholder]="i18n.t('profile.fullNamePlaceholder')"
                   class="w-full"
                 />
                 @if (profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched) {
-                  <small class="field-error">Full name is required.</small>
+                  <small class="field-error">{{ i18n.t('profile.fullNameRequired') }}</small>
                 }
+              </div>
+              <div class="field">
+                <label for="language">{{ i18n.t('common.language') }}</label>
+                <p-select
+                  inputId="language"
+                  formControlName="language"
+                  [options]="languageOptions()"
+                  optionLabel="label"
+                  optionValue="value"
+                  styleClass="w-full"
+                />
+                <small class="field-help">{{ i18n.t('profile.languageDescription') }}</small>
               </div>
               <p-button
                 type="submit"
-                label="Save changes"
+                [label]="i18n.t('common.saveChanges')"
                 icon="pi pi-check"
                 [loading]="savingProfile()"
                 [disabled]="profileForm.invalid || profileForm.pristine"
@@ -91,27 +107,27 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 
         <!-- Password form -->
         <p-card styleClass="profile-card">
-          <ng-template pTemplate="title">Change Password</ng-template>
+          <ng-template pTemplate="title">{{ i18n.t('profile.changePassword') }}</ng-template>
           <ng-template pTemplate="content">
-            <p class="card-description">Choose a strong password to keep your account secure.</p>
+            <p class="card-description">{{ i18n.t('profile.passwordDescription') }}</p>
             <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="form-body">
               <div class="field">
-                <label for="currentPassword">Current password</label>
+                <label for="currentPassword">{{ i18n.t('profile.currentPassword') }}</label>
                 <p-password
                   inputId="currentPassword"
                   formControlName="currentPassword"
-                  placeholder="Enter current password"
+                  [placeholder]="i18n.t('profile.currentPasswordPlaceholder')"
                   [feedback]="false"
                   [toggleMask]="true"
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
                 @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
-                  <small class="field-error">Current password is required.</small>
+                  <small class="field-error">{{ i18n.t('profile.currentPasswordRequired') }}</small>
                 }
               </div>
               <div class="field">
-                <label for="newPassword">New password</label>
+                <label for="newPassword">{{ i18n.t('profile.newPassword') }}</label>
                 <p-password
                   inputId="newPassword"
                   formControlName="newPassword"
@@ -128,23 +144,23 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
                 }
               </div>
               <div class="field">
-                <label for="confirmPassword">Confirm new password</label>
+                <label for="confirmPassword">{{ i18n.t('profile.confirmPassword') }}</label>
                 <p-password
                   inputId="confirmPassword"
                   formControlName="confirmPassword"
-                  placeholder="Repeat new password"
+                  [placeholder]="i18n.t('profile.confirmPasswordPlaceholder')"
                   [feedback]="false"
                   [toggleMask]="true"
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
                 @if (passwordForm.hasError('passwordsMismatch') && passwordForm.get('confirmPassword')?.touched) {
-                  <small class="field-error">Passwords do not match.</small>
+                  <small class="field-error">{{ i18n.t('profile.passwordsMismatch') }}</small>
                 }
               </div>
               <p-button
                 type="submit"
-                label="Update password"
+                [label]="i18n.t('profile.updatePassword')"
                 icon="pi pi-shield"
                 severity="secondary"
                 [loading]="savingPassword()"
@@ -245,6 +261,11 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
       font-size: 0.8rem;
     }
 
+    .field-help {
+      color: var(--p-text-muted-color);
+      font-size: 0.8rem;
+    }
+
     @media (max-width: 640px) {
       .profile-header {
         flex-direction: column;
@@ -257,6 +278,7 @@ export class ProfileComponent implements OnInit {
   readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
   private readonly messageService = inject(MessageService);
+  readonly i18n = inject(LanguageService);
   private readonly fb = inject(FormBuilder);
 
   readonly savingProfile = signal(false);
@@ -264,9 +286,14 @@ export class ProfileComponent implements OnInit {
   readonly displayName = signal('');
   readonly avatarInitial = signal('?');
   readonly passwordHint = PASSWORD_HINT;
+  readonly languageOptions = computed(() => [
+    { label: this.i18n.t('common.english'), value: 'en' },
+    { label: this.i18n.t('common.spanish'), value: 'es' },
+  ]);
 
   readonly profileForm = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(1)]],
+    language: [this.i18n.currentLanguage(), Validators.required],
   });
 
   readonly passwordForm = this.fb.group(
@@ -284,37 +311,45 @@ export class ProfileComponent implements OnInit {
         const name = (user as unknown as { fullName?: string }).fullName ?? '';
         this.displayName.set(name);
         this.avatarInitial.set(name.charAt(0).toUpperCase() || '?');
-        this.profileForm.patchValue({ fullName: name });
+        this.profileForm.patchValue({ fullName: name, language: user.language ?? 'en' });
+        this.i18n.setLanguage(user.language ?? 'en');
       },
     });
   }
 
   saveProfile(): void {
     if (this.profileForm.invalid) return;
-    const userId = this.authService.currentUser()?.id;
+    const userId = this.authService.currentUser()?.id ?? this.authService.getDecodedToken()?._id;
     if (!userId) return;
 
     this.savingProfile.set(true);
-    const { fullName } = this.profileForm.getRawValue();
-    this.userService.updateProfile(userId, { fullName: fullName! }).subscribe({
+    const { fullName, language } = this.profileForm.getRawValue();
+    this.i18n.setLanguage(language!);
+    this.userService.updateProfile(userId, { fullName: fullName!, language: language! }).subscribe({
       next: (updated) => {
         const name = (updated as unknown as { fullName?: string }).fullName ?? fullName!;
+        const savedLanguage = updated.language ?? language!;
         this.displayName.set(name);
         this.avatarInitial.set(name.charAt(0).toUpperCase() || '?');
+        this.i18n.setLanguage(savedLanguage);
+        this.authService.currentUser.update((current) =>
+          current ? { ...current, fullName: name, language: savedLanguage } : current
+        );
         this.profileForm.markAsPristine();
         this.savingProfile.set(false);
         this.messageService.add({
           severity: 'success',
-          summary: 'Profile updated',
-          detail: 'Your name has been saved successfully.',
+          summary: this.i18n.t('profile.updatedSummary'),
+          detail: this.i18n.t('profile.updatedDetail'),
         });
       },
       error: () => {
         this.savingProfile.set(false);
+        this.i18n.setLanguage(this.authService.currentUser()?.language ?? 'en');
         this.messageService.add({
           severity: 'error',
-          summary: 'Update failed',
-          detail: 'Could not update your profile. Please try again.',
+          summary: this.i18n.t('profile.updateFailedSummary'),
+          detail: this.i18n.t('profile.updateFailedDetail'),
         });
       },
     });
@@ -322,7 +357,7 @@ export class ProfileComponent implements OnInit {
 
   changePassword(): void {
     if (this.passwordForm.invalid) return;
-    const userId = this.authService.currentUser()?.id;
+    const userId = this.authService.currentUser()?.id ?? this.authService.getDecodedToken()?._id;
     if (!userId) return;
 
     this.savingPassword.set(true);
@@ -333,16 +368,16 @@ export class ProfileComponent implements OnInit {
         this.savingPassword.set(false);
         this.messageService.add({
           severity: 'success',
-          summary: 'Password changed',
-          detail: 'Your password has been updated successfully.',
+          summary: this.i18n.t('profile.passwordChangedSummary'),
+          detail: this.i18n.t('profile.passwordChangedDetail'),
         });
       },
       error: (err: { error?: { message?: string } }) => {
         this.savingPassword.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Password change failed',
-          detail: err?.error?.message ?? 'Please check your current password and try again.',
+          summary: this.i18n.t('profile.passwordFailedSummary'),
+          detail: err?.error?.message ?? this.i18n.t('profile.passwordFailedDetail'),
         });
       },
     });

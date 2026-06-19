@@ -36,6 +36,7 @@ import { FieldsetModule } from 'primeng/fieldset';
 import { ProjectService } from '@core/services/project.service';
 import { PanelService } from '@core/services/panel.service';
 import { GeocodingService } from '@core/services/geocoding.service';
+import { FileService } from '@core/services/file.service';
 import {
   ProjectResponse,
   Panel,
@@ -53,6 +54,7 @@ import { BASE_CHART_OPTIONS, CHART_COLORS, MONTH_LABELS } from '@core/utils/char
 import { ConfigureLocationStepComponent } from './components/configure-location-step/configure-location-step.component';
 import { ConfigurePanelFormStepComponent } from './components/configure-panel-form-step/configure-panel-form-step.component';
 import { ConfigureReviewStepComponent } from './components/configure-review-step/configure-review-step.component';
+import { LanguageService } from '@core/services/language.service';
 
 export interface OrientationOption {
   label: string;
@@ -118,7 +120,9 @@ export class ConfigureProjectComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly projectService = inject(ProjectService);
   private readonly panelService = inject(PanelService);
+  private readonly fileService = inject(FileService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly i18n = inject(LanguageService);
 
   // ─── State ───
   readonly isLoading = signal(true);
@@ -135,6 +139,7 @@ export class ConfigureProjectComponent implements OnInit {
   readonly activeStep = signal(1);
   readonly configPreview = signal<ProjectConfigPreview | null>(null);
   readonly isPreviewLoading = signal(false);
+  readonly isDownloadingPreviewReport = signal(false);
 
   // ─── Map / Location State ───
   readonly mapLat = signal<number | null>(null);
@@ -152,14 +157,14 @@ export class ConfigureProjectComponent implements OnInit {
 
   // ─── Options ───
   readonly orientationOptions: OrientationOption[] = [
-    { label: 'South', value: 'south', icon: 'pi pi-arrow-down' },
-    { label: 'South-East', value: 'southeast', icon: 'pi pi-arrow-down-right' },
-    { label: 'South-West', value: 'southwest', icon: 'pi pi-arrow-down-left' },
-    { label: 'East', value: 'east', icon: 'pi pi-arrow-right' },
-    { label: 'West', value: 'west', icon: 'pi pi-arrow-left' },
-    { label: 'North', value: 'north', icon: 'pi pi-arrow-up' },
-    { label: 'North-East', value: 'northeast', icon: 'pi pi-arrow-up-right' },
-    { label: 'North-West', value: 'northwest', icon: 'pi pi-arrow-up-left' },
+    { label: this.i18n.t('direction.south'), value: 'south', icon: 'pi pi-arrow-down' },
+    { label: this.i18n.t('direction.southeast'), value: 'southeast', icon: 'pi pi-arrow-down-right' },
+    { label: this.i18n.t('direction.southwest'), value: 'southwest', icon: 'pi pi-arrow-down-left' },
+    { label: this.i18n.t('direction.east'), value: 'east', icon: 'pi pi-arrow-right' },
+    { label: this.i18n.t('direction.west'), value: 'west', icon: 'pi pi-arrow-left' },
+    { label: this.i18n.t('direction.north'), value: 'north', icon: 'pi pi-arrow-up' },
+    { label: this.i18n.t('direction.northeast'), value: 'northeast', icon: 'pi pi-arrow-up-right' },
+    { label: this.i18n.t('direction.northwest'), value: 'northwest', icon: 'pi pi-arrow-up-left' },
   ];
 
   readonly timezoneOptions: TimezoneOption[] = [
@@ -209,10 +214,10 @@ export class ConfigureProjectComponent implements OnInit {
   ];
 
   readonly segmentOptions = [
-    { label: 'Residential', value: 'residential' },
-    { label: 'Commercial', value: 'commercial' },
-    { label: 'Utility', value: 'utility' },
-    { label: 'Agrivoltaic', value: 'agrivoltaic' },
+    { label: this.i18n.t('configure.segmentResidential'), value: 'residential' },
+    { label: this.i18n.t('configure.segmentCommercial'), value: 'commercial' },
+    { label: this.i18n.t('configure.segmentUtility'), value: 'utility' },
+    { label: this.i18n.t('configure.segmentAgrivoltaic'), value: 'agrivoltaic' },
   ];
 
   // ─── Reactive Form ───
@@ -330,12 +335,12 @@ export class ConfigureProjectComponent implements OnInit {
 
   readonly timezoneLabel = computed(() => {
     const tz = this.formValue().timezone;
-    if (!tz) return 'Set by location';
+    if (!tz) return this.i18n.t('configure.setByLocation');
     return this.timezoneOptions.find((o) => o.value === tz)?.label ?? tz;
   });
 
   readonly stepNextLabel = computed(() =>
-    this.activeStep() === 1 ? 'Next: Review & Save' : 'Next'
+    this.activeStep() === 1 ? this.i18n.t('wizard.nextStep', { step: this.i18n.t('configure.reviewSave') }) : this.i18n.t('wizard.next')
   );
 
   readonly projectTotalArea = computed(() => {
@@ -412,9 +417,9 @@ export class ConfigureProjectComponent implements OnInit {
       legend: { enabled: Boolean(currentMonthly?.length && previewMonthly?.length) },
       series: [
         ...(currentMonthly?.length && previewMonthly?.length
-          ? [{ type: 'column' as const, name: 'Current', data: currentMonthly, color: CHART_COLORS.neutral, borderRadius: 4 }]
+          ? [{ type: 'column' as const, name: this.i18n.t('configure.current'), data: currentMonthly, color: CHART_COLORS.neutral, borderRadius: 4 }]
           : []),
-        { type: 'column', name: previewMonthly?.length ? 'Preview estimate' : 'Production estimate', data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
+        { type: 'column', name: previewMonthly?.length ? this.i18n.t('configure.previewEstimate') : this.i18n.t('configure.productionEstimate'), data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
       ],
     };
   });
@@ -424,7 +429,12 @@ export class ConfigureProjectComponent implements OnInit {
     if (!preview) return {};
     const currentProduction = preview.current.annualProductionKwh ?? 0;
     const previewProduction = preview.preview.annualProductionKwh ?? 0;
-    const categories = ['Panels', 'Capacity', 'Annual production', 'Coverage'];
+    const categories = [
+      this.i18n.t('configure.panels'),
+      this.i18n.t('configure.capacity'),
+      this.i18n.t('configure.annualProduction'),
+      this.i18n.t('configure.coverage'),
+    ];
     const currentValues = [
       preview.current.panelNumber,
       preview.current.capacityKw,
@@ -445,20 +455,20 @@ export class ConfigureProjectComponent implements OnInit {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'bar', reflow: true },
       xAxis: { categories, crosshair: true },
-      yAxis: { title: { text: 'Relative to best value' }, min: 0, max: 100, labels: { format: '{value}%' } },
+      yAxis: { title: { text: this.i18n.t('configure.relativeAxis') }, min: 0, max: 100, labels: { format: '{value}%' } },
       tooltip: { valueDecimals: 0, valueSuffix: '%' },
       legend: { enabled: true },
       series: [
         {
           type: 'bar',
-          name: 'Current',
+          name: this.i18n.t('configure.current'),
           data: currentValues.map((_, index) => normalize(currentValues, index)),
           color: CHART_COLORS.neutral,
           borderRadius: 4,
         },
         {
           type: 'bar',
-          name: 'Preview',
+          name: this.i18n.t('configure.preview'),
           data: previewValues.map((_, index) => normalize(previewValues, index)),
           color: CHART_COLORS.savings,
           borderRadius: 4,
@@ -473,10 +483,10 @@ export class ConfigureProjectComponent implements OnInit {
     return {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'spline', reflow: true },
-      xAxis: { categories: ['Summer', 'Equinox', 'Winter'], crosshair: true },
+      xAxis: { categories: [this.i18n.t('configure.summer'), this.i18n.t('configure.equinox'), this.i18n.t('configure.winter')], crosshair: true },
       yAxis: [
-        { title: { text: 'Noon altitude °' }, min: 0 },
-        { title: { text: 'Approx. daylight hours' }, opposite: true, min: 0 },
+        { title: { text: this.i18n.t('configure.noonAltitudeDeg') }, min: 0 },
+        { title: { text: this.i18n.t('configure.approxDaylightHours') }, opposite: true, min: 0 },
       ],
       tooltip: { shared: true },
       legend: { enabled: true },
@@ -484,13 +494,13 @@ export class ConfigureProjectComponent implements OnInit {
       series: [
         {
           type: 'spline',
-          name: 'Noon altitude',
+          name: this.i18n.t('configure.noonAltitude'),
           data: [sp.summerSolstice.noonAltitude, sp.equinox.noonAltitude, sp.winterSolstice.noonAltitude],
           color: CHART_COLORS.production,
         },
         {
           type: 'spline',
-          name: 'Approx. daylight',
+          name: this.i18n.t('configure.approxDaylight'),
           data: [sp.summerSolstice.daylightHours, sp.equinox.daylightHours, sp.winterSolstice.daylightHours],
           yAxis: 1,
           color: CHART_COLORS.forecast,
@@ -510,22 +520,28 @@ export class ConfigureProjectComponent implements OnInit {
       if (beforeText !== afterText) changes.push({ label, before: beforeText, after: afterText });
     };
 
-    add('Project Name', project.name, fv.name);
-    add('Country', project.country, fv.country);
-    add('Timezone', project.timezone, fv.timezone);
-    add('Currency', project.currency, fv.currency);
-    add('Energy Price', project.price, fv.price);
-    add('Panel', this.getProjectPanelId(project.panel), fv.panelId);
-    add('Panel Count', project.panelNumber, fv.panelNumber);
-    add('Tilt', project.tilt != null ? `${project.tilt}°` : null, fv.tilt != null ? `${fv.tilt}°` : null);
-    add('Direction', project.direction, fv.direction);
-    add('Azimuth', project.azimuth != null ? `${project.azimuth}°` : null, fv.azimuth != null ? `${fv.azimuth}°` : null);
-    add('Row Spacing', project.rawSpacing != null ? `${project.rawSpacing} m` : null, fv.rawSpacing != null ? `${fv.rawSpacing} m` : null);
-    add('Installation Cost', project.installationCost, fv.installationCost);
-    add('Segment', project.segment ?? 'residential', fv.segment);
-    add('DC:AC Ratio', project.dcAcRatio ?? 1.1, fv.dcAcRatio);
-    add('Albedo', project.albedo ?? 0.2, fv.albedo);
-    if (this.polygonEdited()) add('Area Polygon', `${project.area?.length ?? 0} points`, `${this.polygonCoords().length} points`);
+    add(this.i18n.t('configure.projectName'), project.name, fv.name);
+    add(this.i18n.t('configure.country'), project.country, fv.country);
+    add(this.i18n.t('configure.timezone'), project.timezone, fv.timezone);
+    add(this.i18n.t('configure.currency'), project.currency, fv.currency);
+    add(this.i18n.t('configure.energyPrice'), project.price, fv.price);
+    add(this.i18n.t('configure.panel'), this.getProjectPanelId(project.panel), fv.panelId);
+    add(this.i18n.t('configure.panelCount'), project.panelNumber, fv.panelNumber);
+    add(this.i18n.t('configure.tilt'), project.tilt != null ? `${project.tilt}°` : null, fv.tilt != null ? `${fv.tilt}°` : null);
+    add(this.i18n.t('configure.direction'), project.direction, fv.direction);
+    add(this.i18n.t('configure.azimuth'), project.azimuth != null ? `${project.azimuth}°` : null, fv.azimuth != null ? `${fv.azimuth}°` : null);
+    add(this.i18n.t('configure.rowSpacing'), project.rawSpacing != null ? `${project.rawSpacing} m` : null, fv.rawSpacing != null ? `${fv.rawSpacing} m` : null);
+    add(this.i18n.t('configure.installationCost'), project.installationCost, fv.installationCost);
+    add(this.i18n.t('configure.segment'), project.segment ?? 'residential', fv.segment);
+    add(this.i18n.t('configure.dcAcRatio'), project.dcAcRatio ?? 1.1, fv.dcAcRatio);
+    add(this.i18n.t('configure.albedo'), project.albedo ?? 0.2, fv.albedo);
+    if (this.polygonEdited()) {
+      add(
+        this.i18n.t('configure.areaPolygon'),
+        this.i18n.t('review.pointsDefined', { points: project.area?.length ?? 0 }),
+        this.i18n.t('review.pointsDefined', { points: this.polygonCoords().length }),
+      );
+    }
     return changes;
   });
 
@@ -533,7 +549,7 @@ export class ConfigureProjectComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
-      this.errorMessage.set('Invalid project ID.');
+      this.errorMessage.set(this.i18n.t('configure.invalidId'));
       this.isLoading.set(false);
       return;
     }
@@ -572,7 +588,7 @@ export class ConfigureProjectComponent implements OnInit {
         this.setupFormWatchers();
       },
       error: () => {
-        this.errorMessage.set('Project not found or unavailable.');
+        this.errorMessage.set(this.i18n.t('configure.notFound'));
         this.isLoading.set(false);
       },
     });
@@ -737,7 +753,7 @@ export class ConfigureProjectComponent implements OnInit {
       },
       error: () => {
         this.isSearching.set(false);
-        this.searchError.set('Location not found. Try a more specific address.');
+        this.searchError.set(this.i18n.t('estimate.locationNotFound'));
       },
     });
   }
@@ -750,11 +766,11 @@ export class ConfigureProjectComponent implements OnInit {
       return;
     }
     this.confirmationService.confirm({
-      header: 'Discard unsaved changes?',
-      message: 'You have unsaved changes. If you exit edit mode now, those changes will be lost.',
+      header: this.i18n.t('configure.discardHeader'),
+      message: this.i18n.t('configure.discardMessage'),
       icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Discard and Exit',
-      rejectLabel: 'Stay Editing',
+      acceptLabel: this.i18n.t('configure.discardExit'),
+      rejectLabel: this.i18n.t('configure.stayEditing'),
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => void this.router.navigate(targetUrl),
     });
@@ -779,9 +795,43 @@ export class ConfigureProjectComponent implements OnInit {
       },
       error: (err) => {
         console.error('Update failed', err);
-        this.saveError.set('Failed to save. Please check your inputs and try again.');
+        this.saveError.set(this.i18n.t('configure.saveFailed'));
         this.isSaving.set(false);
       },
+    });
+  }
+
+  downloadPreviewReport(): void {
+    const project = this.projectData();
+    if (!project) return;
+
+    this.isDownloadingPreviewReport.set(true);
+    this.fileService.generateProjectPDF({
+      mode: 'configure-preview',
+      project,
+      totalCapacityKw: this.totalCapacityKw(),
+      sunPathData: this.sunPathData(),
+      configPreview: this.configPreview(),
+      optimalConfig: this.optimalConfig(),
+      reviewChanges: this.reviewChanges(),
+      selectedPanelLabel: this.selectedPanelLabel(),
+      selectedDirectionLabel: this.selectedDirectionLabel(),
+      projectTotalArea: this.projectTotalArea(),
+      hasUnsavedChanges: this.hasUnsavedChanges(),
+      charts: [
+        { title: 'Relative Impact', options: this.comparisonChartOptions() },
+        { title: 'Monthly Production Estimate', options: this.monthlyProductionChartOptions() },
+        { title: 'Sun Path', options: this.sunPathChartOptions() },
+      ],
+    }).then(() => {
+      this.isDownloadingPreviewReport.set(false);
+    }).catch(() => {
+      this.isDownloadingPreviewReport.set(false);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Download Failed',
+        detail: 'Could not generate the preview report. Please try again.',
+      });
     });
   }
 

@@ -18,6 +18,7 @@ import { DividerModule } from 'primeng/divider';
 
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
 import { Coordinates } from '@core/models';
+import { LanguageService } from '@core/services/language.service';
 import { environment } from '@environments/environment';
 
 interface EstimateResult {
@@ -46,6 +47,7 @@ interface EstimateResult {
 export class EstimateComponent {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  readonly i18n = inject(LanguageService);
 
   // ── Location ─────────────────────────────────────
   addressQuery = signal('');
@@ -74,7 +76,7 @@ export class EstimateComponent {
   }
 
   onUserLocationFound(coords: Coordinates): void {
-    this.applyLocation(coords.lat, coords.lng, 'Current location');
+    this.applyLocation(coords.lat, coords.lng, this.i18n.t('estimate.currentLocation'));
     this.reverseGeocode(coords.lat, coords.lng);
   }
 
@@ -92,7 +94,7 @@ export class EstimateComponent {
         next: (results) => {
           this.isSearching.set(false);
           if (!results.length) {
-            this.searchError.set('Location not found. Try a more specific address.');
+            this.searchError.set(this.i18n.t('estimate.locationNotFound'));
             return;
           }
           const r = results[0];
@@ -100,14 +102,14 @@ export class EstimateComponent {
         },
         error: () => {
           this.isSearching.set(false);
-          this.searchError.set('Search failed. Please try again.');
+          this.searchError.set(this.i18n.t('estimate.searchFailed'));
         },
       });
   }
 
   useCurrentLocation(): void {
     if (!navigator.geolocation) {
-      this.searchError.set('Geolocation is not supported by this browser.');
+      this.searchError.set(this.i18n.t('estimate.geoUnsupported'));
       return;
     }
     this.isLocating.set(true);
@@ -117,12 +119,12 @@ export class EstimateComponent {
         this.isLocating.set(false);
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        this.applyLocation(lat, lng, 'Current location');
+        this.applyLocation(lat, lng, this.i18n.t('estimate.currentLocation'));
         this.reverseGeocode(lat, lng);
       },
       () => {
         this.isLocating.set(false);
-        this.searchError.set('Unable to access your location. Please allow location permissions.');
+        this.searchError.set(this.i18n.t('estimate.geoDenied'));
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -140,7 +142,7 @@ export class EstimateComponent {
     this.http
       .get<{ display_name?: string }>(url)
       .subscribe({
-        next: (res) => this.addressResult.set(res.display_name ?? 'Current location'),
+        next: (res) => this.addressResult.set(res.display_name ?? this.i18n.t('estimate.currentLocation')),
         error: () => {},
       });
   }
@@ -161,7 +163,7 @@ export class EstimateComponent {
         },
         error: () => {
           this.isCalculating.set(false);
-          this.estimateError.set('Could not calculate estimate. Please try again.');
+          this.estimateError.set(this.i18n.t('estimate.calculateFailed'));
         },
       });
   }

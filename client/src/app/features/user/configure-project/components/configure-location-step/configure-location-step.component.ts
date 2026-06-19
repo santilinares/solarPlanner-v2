@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
@@ -6,6 +6,7 @@ import { DividerModule } from 'primeng/divider';
 import { TooltipModule } from 'primeng/tooltip';
 import { Coordinates } from '@core/models';
 import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
+import { LanguageService } from '@core/services/language.service';
 
 @Component({
   selector: 'app-configure-location-step',
@@ -15,6 +16,7 @@ import { LocationMapComponent } from '@shared/components/location-map/location-m
   styleUrls: ['./configure-location-step.component.scss'],
 })
 export class ConfigureLocationStepComponent {
+  readonly i18n = inject(LanguageService);
   readonly polygonCoords = input.required<Coordinates[]>();
   readonly mapLat = input<number | null>(null);
   readonly mapLng = input<number | null>(null);

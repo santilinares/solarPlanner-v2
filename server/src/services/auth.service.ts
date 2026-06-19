@@ -30,6 +30,7 @@ export class AuthService {
       fullName: user.fullName,
       email,
       role: user.role,
+      language: user.language ?? 'en',
       method: user.method,
       createdAt: user.createdAt.toISOString(),
     };

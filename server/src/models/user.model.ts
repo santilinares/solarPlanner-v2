@@ -19,6 +19,7 @@ export interface IUser {
   };
   fullName: string;
   role: 'user' | 'admin';
+  language: 'en' | 'es';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +70,11 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
+    },
+    language: {
+      type: String,
+      enum: ['en', 'es'],
+      default: 'en',
     },
   },
   {

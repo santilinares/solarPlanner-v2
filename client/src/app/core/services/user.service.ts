@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
-import { User, UserResponse, UserListResponse } from '../models';
+import { SupportedLanguage, User, UserResponse, UserListResponse } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +21,7 @@ export class UserService {
   /**
    * Update current user profile
    */
-  updateProfile(userId: string, data: { fullName: string }): Observable<User> {
+  updateProfile(userId: string, data: { fullName: string; language?: SupportedLanguage }): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/${userId}/profile`, data);
   }
 

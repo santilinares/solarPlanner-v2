@@ -8,6 +8,7 @@ import { PasswordModule } from 'primeng/password';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
 import { RegisterRequest, getErrorMessage } from '@core/models';
 import { strongPasswordValidator, PASSWORD_HINT } from '@core/validators/password.validator';
 import { environment } from '@environments/environment';
@@ -31,15 +32,15 @@ import { environment } from '@environments/environment';
         <ng-template pTemplate="header">
           <div class="card-header">
             <i class="pi pi-user-plus solar-icon"></i>
-            <h2>Join Solar Planner</h2>
-            <p class="subtitle">Start planning your sustainable energy future today</p>
+            <h2>{{ i18n.t('auth.register.title') }}</h2>
+            <p class="subtitle">{{ i18n.t('auth.register.subtitle') }}</p>
           </div>
         </ng-template>
         
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
           <div class="form-row">
             <div class="form-field">
-              <label for="firstName">First Name</label>
+              <label for="firstName">{{ i18n.t('auth.firstName') }}</label>
               <input
                 pInputText
                 id="firstName"
@@ -52,7 +53,7 @@ import { environment } from '@environments/environment';
             </div>
 
             <div class="form-field">
-              <label for="lastName">Last Name</label>
+              <label for="lastName">{{ i18n.t('auth.lastName') }}</label>
               <input
                 pInputText
                 id="lastName"
@@ -66,7 +67,7 @@ import { environment } from '@environments/environment';
           </div>
 
           <div class="form-field">
-            <label for="email">Email Address</label>
+            <label for="email">{{ i18n.t('auth.email') }}</label>
             <input
               pInputText
               id="email"
@@ -78,13 +79,13 @@ import { environment } from '@environments/environment';
             />
             @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
                 <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
-                <i class="pi pi-exclamation-circle"></i> Valid email is required
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.emailRequired') }}
               </small>
             }
           </div>
 
           <div class="form-field">
-            <label for="password">Password</label>
+            <label for="password">{{ i18n.t('auth.password') }}</label>
             <p-password
               formControlName="password"
               [placeholder]="passwordHint"
@@ -125,7 +126,7 @@ import { environment } from '@environments/environment';
           <div class="auth-btn-row">
             <p-button
               type="submit"
-              label="Create Account"
+              [label]="i18n.t('auth.createAccount')"
               icon="pi pi-user-plus"
               [disabled]="loading() || registerForm.invalid"
               [loading]="loading()"
@@ -133,7 +134,7 @@ import { environment } from '@environments/environment';
 
             <p-button
               type="button"
-              label="Continue with Google"
+              [label]="i18n.t('auth.google')"
               [disabled]="loading()"
               [loading]="googleLoading()"
               severity="secondary"
@@ -147,7 +148,7 @@ import { environment } from '@environments/environment';
 
           <div class="form-links">
             <a routerLink="/login" class="link">
-              <i class="pi pi-sign-in"></i> Already have an account? Sign in
+              <i class="pi pi-sign-in"></i> {{ i18n.t('auth.alreadyHaveAccount') }}
             </a>
           </div>
         </form>
@@ -322,6 +323,7 @@ export class RegisterComponent implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  readonly i18n = inject(LanguageService);
 
   loading = signal(false);
   googleLoading = signal(false);
@@ -363,7 +365,7 @@ export class RegisterComponent implements OnDestroy {
           },
           error: (err: unknown) => {
             this.loading.set(false);
-            this.errorMessage.set(getErrorMessage(err, 'Google sign-in failed. Please try again.'));
+            this.errorMessage.set(getErrorMessage(err, this.i18n.t('auth.googleFailed')));
           },
           complete: () => {
             this.loading.set(false);
@@ -386,7 +388,7 @@ export class RegisterComponent implements OnDestroy {
 
       this.authService.register(registerData).subscribe({
         next: () => {
-          this.successMessage.set('Account created successfully! Redirecting...');
+          this.successMessage.set(this.i18n.t('auth.registerSuccess'));
           this.redirectTimeout = setTimeout(() => {
             this.router.navigate(['/projects']).catch(() => {
               window.location.href = '/projects';
@@ -395,7 +397,7 @@ export class RegisterComponent implements OnDestroy {
         },
         error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(getErrorMessage(err, 'Registration failed. Please try again.'));
+          this.errorMessage.set(getErrorMessage(err, this.i18n.t('auth.registerFailed')));
         },
       });
     }

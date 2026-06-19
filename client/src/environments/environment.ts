@@ -4,4 +4,7 @@ export const environment = {
   markerIcon: 'https://image.flaticon.com/icons/png/128/2427/2427035.png',
   devBypassAuth: false,
   googleClientId: '815184704464-g2bgimctmbvmrdce465gvjh9pn3va3of.apps.googleusercontent.com',
+  githubUrl: 'https://github.com/santilinares/solarPlanner-v2',
+  githubReadmeUrl: 'https://github.com/santilinares/solarPlanner-v2/blob/main/README.md',
+  githubContributingUrl: 'https://github.com/santilinares/solarPlanner-v2/blob/main/CONTRIBUTING.md',
 };

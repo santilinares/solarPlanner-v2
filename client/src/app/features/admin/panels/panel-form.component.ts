@@ -16,6 +16,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { SelectModule } from 'primeng/select';
 import { Panel, PanelCreateRequest } from '@core/models/panel.model';
+import { LanguageService } from '@core/services/language.service';
 
 @Component({
   selector: 'app-panel-form',
@@ -42,13 +43,13 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
     >
       <ng-template pTemplate="header">
         <div class="dialog-header-content">
-          <h3 class="dialog-title">{{ isEditMode() ? 'Edit Panel' : 'Add New Panel' }}</h3>
+          <h3 class="dialog-title">{{ isEditMode() ? i18n.t('panelForm.editTitle') : i18n.t('panelForm.addTitle') }}</h3>
           <div class="dialog-header-actions">
-            <button pButton type="button" label="Cancel" severity="secondary" [outlined]="true" (click)="onCancel()"></button>
+            <button pButton type="button" [label]="i18n.t('panelForm.cancel')" severity="secondary" [outlined]="true" (click)="onCancel()"></button>
             <button
               pButton
               type="button"
-              [label]="isSubmitting() ? 'Saving...' : (isEditMode() ? 'Update Panel' : 'Create Panel')"
+              [label]="isSubmitting() ? i18n.t('panelForm.saving') : (isEditMode() ? i18n.t('panelForm.update') : i18n.t('panelForm.create'))"
               icon="pi pi-check"
               [disabled]="panelForm.invalid || isSubmitting()"
               (click)="onSubmit()"
@@ -64,68 +65,68 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
               <i class="pi pi-bolt"></i>
             </div>
             <div>
-              <h2>{{ isEditMode() ? 'Update Panel Specifications' : 'Create Panel Specifications' }}</h2>
-              <p>Use the same data structure and visual language as project configuration forms.</p>
+              <h2>{{ isEditMode() ? i18n.t('panelForm.updateSpecs') : i18n.t('panelForm.createSpecs') }}</h2>
+              <p>{{ i18n.t('panelForm.description') }}</p>
             </div>
           </header>
 
           <div class="form-grid">
             <div class="form-field">
-            <label for="brand">Brand</label>
-            <input pInputText id="brand" type="text" formControlName="brand" placeholder="e.g. SunPower" />
+            <label for="brand">{{ i18n.t('panelForm.brand') }}</label>
+            <input pInputText id="brand" type="text" formControlName="brand" [placeholder]="i18n.t('panelForm.brandPlaceholder')" />
             @if (hasError('brand', 'required')) {
-              <small class="field-error">Brand is required</small>
+              <small class="field-error">{{ i18n.t('panelForm.brandRequired') }}</small>
             }
           </div>
 
             <div class="form-field">
-            <label for="model">Model</label>
-            <input pInputText id="model" type="text" formControlName="model" placeholder="e.g. Maxeon 6" />
+            <label for="model">{{ i18n.t('panelForm.model') }}</label>
+            <input pInputText id="model" type="text" formControlName="model" [placeholder]="i18n.t('panelForm.modelPlaceholder')" />
             @if (hasError('model', 'required')) {
-              <small class="field-error">Model is required</small>
+              <small class="field-error">{{ i18n.t('panelForm.modelRequired') }}</small>
             }
           </div>
 
             <div class="form-field">
-            <label for="technology">Technology</label>
+            <label for="technology">{{ i18n.t('common.technology') }}</label>
             <p-select
               inputId="technology"
-              [options]="technologyOptions"
+              [options]="technologyOptions()"
               optionLabel="label"
               optionValue="value"
               formControlName="technology"
-              placeholder="Select technology"
+              [placeholder]="i18n.t('panels.selectTechnology')"
               [showClear]="true"
               appendTo="body"
             />
-            <small class="field-hint">Choose panel technology family.</small>
+            <small class="field-hint">{{ i18n.t('panelForm.chooseTechnology') }}</small>
           </div>
 
             <div class="form-field">
-            <label for="wattPeak">Power (W)</label>
+            <label for="wattPeak">{{ i18n.t('panelForm.powerW') }}</label>
             <p-inputNumber inputId="wattPeak" formControlName="wattPeak" [min]="1" [useGrouping]="false" />
             @if (hasError('wattPeak', 'required')) {
-              <small class="field-error">Power is required</small>
+              <small class="field-error">{{ i18n.t('panelForm.powerRequired') }}</small>
             }
           </div>
 
             <div class="form-field">
-            <label for="efficiency">Efficiency (%)</label>
+            <label for="efficiency">{{ i18n.t('panelForm.efficiencyPercent') }}</label>
             <p-inputNumber inputId="efficiency" formControlName="efficiency" [min]="0" [max]="100" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" />
           </div>
 
             <div class="form-field">
-            <label for="price">Price ($)</label>
+            <label for="price">{{ i18n.t('panelForm.priceUsd') }}</label>
             <p-inputNumber inputId="price" formControlName="price" mode="currency" currency="USD" locale="en-US" [min]="0" />
           </div>
 
             <div class="form-field">
-            <label for="warranty">Warranty (Years)</label>
+            <label for="warranty">{{ i18n.t('panelForm.warrantyYears') }}</label>
             <p-inputNumber inputId="warranty" formControlName="warranty" [min]="0" [useGrouping]="false" />
           </div>
 
             <div class="form-field">
-             <label for="gammaPmp">Power Temp. Coefficient γPmp (%/°C)</label>
+             <label for="gammaPmp">{{ i18n.t('panelForm.tempCoefficient') }}</label>
               <p-inputNumber
                 inputId="gammaPmp"
                 formControlName="gammaPmp"
@@ -134,25 +135,25 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
                 [maxFractionDigits]="2"
                 [useGrouping]="false"
               />
-              <small class="field-hint">Use manufacturer coefficient. Negative values are supported.</small>
+              <small class="field-hint">{{ i18n.t('panelForm.tempCoefficientHint') }}</small>
           </div>
 
             <div class="form-field full-width field-group" formGroupName="dimensions">
-              <h3>Dimensions (mm)</h3>
+              <h3>{{ i18n.t('panelForm.dimensions') }}</h3>
               <div class="form-grid nested-grid">
                 <div class="form-field">
-              <label for="width">Width</label>
+              <label for="width">{{ i18n.t('panelForm.width') }}</label>
               <p-inputNumber inputId="width" formControlName="width" [min]="1" [useGrouping]="false" />
               @if (hasDimensionError('width', 'required')) {
-                <small class="field-error">Width is required</small>
+                <small class="field-error">{{ i18n.t('panelForm.widthRequired') }}</small>
               }
             </div>
 
                 <div class="form-field">
-              <label for="height">Height</label>
+              <label for="height">{{ i18n.t('panelForm.height') }}</label>
               <p-inputNumber inputId="height" formControlName="height" [min]="1" [useGrouping]="false" />
               @if (hasDimensionError('height', 'required')) {
-                <small class="field-error">Height is required</small>
+                <small class="field-error">{{ i18n.t('panelForm.heightRequired') }}</small>
               }
             </div>
               </div>
@@ -342,6 +343,7 @@ import { Panel, PanelCreateRequest } from '@core/models/panel.model';
 })
 export class PanelFormComponent {
   private readonly fb = inject(FormBuilder);
+  readonly i18n = inject(LanguageService);
 
   // Inputs/Outputs
   panel = input<Panel | null>(null);
@@ -351,14 +353,14 @@ export class PanelFormComponent {
   // State
   protected isSubmitting = signal(false);
   protected isEditMode = computed(() => !!this.panel());
-  protected readonly technologyOptions: Array<{
+  protected readonly technologyOptions = computed<Array<{
     label: string;
     value: NonNullable<PanelCreateRequest['technology']>;
-  }> = [
-    { label: 'Monocrystalline', value: 'Monocrystalline' },
-    { label: 'Polycrystalline', value: 'Polycrystalline' },
-    { label: 'Thin film', value: 'Thin film' },
-  ];
+  }>>(() => [
+    { label: this.i18n.t('panels.monocrystalline'), value: 'Monocrystalline' },
+    { label: this.i18n.t('panels.polycrystalline'), value: 'Polycrystalline' },
+    { label: this.i18n.t('panels.thinFilm'), value: 'Thin film' },
+  ]);
 
   protected panelForm = this.fb.group({
     brand: ['', [Validators.required]],

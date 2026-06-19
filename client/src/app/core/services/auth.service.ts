@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, catchError, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { environment } from '@environments/environment';
 import {
   User,
@@ -10,7 +10,10 @@ import {
   AuthResponse,
   ForgotPasswordRequest,
   ResetPasswordRequest,
+  UserResponse,
+  UserRole,
 } from '../models';
+import { LanguageService } from './language.service';
 
 /**
  * JWT Token Payload structure
@@ -22,12 +25,18 @@ interface JwtPayload {
   iat?: number;
 }
 
+interface ApiAuthResponse {
+  token: string;
+  user: UserResponse | User;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly languageService = inject(LanguageService);
   private readonly authUrl = `${environment.apiUrl}/auth`;
   private readonly usersUrl = `${environment.apiUrl}/users`;
 
@@ -49,7 +58,8 @@ export class AuthService {
       password: data.password,
     };
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/register`, payload, { withCredentials: true })
+      .post<ApiAuthResponse>(`${this.authUrl}/register`, payload, { withCredentials: true })
+      .pipe(map((response) => this.normalizeAuthResponse(response)))
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
@@ -58,7 +68,8 @@ export class AuthService {
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/login`, credentials, { withCredentials: true })
+      .post<ApiAuthResponse>(`${this.authUrl}/login`, credentials, { withCredentials: true })
+      .pipe(map((response) => this.normalizeAuthResponse(response)))
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
@@ -67,7 +78,8 @@ export class AuthService {
    */
   loginWithGoogle(idToken: string): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/google`, { idToken }, { withCredentials: true })
+      .post<ApiAuthResponse>(`${this.authUrl}/google`, { idToken }, { withCredentials: true })
+      .pipe(map((response) => this.normalizeAuthResponse(response)))
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
@@ -112,7 +124,9 @@ export class AuthService {
    * Get current user profile (requires JWT)
    */
   getMe(): Observable<User> {
-    return this.http.get<User>(`${this.usersUrl}/me`);
+    return this.http
+      .get<UserResponse | User>(`${this.usersUrl}/me`)
+      .pipe(map((user) => this.normalizeUser(user)));
   }
 
   /**
@@ -120,7 +134,8 @@ export class AuthService {
    */
   refreshToken(): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${this.authUrl}/refresh`, {}, { withCredentials: true })
+      .post<ApiAuthResponse>(`${this.authUrl}/refresh`, {}, { withCredentials: true })
+      .pipe(map((response) => this.normalizeAuthResponse(response)))
       .pipe(tap((response) => this.handleAuthSuccess(response)));
   }
 
@@ -160,7 +175,32 @@ export class AuthService {
   private handleAuthSuccess(response: AuthResponse): void {
     localStorage.setItem('token', response.token);
     this.currentUser.set(response.user);
+    this.languageService.setLanguage(response.user.language ?? 'en');
     this.isAuthenticated.set(true);
+  }
+
+  private normalizeAuthResponse(response: ApiAuthResponse): AuthResponse {
+    return { ...response, user: this.normalizeUser(response.user) };
+  }
+
+  private normalizeUser(user: UserResponse | User): User {
+    if ('id' in user) {
+      return {
+        ...user,
+        language: user.language ?? 'en',
+        createdAt: user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt),
+      };
+    }
+
+    return {
+      id: user._id,
+      email: user.email ?? '',
+      fullName: user.fullName,
+      role: user.role === 'admin' ? UserRole.ADMIN : UserRole.USER,
+      language: user.language ?? 'en',
+      isActive: true,
+      createdAt: new Date(user.createdAt),
+    };
   }
 
   /**
@@ -189,6 +229,7 @@ export class AuthService {
           .subscribe((user) => {
             if (user) {
               this.currentUser.set(user);
+              this.languageService.setLanguage(user.language ?? 'en');
             }
           });
       } else {

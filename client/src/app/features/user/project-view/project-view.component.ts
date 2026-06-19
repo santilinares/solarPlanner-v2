@@ -21,6 +21,7 @@ import { CardModule } from 'primeng/card';
 
 import { ProjectService } from '@core/services/project.service';
 import { FileService } from '@core/services/file.service';
+import { LanguageService } from '@core/services/language.service';
 import { ProjectResponse, SunPathData, PlanData, ProjectAnalytics, ProjectPanelSummary } from '@core/models';
 import {
   BASE_CHART_OPTIONS,
@@ -58,6 +59,7 @@ export class ProjectViewComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
   private readonly fileService = inject(FileService);
   private readonly messageService = inject(MessageService);
+  readonly i18n = inject(LanguageService);
 
   // ─── State ───
   readonly isLoading = signal(true);
@@ -115,8 +117,8 @@ export class ProjectViewComponent implements OnInit {
 
   readonly freshnessLabel = computed(() => {
     const refreshed = this.projectData()?.lastRefreshedAt;
-    if (!refreshed) return 'Production data not refreshed yet';
-    return `Last refreshed ${new Date(refreshed).toLocaleString()}`;
+    if (!refreshed) return this.i18n.t('projectView.notRefreshed');
+    return this.i18n.t('projectView.lastRefreshed', { date: new Date(refreshed).toLocaleString() });
   });
 
   readonly isProductionStale = computed(() => {
@@ -136,7 +138,7 @@ export class ProjectViewComponent implements OnInit {
           return `${d.getHours().toString().padStart(2, '0')}:00`;
         }),
         crosshair: true,
-        title: { text: 'Hour' },
+        title: { text: this.i18n.t('charts.hour') },
       },
       yAxis: { title: { text: 'kWh' }, min: 0 },
       tooltip: { valueDecimals: 2, valueSuffix: ' kWh' },
@@ -147,7 +149,7 @@ export class ProjectViewComponent implements OnInit {
           lineWidth: 3,
         },
       },
-      series: [{ type: 'area', name: 'Production curve', data: prodToday.map((p) => p.pv), color: CHART_COLORS.production }],
+      series: [{ type: 'area', name: this.i18n.t('charts.productionCurve'), data: prodToday.map((p) => p.pv), color: CHART_COLORS.production }],
     };
   });
 
@@ -163,7 +165,7 @@ export class ProjectViewComponent implements OnInit {
       },
       yAxis: { title: { text: 'kWh/interval' }, min: 0 },
       tooltip: { valueDecimals: 2, valueSuffix: ' kWh/interval' },
-      series: [{ type: 'column', name: 'Forecast interval', data: nextProd.map((p) => p.pv), color: CHART_COLORS.forecast, borderRadius: 4 }],
+      series: [{ type: 'column', name: this.i18n.t('charts.forecastInterval'), data: nextProd.map((p) => p.pv), color: CHART_COLORS.forecast, borderRadius: 4 }],
     };
   });
 
@@ -179,7 +181,7 @@ export class ProjectViewComponent implements OnInit {
       },
       yAxis: { title: { text: 'kWh/interval' }, min: 0 },
       tooltip: { valueDecimals: 2, valueSuffix: ' kWh/interval' },
-      series: [{ type: 'column', name: 'Recent interval', data: previousProd.map((p) => p.pv), color: CHART_COLORS.comparison, borderRadius: 4 }],
+      series: [{ type: 'column', name: this.i18n.t('charts.recentInterval'), data: previousProd.map((p) => p.pv), color: CHART_COLORS.comparison, borderRadius: 4 }],
     };
   });
 
@@ -196,14 +198,14 @@ export class ProjectViewComponent implements OnInit {
       xAxis: {
         categories: perYear.map((_, i) => `Y${i + 1}`),
         crosshair: true,
-        title: { text: 'Year' },
+        title: { text: this.i18n.t('charts.year') },
         plotLines: breakEvenYear
           ? [{
               color: CHART_COLORS.savings,
               dashStyle: 'ShortDash',
               value: breakEvenYear - 1,
               width: 2,
-              label: { text: `Break-even Y${breakEvenYear}`, rotation: 0, y: 16 },
+              label: { text: this.i18n.t('charts.breakEven', { year: breakEvenYear }), rotation: 0, y: 16 },
               zIndex: 5,
             }]
           : [],
@@ -212,10 +214,10 @@ export class ProjectViewComponent implements OnInit {
       tooltip: { shared: true, valueDecimals: 0, valueSuffix: ` ${currency}` },
       legend: { enabled: true },
       series: [
-        { type: 'spline', name: 'Cumulative avoided cost', data: cumulativeSavings, color: CHART_COLORS.savings, lineWidth: 3, zIndex: 2 },
-        { type: 'column', name: 'Annual avoided cost', data: perYear, color: CHART_COLORS.savingsSoft, borderRadius: 4, yAxis: 0 },
+        { type: 'spline', name: this.i18n.t('charts.cumulativeAvoidedCost'), data: cumulativeSavings, color: CHART_COLORS.savings, lineWidth: 3, zIndex: 2 },
+        { type: 'column', name: this.i18n.t('charts.annualAvoidedCost'), data: perYear, color: CHART_COLORS.savingsSoft, borderRadius: 4, yAxis: 0 },
         ...(installCost != null
-          ? [{ type: 'line' as const, name: 'Installation cost', data: perYear.map(() => installCost), color: CHART_COLORS.cost, dashStyle: 'Dash' as const, marker: { enabled: false } }]
+          ? [{ type: 'line' as const, name: this.i18n.t('charts.installationCost'), data: perYear.map(() => installCost), color: CHART_COLORS.cost, dashStyle: 'Dash' as const, marker: { enabled: false } }]
           : []),
       ],
     };
@@ -229,14 +231,14 @@ export class ProjectViewComponent implements OnInit {
     return {
       ...BASE_CHART_OPTIONS,
       chart: { ...BASE_CHART_OPTIONS.chart, type: 'column', reflow: true },
-      subtitle: { text: `Annual total ${annualTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} kWh` },
+      subtitle: { text: this.i18n.t('charts.annualTotal', { value: annualTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }) }) },
       xAxis: { categories: MONTH_LABELS, crosshair: true },
       yAxis: { title: { text: 'kWh/month' }, min: 0 },
       tooltip: { valueDecimals: 0, valueSuffix: ' kWh' },
       legend: { enabled: true },
       series: [
-        { type: 'column', name: 'Monthly production', data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
-        { type: 'line', name: 'Monthly average', data: monthly.map(() => monthlyAverage), color: CHART_COLORS.forecast, dashStyle: 'ShortDash', marker: { enabled: false } },
+        { type: 'column', name: this.i18n.t('charts.monthlyProduction'), data: monthly, color: CHART_COLORS.production, borderRadius: 4 },
+        { type: 'line', name: this.i18n.t('charts.monthlyAverage'), data: monthly.map(() => monthlyAverage), color: CHART_COLORS.forecast, dashStyle: 'ShortDash', marker: { enabled: false } },
       ],
     };
   });
@@ -245,7 +247,7 @@ export class ProjectViewComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
-      this.errorMessage.set('Invalid project ID.');
+      this.errorMessage.set(this.i18n.t('projectView.invalidId'));
       this.isLoading.set(false);
       return;
     }
@@ -262,7 +264,7 @@ export class ProjectViewComponent implements OnInit {
         this.loadAnalytics(id);
       },
       error: () => {
-        this.errorMessage.set('Project not found or unavailable.');
+        this.errorMessage.set(this.i18n.t('projectView.notFound'));
         this.isLoading.set(false);
       },
     });
@@ -288,15 +290,38 @@ export class ProjectViewComponent implements OnInit {
     this.isDownloadingPlan.set(true);
     this.projectService.getPlanData(this.projectId()).subscribe({
       next: (planData: PlanData) => {
-        this.fileService.generateProjectPDF(planData);
-        this.isDownloadingPlan.set(false);
+        this.fileService.generateProjectPDF({
+          mode: 'view',
+          project: this.projectData() ?? planData.project,
+          planData,
+          panelDetails: planData.panelDetails,
+          totalCapacityKw: planData.totalCapacityKw,
+          analytics: this.analytics(),
+          sunPathData: this.sunPathData(),
+          charts: [
+            { title: 'Today Production', options: this.todayChartOptions() },
+            { title: 'Forecast Production', options: this.nextProdChartOptions() },
+            { title: 'Recent Production', options: this.previousProdChartOptions() },
+            { title: 'Monthly Production Estimate', options: this.monthlyProductionChartOptions() },
+            { title: '25-Year Avoided Cost Projection', options: this.savingsChartOptions() },
+          ],
+        }).then(() => {
+          this.isDownloadingPlan.set(false);
+        }).catch(() => {
+          this.isDownloadingPlan.set(false);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Download Failed',
+            detail: 'Could not generate the project plan. Please try again.',
+          });
+        });
       },
       error: () => {
         this.isDownloadingPlan.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Download Failed',
-          detail: 'Could not generate the project plan. Please try again.',
+          summary: this.i18n.t('projectView.downloadFailed'),
+          detail: this.i18n.t('projectView.downloadFailedDetail'),
         });
       },
     });

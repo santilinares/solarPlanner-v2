@@ -151,31 +151,7 @@ export interface PanelDetails {
  * Project plan data for PDF generation
  */
 export interface PlanData {
-  project: {
-    _id: string;
-    name: string;
-    area: Array<{ lat: number; lon: number }>;
-    lat: number;
-    lon: number;
-    surface: number;
-    country: string;
-    timezone: string;
-    currency: string;
-    price: number;
-    tilt: number;
-    direction: string;
-    azimuth: number;
-    rawSpacing: number;
-    panelNumber: number;
-    panel?: string;
-    owner?: string;
-    prodToday?: number;
-    nextProd?: number;
-    previousProd?: number;
-    installDate: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+  project: ProjectResponse;
   panelDetails: PanelDetails | null;
   totalCapacityKw: number;
   estimatedAnnualProduction: number;

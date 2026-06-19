@@ -3,7 +3,7 @@
     <div class="step-nav-bar">
       <div class="step-nav-left">
         <p-button
-          label="Back"
+          [label]="i18n.t('wizard.back')"
           icon="pi pi-arrow-left"
           severity="secondary"
           [rounded]="true"
@@ -12,7 +12,7 @@
           size="small"
         />
         <p-button
-          label="Exit Create Mode"
+          [label]="i18n.t('wizard.exitCreate')"
           icon="pi pi-times"
           severity="secondary"
           [outlined]="true"
@@ -22,10 +22,10 @@
         />
       </div>
 
-      <span class="step-nav-mode-label">Create Mode</span>
+      <span class="step-nav-mode-label">{{ i18n.t('wizard.createMode') }}</span>
 
       <div class="step-nav-right">
-        @if (activeStep() < steps.length - 1) {
+        @if (activeStep() < steps().length - 1) {
           <p-button
             [label]="stepNextLabel()"
             icon="pi pi-arrow-right"
@@ -37,7 +37,7 @@
           />
         } @else {
           <p-button
-            label="Create Project"
+            [label]="i18n.t('projects.createProject')"
             icon="pi pi-check"
             [rounded]="true"
             [loading]="isSubmitting()"
@@ -49,8 +49,8 @@
       </div>
     </div>
 
-    <nav class="sticky-stepper-row" aria-label="Create project steps">
-      @for (step of steps; track step.label; let last = $last) {
+    <nav class="sticky-stepper-row" [attr.aria-label]="i18n.t('projects.createProject')">
+      @for (step of steps(); track step.label; let last = $last) {
         <button
           type="button"
           class="step-btn"
@@ -89,33 +89,33 @@
           <div class="section-heading">
             <span class="section-icon material-symbols-outlined">description</span>
             <div>
-              <h2>Project Basics</h2>
-              <p>Name the installation and add the notes you want to remember later.</p>
+              <h2>{{ i18n.t('wizard.projectBasics') }}</h2>
+              <p>{{ i18n.t('wizard.projectBasicsText') }}</p>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="projectName">Project Name</label>
+            <label for="projectName">{{ i18n.t('wizard.projectName') }}</label>
             <input
               pInputText
               id="projectName"
               type="text"
               [value]="projectName()"
               (input)="projectName.set($any($event.target).value)"
-              placeholder="e.g. Family house rooftop"
+              [placeholder]="i18n.t('wizard.projectNamePlaceholder')"
               class="w-full"
             />
-            <small class="helper-text">Use at least two characters.</small>
+            <small class="helper-text">{{ i18n.t('wizard.nameHint') }}</small>
           </div>
 
           <div class="form-group">
-            <label for="projectDesc">Description</label>
+            <label for="projectDesc">{{ i18n.t('wizard.description') }}</label>
             <textarea
               pTextarea
               id="projectDesc"
               [value]="projectDescription()"
               (input)="projectDescription.set($any($event.target).value)"
-              placeholder="Optional notes about roof, client, goals, or constraints..."
+              [placeholder]="i18n.t('wizard.descriptionPlaceholder')"
               rows="4"
               class="w-full"
             ></textarea>
@@ -123,7 +123,7 @@
 
           <div class="feedback-banner feedback-info">
             <span class="material-symbols-outlined">info</span>
-            <span>For this version, project creation is focused on standard roof or ground-mounted solar installations.</span>
+            <span>{{ i18n.t('wizard.scopeHint') }}</span>
           </div>
         </section>
       }
@@ -133,13 +133,13 @@
           <div class="section-heading">
             <span class="section-icon material-symbols-outlined">map</span>
             <div>
-              <h2>Site & Area</h2>
-              <p>Find the location and draw the polygon where panels can be installed.</p>
+              <h2>{{ i18n.t('wizard.siteArea') }}</h2>
+              <p>{{ i18n.t('wizard.siteAreaText') }}</p>
             </div>
           </div>
 
           <div class="form-group">
-            <label>Search Location</label>
+            <label>{{ i18n.t('wizard.searchLocation') }}</label>
             <div class="location-search">
               <p-iconfield class="search-field">
                 <p-inputicon class="pi pi-search" />
@@ -149,7 +149,7 @@
                   [value]="addressQuery()"
                   (input)="addressQuery.set($any($event.target).value)"
                   (keydown.enter)="searchAddress()"
-                  placeholder="Search address, city, or coordinates..."
+                  [placeholder]="i18n.t('wizard.searchLocationPlaceholder')"
                   class="w-full location-input"
                 />
                 <button
@@ -157,14 +157,14 @@
                   class="location-target-btn"
                   [disabled]="isLocating()"
                   (click)="useCurrentLocation()"
-                  aria-label="Use current location"
-                  title="Use current location"
+                  [attr.aria-label]="i18n.t('estimate.useCurrentLocation')"
+                  [title]="i18n.t('estimate.useCurrentLocation')"
                 >
                   <span class="material-symbols-outlined">location_searching</span>
                 </button>
               </p-iconfield>
               <p-button
-                label="Search"
+                [label]="i18n.t('estimate.search')"
                 [outlined]="true"
                 [loading]="isSearching()"
                 [disabled]="isSearching() || !addressQuery().trim()"
@@ -190,7 +190,7 @@
           }
 
           <div class="form-group">
-            <label>Project Area</label>
+            <label>{{ i18n.t('wizard.projectArea') }}</label>
             <div class="map-wrapper">
               <app-location-map
                 [editable]="true"
@@ -205,12 +205,12 @@
           @if (hasDrawnArea()) {
             <div class="feedback-banner feedback-success">
               <span class="material-symbols-outlined">check_circle</span>
-              <span>Area defined with <strong>{{ drawnPolygonPoints().length }}</strong> vertices.</span>
+              <span>{{ i18n.t('wizard.areaDefined', { vertices: drawnPolygonPoints().length }) }}</span>
             </div>
           } @else {
             <div class="feedback-banner feedback-neutral">
               <span class="material-symbols-outlined">draw</span>
-              <span>Draw a polygon on the map to define the usable installation area.</span>
+              <span>{{ i18n.t('wizard.drawPolygon') }}</span>
             </div>
           }
         </section>
@@ -221,8 +221,8 @@
           <div class="section-heading">
             <span class="section-icon material-symbols-outlined">bolt</span>
             <div>
-              <h2>Energy Price</h2>
-              <p>Use the suggested market price as a starting point, then adjust it to match the electricity bill if you know it.</p>
+              <h2>{{ i18n.t('wizard.energyPriceStep') }}</h2>
+              <p>{{ i18n.t('wizard.energyPriceText') }}</p>
             </div>
           </div>
 
@@ -230,7 +230,7 @@
             <div class="energy-editor">
               <div class="form-group">
                 <div class="label-row">
-                  <label for="energyPrice">Electricity Price</label>
+                  <label for="energyPrice">{{ i18n.t('wizard.electricityPrice') }}</label>
                   <p-tag [value]="currency() + '/kWh'" severity="secondary" [rounded]="true" />
                 </div>
                 <p-inputNumber
@@ -245,22 +245,22 @@
                   suffix=" /kWh"
                   class="w-full"
                 />
-                <small class="helper-text">Your bill price is usually better for savings and payback estimates than any market reference.</small>
+                <small class="helper-text">{{ i18n.t('wizard.billHint') }}</small>
               </div>
             </div>
 
             <div class="suggestion-panel">
               <div class="suggestion-header">
                 <span class="material-symbols-outlined">query_stats</span>
-                <strong>ENTSO-E suggestion</strong>
+                <strong>{{ i18n.t('wizard.entsoeSuggestion') }}</strong>
               </div>
               @if (isFetchingPrice()) {
-                <p>Looking up the latest available country-level price...</p>
+                <p>{{ i18n.t('wizard.priceLookup') }}</p>
               } @else if (priceSuggestion() != null) {
                 <span class="suggestion-price">{{ formatPrice(priceSuggestion()) }}</span>
                 <p>Day-ahead market average for {{ detectedCountryCode() || 'the selected country' }}. Treat it as a reference, not your final tariff.</p>
               } @else {
-                <span class="suggestion-price muted">No suggestion available</span>
+                <span class="suggestion-price muted">{{ i18n.t('wizard.noSuggestion') }}</span>
                 <p>{{ priceError() || 'Search a supported European country to request an ENTSO-E suggestion.' }}</p>
               }
               @if (priceSource() === 'manual') {
@@ -280,13 +280,13 @@
           <div class="section-heading">
             <span class="section-icon material-symbols-outlined">solar_power</span>
             <div>
-              <h2>Installation Setup</h2>
-              <p>Select the panel and tune the layout. The recommended count and spacing come from the backend calculator.</p>
+              <h2>{{ i18n.t('wizard.installationSetup') }}</h2>
+              <p>{{ i18n.t('wizard.installationSetupText') }}</p>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="panelSelect">Solar Panel</label>
+            <label for="panelSelect">{{ i18n.t('wizard.solarPanel') }}</label>
             <p-select
               inputId="panelSelect"
               [options]="panelOptions()"
@@ -295,7 +295,7 @@
               optionLabel="label"
               optionValue="value"
               [filter]="true"
-              placeholder="Select a solar panel..."
+              [placeholder]="i18n.t('wizard.selectPanel')"
               class="w-full"
             />
           </div>
@@ -315,7 +315,7 @@
 
           <div class="config-grid">
             <div class="form-group">
-              <label for="tiltAngle">Tilt</label>
+              <label for="tiltAngle">{{ i18n.t('wizard.tilt') }}</label>
               <p-inputNumber
                 inputId="tiltAngle"
                 [ngModel]="tiltAngle()"
@@ -329,7 +329,7 @@
             </div>
 
             <div class="form-group">
-              <label for="direction">Orientation</label>
+              <label for="direction">{{ i18n.t('wizard.orientation') }}</label>
               <p-select
                 inputId="direction"
                 [options]="directionOptions"
@@ -342,7 +342,7 @@
             </div>
 
             <div class="form-group">
-              <label for="panelCount">Number of Panels</label>
+              <label for="panelCount">{{ i18n.t('wizard.panelCount') }}</label>
               <p-inputNumber
                 inputId="panelCount"
                 [ngModel]="panelCount()"
@@ -354,7 +354,7 @@
             </div>
 
             <div class="form-group">
-              <label for="rowSpacing">Row Spacing</label>
+              <label for="rowSpacing">{{ i18n.t('wizard.rowSpacing') }}</label>
               <p-inputNumber
                 inputId="rowSpacing"
                 [ngModel]="rowSpacing()"
@@ -373,7 +373,7 @@
           @if (isCalculating()) {
             <div class="feedback-banner feedback-neutral">
               <span class="material-symbols-outlined">sync</span>
-              <span>Calculating optimal configuration...</span>
+              <span>{{ i18n.t('wizard.calculatingOptimal') }}</span>
             </div>
           }
 
@@ -388,7 +388,7 @@
             <div class="capacity-card">
               <div class="capacity-card-header">
                 <div>
-                  <span class="eyebrow">Live capacity preview</span>
+                  <span class="eyebrow">{{ i18n.t('wizard.liveCapacity') }}</span>
                   <strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong>
                 </div>
                 <p-tag
@@ -400,33 +400,33 @@
               </div>
               <div class="metric-grid">
                 <div>
-                  <span>Recommended Panels</span>
+                  <span>{{ i18n.t('wizard.recommendedPanels') }}</span>
                   <strong>{{ config.recommendedPanels }}</strong>
                 </div>
                 <div>
-                  <span>Recommended Spacing</span>
+                  <span>{{ i18n.t('wizard.recommendedSpacing') }}</span>
                   <strong>{{ config.recommendedRowSpacing | number: '1.1-2' }} m</strong>
                 </div>
                 <div>
-                  <span>Preliminary Range</span>
+                  <span>{{ i18n.t('wizard.preliminaryRange') }}</span>
                   <strong>{{ formatProductionRange(config) }}</strong>
                 </div>
                 <div>
-                  <span>Area Coverage</span>
+                  <span>{{ i18n.t('wizard.areaCoverage') }}</span>
                   <strong>{{ config.coverage | number: '1.0-1' }}%</strong>
                 </div>
               </div>
 
               <div class="preliminary-note">
                 <span class="material-symbols-outlined">info</span>
-                <span>This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.</span>
+                <span>{{ i18n.t('wizard.estimateWarning') }}</span>
               </div>
 
               @if (!isUsingOptimalConfig()) {
                 <div class="optimal-hint">
                   <span class="material-symbols-outlined">info</span>
-                  <span>Custom configuration active. The layout differs from the backend recommendation.</span>
-                  <button type="button" class="link-btn" (click)="restoreOptimal()">Restore optimal</button>
+                  <span>{{ i18n.t('wizard.customActive') }}</span>
+                  <button type="button" class="link-btn" (click)="restoreOptimal()">{{ i18n.t('wizard.restoreOptimal') }}</button>
                 </div>
               }
             </div>
@@ -439,58 +439,58 @@
           <div class="section-heading">
             <span class="section-icon material-symbols-outlined">fact_check</span>
             <div>
-              <h2>Review & Create</h2>
-              <p>Check the important choices before creating the project.</p>
+              <h2>{{ i18n.t('wizard.reviewCreate') }}</h2>
+              <p>{{ i18n.t('wizard.reviewCreateText') }}</p>
             </div>
           </div>
 
           <div class="review-grid">
             <article class="review-card">
               <header>
-                <h3><span class="material-symbols-outlined">description</span>Project</h3>
-                <button type="button" class="icon-btn" (click)="goToStep(0)" aria-label="Edit project">
+                <h3><span class="material-symbols-outlined">description</span>{{ i18n.t('wizard.project') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(0)" [attr.aria-label]="i18n.t('review.editProject')">
                   <span class="material-symbols-outlined">edit</span>
                 </button>
               </header>
-              <div class="review-item"><span>Name</span><strong>{{ projectName() }}</strong></div>
-              <div class="review-item"><span>Description</span><strong>{{ projectDescription() || 'No description' }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.name') }}</span><strong>{{ projectName() }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.description') }}</span><strong>{{ projectDescription() || i18n.t('wizard.noDescription') }}</strong></div>
             </article>
 
             <article class="review-card">
               <header>
-                <h3><span class="material-symbols-outlined">map</span>Site</h3>
-                <button type="button" class="icon-btn" (click)="goToStep(1)" aria-label="Edit site">
+                <h3><span class="material-symbols-outlined">map</span>{{ i18n.t('wizard.site') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(1)" [attr.aria-label]="i18n.t('review.editSite')">
                   <span class="material-symbols-outlined">edit</span>
                 </button>
               </header>
-              <div class="review-item"><span>Address</span><strong>{{ addressResult() }}</strong></div>
-              <div class="review-item"><span>Coordinates</span><strong>{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</strong></div>
-              <div class="review-item"><span>Country</span><strong>{{ detectedCountry() || 'Detected on server' }}</strong></div>
-              <div class="review-item"><span>Timezone</span><strong>{{ detectedTimezone() || 'Detected on server' }}</strong></div>
-              <div class="review-item"><span>Area</span><strong>{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : drawnPolygonPoints().length + ' vertices' }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.address') }}</span><strong>{{ addressResult() }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.coordinates') }}</span><strong>{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('common.country') }}</span><strong>{{ detectedCountry() || i18n.t('wizard.detectedOnServer') }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('configure.timezone') }}</span><strong>{{ detectedTimezone() || i18n.t('wizard.detectedOnServer') }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('projectView.area') }}</span><strong>{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : drawnPolygonPoints().length + ' vertices' }}</strong></div>
             </article>
 
             <article class="review-card">
               <header>
-                <h3><span class="material-symbols-outlined">bolt</span>Energy Price</h3>
-                <button type="button" class="icon-btn" (click)="goToStep(2)" aria-label="Edit energy price">
+                <h3><span class="material-symbols-outlined">bolt</span>{{ i18n.t('wizard.energyPriceStep') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(2)" [attr.aria-label]="i18n.t('review.editEnergyPrice')">
                   <span class="material-symbols-outlined">edit</span>
                 </button>
               </header>
-              <div class="review-item"><span>Selected Price</span><strong>{{ formatPrice(energyPrice()) }}</strong></div>
-              <div class="review-item"><span>Suggestion</span><strong>{{ formatPrice(priceSuggestion()) }}</strong></div>
-              <p class="review-note">Use the value from the bill when available; ENTSO-E is a market reference.</p>
+              <div class="review-item"><span>{{ i18n.t('review.selectedPrice') }}</span><strong>{{ formatPrice(energyPrice()) }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('review.suggestion') }}</span><strong>{{ formatPrice(priceSuggestion()) }}</strong></div>
+              <p class="review-note">{{ i18n.t('review.energyPriceNote') }}</p>
             </article>
 
             <article class="review-card">
               <header>
-                <h3><span class="material-symbols-outlined">solar_power</span>Installation</h3>
-                <button type="button" class="icon-btn" (click)="goToStep(3)" aria-label="Edit installation">
+                <h3><span class="material-symbols-outlined">solar_power</span>{{ i18n.t('wizard.installationStep') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(3)" [attr.aria-label]="i18n.t('review.editInstallation')">
                   <span class="material-symbols-outlined">edit</span>
                 </button>
               </header>
               <div class="review-item">
-                <span>Panel</span>
+                <span>{{ i18n.t('wizard.panel') }}</span>
                 <strong>
                   @if (selectedPanelData(); as panel) {
                     {{ panel.brand }} {{ panel.model }}
@@ -499,26 +499,26 @@
                   }
                 </strong>
               </div>
-              <div class="review-item"><span>Panels</span><strong>{{ panelCount() }}</strong></div>
-              <div class="review-item"><span>Tilt</span><strong>{{ tiltAngle() }}°</strong></div>
-              <div class="review-item"><span>Orientation</span><strong>{{ directionLabel(selectedDirection()) }}</strong></div>
-              <div class="review-item"><span>Row Spacing</span><strong>{{ rowSpacing() | number: '1.1-2' }} m</strong></div>
-              <div class="review-item"><span>Total Capacity</span><strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong></div>
+              <div class="review-item"><span>{{ i18n.t('projects.panels') }}</span><strong>{{ panelCount() }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.tilt') }}</span><strong>{{ tiltAngle() }}°</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.orientation') }}</span><strong>{{ directionLabel(selectedDirection()) }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.rowSpacing') }}</span><strong>{{ rowSpacing() | number: '1.1-2' }} m</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.totalCapacity') }}</span><strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong></div>
             </article>
           </div>
 
           <div class="output-card">
             <div>
-              <span class="eyebrow">Preliminary output range</span>
+              <span class="eyebrow">{{ i18n.t('wizard.preliminaryOutput') }}</span>
               <strong>{{ formatProductionRange(optimalConfig()) }}</strong>
-              <small>This wizard estimate does not use the full production model. After creation, the app recalculates production with weather, irradiance, panel and system-loss data.</small>
+              <small>{{ i18n.t('wizard.estimateWarning') }}</small>
             </div>
             <div>
-              <span class="eyebrow">Preliminary annual savings</span>
+              <span class="eyebrow">{{ i18n.t('wizard.preliminarySavings') }}</span>
               <strong>{{ annualSavingsEstimate() != null ? (annualSavingsEstimate() | number: '1.0-0') + ' ' + currency() : '—' }}</strong>
             </div>
             <div>
-              <span class="eyebrow">Configuration</span>
+              <span class="eyebrow">{{ i18n.t('wizard.configuration') }}</span>
               <p-tag
                 [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
                 [severity]="isUsingOptimalConfig() ? 'success' : 'info'"

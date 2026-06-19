@@ -16,6 +16,19 @@ const STUB_FORM_VALUE: ConfigFormValue = {
   azimuth: 180,
   direction: 'south',
   rawSpacing: 1.5,
+  installationCost: null,
+  segment: 'residential',
+  dcAcRatio: 1.2,
+  albedo: 0.2,
+  systemLosses: {
+    inverterEfficiency: 0.96,
+    dcWiring: 2,
+    acWiring: 1,
+    mismatch: 2,
+    soiling: 2,
+    shadingStatic: 0,
+    degradationExtra: 0,
+  },
 };
 
 describe('ConfigureReviewStepComponent', () => {
@@ -81,14 +94,14 @@ describe('ConfigureReviewStepComponent', () => {
   it('disables the Save button when canSave is false', () => {
     fixture.componentRef.setInput('canSave', false);
     fixture.detectChanges();
-    const btn = fixture.debugElement.query(By.css('p-button[label="Save Changes"] button'));
+    const btn = fixture.debugElement.queryAll(By.css('p-button button')).at(-1);
     expect(btn?.nativeElement.disabled).toBe(true);
   });
 
   it('enables the Save button when canSave is true', () => {
     fixture.componentRef.setInput('canSave', true);
     fixture.detectChanges();
-    const btn = fixture.debugElement.query(By.css('p-button[label="Save Changes"] button'));
+    const btn = fixture.debugElement.queryAll(By.css('p-button button')).at(-1);
     expect(btn?.nativeElement.disabled).toBe(false);
   });
 
@@ -101,8 +114,9 @@ describe('ConfigureReviewStepComponent', () => {
     const saveSpy = jest.fn();
     component.save.subscribe(saveSpy);
 
-    const btn = fixture.debugElement.query(By.css('p-button[label="Save Changes"]'));
-    btn.triggerEventHandler('onClick', {});
+    const btn = fixture.debugElement.queryAll(By.css('p-button')).at(-1);
+    expect(btn).toBeTruthy();
+    btn!.triggerEventHandler('onClick', {});
 
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
@@ -111,7 +125,7 @@ describe('ConfigureReviewStepComponent', () => {
     const stepSpy = jest.fn();
     component.goToStep.subscribe(stepSpy);
 
-    const editBtns = fixture.debugElement.queryAll(By.css('p-button[pTooltip="Edit Location"]'));
+    const editBtns = fixture.debugElement.queryAll(By.css('p-button'));
     editBtns[0].triggerEventHandler('onClick', {});
 
     expect(stepSpy).toHaveBeenCalledWith(1);
