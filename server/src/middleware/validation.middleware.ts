@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { fail } from '../utils/response';
@@ -7,6 +8,20 @@ import { fail } from '../utils/response';
  */
 
 type ValidationTarget = 'body' | 'query' | 'params';
+
+function assignValidatedTarget(req: Request, target: ValidationTarget, validated: unknown): void {
+  if (target === 'query') {
+    Object.defineProperty(req, 'query', {
+      value: validated,
+      configurable: true,
+      enumerable: true,
+      writable: true,
+    });
+    return;
+  }
+
+  req[target] = validated;
+}
 
 /**
  * Create validation middleware for Zod schema
@@ -20,8 +35,9 @@ export function zValidate(schema: ZodSchema, target: ValidationTarget = 'body') 
       // Validate the target property
       const validated = schema.parse(req[target]);
       
-      // Replace original data with validated/transformed data
-      req[target] = validated;
+      // Replace original data with validated/transformed data.
+      // Express 5 exposes req.query via an accessor, so direct assignment can throw.
+      assignValidatedTarget(req, target, validated);
       
       next();
     } catch (error) {
@@ -50,9 +66,3 @@ export const validateBody = (schema: ZodSchema) => zValidate(schema, 'body');
  * @param schema Zod schema
  */
 export const validateQuery = (schema: ZodSchema) => zValidate(schema, 'query');
-
-/**
- * Validate request path parameters
- * @param schema Zod schema
- */
-export const validateParams = (schema: ZodSchema) => zValidate(schema, 'params');

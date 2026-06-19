@@ -79,8 +79,8 @@ export function created<T>(res: Response, data: T, message?: string): Response {
  * Send no content response (204)
  * @param res Express response object
  */
-export function noContent(res: Response): Response {
-  return res.status(204).send();
+export function noContent(res: Response): void {
+  res.status(204).end();
 }
 
 /**

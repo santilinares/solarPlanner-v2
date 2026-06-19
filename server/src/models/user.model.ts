@@ -1,6 +1,6 @@
 import mongoose, { Schema, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { generateToken } from '../config/jwt.config';
+import { generateToken, generateRefreshToken } from '../config/jwt.config';
 
 /**
  * User model with authentication methods
@@ -12,13 +12,14 @@ export interface IUser {
   local?: {
     email?: string;
     password?: string;
-    saltSecret?: string;
   };
   google?: {
+    googleId?: string;
     email?: string;
   };
   fullName: string;
   role: 'user' | 'admin';
+  language: 'en' | 'es';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,10 +28,11 @@ export interface IUser {
 export interface IUserMethods {
   verifyPassword(password: string): Promise<boolean>;
   generateJwt(): string;
+  generateRefreshToken(): string;
 }
 
 // User model type (combines data and methods).
-// Record<string, never> is used to indicate no query helpers are defined. 
+// Record<string, never> is used to indicate no query helpers are defined.
 export type UserModel = Model<IUser, Record<string, never>, IUserMethods>;
 
 const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
@@ -48,9 +50,12 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
         unique: true,
       },
       password: String,
-      saltSecret: String,
     },
     google: {
+      googleId: {
+        type: String,
+        sparse: true,
+      },
       email: {
         type: String,
         lowercase: true,
@@ -66,6 +71,11 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    language: {
+      type: String,
+      enum: ['en', 'es'],
+      default: 'en',
+    },
   },
   {
     timestamps: true,
@@ -78,18 +88,12 @@ UserSchema.index({ role: 1 });
 /**
  * Hash password before saving
  */
-UserSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function () {
   if (!this.isModified('local.password') || !this.local?.password) {
-    return next();
+    return;
   }
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.local.password = await bcrypt.hash(this.local.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.local.password = await bcrypt.hash(this.local.password, salt);
 });
 
 /**
@@ -107,13 +111,34 @@ UserSchema.method('verifyPassword', async function (password: string): Promise<b
  */
 UserSchema.method('generateJwt', function (): string {
   const secret = process.env.JWT_SECRET;
-  const expiresIn = process.env.JWT_EXP || '24h';
+  const expiresIn = process.env.JWT_EXP || '15m';
 
   if (!secret) {
     throw new Error('JWT_SECRET not configured');
   }
 
   return generateToken(
+    {
+      _id: this._id.toString(),
+      role: this.role,
+    },
+    secret,
+    expiresIn
+  );
+});
+
+/**
+ * Generate refresh token for user
+ */
+UserSchema.method('generateRefreshToken', function (): string {
+  const secret = process.env.REFRESH_TOKEN_SECRET;
+  const expiresIn = process.env.REFRESH_TOKEN_EXP || '7d';
+
+  if (!secret) {
+    throw new Error('REFRESH_TOKEN_SECRET not configured');
+  }
+
+  return generateRefreshToken(
     {
       _id: this._id.toString(),
       role: this.role,

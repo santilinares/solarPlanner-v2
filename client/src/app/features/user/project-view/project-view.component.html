@@ -1,0 +1,260 @@
+<p-toast />
+
+<section class="view-page animate-fade-in-up">
+
+  <!-- Loading skeleton -->
+  @if (isLoading()) {
+  <div class="skeleton-wrapper">
+    <p-skeleton width="40%" height="2.5rem" borderRadius="16px" />
+    <p-skeleton width="60%" height="1rem" class="mt-3" borderRadius="8px" />
+    <p-skeleton width="100%" height="14rem" class="mt-6" borderRadius="24px" />
+  </div>
+  }
+
+  <!-- Error state -->
+  @else if (errorMessage()) {
+  <div class="error-wrapper">
+    <p-card class="error-card">
+      <div class="error-content">
+        <i class="pi pi-exclamation-triangle error-icon"></i>
+        <h2>{{ i18n.t('projectView.errorTitle') }}</h2>
+        <p>{{ errorMessage() }}</p>
+        <p-button
+          [label]="i18n.t('projectView.backToProjects')"
+          icon="pi pi-arrow-left"
+          routerLink="/projects/all"
+          severity="secondary"
+          [rounded]="true"
+        />
+      </div>
+    </p-card>
+  </div>
+  }
+
+  <!-- Main content -->
+  @else if (projectData(); as project) {
+  <header class="page-header">
+    <a class="back-link" routerLink="/projects/all">
+      <i class="pi pi-arrow-left"></i> {{ i18n.t('projectView.backToProjects') }}
+    </a>
+    <div class="header-row">
+      <div class="header-title-area">
+        <h1 class="project-title">{{ project.name }}</h1>
+        <p class="subtitle">
+          <i class="pi pi-eye icon-lg"></i>
+          {{ i18n.t('projectView.details') }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <p-button
+          [label]="i18n.t('projectView.downloadPlan')"
+          icon="pi pi-download"
+          severity="secondary"
+          [outlined]="true"
+          [rounded]="true"
+          [loading]="isDownloadingPlan()"
+          (onClick)="downloadPlan()"
+        />
+        <p-button
+          [label]="i18n.t('projectView.configure')"
+          icon="pi pi-cog"
+          [routerLink]="'/projects/' + projectId() + '/configure'"
+          [rounded]="true"
+        />
+      </div>
+    </div>
+  </header>
+
+  <!-- Info strip (read-only metadata) -->
+  <div class="info-strip">
+    <p-tag [value]="project.country || i18n.t('projectView.noLocation')" icon="pi pi-globe" [rounded]="true" />
+    <p-tag [value]="project.timezone || i18n.t('projectView.noTimezone')" icon="pi pi-clock" [rounded]="true" />
+    @if (project.currency) {
+      <p-tag [value]="project.currency" icon="pi pi-wallet" [rounded]="true" severity="secondary" />
+    }
+    @if (project.price != null) {
+      <p-tag [value]="(project.price | number: '1.2-4') + ' /kWh'" icon="pi pi-bolt" [rounded]="true" severity="warn" />
+    }
+    <p-tag
+      [value]="freshnessLabel()"
+      [icon]="isProductionStale() ? 'pi pi-exclamation-triangle' : 'pi pi-refresh'"
+      [severity]="isProductionStale() ? 'warn' : 'success'"
+      [rounded]="true"
+    />
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">solar_power</span>
+      <div><small>{{ i18n.t('projectView.totalCapacity') }}</small><strong>{{ totalCapacityKw() | number: '1.1-2' }} kW</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">wb_sunny</span>
+      <div><small>{{ i18n.t('projectView.annualProduction') }}</small><strong>{{ project.pvgisRef?.yearlyKwh != null ? (project.pvgisRef?.yearlyKwh | number: '1.0-0') + ' kWh' : '—' }}</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">battery_charging_full</span>
+      <div><small>{{ i18n.t('projectView.today') }}</small><strong>{{ todayProductionKwh() | number: '1.1-1' }} kWh</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">payments</span>
+      <div><small>{{ i18n.t('projectView.annualAvoidedCost') }}</small><strong>{{ analytics()?.annualSavingsEur != null ? getCurrencySymbol(project.currency ?? 'EUR') + ' ' + (analytics()!.annualSavingsEur | number: '1.0-0') : '—' }}</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">speed</span>
+      <div><small>{{ i18n.t('projectView.payback') }}</small><strong>{{ analytics()?.paybackYears != null ? (analytics()!.paybackYears | number: '1.1-1') + ' ' + i18n.t('projectView.yearsShort') : '—' }}</strong></div>
+    </div>
+    <div class="kpi-card">
+      <span class="material-symbols-outlined">monitoring</span>
+      <div><small>{{ i18n.t('projectView.roi25') }}</small><strong>{{ analytics()?.roi25Years != null ? (analytics()!.roi25Years | number: '1.0-0') + '%' : '—' }}</strong></div>
+    </div>
+  </div>
+
+  <div class="view-card project-summary-card">
+    <div class="step-card-header">
+      <div class="step-card-icon capacity-icon"><span class="material-symbols-outlined">tune</span></div>
+      <div>
+        <h2>{{ i18n.t('projectView.summary') }}</h2>
+        <p>{{ i18n.t('projectView.summaryText') }}</p>
+      </div>
+    </div>
+    <p-divider />
+    <div class="summary-grid">
+      <div><span>{{ i18n.t('projectView.location') }}</span><strong>{{ project.country || '—' }}</strong></div>
+      <div><span>{{ i18n.t('projectView.area') }}</span><strong>{{ project.surface != null ? (project.surface | number: '1.0-0') + ' m²' : '—' }}</strong></div>
+      <div><span>{{ i18n.t('projectView.panel') }}</span><strong>{{ projectPanel() ? projectPanel()!.brand + ' ' + projectPanel()!.model : '—' }}</strong></div>
+      <div><span>{{ i18n.t('projectView.panelCount') }}</span><strong>{{ project.panelNumber }}</strong></div>
+      <div><span>{{ i18n.t('projectView.tilt') }}</span><strong>{{ project.tilt }}°</strong></div>
+      <div><span>{{ i18n.t('projectView.azimuth') }}</span><strong>{{ project.azimuth != null ? project.azimuth + '°' : '—' }}</strong></div>
+      <div><span>{{ i18n.t('projectView.rowSpacing') }}</span><strong>{{ project.rawSpacing != null ? project.rawSpacing + ' m' : '—' }}</strong></div>
+      <div><span>{{ i18n.t('projectView.systemLosses') }}</span><strong>{{ project.systemLosses ? i18n.t('projectView.configured') : i18n.t('projectView.defaults') }}</strong></div>
+    </div>
+  </div>
+
+  <!-- Sun Path card -->
+  <div class="view-card sun-path-card">
+    <div class="step-card-header">
+      <div class="step-card-icon sun-path-icon">
+        <span class="material-symbols-outlined">wb_sunny</span>
+      </div>
+      <div>
+        <h2>{{ i18n.t('projectView.sunPath') }}</h2>
+        <p>{{ i18n.t('projectView.sunPathText') }}</p>
+      </div>
+    </div>
+    <p-divider />
+    @if (isSunPathLoading()) {
+      <div class="sun-path-skeleton">
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+        <p-skeleton width="100%" height="2.5rem" borderRadius="8px" />
+      </div>
+    } @else if (sunPathData(); as sp) {
+      <div class="sun-path-table">
+        <div class="sun-path-row sun-path-header">
+          <span></span>
+          <span>{{ i18n.t('projectView.summerSolstice') }}</span>
+          <span>{{ i18n.t('projectView.equinox') }}</span>
+          <span>{{ i18n.t('projectView.winterSolstice') }}</span>
+        </div>
+        <div class="sun-path-row">
+          <span class="row-label">{{ i18n.t('projectView.solarNoonAltitude') }}</span>
+          <span>{{ sp.summerSolstice.noonAltitude | number: '1.1-1' }}°</span>
+          <span>{{ sp.equinox.noonAltitude | number: '1.1-1' }}°</span>
+          <span>{{ sp.winterSolstice.noonAltitude | number: '1.1-1' }}°</span>
+        </div>
+        <div class="sun-path-row">
+          <span class="row-label">{{ i18n.t('projectView.daylightDuration') }}</span>
+          <span>{{ sp.summerSolstice.daylightHours | number: '1.1-1' }} h</span>
+          <span>{{ sp.equinox.daylightHours | number: '1.1-1' }} h</span>
+          <span>{{ sp.winterSolstice.daylightHours | number: '1.1-1' }} h</span>
+        </div>
+      </div>
+      <div class="today-sunlight-panel">
+        <div class="today-sunlight-header">
+          <span class="material-symbols-outlined">wb_twilight</span>
+          <div>
+            <h3>{{ i18n.t('projectView.todaysSunlight') }}</h3>
+            <p>{{ i18n.t('projectView.sunlightText') }}</p>
+          </div>
+        </div>
+        @if (sp.todaySunlight; as sunlight) {
+          <div class="today-sunlight-grid">
+            <div>
+              <span>{{ i18n.t('projectView.sunrise') }}</span>
+              <strong>{{ formatClockTime(sunlight.sunrise) }}</strong>
+            </div>
+            <div>
+              <span>{{ i18n.t('projectView.sunset') }}</span>
+              <strong>{{ formatClockTime(sunlight.sunset) }}</strong>
+            </div>
+            <div>
+              <span>{{ i18n.t('projectView.daylight') }}</span>
+              <strong>{{ sunlight.daylightHours | number: '1.1-1' }} h</strong>
+            </div>
+            <div>
+              <span>{{ i18n.t('projectView.sunshineDuration') }}</span>
+              <strong>{{ sunlight.sunshineHours != null ? (sunlight.sunshineHours | number: '1.1-1') + ' h' : '—' }}</strong>
+            </div>
+          </div>
+          <small class="today-sunlight-source">{{ sunlight.date }} · {{ sunlight.timezone }} · {{ sunlight.source }}</small>
+        } @else {
+          <div class="sun-path-warning">
+            <i class="pi pi-info-circle"></i>
+            <span>{{ i18n.t('projectView.sunlightUnavailable') }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="sun-path-warning">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ i18n.t('projectView.sunPathUnavailable') }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Production data section -->
+  @if (hasProductionData()) {
+    <app-production-charts
+      [todayChartOptions]="todayChartOptions()"
+      [nextProdChartOptions]="nextProdChartOptions()"
+      [previousProdChartOptions]="previousProdChartOptions()"
+      [economicValue]="economicValue()"
+      [price]="project.price ?? null"
+      [hasTodayData]="hasTodayData()"
+      [hasPreviousProdData]="hasPreviousProdData()"
+    />
+  }
+
+  @if (project.pvgisRef?.monthlyKwh?.length) {
+    <div class="view-card chart-card mt-4">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">wb_sunny</span></div>
+        <div>
+          <h2>{{ i18n.t('projectView.monthlyEstimate') }}</h2>
+          <p>{{ i18n.t('projectView.monthlyEstimateText') }}</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="monthlyProductionChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 300px; display: block; overflow: hidden;"
+      />
+    </div>
+  }
+
+  <!-- Analytics section -->
+  <app-project-analytics
+    [analytics]="analytics()"
+    [isLoading]="isAnalyticsLoading()"
+    [currency]="project.currency ?? 'EUR'"
+    [price]="project.price ?? null"
+    [pvgisYearlyKwh]="project.pvgisRef?.yearlyKwh ?? null"
+    [savingsChartOptions]="savingsChartOptions()"
+  />
+
+  }<!-- end @else if projectData -->
+</section>

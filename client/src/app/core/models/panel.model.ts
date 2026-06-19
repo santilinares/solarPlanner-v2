@@ -1,14 +1,17 @@
 // Panel domain model
 export interface Panel {
+  _id?: string;
   id: string;
   brand: string;
   model: string;
   wattPeak: number;
   dimensions: PanelDimensions;
-  temperatureCoefficient: number;
+  cells?: number;
+  gammaPmp?: number;
   efficiency: number;
   warranty: number;
   price: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,10 +26,12 @@ export interface PanelCreateRequest {
   model: string;
   wattPeak: number;
   dimensions: PanelDimensions;
-  temperatureCoefficient: number;
+  cells?: number;
+  gammaPmp?: number;
   efficiency: number;
   warranty: number;
   price: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
 }
 
 export interface PanelUpdateRequest {
@@ -34,8 +39,10 @@ export interface PanelUpdateRequest {
   model?: string;
   wattPeak?: number;
   dimensions?: PanelDimensions;
-  temperatureCoefficient?: number;
+  cells?: number;
+  gammaPmp?: number;
   efficiency?: number;
   warranty?: number;
   price?: number;
+  technology?: 'Monocrystalline' | 'Polycrystalline' | 'Thin film';
 }

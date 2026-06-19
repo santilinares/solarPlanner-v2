@@ -1,7 +1,11 @@
 import { UserModel, IUser } from '../models/user.model';
+import { ProjectModel } from '../models/project.model';
+import { PanelModel } from '../models/panel.model';
 import { UserUpdateProfileInput, UserQueryInput } from '../schemas/user.schema';
 import { UserResponse, UserListResponse } from '../types/user.types';
-import { FilterQuery, HydratedDocument } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
+type FilterQuery<_T> = Record<string, any>;
+import { emailService } from './email.service';
 
 /**
  * User Service
@@ -22,6 +26,7 @@ export class UserService {
       fullName: user.fullName,
       email,
       role: user.role,
+      language: user.language ?? 'en',
       method: user.method,
       createdAt: user.createdAt.toISOString(),
     };
@@ -56,6 +61,9 @@ export class UserService {
     }
 
     user.fullName = data.fullName;
+    if (data.language) {
+      user.language = data.language;
+    }
     await user.save();
 
     return this.transformUserToResponse(user);
@@ -93,6 +101,14 @@ export class UserService {
       user.local.password = newPassword;
     }
     await user.save();
+
+    // Send password changed notification (fire-and-forget)
+    const email = user.local?.email;
+    if (email) {
+      emailService.sendPasswordChangedEmail(email, user.fullName).catch((err: unknown) => {
+        console.error('Failed to send password changed email:', err);
+      });
+    }
   }
 
   /**
@@ -126,12 +142,51 @@ export class UserService {
       ];
     }
 
-    const users = await UserModel.find(query).sort({ createdAt: -1 });
-    const total = await UserModel.countDocuments(query);
+    const page: number = filters.page ?? 1;
+    const limit: number = filters.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    type UserWithCount = IUser & { _id: import('mongoose').Types.ObjectId; projectCount: number };
+    type FacetResult = { data: UserWithCount[]; totalCount: { count: number }[] };
+
+    const raw = await UserModel.aggregate([
+      { $match: query },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: '_id',
+          foreignField: 'owner',
+          as: '_projects',
+        },
+      },
+      { $addFields: { projectCount: { $size: '$_projects' } } },
+      { $project: { _projects: 0 } },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ]);
+
+    const facet = raw[0] as FacetResult;
+    const total = facet.totalCount[0]?.count ?? 0;
 
     return {
-      users: users.map((user) => this.transformUserToResponse(user)),
+      users: facet.data.map((u) => ({
+        _id: u._id.toString(),
+        fullName: u.fullName,
+        email: u.method === 'local' ? u.local?.email : u.google?.email,
+        role: u.role,
+        language: u.language ?? 'en',
+        method: u.method,
+        createdAt: u.createdAt.toISOString(),
+        projectCount: u.projectCount,
+      })),
       total,
+      page,
+      limit,
     };
   }
 
@@ -146,8 +201,9 @@ export class UserService {
       throw new Error('User not found');
     }
 
+    await ProjectModel.deleteMany({ owner: userId });
+    await PanelModel.deleteMany({ owner: userId, type: 'personal' });
     await UserModel.findByIdAndDelete(userId);
-    // TODO: Consider cascading delete for associated projects and panels
   }
 
   /**
@@ -157,6 +213,22 @@ export class UserService {
    */
   async getCurrentUser(userId: string): Promise<UserResponse> {
     return this.getUserById(userId);
+  }
+
+  /**
+   * Update user role (admin only)
+   * @param userId User ID
+   * @param role New role
+   * @returns Updated user data
+   */
+  async updateUserRole(userId: string, role: 'user' | 'admin'): Promise<UserResponse> {
+    const user = await UserModel.findByIdAndUpdate(userId, { role }, { new: true });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return this.transformUserToResponse(user);
   }
 }
 

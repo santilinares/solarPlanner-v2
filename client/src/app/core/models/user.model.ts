@@ -2,16 +2,35 @@
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   role: UserRole;
+  language: SupportedLanguage;
   isActive: boolean;
   createdAt: Date;
 }
 
+export type SupportedLanguage = 'en' | 'es';
+
 export enum UserRole {
   USER = 'user',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+}
+
+/** Matches the server UserResponse shape exactly */
+export interface UserResponse {
+  _id: string;
+  fullName: string;
+  email?: string;
+  role: 'user' | 'admin';
+  language: SupportedLanguage;
+  method: 'local' | 'google';
+  createdAt: string;
+  projectCount?: number;
+}
+
+export interface UserListResponse {
+  users: UserResponse[];
+  total: number;
 }
 
 export interface LoginRequest {

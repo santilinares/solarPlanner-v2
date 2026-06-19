@@ -1,0 +1,71 @@
+@if (economicValue(); as ev) {
+  <div class="view-card economic-value-card">
+    <div class="economic-value-content">
+      <div class="economic-icon"><span class="material-symbols-outlined">payments</span></div>
+      <div class="economic-info">
+        <span>{{ i18n.t('production.recentAvoidedCost') }}</span>
+        <strong>{{ ev.symbol }} {{ ev.value | number: '1.2-2' }}</strong>
+        <small>
+          {{ i18n.t('production.recentAvoidedCostText', { kwh: (ev.totalKwh | number: '1.1-1'), price: (price() | number: '1.2-4') }) }}
+        </small>
+      </div>
+    </div>
+  </div>
+}
+
+<div class="charts-pair-grid">
+  @if (hasTodayData()) {
+    <div class="view-card chart-card">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-today"><span class="material-symbols-outlined">wb_sunny</span></div>
+        <div>
+          <h2>{{ i18n.t('production.todayCurve') }}</h2>
+          <p>{{ i18n.t('production.todayCurveText') }}</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="todayChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 280px; display: block; overflow: hidden;"
+      />
+    </div>
+
+    <div class="view-card chart-card">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-forecast"><span class="material-symbols-outlined">event_upcoming</span></div>
+        <div>
+          <h2>{{ i18n.t('production.nextForecast') }}</h2>
+          <p>{{ i18n.t('production.nextForecastText') }}</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="nextProdChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 260px; display: block; overflow: hidden;"
+      />
+    </div>
+  }
+
+  @if (hasPreviousProdData()) {
+    <div class="view-card chart-card full-width-chart">
+      <div class="step-card-header">
+        <div class="step-card-icon chart-icon-past"><span class="material-symbols-outlined">history</span></div>
+        <div>
+          <h2>{{ i18n.t('production.recentTrend') }}</h2>
+          <p>{{ i18n.t('production.recentTrendText') }}</p>
+        </div>
+      </div>
+      <p-divider />
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="previousProdChartOptions()"
+        [oneToOne]="true"
+        style="width: 100%; max-width: 100%; height: 260px; display: block; overflow: hidden;"
+      />
+    </div>
+  }
+</div>

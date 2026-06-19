@@ -1,7 +1,25 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
-import { success, created } from '../utils/response';
+import { success, created, forbidden, noContent } from '../utils/response';
 import { authService } from '../services/auth.service';
+
+const REFRESH_COOKIE = 'refreshToken';
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/api/auth',
+};
+
+function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE, token, REFRESH_COOKIE_OPTIONS);
+}
+
+function getRouteId(req: Request): string {
+  const { id } = req.params;
+  return Array.isArray(id) ? id[0] : id;
+}
 import { userService } from '../services/user.service';
 import {
   UserCreateInput,
@@ -10,7 +28,9 @@ import {
   UserChangePasswordInput,
   PasswordResetRequestInput,
   PasswordResetApplyInput,
-  UserQueryInput,
+  UserQuerySchema,
+  UserUpdateRoleInput,
+  GoogleAuthInput,
 } from '../schemas/user.schema';
 
 /**
@@ -25,7 +45,8 @@ import {
  */
 export const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.register(req.body as UserCreateInput);
-  return created(res, result, 'User registered successfully');
+  setRefreshCookie(res, result.refreshToken);
+  return created(res, { token: result.token, user: result.user }, 'User registered successfully');
 });
 
 /**
@@ -35,7 +56,19 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
  */
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.login(req.body as UserLoginInput);
-  return success(res, result, 'Login successful');
+  setRefreshCookie(res, result.refreshToken);
+  return success(res, { token: result.token, user: result.user }, 'Login successful');
+});
+
+/**
+ * @route   POST /auth/google
+ * @desc    Login or register via Google OAuth
+ * @access  Public
+ */
+export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.loginWithGoogle((req.body as GoogleAuthInput).idToken);
+  setRefreshCookie(res, result.refreshToken);
+  return success(res, { token: result.token, user: result.user }, 'Google login successful');
 });
 
 /**
@@ -55,7 +88,8 @@ export const getCurrentUserProfile = asyncHandler(async (req: Request, res: Resp
  * @access  Private (Admin)
  */
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await userService.listUsers(req.query as UserQueryInput);
+  const filters = UserQuerySchema.parse(req.query);
+  const users = await userService.listUsers(filters);
   return success(res, users);
 });
 
@@ -65,7 +99,7 @@ export const listUsers = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
-  const user = await userService.getUserById(req.params.id);
+  const user = await userService.getUserById(getRouteId(req));
   return success(res, user);
 });
 
@@ -75,8 +109,18 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Admin)
  */
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  await userService.deleteUser(req.params.id);
+  await userService.deleteUser(getRouteId(req));
   return success(res, null, 'User deleted successfully');
+});
+
+/**
+ * @route   PATCH /users/:id/role
+ * @desc    Update user role (admin only)
+ * @access  Private (Admin)
+ */
+export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+  const user = await userService.updateUserRole(getRouteId(req), (req.body as UserUpdateRoleInput).role);
+  return success(res, user, 'User role updated successfully');
 });
 
 /**
@@ -85,7 +129,11 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
  * @access  Private (Self or Admin)
  */
 export const updateUserProfile = asyncHandler(async (req: Request, res: Response) => {
-  const user = await userService.updateProfile(req.params.id, req.body as UserUpdateProfileInput);
+  const userId = getRouteId(req);
+  if (req.userRole !== 'admin' && req.userId !== userId) {
+    return forbidden(res, 'Not authorized to update this profile');
+  }
+  const user = await userService.updateProfile(userId, req.body as UserUpdateProfileInput);
   return success(res, user, 'Profile updated successfully');
 });
 
@@ -95,8 +143,12 @@ export const updateUserProfile = asyncHandler(async (req: Request, res: Response
  * @access  Private (Self)
  */
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const userId = getRouteId(req);
+  if (req.userId !== userId) {
+    return forbidden(res, 'Not authorized to change this password');
+  }
   const { currentPassword, newPassword } = req.body as UserChangePasswordInput;
-  await userService.changePassword(req.params.id, currentPassword, newPassword);
+  await userService.changePassword(userId, currentPassword, newPassword);
   return success(res, null, 'Password changed successfully');
 });
 
@@ -120,4 +172,26 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   const { token, newPassword } = req.body as PasswordResetApplyInput;
   await authService.resetPassword(token, newPassword);
   return success(res, null, 'Password reset successfully');
+});
+
+/**
+ * @route   POST /auth/refresh
+ * @desc    Refresh access token using refresh token
+ * @access  Public
+ */
+export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies[REFRESH_COOKIE] as string | undefined;
+
+  if (!refreshToken) {
+    return res.status(401).json({ success: false, message: 'No refresh token' });
+  }
+
+  const result = await authService.refreshTokens(refreshToken);
+  setRefreshCookie(res, result.refreshToken);
+  return success(res, { token: result.token, user: result.user }, 'Token refreshed successfully');
+});
+
+export const logoutUser = asyncHandler((_req: Request, res: Response) => {
+  res.clearCookie(REFRESH_COOKIE, { ...REFRESH_COOKIE_OPTIONS, maxAge: undefined });
+  return noContent(res);
 });

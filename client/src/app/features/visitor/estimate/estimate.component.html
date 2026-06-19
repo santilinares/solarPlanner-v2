@@ -1,0 +1,289 @@
+<div class="estimate-page">
+  <div class="configure-sticky-header">
+    <div class="step-nav-bar">
+      <div class="step-nav-left">
+        <a class="link-btn" routerLink="/">
+          <span class="material-symbols-outlined">arrow_back</span>
+          {{ i18n.t('estimate.home') }}
+        </a>
+      </div>
+
+      <div class="step-nav-mode-label">
+        <span class="material-symbols-outlined">speed</span>
+        {{ i18n.t('estimate.mode') }}
+      </div>
+
+      <div class="step-nav-right" aria-hidden="true"></div>
+    </div>
+
+    <div class="sticky-stepper-row" [attr.aria-label]="i18n.t('estimate.steps')">
+      <div class="step-btn" [class.step-btn-active]="!addressResult()" [class.step-btn-completed]="addressResult()">
+        <span class="step-icon-wrapper" [class.active]="!addressResult()" [class.completed]="addressResult()">
+          @if (addressResult()) {
+            <span class="material-symbols-outlined">check</span>
+          } @else {
+            1
+          }
+        </span>
+        <span class="step-label-wrap">
+          <span class="material-symbols-outlined">location_on</span>
+          {{ i18n.t('estimate.location') }}
+        </span>
+      </div>
+
+      <span class="step-connector"></span>
+
+      <div
+        class="step-btn"
+        [class.step-btn-active]="addressResult() && !hasDrawnArea()"
+        [class.step-btn-completed]="hasDrawnArea()"
+        [class.step-btn-future]="!addressResult()"
+      >
+        <span
+          class="step-icon-wrapper"
+          [class.active]="addressResult() && !hasDrawnArea()"
+          [class.completed]="hasDrawnArea()"
+        >
+          @if (hasDrawnArea()) {
+            <span class="material-symbols-outlined">check</span>
+          } @else {
+            2
+          }
+        </span>
+        <span class="step-label-wrap">
+          <span class="material-symbols-outlined">polyline</span>
+          {{ i18n.t('estimate.drawArea') }}
+        </span>
+      </div>
+
+      <span class="step-connector"></span>
+
+      <div
+        class="step-btn"
+        [class.step-btn-active]="hasDrawnArea()"
+        [class.step-btn-completed]="result()"
+        [class.step-btn-future]="!hasDrawnArea()"
+      >
+        <span class="step-icon-wrapper" [class.active]="hasDrawnArea() && !result()" [class.completed]="result()">
+          @if (result()) {
+            <span class="material-symbols-outlined">check</span>
+          } @else {
+            3
+          }
+        </span>
+        <span class="step-label-wrap">
+          <span class="material-symbols-outlined">calculate</span>
+          {{ i18n.t('estimate.estimate') }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <main class="content-area">
+    <div class="content-shell">
+      <section class="step-section">
+        <div class="estimate-layout">
+          <div class="map-panel">
+            <div class="section-heading">
+              <span class="material-symbols-outlined section-icon">solar_power</span>
+              <div>
+                <h1>{{ i18n.t('estimate.title') }}</h1>
+                <p>{{ i18n.t('estimate.subtitle') }}</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="label-row">
+                <label for="estimate-address">{{ i18n.t('estimate.siteLocation') }}</label>
+                <span class="helper-text">{{ i18n.t('estimate.siteHelper') }}</span>
+              </div>
+
+              <div class="location-search">
+                <p-iconfield class="search-field">
+                  <p-inputicon>
+                    <span class="material-symbols-outlined input-symbol">search</span>
+                  </p-inputicon>
+                  <input
+                    id="estimate-address"
+                    pInputText
+                    type="text"
+                    [value]="addressQuery()"
+                    (input)="addressQuery.set($any($event.target).value)"
+                    (keydown.enter)="searchAddress()"
+                    [placeholder]="i18n.t('estimate.searchPlaceholder')"
+                    class="w-full location-input"
+                  />
+                  <button
+                    type="button"
+                    class="location-target-btn"
+                    [disabled]="isLocating()"
+                    (click)="useCurrentLocation()"
+                    [attr.aria-label]="i18n.t('estimate.useCurrentLocation')"
+                    [title]="i18n.t('estimate.useCurrentLocation')"
+                  >
+                    <span class="material-symbols-outlined">my_location</span>
+                  </button>
+                </p-iconfield>
+
+                <p-button
+                  [label]="i18n.t('estimate.search')"
+                  [outlined]="true"
+                  [loading]="isSearching()"
+                  [disabled]="isSearching() || !addressQuery().trim()"
+                  (onClick)="searchAddress()"
+                  size="small"
+                />
+              </div>
+            </div>
+
+            @if (searchError()) {
+              <div class="feedback-banner feedback-error">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ searchError() }}</span>
+              </div>
+            }
+
+            @if (addressResult()) {
+              <div class="site-summary-strip">
+                <span class="material-symbols-outlined">place</span>
+                <strong>{{ addressResult() }}</strong>
+              </div>
+            }
+
+            <div class="map-wrapper">
+              <app-location-map
+                [editable]="true"
+                [centerOnUser]="true"
+                [center]="mapCenter()"
+                (polygonChange)="onPolygonChange($event)"
+                (userLocationFound)="onUserLocationFound($event)"
+              />
+            </div>
+
+            @if (hasDrawnArea()) {
+              <div class="feedback-banner feedback-success">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span>{{ i18n.t('estimate.areaDefined', { vertices: drawnPolygonPoints().length }) }}</span>
+              </div>
+            } @else {
+              <div class="feedback-banner feedback-neutral">
+                <span class="material-symbols-outlined">gesture</span>
+                <span>{{ i18n.t('estimate.drawHint') }}</span>
+              </div>
+            }
+          </div>
+
+          <aside class="estimate-side">
+            <div class="guidance-card">
+              <header>
+                <span class="material-symbols-outlined">info</span>
+                <strong>{{ i18n.t('estimate.assumptions') }}</strong>
+              </header>
+              <div class="guidance-list">
+                <div>
+                  <span class="material-symbols-outlined">crop_square</span>
+                  <p>{{ i18n.t('estimate.assumptionFootprint') }}</p>
+                </div>
+                <div>
+                  <span class="material-symbols-outlined">architecture</span>
+                  <p>{{ i18n.t('estimate.assumptionTilt') }}</p>
+                </div>
+                <div>
+                  <span class="material-symbols-outlined">grid_view</span>
+                  <p>{{ i18n.t('estimate.assumptionUse') }}</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!hasDrawnArea() || isCalculating()"
+              (click)="onCalculate()"
+            >
+              <span class="material-symbols-outlined">{{ isCalculating() ? 'progress_activity' : 'calculate' }}</span>
+              <span>{{ isCalculating() ? i18n.t('estimate.calculating') : i18n.t('estimate.calculate') }}</span>
+            </button>
+
+            @if (estimateError()) {
+              <div class="feedback-banner feedback-error">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ estimateError() }}</span>
+              </div>
+            }
+
+            @if (result(); as r) {
+              <div class="result-block animate-fade-in-up">
+                <header class="result-header">
+                  <div>
+                    <span class="eyebrow">{{ i18n.t('estimate.instant') }}</span>
+                    <strong>{{ i18n.t('estimate.resultTitle', { count: r.panelCount }) }}</strong>
+                  </div>
+                  <span class="status-pill">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    {{ i18n.t('estimate.ready') }}
+                  </span>
+                </header>
+
+                <div class="metric-grid">
+                  <div>
+                    <span>{{ i18n.t('estimate.panels') }}</span>
+                    <strong>{{ r.panelCount }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ i18n.t('estimate.area') }}</span>
+                    <strong>{{ r.areaSqm | number: '1.0-0' }} m²</strong>
+                  </div>
+                  <div>
+                    <span>{{ i18n.t('estimate.peakPower') }}</span>
+                    <strong>{{ r.estimatedKwp.toFixed(1) }} kWp</strong>
+                  </div>
+                </div>
+
+                <div class="locked-card">
+                  <div class="locked-preview" aria-hidden="true">
+                    <div class="locked-preview-label-row">
+                      <span class="material-symbols-outlined">monitoring</span>
+                      <span>{{ i18n.t('estimate.fullProduction') }}</span>
+                    </div>
+                    <div class="production-items">
+                      <div class="production-item">
+                        <span class="production-value">-- -- --</span>
+                        <small>{{ i18n.t('estimate.kwhYear') }}</small>
+                      </div>
+                      <div class="production-divider"></div>
+                      <div class="production-item">
+                        <span class="production-value">EUR -- --</span>
+                        <small>{{ i18n.t('estimate.annualSavings') }}</small>
+                      </div>
+                      <div class="production-divider"></div>
+                      <div class="production-item">
+                        <span class="production-value">-- --</span>
+                        <small>{{ i18n.t('estimate.co2Avoided') }}</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="locked-overlay">
+                    <span class="material-symbols-outlined locked-icon">lock</span>
+                    <strong>{{ i18n.t('estimate.saveForFull') }}</strong>
+                    <small>{{ i18n.t('estimate.saveForFullText') }}</small>
+                    <div class="locked-cta-row">
+                      <button type="button" class="primary-action compact" (click)="onGetStarted()">
+                        <span>{{ i18n.t('estimate.createProject') }}</span>
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                      </button>
+                      <button type="button" class="secondary-action compact" routerLink="/login">
+                        <span>{{ i18n.t('estimate.signIn') }}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>

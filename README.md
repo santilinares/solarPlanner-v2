@@ -1,374 +1,334 @@
-# Solar Planner v2.0 - Project Status
+# Solar Planner v2
 
-## ✅ Completed Scaffolding (Phases 1-17)
+Solar Planner v2 is a full-stack thesis project for evaluating solar panel investments for homeowners, farmers, and small businesses. It combines project planning, photovoltaic production estimates, economic analysis, agrivoltaic options, and user/admin workflows in one web application.
 
-### Server (Node.js + Express + Mongoose + Zod) ✅
-**Location:** `v2/server/`
+The goal of the project is practical decision support: help a user understand whether a solar installation makes sense for a location, roof/land area, selected panel, expected production, installation cost, savings, payback, and long-term return.
 
-#### Structure Created:
-```
-server/
-├── src/
-│   ├── app.ts                      # Express app setup
-│   ├── server.ts                   # HTTP server bootstrap
-│   ├── config/
-│   │   ├── database.config.ts      # MongoDB connection
-│   │   └── jwt.config.ts           # JWT helpers
-│   ├── env/
-│   │   └── index.ts                # Zod environment validation
-│   ├── schemas/                    # Zod validation schemas
-│   │   ├── user.schema.ts
-│   │   ├── project.schema.ts
-│   │   ├── panel.schema.ts
-│   │   └── production.schema.ts
-│   ├── models/                     # Mongoose models
-│   │   ├── user.model.ts
-│   │   ├── project.model.ts
-│   │   ├── panel.model.ts
-│   │   └── production.model.ts
-│   ├── services/                   # Business logic layer
-│   │   ├── auth.service.ts
-│   │   ├── user.service.ts
-│   │   ├── project.service.ts
-│   │   ├── panel.service.ts
-│   │   └── email.service.ts
-│   ├── controllers/                # Request handlers
-│   │   ├── user.controller.ts
-│   │   ├── project.controller.ts
-│   │   └── panel.controller.ts
-│   ├── routes/                     # Route definitions
-│   │   ├── index.ts
-│   │   ├── user.routes.ts
-│   │   ├── project.routes.ts
-│   │   └── panel.routes.ts
-│   ├── middleware/
-│   │   ├── auth.middleware.ts      # JWT verification
-│   │   ├── validation.middleware.ts # Zod validation
-│   │   ├── cors.middleware.ts      # CORS config
-│   │   └── error.middleware.ts     # Error handling
-│   ├── types/
-│   │   └── express.d.ts            # Express augmentation
-│   └── utils/
-│       ├── response.ts             # Response helpers
-│       └── asyncHandler.ts         # Async wrapper
-├── package.json
-├── tsconfig.json
-├── .env.example
-└── README.md
-```
+## Table of Contents
 
-#### Server Features:
-- ✅ Layered architecture (Routes → Controllers → Services → Models)
-- ✅ Zod validation for all inputs and environment variables
-- ✅ Mongoose ODM with TypeScript interfaces
-- ✅ Custom JWT authentication (access token)
-- ✅ Centralized error handling
-- ✅ CORS middleware
-- ✅ TypeScript strict mode
-- ✅ All endpoints defined with TODO placeholders for business logic
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Available Scripts](#available-scripts)
+- [Architecture](#architecture)
+- [API Overview](#api-overview)
+- [Testing and Quality](#testing-and-quality)
+- [External Services](#external-services)
+- [Contributing](#contributing)
+- [License](#license)
 
-#### Server Endpoints Created:
-**Users:**
-- POST `/users/registration` - Register new user
-- POST `/users/login` - User login
-- GET `/users/profile` - Get current user profile
-- PUT `/users/profile` - Update profile
-- POST `/users/forgot_password` - Request password reset
-- POST `/users/reset_password/:id/:token` - Reset password
-- GET `/users` - Get all users (admin)
-- GET `/users/:id` - Get user by ID (admin)
-- PUT `/users/:id` - Update user (admin)
-- DELETE `/users/:id` - Delete user (admin)
+## Features
 
-**Projects:**
-- POST `/projects` - Create project
-- GET `/projects/my` - Get user's projects
-- GET `/projects` - Get all projects (admin)
-- GET `/projects/:id` - Get project by ID
-- PUT `/projects/:id` - Update project
-- DELETE `/projects/:id` - Delete project
+- User registration, login, refresh tokens, password reset, and Google OAuth.
+- Protected user dashboard with saved solar projects.
+- Public one-off project estimation without saving a project.
+- Solar production estimation using PVGIS and internal physical models.
+- Weather and production refresh workflows using Open-Meteo and scheduled jobs.
+- Electricity price integration through ENTSO-E when an API key is available.
+- CAPEX benchmark estimation for supported European countries.
+- Economic analytics including capacity factor, performance ratio, annual savings, payback, ROI, and 25-year degradation-aware savings.
+- Panel catalog management with seeded CEC module data.
+- Agrivoltaic cultivar support for agriculture-oriented projects.
+- Admin area for users, projects, panels, and platform-level dashboard data.
 
-**Panels:**
-- GET `/panels` - Get all panels
-- GET `/panels/:id` - Get panel by ID
-- POST `/panels` - Create panel (admin)
-- PUT `/panels/:id` - Update panel (admin)
-- DELETE `/panels/:id` - Delete panel (admin)
+## Tech Stack
 
----
+| Area | Technology |
+| --- | --- |
+| Client | Angular 21, standalone components, signals, PrimeNG, PrimeFlex |
+| Client charts/maps | Highcharts, Leaflet, Turf |
+| Server | Node.js, Express 5, TypeScript |
+| Database | MongoDB with Mongoose |
+| Validation | Zod at the HTTP boundary, Mongoose at the data layer |
+| Auth | JWT access tokens and refresh tokens |
+| Background jobs | node-schedule |
+| Testing | Jest for the client, Vitest for the server |
+| Tooling | ESLint, Prettier, TypeScript |
 
-### Client (Angular 21 Standalone) ✅
-**Location:** `v2/client/`
+## Repository Structure
 
-#### Structure Created:
-```
-client/src/
-├── app/
-│   ├── app.component.ts            # Root component
-│   ├── app.config.ts               # Application config
-│   ├── app.routes.ts               # Route definitions
-│   ├── core/                       # Core singleton services
-│   │   ├── models/                 # TypeScript interfaces
-│   │   │   ├── user.model.ts
-│   │   │   ├── project.model.ts
-│   │   │   ├── panel.model.ts
-│   │   │   └── api.model.ts
-│   │   ├── services/               # HTTP services
-│   │   │   ├── auth.service.ts
-│   │   │   ├── user.service.ts
-│   │   │   ├── project.service.ts
-│   │   │   ├── panel.service.ts
-│   │   │   └── file.service.ts
-│   │   ├── guards/                 # Route guards
-│   │   │   ├── auth.guard.ts
-│   │   │   └── admin.guard.ts
-│   │   └── interceptors/
-│   │       └── jwt.interceptor.ts  # Auth header injection
-│   ├── layouts/                    # Layout components
-│   │   ├── visitor-layout/
-│   │   ├── user-layout/
-│   │   └── admin-layout/
-│   ├── features/                   # Feature pages
-│   │   ├── visitor/                # Public pages
-│   │   │   ├── landing-page/
-│   │   │   ├── login/
-│   │   │   ├── register/
-│   │   │   ├── forgot-password/
-│   │   │   └── reset-password/
-│   │   ├── user/                   # User pages
-│   │   │   ├── dashboard/
-│   │   │   ├── add-project/
-│   │   │   ├── user-projects/
-│   │   │   ├── view-project/
-│   │   │   └── panel-list/
-│   │   └── admin/                  # Admin pages
-│   │       ├── admin-dashboard/
-│   │       ├── projects-list/
-│   │       ├── users-list/
-│   │       └── panels/
-│   └── shared/                     # Reusable components
-│       ├── components/             # TODO: Header, footer, sidebar
-│       └── widgets/                # TODO: Map, charts
-├── environments/
-│   ├── environment.ts
-│   └── environment.prod.ts
-├── index.html
-├── main.ts
-└── styles.scss
+```text
+solarPlanner-v2/
+|-- client/                 # Angular application
+|   `-- src/
+|       |-- app/
+|       |   |-- core/       # Singleton services, guards, interceptors, models
+|       |   |-- features/   # Visitor, user, and admin feature areas
+|       |   |-- layouts/    # Visitor, user, and admin layout shells
+|       |   `-- shared/     # Reusable components and widgets
+|       |-- assets/
+|       |-- environments/
+|       `-- styles/
+|-- server/                 # Express API
+|   `-- src/
+|       |-- config/         # Database, JWT, email configuration
+|       |-- controllers/    # HTTP request handlers
+|       |-- data/           # Static datasets and seed data
+|       |-- middleware/     # Auth, validation, CORS, rate limits, errors
+|       |-- models/         # Mongoose models
+|       |-- routes/         # API route definitions
+|       |-- schemas/        # Zod schemas
+|       |-- services/       # Business logic
+|       |-- types/
+|       `-- utils/
+|-- package.json            # Root scripts for both apps
+|-- README.md
+`-- CONTRIBUTING.md
 ```
 
-#### Client Features:
-- ✅ Angular 21 with standalone components
-- ✅ Signals for reactive state management
-- ✅ TypeScript strict mode
-- ✅ Path aliases configured (@app, @core, @shared, @features, @environments)
-- ✅ JWT interceptor for automatic Authorization headers
-- ✅ Auth and Admin guards for route protection
-- ✅ Lazy-loaded routes for all features
-- ✅ Angular Material theme configured
-- ✅ Reactive forms for auth flows
-- ✅ Environment configuration for dev/prod
-- ✅ Jest testing setup
-- ✅ ESLint + Prettier configured
+## Prerequisites
 
-#### Client Routes:
-- `/` - Landing page
-- `/login` - Login
-- `/registration` - Register
-- `/forgot_password` - Request password reset
-- `/reset_password/:id/:token` - Reset password form
-- `/projects` - User dashboard (protected)
-- `/projects/add` - Create project (protected)
-- `/projects/all` - User's projects (protected)
-- `/projects/:id` - View project (protected)
-- `/panels/all` - View panels (protected)
-- `/admin` - Admin dashboard (admin only)
-- `/admin/projects` - Manage projects (admin only)
-- `/admin/users` - Manage users (admin only)
-- `/admin/panels` - Manage panels (admin only)
+- Node.js 20 or newer is recommended.
+- npm.
+- MongoDB, either local or hosted in MongoDB Atlas.
+- Optional: Docker, if you prefer running MongoDB locally in a container.
+- Optional: ENTSO-E API key for electricity price lookups.
+- Optional: Google OAuth client ID for Google authentication.
 
----
+## Getting Started
 
-## 🚧 TODO / Not Yet Implemented
+### 1. Install dependencies
 
-### Server Side:
-1. **Business logic implementation** - All service methods have TODO markers
-2. **Email service** - Nodemailer integration for password reset
-3. **Logging** - Pino integration with correlation IDs
-4. **Production calculations** - Solar energy estimation algorithms
-5. **PDF generation** - Server-side plan data assembly
-6. **Rate limiting** - Express-rate-limit middleware
-7. **Security hardening** - Helmet middleware, input sanitization
-8. **Refresh tokens** - Token rotation flow
-9. **Testing** - Jest unit tests for services/controllers
-10. **Health check endpoint** - `/health` for monitoring
+From the repository root:
 
-### Client Side:
-1. **Shared components** - Header, footer, sidebar (reusable UI)
-2. **Map widget** - Leaflet integration with drawing tools
-3. **Chart widgets** - Highcharts spline, column, multi-axes charts
-4. **Project CRUD logic** - Actual API integration in feature pages
-5. **Panel management UI** - Admin CRUD forms
-6. **User management UI** - Admin user table with actions
-7. **PDF generation** - jsPDF client-side implementation
-8. **Dashboard stats** - Fetch and display real data
-9. **Error handling** - Global error interceptor
-10. **Loading states** - Spinners and skeletons
-11. **Form validation messages** - User-friendly error displays
-12. **Unit tests** - Jest tests for services/components
-13. **E2E tests** - Playwright/Cypress test suites
-
----
-
-## 🚀 Next Steps
-
-### 1. Install Dependencies
-
-**Server:**
 ```bash
-cd v2/server
-npm install
+npm run install:all
 ```
 
-**Client:**
+This installs dependencies for both `client/` and `server/`.
+
+### 2. Configure the server environment
+
+Create `server/.env` from the example file:
+
 ```bash
-cd v2/client
-npm install
+cp server/.env.example server/.env
 ```
 
-### 2. Set Up Environment
-Copy `.env.example` to `.env` in server folder and fill in:
-```env
-NODE_ENV=development
-PORT=1235
-MONGODB_URI=mongodb://localhost:27017/solar-planner-v2
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=24h
-FRONTEND_URL=http://localhost:4200
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-password
-```
+Then update the values for your local setup, especially `MONGODB_URI`, JWT secrets, email credentials, and any optional external API keys.
 
 ### 3. Start MongoDB
-```bash
-# Using Docker
-docker run -d -p 27017:27017 --name mongodb mongo:latest
 
-# Or local installation
-mongod
+With Docker:
+
+```bash
+docker run -d -p 27017:27017 --name solarplanner-mongodb mongo:latest
 ```
 
-### 4. Run Development Servers
+Or start your local MongoDB service using your preferred installation.
 
-**Server:**
+### 4. Seed the panel catalog
+
 ```bash
-cd v2/server
-npm run dev
-# Server runs on http://localhost:1235
+cd server
+npm run seed:panels
 ```
 
-**Client:**
+### 5. Run the application
+
+From the repository root:
+
 ```bash
-cd v2/client
-npm start
-# Client runs on http://localhost:4200
+npm run start
 ```
 
-### 5. Verify Compilation
-- Server should compile without TypeScript errors
-- Client should compile and serve without errors
-- Check browser console for any import/module issues
+The services run at:
 
-### 6. Implementation Priority
-Based on the playbook, implement in this order:
+- Client: `http://localhost:4200`
+- Server: `http://localhost:1235`
 
-**Phase A - Core Auth Flow:**
-1. Implement `auth.service.ts` methods (register, login, token generation)
-2. Implement `user.service.ts` CRUD methods
-3. Test auth flow: register → login → get profile
+## Environment Variables
 
-**Phase B - Panel Management:**
-1. Implement `panel.service.ts` CRUD methods
-2. Seed initial panel data
-3. Test panel endpoints
+The server reads configuration from `server/.env`.
 
-**Phase C - Project Creation:**
-1. Implement Leaflet map widget
-2. Implement `project.service.ts` create/read methods
-3. Add production calculation logic
-4. Test project creation flow
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PORT` | Yes | Express server port. Defaults to `1235` in local examples. |
+| `NODE_ENV` | Yes | Runtime environment, usually `development` or `production`. |
+| `MONGODB_URI` | Yes | MongoDB connection string. |
+| `JWT_SECRET` | Yes | Secret used to sign access tokens. |
+| `JWT_EXP` | Yes | Access token lifetime, for example `15m`. |
+| `REFRESH_TOKEN_SECRET` | Yes | Secret used for refresh tokens. |
+| `REFRESH_TOKEN_EXP` | Yes | Refresh token lifetime, for example `7d`. |
+| `FRONTEND_URL` | Yes | Allowed frontend origin, usually `http://localhost:4200`. |
+| `EMAIL_HOST` | Yes | SMTP host for password reset emails. |
+| `EMAIL_PORT` | Yes | SMTP port. |
+| `EMAIL_USER` | Yes | SMTP username. |
+| `EMAIL_PASS` | Yes | SMTP password or app password. |
+| `ENTSOE_API_KEY` | Optional | ENTSO-E Transparency Platform API key. |
+| `PRODUCTION_REFRESH_THRESHOLD_H` | Yes | Minimum age before refreshing production data. |
+| `PRODUCTION_HISTORY_DAYS` | Yes | Number of historical production days to keep. |
+| `PRODUCTION_FORECAST_DAYS` | Yes | Number of forecast days to request/store. |
 
-**Phase D - Data Visualization:**
-1. Implement Highcharts widgets
-2. Connect to project production data
-3. Display charts on project detail page
+Open-Meteo and PVGIS do not require API keys.
 
-**Phase E - PDF Generation:**
-1. Implement jsPDF logic in `file.service.ts`
-2. Create PDF template
-3. Add download button
+## Available Scripts
 
-**Phase F - Admin Features:**
-1. Implement admin CRUD for panels
-2. Implement admin user management
-3. Implement admin project oversight
+### Root
 
-**Phase G - Polish:**
-1. Add loading states
-2. Add error handling
-3. Add form validations
-4. Write tests
-5. Security hardening
+| Command | Description |
+| --- | --- |
+| `npm run install:all` | Install client and server dependencies. |
+| `npm run start` | Run the server and client concurrently. |
+| `npm run build` | Build both projects. |
+| `npm run test` | Run server and client tests. |
+| `npm run lint` | Run server and client linters. |
 
----
+### Client
 
-## 📝 Architecture Notes
+Run these from `client/`.
 
-### Server Architecture:
-- **Layered separation:** Routes → Controllers (thin) → Services (thick) → Models
-- **Validation twice:** Zod at request layer, Mongoose at DB layer
-- **No business logic in controllers** - Controllers only translate HTTP to service calls
-- **Centralized error handling** - All errors flow through error middleware
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start Angular in development mode. |
+| `npm start` | Start Angular with `ng serve`. |
+| `npm run build` | Build the Angular app. |
+| `npm test` | Run Jest tests. |
+| `npm run test:watch` | Run Jest in watch mode. |
+| `npm run typecheck` | Run the Angular TypeScript check without emitting files. |
+| `npm run lint` | Run ESLint. |
+| `npm run format` | Format client source files with Prettier. |
 
-### Client Architecture:
-- **Feature-first structure** - Each feature is self-contained
-- **Core for singletons** - Services, guards, interceptors, models
-- **Shared for reusables** - Components and widgets used across features
-- **Signals for state** - Modern reactive state management
-- **Functional guards/interceptors** - Angular 21 best practices
+### Server
 
-### Communication:
-- Client calls server via HTTP
-- JWT in `Authorization: Bearer <token>` header
-- Server returns JSON responses with consistent structure
-- CORS enabled for `http://localhost:4200`
+Run these from `server/`.
 
----
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the API with `ts-node`. |
+| `npm run dev:watch` | Start the API with `nodemon`. |
+| `npm run build` | Compile TypeScript to `dist/`. |
+| `npm start` | Run the compiled server from `dist/`. |
+| `npm test` | Run Vitest once. |
+| `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run test:coverage` | Generate coverage output. |
+| `npm run seed:panels` | Seed the panel catalog. |
+| `npm run check:relations` | Check model/data relationships. |
+| `npm run lint` | Run ESLint for server source files. |
+| `npm run format` | Format server source files with Prettier. |
 
-## 🎯 Success Criteria
+## Architecture
 
-Project scaffolding is **complete** when:
-- ✅ All files exist with coherent imports
-- ✅ Dev servers start without compilation errors
-- ⏳ Sample auth flow works (register → login → token)
-- ⏳ Guards block unauthorized routes
-- ⏳ Interceptor attaches Authorization header
-- ⏳ No TypeScript errors in either workspace
+### Client
 
-**Current Status:** Scaffolding complete (17/20 phases). Ready for business logic implementation.
+The Angular application is organized by feature and uses modern Angular patterns:
 
----
+- Standalone components.
+- Signals for reactive state.
+- Lazy-loaded feature areas.
+- Functional guards and interceptors.
+- PrimeNG as the primary UI component library.
+- Path aliases such as `@app`, `@core`, `@shared`, `@features`, and `@environments`.
 
-## 📚 References
+Important client areas:
 
-- [Solar Planner v2.0 Spec](../SOLAR-PLANNER-v2.0.md)
-- [Implementation Playbook](../SOLAR-PLANNER-PROMPT-STEPS.md)
-- [Server README](server/README.md)
-- [Client README](client/README.md)
+- `core/`: singleton services, guards, interceptors, models, validators, and utilities.
+- `features/visitor/`: public pages such as landing, login, register, and password reset.
+- `features/user/`: authenticated dashboard and project workflows.
+- `features/admin/`: admin dashboard and management screens.
+- `layouts/`: shell components for visitor, user, and admin sections.
+- `shared/`: reusable UI components and widgets.
 
----
+### Server
 
-**Generated:** December 28, 2025  
-**Status:** Scaffolding Complete - Ready for Implementation
+The Express API follows a layered structure:
+
+```text
+routes -> controllers -> services -> models
+```
+
+- Routes define URL structure and middleware.
+- Controllers translate HTTP requests into service calls.
+- Services contain business logic.
+- Models define persistence through Mongoose.
+- Zod schemas validate request bodies and query strings.
+- Central error middleware handles operational errors consistently.
+
+Controllers should use the response helpers from `server/src/utils/response.ts` instead of calling `res.json()` directly.
+
+### Production Models
+
+Solar production logic should preserve the physical models already present in the codebase:
+
+- Inverter efficiency uses a PVWatts V5-style curve based on DC load factor.
+- Bifacial irradiance uses an isotropic sky view factor and falls back to monofacial behavior when bifaciality is zero.
+
+Avoid replacing these calculations with flat constants.
+
+## API Overview
+
+All server routes are mounted under `/api`.
+
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | Public | Register a user. |
+| `POST` | `/auth/login` | Public | Log in and receive tokens. |
+| `POST` | `/auth/google` | Public | Authenticate with Google OAuth. |
+| `POST` | `/auth/refresh` | Public | Refresh access token. |
+| `POST` | `/auth/password/reset-request` | Public | Request password reset email. |
+| `POST` | `/auth/password/reset` | Public | Reset password with token. |
+| `GET` | `/users/me` | User | Get current user profile. |
+| `PATCH` | `/users/:id/profile` | User | Update user profile. |
+| `PATCH` | `/users/:id/password` | User | Change password. |
+| `GET` | `/users` | Admin | List users. |
+| `PATCH` | `/users/:id/role` | Admin | Change a user's role. |
+| `DELETE` | `/users/:id` | Admin | Delete a user and cascade related data. |
+| `POST` | `/projects/estimate` | Public | Run a one-off solar estimate. |
+| `POST` | `/projects` | User | Create a project. |
+| `GET` | `/projects` | User | List the current user's projects. |
+| `GET` | `/projects/dashboard` | User | Get dashboard statistics. |
+| `GET` | `/projects/:id` | User | Get project details. |
+| `PUT` | `/projects/:id` | User | Update a project. |
+| `DELETE` | `/projects/:id` | User | Delete a project. |
+| `GET` | `/projects/:id/sun-path` | User | Get sun path information. |
+| `GET` | `/projects/:id/plan` | User | Generate a project plan/report. |
+| `POST` | `/projects/:id/config/optimal` | User | Calculate optimal panel configuration. |
+| `POST` | `/projects/:id/refresh-production` | User | Refresh production data. |
+| `GET` | `/projects/:id/analytics` | User | Get economic and production analytics. |
+| `GET` | `/projects/admin/dashboard` | Admin | Get admin dashboard statistics. |
+| `GET/POST/PUT/DELETE` | `/panels` | User/Admin | Manage solar panels. |
+| `GET/POST/PUT/DELETE` | `/cultivars` | User/Admin | Manage agrivoltaic cultivars. |
+
+## Testing and Quality
+
+Before submitting a change, run the checks that match the files you touched:
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+For narrower checks:
+
+```bash
+cd server
+npm test -- user.service.test.ts
+
+cd ../client
+npm run typecheck
+npm test
+```
+
+Documentation-only changes do not require building the full application, but links, commands, and environment variable names should still be checked against the repository.
+
+## External Services
+
+| Service | Purpose | API key |
+| --- | --- | --- |
+| PVGIS | Photovoltaic production estimates. | No |
+| Open-Meteo | Weather and forecast data. | No |
+| ENTSO-E | Electricity prices by country. | Yes |
+| Google OAuth | Google login. | Yes |
+| SMTP provider | Password reset emails. | Yes |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, coding standards, review checklist, and local setup notes.
+
+## License
+
+This project is licensed under the MIT License.

@@ -1,80 +1,71 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { CardModule } from 'primeng/card';
+import { SkeletonModule } from 'primeng/skeleton';
+import { MessageModule } from 'primeng/message';
+import { ButtonModule } from 'primeng/button';
+import { AuthService, ProjectService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
+
+interface DashboardData {
+  totalProjects: number;
+  totalPanels: number;
+  totalCapacity: number;
+  totalProduction: number;
+  recentProjects: Array<{
+    _id: string;
+    name: string;
+    country?: string;
+    surface?: number;
+  }>;
+  todayProduction: number;
+  next6DaysTotal: number;
+  past6DaysTotal: number;
+}
 
 @Component({
   selector: 'app-dashboard',
-  imports: [],
-  template: `
-    <div class="dashboard">
-      <h1>User Dashboard</h1>
-      <p>Welcome to Solar Planner v2.0!</p>
-      
-      <div class="dashboard-grid">
-        <div class="dashboard-card">
-          <h3>My Projects</h3>
-          <p class="stat">0</p>
-          <a href="/projects/all" class="card-link">View all →</a>
-        </div>
-        
-        <div class="dashboard-card">
-          <h3>Total Production</h3>
-          <p class="stat">0 kWh</p>
-        </div>
-        
-        <div class="dashboard-card">
-          <h3>Active Panels</h3>
-          <p class="stat">0</p>
-        </div>
-      </div>
-      
-      <!-- TODO: Add recent projects list -->
-      <!-- TODO: Add production charts -->
-    </div>
-  `,
-  styles: [`
-    .dashboard {
-      h1 {
-        margin-bottom: 2rem;
-      }
-
-      .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-top: 2rem;
-
-        .dashboard-card {
-          background: white;
-          padding: 2rem;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
-          h3 {
-            margin-bottom: 1rem;
-            color: #666;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-          }
-
-          .stat {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #1976d2;
-            margin: 0;
-          }
-
-          .card-link {
-            display: inline-block;
-            margin-top: 1rem;
-            color: #1976d2;
-            text-decoration: none;
-
-            &:hover {
-              text-decoration: underline;
-            }
-          }
-        }
-      }
-    }
-  `]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, CardModule, SkeletonModule, MessageModule, ButtonModule],
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent {}
+export class DashboardComponent implements OnInit, OnDestroy {
+  private readonly projectService = inject(ProjectService);
+  private readonly authService = inject(AuthService);
+  readonly i18n = inject(LanguageService);
+
+  // Exposed for template greeting.
+  readonly user = this.authService.currentUser;
+
+  stats = signal<DashboardData | null>(null);
+  loading = signal<boolean>(true);
+  error = signal<string>('');
+
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly POLL_INTERVAL_MS = 60_000;
+
+  ngOnInit(): void {
+    this.loadDashboard();
+    this.pollInterval = setInterval(() => this.loadDashboard(), this.POLL_INTERVAL_MS);
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
+  }
+
+  private loadDashboard(): void {
+    this.projectService.getDashboardStats().subscribe({
+      next: (data) => {
+        this.stats.set(data);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set(this.i18n.t('dashboard.loadFailed'));
+        this.loading.set(false);
+      }
+    });
+  }
+}

@@ -1,0 +1,130 @@
+:host {
+  display: block;
+}
+
+.step-card {
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 0.0625rem 0.1875rem color-mix(in srgb, var(--p-text-color) 10%, transparent);
+  transition: box-shadow 0.25s, border-color 0.25s;
+  height: 100%;
+  box-sizing: border-box;
+}
+.step-card:hover {
+  box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--p-text-color) 14%, transparent);
+}
+
+.step-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.step-card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--p-text-color);
+}
+.step-card-header p {
+  margin: 0.25rem 0 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+
+.step-card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+.material-symbols-outlined {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.location-icon {
+  background: color-mix(in srgb, #0ea5e9 16%, transparent);
+  color: var(--p-cyan-900);
+}
+
+.location-search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.location-search-input {
+  flex: 1;
+}
+
+.map-container {
+  height: 20rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--p-content-border-color);
+}
+
+.map-instructions,
+.map-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.map-instructions {
+  background: color-mix(in srgb, var(--p-amber-100) 60%, var(--p-surface-0));
+  color: var(--p-amber-800);
+}
+.map-status {
+  background: color-mix(in srgb, var(--p-green-100) 65%, var(--p-surface-0));
+  color: var(--p-green-800);
+}
+
+.location-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.location-metrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--p-content-hover-background);
+}
+.location-metrics span {
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+  font-weight: 600;
+}
+.location-metrics strong {
+  color: var(--p-text-color);
+  font-size: 0.95rem;
+}
+
+.field-error {
+  color: var(--p-red-500);
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  display: block;
+}
+
+.w-full {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .location-metrics {
+    grid-template-columns: 1fr;
+  }
+}

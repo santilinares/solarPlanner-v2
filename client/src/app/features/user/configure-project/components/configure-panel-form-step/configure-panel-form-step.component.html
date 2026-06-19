@@ -1,0 +1,315 @@
+<!-- Panel & Installation card -->
+@if (showPanelCard()) {
+<div class="step-card panel-installation-card">
+  <div class="step-card-header">
+    <div class="step-card-icon panel-icon">
+      <span class="material-symbols-outlined">solar_power</span>
+    </div>
+    <div>
+      <h2>{{ i18n.t('configure.panelInstallation') }}</h2>
+      <p>{{ i18n.t('configure.panelInstallationText') }}</p>
+    </div>
+  </div>
+
+  <p-divider />
+
+  <form [formGroup]="formGroup()" class="form-grid">
+    <div class="form-field full-width">
+      <p-floatlabel variant="on">
+        <p-select
+          [options]="panelsWithLabel()"
+          optionLabel="displayLabel"
+          optionValue="id"
+          formControlName="panelId"
+          inputId="panelId"
+          [filter]="true"
+          filterBy="brand,model"
+          [placeholder]="i18n.t('configure.choosePanel')"
+          class="w-full"
+        >
+          <ng-template #selectedItem let-selectedPanel>
+            @if (selectedPanel) {
+            <div class="panel-option">
+              <strong>{{ selectedPanel.brand }} {{ selectedPanel.model }}</strong>
+              <span class="panel-watts">{{ selectedPanel.wattPeak }}W</span>
+            </div>
+            }
+          </ng-template>
+          <ng-template #item let-panel>
+            <div class="panel-option">
+              <div>
+                <strong>{{ panel.brand }} {{ panel.model }}</strong>
+                <small class="panel-meta">
+                  {{ panel.wattPeak }}W · {{ panel.efficiency }}% eff · {{ panel.technology }}
+                </small>
+              </div>
+              <span class="panel-watts">{{ panel.wattPeak }}W</span>
+            </div>
+          </ng-template>
+        </p-select>
+        <label for="panelId">{{ i18n.t('wizard.solarPanel') }}</label>
+      </p-floatlabel>
+    </div>
+
+    @if (selectedPanelData()) {
+    <div class="form-field full-width">
+      <div class="panel-info-card">
+        <div class="panel-info-surface">
+          <div class="panel-info-header">
+            <span class="panel-info-title">
+              <i class="pi pi-info-circle" aria-hidden="true"></i>
+              <strong>{{ selectedPanelName() }}</strong>
+            </span>
+            <p>{{ selectedPanelTechDimensions() }}</p>
+          </div>
+          <div class="panel-info-tags">
+            @for (entry of panelTagEntries(); track entry.label) {
+            <p-tag
+              [value]="entry.value"
+              [icon]="entry.icon"
+              [severity]="entry.severity"
+              [rounded]="true"
+              [attr.aria-label]="entry.label"
+              [pTooltip]="entry.label"
+            />
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="panelNumber" inputId="panelNumber" [showButtons]="true" [min]="1" [max]="9999" class="w-full" />
+        <label for="panelNumber">{{ i18n.t('wizard.panelCount') }}</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="tilt" inputId="tilt" [showButtons]="true" [min]="0" [max]="90" suffix="°" class="w-full" />
+        <label for="tilt">{{ i18n.t('configure.tiltInclination') }}</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-select
+          [options]="orientationOptions()"
+          optionLabel="label"
+          optionValue="value"
+          formControlName="direction"
+          inputId="direction"
+          [placeholder]="i18n.t('configure.selectOrientation')"
+          class="w-full"
+        >
+          <ng-template #selectedItem let-opt>
+            @if (opt) { <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span> }
+          </ng-template>
+          <ng-template #item let-opt>
+            <span><i [class]="opt.icon" class="mr-2"></i>{{ opt.label }}</span>
+          </ng-template>
+        </p-select>
+        <label for="direction">{{ i18n.t('configure.orientationDirection') }}</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="azimuth" inputId="azimuth" [showButtons]="true" [min]="0" [max]="360" suffix="°" class="w-full" />
+        <label for="azimuth">{{ i18n.t('projectView.azimuth') }}</label>
+      </p-floatlabel>
+      <small class="field-hint">{{ i18n.t('configure.azimuthHint') }}</small>
+    </div>
+
+    <div class="form-field">
+      <p-floatlabel variant="on">
+        <p-inputnumber formControlName="rawSpacing" inputId="rawSpacing" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" [min]="0" suffix=" m" class="w-full" />
+        <label for="rawSpacing">{{ i18n.t('wizard.rowSpacing') }}</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="form-field full-width">
+      <p-fieldset [legend]="i18n.t('configure.advancedAssumptions')" [toggleable]="true" [collapsed]="true">
+        <div class="advanced-grid">
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="installationCost" inputId="installationCost" mode="decimal" [min]="0" [maxFractionDigits]="0" class="w-full" />
+              <label for="installationCost">{{ i18n.t('configure.installationCost') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-select [options]="segmentOptions()" optionLabel="label" optionValue="value" formControlName="segment" inputId="segment" class="w-full" />
+              <label for="segment">{{ i18n.t('configure.segment') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="dcAcRatio" inputId="dcAcRatio" mode="decimal" [minFractionDigits]="1" [maxFractionDigits]="2" [min]="0.5" [max]="3" class="w-full" />
+              <label for="dcAcRatio">DC:AC Ratio</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="albedo" inputId="albedo" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [min]="0" [max]="1" class="w-full" />
+              <label for="albedo">Albedo</label>
+            </p-floatlabel>
+          </div>
+        </div>
+
+        <div formGroupName="systemLosses" class="loss-grid">
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="inverterEfficiency" inputId="inverterEfficiency" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="3" [min]="0" [max]="1" class="w-full" />
+              <label for="inverterEfficiency">{{ i18n.t('configure.inverterEfficiency') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="dcWiring" inputId="dcWiring" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="dcWiring">{{ i18n.t('configure.dcWiring') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="acWiring" inputId="acWiring" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="acWiring">{{ i18n.t('configure.acWiring') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="mismatch" inputId="mismatch" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="mismatch">{{ i18n.t('configure.mismatch') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="soiling" inputId="soiling" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="soiling">{{ i18n.t('configure.soiling') }}</label>
+            </p-floatlabel>
+          </div>
+          <div class="form-field">
+            <p-floatlabel variant="on">
+              <p-inputnumber formControlName="shadingStatic" inputId="shadingStatic" mode="decimal" [min]="0" [max]="100" suffix="%" class="w-full" />
+              <label for="shadingStatic">{{ i18n.t('configure.staticShading') }}</label>
+            </p-floatlabel>
+          </div>
+        </div>
+      </p-fieldset>
+    </div>
+  </form>
+</div>
+}
+
+<!-- Impact Preview card -->
+@if (showImpactCard()) {
+<div class="step-card capacity-preview-card" [class.mt-card]="showPanelCard()">
+  <div class="step-card-header">
+    <div class="step-card-icon capacity-icon">
+      <span class="material-symbols-outlined">monitoring</span>
+    </div>
+    <div>
+      <h2>{{ i18n.t('configure.impactPreview') }}</h2>
+      <p>{{ i18n.t('configure.impactPreviewText') }}</p>
+    </div>
+    <p-tag
+      [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+      [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+      [rounded]="true"
+      [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
+      class="config-badge"
+    />
+  </div>
+
+  <p-divider />
+
+  @if (isCalculating() || isPreviewLoading()) {
+    <div class="calculating-state">
+      <p-skeleton width="100%" height="3rem" borderRadius="12px" />
+      <p-skeleton width="100%" height="3rem" borderRadius="12px" />
+      <p-skeleton width="100%" height="4rem" borderRadius="12px" />
+    </div>
+  } @else if (selectedPanelData(); as sp) {
+    @if (configPreview(); as preview) {
+    <div class="capacity-grid impact-grid">
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('configure.currentPanels') }}</span>
+        <strong>{{ preview.current.panelNumber }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('configure.previewPanels') }}</span>
+        <strong>{{ preview.preview.panelNumber }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('configure.currentCapacity') }}</span>
+        <strong>{{ preview.current.capacityKw | number: '1.1-2' }} kW</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('configure.previewCapacity') }}</span>
+        <strong>{{ preview.preview.capacityKw | number: '1.1-2' }} kW</strong>
+      </div>
+      <div class="capacity-item highlight">
+        <span class="capacity-label">{{ i18n.t('projectView.annualProduction') }}</span>
+        <strong>{{ preview.preview.annualProductionKwh != null ? (preview.preview.annualProductionKwh | number: '1.0-0') + ' kWh/yr' : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('projectView.annualAvoidedCost') }}</span>
+        <strong>{{ preview.preview.annualSavings != null ? (preview.preview.annualSavings | number: '1.0-0') + ' ' + (preview.currency ?? '') : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('configure.coverage') }}</span>
+        <strong>{{ preview.preview.coverage != null ? (preview.preview.coverage | number: '1.0-1') + '%' : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('wizard.recommendedSpacing') }}</span>
+        <strong>{{ preview.preview.rowSpacing != null ? (preview.preview.rowSpacing | number: '1.1-2') + ' m' : '—' }}</strong>
+      </div>
+      <div class="capacity-item">
+        <span class="capacity-label">{{ i18n.t('configure.projectArea') }}</span>
+        <strong>{{ projectTotalArea() | number: '1.0-0' }} m²</strong>
+      </div>
+    </div>
+    @if (preview.warnings.length) {
+      <div class="preview-warnings">
+        @for (warning of preview.warnings; track warning) {
+          <span><i class="pi pi-info-circle"></i>{{ warning }}</span>
+        }
+      </div>
+    }
+    @if (!isUsingOptimalConfig() && optimalConfig()) {
+      <div class="optimal-hint">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ i18n.t('wizard.customActive') }}</span>
+        <button class="link-btn" (click)="applyOptimal.emit()">
+          {{ i18n.t('configure.restoreOptimalPanels', { count: optimalConfig()!.recommendedPanels }) }}
+        </button>
+      </div>
+    }
+    <div class="chart-stack">
+      <div class="mini-chart">
+        <h3><span class="material-symbols-outlined">monitoring</span> {{ i18n.t('configure.relativeImpact') }}</h3>
+        <p class="chart-note">{{ i18n.t('configure.relativeImpactText') }}</p>
+        <highcharts-chart [Highcharts]="Highcharts" [options]="comparisonChartOptions()" [oneToOne]="true" style="width: 100%; height: 260px; display: block;" />
+      </div>
+      <div class="mini-chart">
+        <h3><span class="material-symbols-outlined">wb_sunny</span> {{ i18n.t('configure.monthlyEstimate') }}</h3>
+        <p class="chart-note">{{ i18n.t('configure.monthlyEstimateText') }}</p>
+        <highcharts-chart [Highcharts]="Highcharts" [options]="monthlyProductionChartOptions()" [oneToOne]="true" style="width: 100%; height: 260px; display: block;" />
+      </div>
+    </div>
+    } @else {
+      <div class="no-panel-message">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ i18n.t('configure.previewUnavailable') }}</span>
+      </div>
+    }
+  } @else {
+    <div class="no-panel-message">
+      <i class="pi pi-info-circle"></i>
+      <span>{{ i18n.t('configure.selectPanelPreview', { area: (projectTotalArea() | number: '1.0-0') }) }}</span>
+    </div>
+  }
+</div>
+}

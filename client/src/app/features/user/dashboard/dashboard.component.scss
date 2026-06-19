@@ -1,0 +1,258 @@
+@use '../../../../styles/variables.scss' as *;
+
+.dashboard {
+  padding: 1rem;
+
+  .icon-primary {
+    color: var(--p-primary-500);
+  }
+
+  .icon-solar {
+    color: var(--p-yellow-500);
+  }
+
+  .icon-blue {
+    color: var(--p-blue-500);
+  }
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--p-text-color);
+      margin: 0 0 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .welcome-text {
+      color: var(--p-text-muted-color);
+      margin: 0;
+      font-size: 1.1rem;
+    }
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16.25rem, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+
+    .stat-card {
+      position: relative;
+      overflow: visible;
+
+      &.solar-accent-card {
+        border: 2px solid var(--p-yellow-500);
+        background: linear-gradient(
+          135deg,
+          var(--p-surface-0) 0%,
+          color-mix(in srgb, var(--p-yellow-500) 8%, transparent) 100%
+        );
+      }
+
+      .stat-icon {
+        width: 3.75rem;
+        height: 3.75rem;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
+
+      .stat-icon-primary {
+        background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
+      }
+
+      .stat-icon-solar {
+        background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+      }
+
+      .stat-icon-tech {
+        background: color-mix(in srgb, var(--p-blue-500) 12%, transparent);
+      }
+
+      h3 {
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--p-text-muted-color);
+        margin: 0 0 0.75rem;
+        font-weight: 600;
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--p-primary-500);
+        margin: 0;
+        line-height: 1;
+      }
+
+      .stat-unit {
+        display: block;
+        font-size: 0.875rem;
+        color: var(--p-text-muted-color);
+        margin-top: 0.5rem;
+        font-weight: 500;
+      }
+
+      .stat-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        color: var(--p-primary-500);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: var(--p-primary-600);
+          gap: 0.75rem;
+        }
+      }
+    }
+  }
+
+  .recent-projects {
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+
+      h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--p-text-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        i {
+          color: var(--p-primary-500);
+        }
+      }
+    }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+      gap: 1.5rem;
+
+      .project-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: var(--p-primary-500);
+        }
+
+        .project-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+
+          .project-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.75rem;
+            background: color-mix(in srgb, var(--p-primary-500) 12%, transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+          }
+
+          h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--p-text-color);
+            flex: 1;
+          }
+        }
+
+        .project-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+
+          .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--p-text-muted-color);
+            font-size: 0.95rem;
+
+            i {
+              font-size: 0.875rem;
+            }
+          }
+        }
+
+        .project-action {
+          padding-top: 1rem;
+          border-top: 1px solid var(--p-content-border-color);
+
+          .action-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--p-primary-500);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+
+            i {
+              transition: transform 0.2s ease;
+            }
+          }
+
+          &:hover .action-link i {
+            transform: translateX(0.25rem);
+          }
+        }
+      }
+    }
+  }
+
+  :host ::ng-deep {
+    .dashboard .stat-card .p-card-body {
+      padding: 1.75rem;
+    }
+
+    .dashboard .project-card .p-card-body {
+      padding: 1.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+
+    .dashboard-header h1 {
+      font-size: 2rem;
+    }
+
+    .dashboard-grid,
+    .projects-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

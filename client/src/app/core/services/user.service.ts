@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@environments/environment';
-import { User, PaginatedResponse } from '../models';
+import { SupportedLanguage, User, UserResponse, UserListResponse } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -14,24 +14,39 @@ export class UserService {
   /**
    * Get current user profile
    */
-  getProfile(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/profile`);
+  getMe(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/me`);
   }
 
   /**
    * Update current user profile
    */
-  updateProfile(data: Partial<User>): Observable<User> {
-    return this.http.put<User>(`${this.apiUrl}/profile`, data);
+  updateProfile(userId: string, data: { fullName: string; language?: SupportedLanguage }): Observable<User> {
+    return this.http.patch<User>(`${this.apiUrl}/${userId}/profile`, data);
+  }
+
+  /**
+   * Change password
+   */
+  changePassword(userId: string, currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${userId}/password`, {
+      currentPassword,
+      newPassword
+    });
   }
 
   /**
    * Get all users (admin only)
    */
-  getAllUsers(page = 1, limit = 10): Observable<PaginatedResponse<User>> {
-    return this.http.get<PaginatedResponse<User>>(`${this.apiUrl}`, {
-      params: { page: page.toString(), limit: limit.toString() }
-    });
+  getAllUsers(): Observable<UserListResponse> {
+    return this.http.get<UserListResponse>(`${this.apiUrl}`);
+  }
+
+  /**
+   * Update user role (admin only)
+   */
+  updateUserRole(id: string, role: 'user' | 'admin'): Observable<UserResponse> {
+    return this.http.patch<UserResponse>(`${this.apiUrl}/${id}/role`, { role });
   }
 
   /**
@@ -42,23 +57,9 @@ export class UserService {
   }
 
   /**
-   * Update user (admin only)
-   */
-  updateUser(id: string, data: Partial<User>): Observable<User> {
-    return this.http.put<User>(`${this.apiUrl}/${id}`, data);
-  }
-
-  /**
    * Delete user (admin only)
    */
   deleteUser(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  /**
-   * Toggle user active status (admin only)
-   */
-  toggleUserStatus(id: string): Observable<User> {
-    return this.http.patch<User>(`${this.apiUrl}/${id}/toggle-status`, {});
   }
 }

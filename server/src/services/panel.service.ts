@@ -1,6 +1,8 @@
-import { HydratedDocument, FilterQuery } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
+// Mongoose 9 removed FilterQuery export; Record<string, any> is assignable to its internal _QueryFilter
+type FilterQuery<_T> = Record<string, any>;
 import { PanelModel, IPanel } from '../models/panel.model';
-import { PanelCreateInput, PanelQueryInput } from '../schemas/panel.schema';
+import { PanelCreateInput, PanelQueryInput, PanelUpdateInput } from '../schemas/panel.schema';
 import { PanelResponse, PanelListResponse } from '../types/panel.types';
 
 /**
@@ -13,10 +15,15 @@ import { PanelResponse, PanelListResponse } from '../types/panel.types';
  */
 const transformPanelToResponse = (panel: HydratedDocument<IPanel>): PanelResponse => ({
   _id: panel._id.toString(),
-  name: panel.name,
-  capacity: panel.capacity,
-  height: panel.height,
-  width: panel.width,
+  brand: panel.brand,
+  model: panel.model,
+  wattPeak: panel.wattPeak,
+  dimensions: panel.dimensions,
+  cells: panel.cells,
+  gammaPmp: panel.gammaPmp,
+  efficiency: panel.efficiency,
+  warranty: panel.warranty,
+  price: panel.price,
   technology: panel.technology,
   type: panel.type,
   owner: panel.owner?.toString(),
@@ -61,7 +68,7 @@ export class PanelService {
    * @param userId Requesting user ID (for filtering personal panels)
    * @returns List of panels
    */
-  async listPanels(filters: PanelQueryInput, userId?: string): Promise<PanelListResponse> {
+  async listPanels(filters: Partial<PanelQueryInput> = {}, userId?: string): Promise<PanelListResponse> {
     // If single ID requested, return that panel
     if (filters.id) {
       const panel = await this.getPanelById(filters.id);
@@ -93,22 +100,71 @@ export class PanelService {
 
     // If not filtering by specific owner, show global + user's personal panels
     if (!filters.owner && userId) {
-      query.$or = [
-        { type: 'global' },
-        { type: 'personal', owner: userId },
-      ];
+      query.$or = [{ type: 'global' }, { type: 'personal', owner: userId }];
     }
 
     // Execute query
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+    const skip = (page - 1) * limit;
+
     const [panels, total] = await Promise.all([
-      PanelModel.find(query).populate('owner', 'fullName email').sort({ createdAt: -1 }),
+      PanelModel.find(query)
+        .populate('owner', 'fullName email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
       PanelModel.countDocuments(query),
     ]);
 
     return {
       panels: panels.map(transformPanelToResponse),
       total,
+      page,
+      limit,
     };
+  }
+
+  /**
+   * Update panel
+   * @param panelId Panel ID
+   * @param data Update data
+   * @param userId User ID asking for update
+   * @param isAdmin Whether user is admin
+   */
+  async updatePanel(
+    panelId: string,
+    data: PanelUpdateInput,
+    userId: string,
+    isAdmin: boolean
+  ): Promise<PanelResponse> {
+    const panel = await PanelModel.findById(panelId);
+
+    if (!panel) {
+      throw new Error('Panel not found');
+    }
+
+    // Global panels can only be updated by admins
+    if (panel.type === 'global' && !isAdmin) {
+      throw new Error('Only admins can update global panels');
+    }
+
+    // Personal panels: verify ownership or admin
+    if (panel.type === 'personal' && !isAdmin && panel.owner?.toString() !== userId) {
+      throw new Error('Not authorized to update this panel');
+    }
+
+    const updatedPanel = await PanelModel.findByIdAndUpdate(
+      panelId,
+      { $set: data },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPanel) {
+      throw new Error('Panel not found');
+    }
+
+    return transformPanelToResponse(updatedPanel);
   }
 
   /**
@@ -144,8 +200,7 @@ export class PanelService {
    */
   async getAvailablePanels(userId: string): Promise<PanelListResponse> {
     // Return global panels + personal panels owned by user
-    const filters: PanelQueryInput = {};
-    return this.listPanels(filters, userId);
+    return this.listPanels({}, userId);
   }
 }
 

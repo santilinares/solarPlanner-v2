@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../config/jwt.config';
+import { verifyToken, verifyPasswordResetToken } from '../config/jwt.config';
 import { unauthorized, forbidden } from '../utils/response';
 
 /**
@@ -90,7 +90,7 @@ export function verifyAdminJwtToken(req: Request, res: Response, next: NextFunct
  * Used for password reset endpoints
  */
 export function verifyPasswordResetJwtToken(req: Request, res: Response, next: NextFunction): void {
-  const { token } = req.body;
+  const { token } = req.body as { token: string };
   
   if (!token) {
     unauthorized(res, 'Reset token required');
@@ -98,14 +98,11 @@ export function verifyPasswordResetJwtToken(req: Request, res: Response, next: N
   }
   
   try {
-    const secret = process.env.JWT_SECRET;
-    
+    const secret = process.env.JWT_SECRET as string;
     if (!secret) {
       throw new Error('JWT_SECRET not configured');
     }
-    
-    // Token verification happens in service layer for password reset
-    // This middleware just ensures token is present
+    verifyPasswordResetToken(token, secret);
     next();
   } catch (error) {
     unauthorized(res, 'Invalid reset token');

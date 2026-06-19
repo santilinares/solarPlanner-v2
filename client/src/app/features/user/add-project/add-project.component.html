@@ -1,0 +1,535 @@
+<div class="add-project-page">
+  <header class="configure-sticky-header">
+    <div class="step-nav-bar">
+      <div class="step-nav-left">
+        <p-button
+          [label]="i18n.t('wizard.back')"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          [rounded]="true"
+          [disabled]="activeStep() === 0"
+          (onClick)="onBack()"
+          size="small"
+        />
+        <p-button
+          [label]="i18n.t('wizard.exitCreate')"
+          icon="pi pi-times"
+          severity="secondary"
+          [outlined]="true"
+          [rounded]="true"
+          (onClick)="onExit()"
+          size="small"
+        />
+      </div>
+
+      <span class="step-nav-mode-label">{{ i18n.t('wizard.createMode') }}</span>
+
+      <div class="step-nav-right">
+        @if (activeStep() < steps().length - 1) {
+          <p-button
+            [label]="stepNextLabel()"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            [rounded]="true"
+            [disabled]="!canProceed()"
+            (onClick)="onNext()"
+            size="small"
+          />
+        } @else {
+          <p-button
+            [label]="i18n.t('projects.createProject')"
+            icon="pi pi-check"
+            [rounded]="true"
+            [loading]="isSubmitting()"
+            [disabled]="!canSubmit()"
+            (onClick)="onSubmit()"
+            size="small"
+          />
+        }
+      </div>
+    </div>
+
+    <nav class="sticky-stepper-row" [attr.aria-label]="i18n.t('projects.createProject')">
+      @for (step of steps(); track step.label; let last = $last) {
+        <button
+          type="button"
+          class="step-btn"
+          [class.step-btn-active]="$index === activeStep()"
+          [class.step-btn-future]="$index > activeStep()"
+          [disabled]="$index > activeStep()"
+          (click)="$index <= activeStep() && goToStep($index)"
+        >
+          <span
+            class="step-icon-wrapper"
+            [class.active]="$index === activeStep()"
+            [class.completed]="$index < activeStep()"
+          >
+            @if ($index < activeStep()) {
+              <span class="material-symbols-outlined">check</span>
+            } @else {
+              {{ $index + 1 }}
+            }
+          </span>
+          <span class="step-label-wrap">
+            <span class="material-symbols-outlined">{{ step.icon }}</span>
+            {{ step.label }}
+          </span>
+        </button>
+        @if (!last) {
+          <span class="step-connector"></span>
+        }
+      }
+    </nav>
+  </header>
+
+  <main class="content-area">
+    <div class="content-shell">
+      @if (activeStep() === 0) {
+        <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">description</span>
+            <div>
+              <h2>{{ i18n.t('wizard.projectBasics') }}</h2>
+              <p>{{ i18n.t('wizard.projectBasicsText') }}</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="projectName">{{ i18n.t('wizard.projectName') }}</label>
+            <input
+              pInputText
+              id="projectName"
+              type="text"
+              [value]="projectName()"
+              (input)="projectName.set($any($event.target).value)"
+              [placeholder]="i18n.t('wizard.projectNamePlaceholder')"
+              class="w-full"
+            />
+            <small class="helper-text">{{ i18n.t('wizard.nameHint') }}</small>
+          </div>
+
+          <div class="form-group">
+            <label for="projectDesc">{{ i18n.t('wizard.description') }}</label>
+            <textarea
+              pTextarea
+              id="projectDesc"
+              [value]="projectDescription()"
+              (input)="projectDescription.set($any($event.target).value)"
+              [placeholder]="i18n.t('wizard.descriptionPlaceholder')"
+              rows="4"
+              class="w-full"
+            ></textarea>
+          </div>
+
+          <div class="feedback-banner feedback-info">
+            <span class="material-symbols-outlined">info</span>
+            <span>{{ i18n.t('wizard.scopeHint') }}</span>
+          </div>
+        </section>
+      }
+
+      @if (activeStep() === 1) {
+        <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">map</span>
+            <div>
+              <h2>{{ i18n.t('wizard.siteArea') }}</h2>
+              <p>{{ i18n.t('wizard.siteAreaText') }}</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>{{ i18n.t('wizard.searchLocation') }}</label>
+            <div class="location-search">
+              <p-iconfield class="search-field">
+                <p-inputicon class="pi pi-search" />
+                <input
+                  pInputText
+                  type="text"
+                  [value]="addressQuery()"
+                  (input)="addressQuery.set($any($event.target).value)"
+                  (keydown.enter)="searchAddress()"
+                  [placeholder]="i18n.t('wizard.searchLocationPlaceholder')"
+                  class="w-full location-input"
+                />
+                <button
+                  type="button"
+                  class="location-target-btn"
+                  [disabled]="isLocating()"
+                  (click)="useCurrentLocation()"
+                  [attr.aria-label]="i18n.t('estimate.useCurrentLocation')"
+                  [title]="i18n.t('estimate.useCurrentLocation')"
+                >
+                  <span class="material-symbols-outlined">location_searching</span>
+                </button>
+              </p-iconfield>
+              <p-button
+                [label]="i18n.t('estimate.search')"
+                [outlined]="true"
+                [loading]="isSearching()"
+                [disabled]="isSearching() || !addressQuery().trim()"
+                (onClick)="searchAddress()"
+                size="small"
+              />
+            </div>
+          </div>
+
+          @if (searchError()) {
+            <div class="feedback-banner feedback-error">
+              <span class="material-symbols-outlined">error</span>
+              <span>{{ searchError() }}</span>
+            </div>
+          }
+
+          @if (addressResult()) {
+            <div class="site-summary-strip">
+              <span class="material-symbols-outlined">pin_drop</span>
+              <strong>{{ addressResult() }}</strong>
+              <span>{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</span>
+            </div>
+          }
+
+          <div class="form-group">
+            <label>{{ i18n.t('wizard.projectArea') }}</label>
+            <div class="map-wrapper">
+              <app-location-map
+                [editable]="true"
+                [centerOnUser]="true"
+                [center]="mapCenter()"
+                (polygonChange)="onPolygonChange($event)"
+                (userLocationFound)="onUserLocationFound($event)"
+              />
+            </div>
+          </div>
+
+          @if (hasDrawnArea()) {
+            <div class="feedback-banner feedback-success">
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>{{ i18n.t('wizard.areaDefined', { vertices: drawnPolygonPoints().length }) }}</span>
+            </div>
+          } @else {
+            <div class="feedback-banner feedback-neutral">
+              <span class="material-symbols-outlined">draw</span>
+              <span>{{ i18n.t('wizard.drawPolygon') }}</span>
+            </div>
+          }
+        </section>
+      }
+
+      @if (activeStep() === 2) {
+        <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">bolt</span>
+            <div>
+              <h2>{{ i18n.t('wizard.energyPriceStep') }}</h2>
+              <p>{{ i18n.t('wizard.energyPriceText') }}</p>
+            </div>
+          </div>
+
+          <div class="energy-layout">
+            <div class="energy-editor">
+              <div class="form-group">
+                <div class="label-row">
+                  <label for="energyPrice">{{ i18n.t('wizard.electricityPrice') }}</label>
+                  <p-tag [value]="currency() + '/kWh'" severity="secondary" [rounded]="true" />
+                </div>
+                <p-inputNumber
+                  inputId="energyPrice"
+                  [ngModel]="energyPrice()"
+                  (ngModelChange)="onPriceEdited($event)"
+                  mode="decimal"
+                  [step]="0.01"
+                  [min]="0"
+                  [minFractionDigits]="2"
+                  [maxFractionDigits]="4"
+                  suffix=" /kWh"
+                  class="w-full"
+                />
+                <small class="helper-text">{{ i18n.t('wizard.billHint') }}</small>
+              </div>
+            </div>
+
+            <div class="suggestion-panel">
+              <div class="suggestion-header">
+                <span class="material-symbols-outlined">query_stats</span>
+                <strong>{{ i18n.t('wizard.entsoeSuggestion') }}</strong>
+              </div>
+              @if (isFetchingPrice()) {
+                <p>{{ i18n.t('wizard.priceLookup') }}</p>
+              } @else if (priceSuggestion() != null) {
+                <span class="suggestion-price">{{ formatPrice(priceSuggestion()) }}</span>
+                <p>Day-ahead market average for {{ detectedCountryCode() || 'the selected country' }}. Treat it as a reference, not your final tariff.</p>
+              } @else {
+                <span class="suggestion-price muted">{{ i18n.t('wizard.noSuggestion') }}</span>
+                <p>{{ priceError() || 'Search a supported European country to request an ENTSO-E suggestion.' }}</p>
+              }
+              @if (priceSource() === 'manual') {
+                <p-tag value="User edited" icon="pi pi-pencil" severity="info" [rounded]="true" />
+              } @else if (priceSource() === 'entsoe') {
+                <p-tag value="Suggested by ENTSO-E" icon="pi pi-check-circle" severity="success" [rounded]="true" />
+              } @else {
+                <p-tag value="Default value" severity="secondary" [rounded]="true" />
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (activeStep() === 3) {
+        <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">solar_power</span>
+            <div>
+              <h2>{{ i18n.t('wizard.installationSetup') }}</h2>
+              <p>{{ i18n.t('wizard.installationSetupText') }}</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="panelSelect">{{ i18n.t('wizard.solarPanel') }}</label>
+            <p-select
+              inputId="panelSelect"
+              [options]="panelOptions()"
+              [ngModel]="selectedPanelId()"
+              (ngModelChange)="selectedPanelId.set($event); onPanelChange()"
+              optionLabel="label"
+              optionValue="value"
+              [filter]="true"
+              [placeholder]="i18n.t('wizard.selectPanel')"
+              class="w-full"
+            />
+          </div>
+
+          @if (selectedPanelData(); as panel) {
+            <div class="panel-info-card">
+              <div>
+                <strong>{{ panel.brand }} {{ panel.model }}</strong>
+                <span>{{ panel.dimensions.width / 1000 | number: '1.1-2' }}m x {{ panel.dimensions.height / 1000 | number: '1.1-2' }}m</span>
+              </div>
+              <div class="panel-tags">
+                <p-tag [value]="panel.wattPeak + 'W'" icon="pi pi-bolt" severity="warn" [rounded]="true" />
+                <p-tag [value]="panel.efficiency + '% eff.'" icon="pi pi-gauge" severity="success" [rounded]="true" />
+              </div>
+            </div>
+          }
+
+          <div class="config-grid">
+            <div class="form-group">
+              <label for="tiltAngle">{{ i18n.t('wizard.tilt') }}</label>
+              <p-inputNumber
+                inputId="tiltAngle"
+                [ngModel]="tiltAngle()"
+                (ngModelChange)="onTiltChange($event)"
+                [min]="0"
+                [max]="90"
+                [showButtons]="true"
+                suffix="°"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="direction">{{ i18n.t('wizard.orientation') }}</label>
+              <p-select
+                inputId="direction"
+                [options]="directionOptions"
+                [ngModel]="selectedDirection()"
+                (ngModelChange)="onDirectionChange($event)"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="panelCount">{{ i18n.t('wizard.panelCount') }}</label>
+              <p-inputNumber
+                inputId="panelCount"
+                [ngModel]="panelCount()"
+                (ngModelChange)="onPanelCountChange($event)"
+                [min]="1"
+                [showButtons]="true"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="rowSpacing">{{ i18n.t('wizard.rowSpacing') }}</label>
+              <p-inputNumber
+                inputId="rowSpacing"
+                [ngModel]="rowSpacing()"
+                (ngModelChange)="onRowSpacingChange($event)"
+                mode="decimal"
+                [step]="0.1"
+                [min]="0"
+                [minFractionDigits]="1"
+                [maxFractionDigits]="2"
+                suffix=" m"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          @if (isCalculating()) {
+            <div class="feedback-banner feedback-neutral">
+              <span class="material-symbols-outlined">sync</span>
+              <span>{{ i18n.t('wizard.calculatingOptimal') }}</span>
+            </div>
+          }
+
+          @if (calculationError()) {
+            <div class="feedback-banner feedback-error">
+              <span class="material-symbols-outlined">error</span>
+              <span>{{ calculationError() }}</span>
+            </div>
+          }
+
+          @if (optimalConfig(); as config) {
+            <div class="capacity-card">
+              <div class="capacity-card-header">
+                <div>
+                  <span class="eyebrow">{{ i18n.t('wizard.liveCapacity') }}</span>
+                  <strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong>
+                </div>
+                <p-tag
+                  [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+                  [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+                  [icon]="isUsingOptimalConfig() ? 'pi pi-check-circle' : 'pi pi-pencil'"
+                  [rounded]="true"
+                />
+              </div>
+              <div class="metric-grid">
+                <div>
+                  <span>{{ i18n.t('wizard.recommendedPanels') }}</span>
+                  <strong>{{ config.recommendedPanels }}</strong>
+                </div>
+                <div>
+                  <span>{{ i18n.t('wizard.recommendedSpacing') }}</span>
+                  <strong>{{ config.recommendedRowSpacing | number: '1.1-2' }} m</strong>
+                </div>
+                <div>
+                  <span>{{ i18n.t('wizard.preliminaryRange') }}</span>
+                  <strong>{{ formatProductionRange(config) }}</strong>
+                </div>
+                <div>
+                  <span>{{ i18n.t('wizard.areaCoverage') }}</span>
+                  <strong>{{ config.coverage | number: '1.0-1' }}%</strong>
+                </div>
+              </div>
+
+              <div class="preliminary-note">
+                <span class="material-symbols-outlined">info</span>
+                <span>{{ i18n.t('wizard.estimateWarning') }}</span>
+              </div>
+
+              @if (!isUsingOptimalConfig()) {
+                <div class="optimal-hint">
+                  <span class="material-symbols-outlined">info</span>
+                  <span>{{ i18n.t('wizard.customActive') }}</span>
+                  <button type="button" class="link-btn" (click)="restoreOptimal()">{{ i18n.t('wizard.restoreOptimal') }}</button>
+                </div>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      @if (activeStep() === 4) {
+        <section class="step-section animate-fade-in-up">
+          <div class="section-heading">
+            <span class="section-icon material-symbols-outlined">fact_check</span>
+            <div>
+              <h2>{{ i18n.t('wizard.reviewCreate') }}</h2>
+              <p>{{ i18n.t('wizard.reviewCreateText') }}</p>
+            </div>
+          </div>
+
+          <div class="review-grid">
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">description</span>{{ i18n.t('wizard.project') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(0)" [attr.aria-label]="i18n.t('review.editProject')">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item"><span>{{ i18n.t('wizard.name') }}</span><strong>{{ projectName() }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.description') }}</span><strong>{{ projectDescription() || i18n.t('wizard.noDescription') }}</strong></div>
+            </article>
+
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">map</span>{{ i18n.t('wizard.site') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(1)" [attr.aria-label]="i18n.t('review.editSite')">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item"><span>{{ i18n.t('wizard.address') }}</span><strong>{{ addressResult() }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.coordinates') }}</span><strong>{{ addressLat().toFixed(4) }}, {{ addressLng().toFixed(4) }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('common.country') }}</span><strong>{{ detectedCountry() || i18n.t('wizard.detectedOnServer') }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('configure.timezone') }}</span><strong>{{ detectedTimezone() || i18n.t('wizard.detectedOnServer') }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('projectView.area') }}</span><strong>{{ polygonArea() > 0 ? (polygonArea() | number: '1.0-0') + ' m²' : drawnPolygonPoints().length + ' vertices' }}</strong></div>
+            </article>
+
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">bolt</span>{{ i18n.t('wizard.energyPriceStep') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(2)" [attr.aria-label]="i18n.t('review.editEnergyPrice')">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item"><span>{{ i18n.t('review.selectedPrice') }}</span><strong>{{ formatPrice(energyPrice()) }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('review.suggestion') }}</span><strong>{{ formatPrice(priceSuggestion()) }}</strong></div>
+              <p class="review-note">{{ i18n.t('review.energyPriceNote') }}</p>
+            </article>
+
+            <article class="review-card">
+              <header>
+                <h3><span class="material-symbols-outlined">solar_power</span>{{ i18n.t('wizard.installationStep') }}</h3>
+                <button type="button" class="icon-btn" (click)="goToStep(3)" [attr.aria-label]="i18n.t('review.editInstallation')">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </header>
+              <div class="review-item">
+                <span>{{ i18n.t('wizard.panel') }}</span>
+                <strong>
+                  @if (selectedPanelData(); as panel) {
+                    {{ panel.brand }} {{ panel.model }}
+                  } @else {
+                    —
+                  }
+                </strong>
+              </div>
+              <div class="review-item"><span>{{ i18n.t('projects.panels') }}</span><strong>{{ panelCount() }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.tilt') }}</span><strong>{{ tiltAngle() }}°</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.orientation') }}</span><strong>{{ directionLabel(selectedDirection()) }}</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.rowSpacing') }}</span><strong>{{ rowSpacing() | number: '1.1-2' }} m</strong></div>
+              <div class="review-item"><span>{{ i18n.t('wizard.totalCapacity') }}</span><strong>{{ totalPowerKWp() | number: '1.1-2' }} kWp</strong></div>
+            </article>
+          </div>
+
+          <div class="output-card">
+            <div>
+              <span class="eyebrow">{{ i18n.t('wizard.preliminaryOutput') }}</span>
+              <strong>{{ formatProductionRange(optimalConfig()) }}</strong>
+              <small>{{ i18n.t('wizard.estimateWarning') }}</small>
+            </div>
+            <div>
+              <span class="eyebrow">{{ i18n.t('wizard.preliminarySavings') }}</span>
+              <strong>{{ annualSavingsEstimate() != null ? (annualSavingsEstimate() | number: '1.0-0') + ' ' + currency() : '—' }}</strong>
+            </div>
+            <div>
+              <span class="eyebrow">{{ i18n.t('wizard.configuration') }}</span>
+              <p-tag
+                [value]="isUsingOptimalConfig() ? 'Optimal' : 'Custom'"
+                [severity]="isUsingOptimalConfig() ? 'success' : 'info'"
+                [rounded]="true"
+              />
+            </div>
+          </div>
+        </section>
+      }
+    </div>
+  </main>
+</div>
+
+<p-confirmDialog />

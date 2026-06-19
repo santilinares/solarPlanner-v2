@@ -1,8 +1,10 @@
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import { createApp } from './app';
 import { connectDatabase } from './config/database.config';
 import { initializeEmailTransporter } from './config/email.config';
 import { loadEnv } from './env';
+import { initializeScheduler } from './services/scheduler.service';
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +19,9 @@ async function bootstrap(): Promise<void> {
 
     // Connect to MongoDB
     await connectDatabase(env.MONGODB_URI);
+
+    // Initialize nightly production refresh scheduler
+    await initializeScheduler();
 
     // Initialize email transporter
     initializeEmailTransporter({
@@ -37,18 +42,20 @@ async function bootstrap(): Promise<void> {
     });
 
     // Graceful shutdown
-    const gracefulShutdown = async (signal: string) => {
+    const gracefulShutdown = (signal: string) => {
       console.log(`\n⚠️ ${signal} received, shutting down gracefully...`);
-      
-      server.close(async () => {
+
+      server.close(() => {
         console.log('✅ HTTP server closed');
-        
-        // Close database connection
-        const mongoose = await import('mongoose');
-        await mongoose.connection.close();
-        console.log('✅ Database connection closed');
-        
-        process.exit(0);
+
+        if (mongoose.connection.readyState !== mongoose.ConnectionStates.disconnected) {
+          mongoose.connection.close().then(() => {
+            console.log('✅ Database connection closed');
+            process.exit(0);
+          }).catch(() => process.exit(0));
+        } else {
+          process.exit(0);
+        }
       });
 
       // Force shutdown after 10 seconds
@@ -80,4 +87,4 @@ async function bootstrap(): Promise<void> {
 }
 
 // Start the server
-bootstrap();
+void bootstrap();

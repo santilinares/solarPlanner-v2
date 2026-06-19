@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { corsMiddleware } from './middleware/cors.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import routes from './routes';
@@ -16,9 +17,9 @@ export function createApp(): Application {
   // CORS middleware
   app.use(corsMiddleware);
 
-  // Body parsing middleware
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
   // Health check endpoint
   app.get('/health', (_req: Request, res: Response) => {
@@ -28,9 +29,6 @@ export function createApp(): Application {
       uptime: process.uptime(),
     });
   });
-
-  // TODO: Metrics endpoint (Prometheus format)
-  // app.get('/metrics', metricsHandler);
 
   // API routes
   app.use('/api', routes);

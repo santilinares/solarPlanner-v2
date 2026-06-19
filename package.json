@@ -20,10 +20,21 @@
     "lint:server": "cd server && npm run lint",
     "lint": "npm run lint:server && npm run lint:client"
   },
-  "keywords": ["solar", "planner", "angular", "nodejs", "typescript"],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "solar",
+    "planner",
+    "angular",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "Santiago Linares Oliveira",
+  "license": "MIT",
   "devDependencies": {
     "concurrently": "^9.1.0"
+  },
+  "dependencies": {
+    "@genkit-ai/google-genai": "^1.16.1",
+    "@primeuix/themes": "^2.0.3",
+    "genkit": "^1.16.1"
   }
 }

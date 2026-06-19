@@ -1,0 +1,39 @@
+import { Component, ChangeDetectionStrategy, inject, input, output, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
+import { DividerModule } from 'primeng/divider';
+import { TooltipModule } from 'primeng/tooltip';
+import { Coordinates } from '@core/models';
+import { LocationMapComponent } from '@shared/components/location-map/location-map.component';
+import { LanguageService } from '@core/services/language.service';
+
+@Component({
+  selector: 'app-configure-location-step',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DecimalPipe, InputTextModule, ButtonModule, DividerModule, TooltipModule, LocationMapComponent],
+  templateUrl: './configure-location-step.component.html',
+  styleUrls: ['./configure-location-step.component.scss'],
+})
+export class ConfigureLocationStepComponent {
+  readonly i18n = inject(LanguageService);
+  readonly polygonCoords = input.required<Coordinates[]>();
+  readonly mapLat = input<number | null>(null);
+  readonly mapLng = input<number | null>(null);
+  readonly mapCenter = input<Coordinates | null>(null);
+  readonly isSearching = input<boolean>(false);
+  readonly searchError = input<string | null>(null);
+  readonly areaLabel = input<string>('0 m²');
+
+  readonly polygonChange = output<Coordinates[]>();
+  readonly addressSearch = output<string>();
+
+  readonly addressQuery = signal('');
+
+  triggerSearch(): void {
+    const query = this.addressQuery().trim();
+    if (query) {
+      this.addressSearch.emit(query);
+    }
+  }
+}

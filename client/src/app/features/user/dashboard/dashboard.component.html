@@ -1,0 +1,155 @@
+<div class="dashboard animate-fade-in-up">
+  <div class="dashboard-header">
+    <div>
+      <h1>
+        <i class="pi pi-home icon-lg icon-primary"></i>
+        {{ i18n.t('dashboard.welcome', { name: user()?.fullName }) }}
+      </h1>
+      <p class="welcome-text">{{ i18n.t('dashboard.overview') }}</p>
+    </div>
+    <p-button
+      [label]="i18n.t('dashboard.newProject')"
+      icon="pi pi-plus"
+      routerLink="/projects/add"
+      class="btn-solar"
+    ></p-button>
+  </div>
+
+  @if (loading()) {
+    <div class="dashboard-grid">
+      @for (item of [1,2,3,4]; track item) {
+        <p-card class="stat-card">
+          <p-skeleton height="1.5rem" class="mb-2"></p-skeleton>
+          <p-skeleton height="3rem" width="60%"></p-skeleton>
+        </p-card>
+      }
+    </div>
+  } @else if (error()) {
+    <p-message severity="error" Content="error()" class="w-full"></p-message>
+  } @else if (stats()) {
+    <div class="dashboard-grid stagger-children">
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon stat-icon-primary">
+          <i class="pi pi-folder icon-lg icon-primary"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.myProjects') }}</h3>
+        <p class="stat-value">{{ stats()!.totalProjects }}</p>
+        <a routerLink="/projects/all" class="stat-link">
+          <i class="pi pi-arrow-right icon-sm"></i> {{ i18n.t('common.viewAll') }}
+        </a>
+      </p-card>
+
+      <p-card class="stat-card hover-lift solar-accent-card">
+        <div class="stat-icon stat-icon-solar">
+          <i class="pi pi-bolt icon-lg icon-solar"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.annualProduction') }}</h3>
+        <p class="stat-value solar-highlight">{{ stats()!.totalProduction.toFixed(2) }}</p>
+        <span class="stat-unit">{{ i18n.t('dashboard.kwhYear') }}</span>
+      </p-card>
+
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon stat-icon-tech">
+          <i class="pi pi-th-large icon-lg icon-blue"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.activePanels') }}</h3>
+        <p class="stat-value">{{ stats()!.totalPanels }}</p>
+        <span class="stat-unit">{{ i18n.t('dashboard.panelsUnit') }}</span>
+      </p-card>
+
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon stat-icon-primary">
+          <i class="pi pi-chart-line icon-lg icon-primary"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.totalCapacity') }}</h3>
+        <p class="stat-value">{{ stats()!.totalCapacity.toFixed(2) }}</p>
+        <span class="stat-unit">kW</span>
+      </p-card>
+    </div>
+
+    @if (stats()!.todayProduction > 0 || stats()!.next6DaysTotal > 0 || stats()!.past6DaysTotal > 0) {
+    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+      <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--p-text-color); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="pi pi-bolt icon-lg icon-solar"></i>
+        {{ i18n.t('dashboard.productionOverview') }}
+      </h2>
+    </div>
+    <div class="dashboard-grid stagger-children" style="margin-bottom: 3rem;">
+      <p-card class="stat-card hover-lift solar-accent-card">
+        <div class="stat-icon stat-icon-solar">
+          <i class="pi pi-sun icon-lg icon-solar"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.todayProduction') }}</h3>
+        <p class="stat-value solar-highlight">{{ stats()!.todayProduction.toFixed(2) }}</p>
+        <span class="stat-unit">{{ i18n.t('dashboard.kwhToday') }}</span>
+      </p-card>
+
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon stat-icon-tech">
+          <i class="pi pi-calendar icon-lg icon-blue"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.nextForecast') }}</h3>
+        <p class="stat-value">{{ stats()!.next6DaysTotal.toFixed(2) }}</p>
+        <span class="stat-unit">{{ i18n.t('dashboard.kwhForecast') }}</span>
+      </p-card>
+
+      <p-card class="stat-card hover-lift">
+        <div class="stat-icon stat-icon-primary">
+          <i class="pi pi-history icon-lg icon-primary"></i>
+        </div>
+        <h3>{{ i18n.t('dashboard.pastEstimates') }}</h3>
+        <p class="stat-value">{{ stats()!.past6DaysTotal.toFixed(2) }}</p>
+        <span class="stat-unit">{{ i18n.t('dashboard.kwhEstimated') }}</span>
+      </p-card>
+    </div>
+    }
+
+
+    @if (stats()!.recentProjects.length > 0) {
+      <div class="recent-projects animate-fade-in-up">
+        <div class="section-header">
+          <h2>
+            <i class="pi pi-clock icon-lg icon-primary"></i>
+            {{ i18n.t('dashboard.recentProjects') }}
+          </h2>
+          <p-button
+            [label]="i18n.t('common.viewAll')"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            [outlined]="true"
+            routerLink="/projects/all"
+            size="small"
+          ></p-button>
+        </div>
+        <div class="projects-grid stagger-children">
+          @for (project of stats()!.recentProjects; track project._id) {
+            <p-card class="project-card hover-lift" [routerLink]="['/projects', project._id]">
+              <div class="project-header">
+                <div class="project-icon">
+                  <i class="pi pi-map-marker icon-md icon-primary"></i>
+                </div>
+                <h3>{{ project.name }}</h3>
+              </div>
+              <div class="project-details">
+                <span class="detail-item">
+                  <i class="pi pi-globe icon-sm icon-primary"></i>
+                  {{ project.country || i18n.t('common.na') }}
+                </span>
+                <span class="detail-item">
+                  <i class="pi pi-chart-bar icon-sm icon-primary"></i>
+                  {{ project.surface || 0 }} m²
+                </span>
+              </div>
+              <div class="project-action">
+                <span class="action-link">
+                  {{ i18n.t('common.viewDetails') }}
+                  <i class="pi pi-arrow-right icon-sm"></i>
+                </span>
+              </div>
+            </p-card>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

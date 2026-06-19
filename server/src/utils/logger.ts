@@ -13,13 +13,6 @@ const logger = pino({
     },
   },
   timestamp: pino.stdTimeFunctions.isoTime,
-  // TODO: Add pretty print for development
-  // transport: process.env.NODE_ENV !== 'production' ? {
-  //   target: 'pino-pretty',
-  //   options: {
-  //     colorize: true
-  //   }
-  // } : undefined
 });
 
 /**

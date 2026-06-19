@@ -1,0 +1,76 @@
+<div class="step-card map-edit-card">
+  <div class="step-card-header">
+    <div class="step-card-icon location-icon">
+      <span class="material-symbols-outlined">location_searching</span>
+    </div>
+    <div>
+      <h2>{{ i18n.t('configure.locationArea') }}</h2>
+      <p>{{ i18n.t('configure.locationAreaText') }}</p>
+    </div>
+  </div>
+
+  <p-divider />
+
+  <div class="location-search">
+    <span class="p-input-icon-right location-search-input">
+      <input
+        pInputText
+        type="text"
+        [placeholder]="i18n.t('configure.searchPlace')"
+        [value]="addressQuery()"
+        (input)="addressQuery.set($any($event.target).value)"
+        (keydown.enter)="triggerSearch()"
+        [attr.aria-label]="i18n.t('wizard.searchLocation')"
+        class="w-full"
+      />
+    </span>
+    <p-button
+      icon="pi pi-search"
+      [rounded]="true"
+      [loading]="isSearching()"
+      [disabled]="isSearching() || !addressQuery().trim()"
+      (onClick)="triggerSearch()"
+      [pTooltip]="i18n.t('wizard.searchLocation')"
+      [attr.aria-label]="i18n.t('configure.goToLocation')"
+      size="small"
+    />
+  </div>
+
+  @if (searchError()) {
+    <small class="field-error">{{ searchError() }}</small>
+  }
+
+  <div class="map-container">
+    <app-location-map
+      [editable]="true"
+      [centerOnUser]="mapLat() == null || mapLng() == null"
+      [center]="mapCenter()"
+      [lat]="mapLat() ?? 0"
+      [lng]="mapLng() ?? 0"
+      [polygon]="polygonCoords()"
+      (polygonChange)="polygonChange.emit($event)"
+    />
+  </div>
+
+  @if (polygonCoords().length === 0) {
+    <div class="map-instructions">
+      <i class="pi pi-info-circle"></i>
+      <span>{{ i18n.t('wizard.drawPolygon') }}</span>
+    </div>
+  } @else {
+    <div class="map-status">
+      <i class="pi pi-check-circle"></i>
+      <span>{{ i18n.t('configure.polygonDefined', { points: polygonCoords().length }) }}</span>
+    </div>
+    <div class="location-metrics">
+      <div>
+        <span>{{ i18n.t('projectView.area') }}</span>
+        <strong>{{ areaLabel() }}</strong>
+      </div>
+      <div>
+        <span>{{ i18n.t('configure.centroid') }}</span>
+        <strong>{{ mapLat() != null && mapLng() != null ? (mapLat() | number: '1.4-4') + ', ' + (mapLng() | number: '1.4-4') : '—' }}</strong>
+      </div>
+    </div>
+  }
+</div>

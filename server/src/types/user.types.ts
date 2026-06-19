@@ -7,12 +7,15 @@ export interface UserResponse {
   fullName: string;
   email?: string;
   role: 'user' | 'admin';
+  language: 'en' | 'es';
   method: 'local' | 'google';
   createdAt: string;
+  projectCount?: number;
 }
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   user: UserResponse;
 }
 

@@ -1,149 +1,150 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { PasswordModule } from 'primeng/password';
+import { CardModule } from 'primeng/card';
+import { MessageModule } from 'primeng/message';
 import { AuthService } from '@core/services';
+import { LanguageService } from '@core/services/language.service';
+import { LoginRequest, getErrorMessage } from '@core/models';
+import { environment } from '@environments/environment';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    ButtonModule,
+    InputTextModule,
+    PasswordModule,
+    CardModule,
+    MessageModule,
+  ],
   template: `
-    <div class="login-page">
-      <div class="login-card">
-        <h2>Sign In</h2>
+    <div class="login-page animate-fade-in-up">
+      <p-card class="login-card">
+        <ng-template pTemplate="header">
+          <div class="card-header">
+            <i class="pi pi-sign-in solar-icon"></i>
+            <h2>{{ i18n.t('auth.login.title') }}</h2>
+            <p class="subtitle">{{ i18n.t('auth.login.subtitle') }}</p>
+          </div>
+        </ng-template>
+
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-          <div class="form-group">
-            <label for="email">Email</label>
+          <div class="form-field">
+            <label for="email">{{ i18n.t('auth.email') }}</label>
             <input
+              pInputText
               id="email"
               type="email"
               formControlName="email"
               placeholder="your@email.com"
-              [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+              class="w-full"
+              [class.ng-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
             />
             @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-              <span class="error-message">Valid email is required</span>
+              <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.emailRequired') }}
+              </small>
             }
           </div>
 
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input
-              id="password"
-              type="password"
+          <div class="form-field">
+            <label for="password">{{ i18n.t('auth.password') }}</label>
+            <p-password
               formControlName="password"
-              placeholder="••••••••"
-              [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-            />
+              [placeholder]="i18n.t('auth.passwordPlaceholder')"
+              [toggleMask]="true"
+              [feedback]="false"
+              class="w-full"
+              inputclass="w-full"
+            ></p-password>
             @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-              <span class="error-message">Password is required</span>
+              <small class="error-text" animate.enter="animate-fade-in-up" animate.leave="animate-fade-out">
+                <i class="pi pi-exclamation-circle"></i> {{ i18n.t('auth.passwordRequired') }}
+              </small>
             }
           </div>
 
           @if (errorMessage()) {
-            <div class="alert alert-error">{{ errorMessage() }}</div>
+            <p-message
+              animate.enter="animate-shake"
+              animate.leave="animate-fade-out"
+              severity="error"
+              [textContent]="errorMessage()"
+              class="w-full"
+            ></p-message>
           }
 
-          <button type="submit" [disabled]="loading() || loginForm.invalid" class="btn btn-primary">
-            {{ loading() ? 'Signing in...' : 'Sign In' }}
-          </button>
+          <div class="auth-btn-row">
+            <p-button
+              type="submit"
+              [label]="i18n.t('auth.signIn')"
+              icon="pi pi-sign-in"
+              [disabled]="loading() || loginForm.invalid"
+              [loading]="loading()"
+            ></p-button>
+
+            <p-button
+              type="button"
+              [label]="i18n.t('auth.google')"
+              [disabled]="loading()"
+              [loading]="googleLoading()"
+              severity="secondary"
+              (onClick)="signInWithGoogle()"
+            >
+              <ng-template pTemplate="icon">
+                <img src="assets/google-icon.svg" alt="Google" class="google-icon" />
+              </ng-template>
+            </p-button>
+          </div>
 
           <div class="form-links">
-            <a routerLink="/forgot_password">Forgot password?</a>
-            <a routerLink="/registration">Create account</a>
+            <a routerLink="/forgot_password" class="link">
+              <i class="pi pi-question-circle"></i> {{ i18n.t('auth.forgotPassword') }}
+            </a>
+            <a routerLink="/registration" class="link">
+              <i class="pi pi-user-plus"></i> {{ i18n.t('auth.createAccountLink') }}
+            </a>
           </div>
         </form>
-      </div>
+      </p-card>
     </div>
   `,
-  styles: [`
-    .login-page {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 60vh;
+  styles: [
+    `
+      .login-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+        padding: 2rem 1rem;
 
-      .login-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        width: 100%;
-        max-width: 400px;
-
-        h2 {
-          text-align: center;
-          margin-bottom: 2rem;
-          color: #333;
-        }
-
-        .form-group {
+        .form-field {
           margin-bottom: 1.5rem;
 
           label {
             display: block;
             margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #333;
+            font-weight: 600;
+            color: var(--p-text-color);
+            font-size: 0.95rem;
           }
 
-          input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-
-            &.error {
-              border-color: #f44336;
-            }
-
-            &:focus {
-              outline: none;
-              border-color: #1976d2;
-            }
-          }
-
-          .error-message {
+          .error-text {
             display: block;
-            color: #f44336;
+            color: var(--p-red-500);
             font-size: 0.875rem;
-            margin-top: 0.25rem;
-          }
-        }
+            margin-top: 0.5rem;
 
-        .alert {
-          padding: 0.75rem;
-          border-radius: 4px;
-          margin-bottom: 1rem;
-
-          &.alert-error {
-            background-color: #ffebee;
-            color: #c62828;
-          }
-        }
-
-        .btn {
-          width: 100%;
-          padding: 0.75rem;
-          border: none;
-          border-radius: 4px;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
-
-          &.btn-primary {
-            background-color: #1976d2;
-            color: white;
-
-            &:hover:not(:disabled) {
-              background-color: #1565c0;
-            }
-
-            &:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
+            i {
+              margin-right: 0.25rem;
             }
           }
         }
@@ -151,51 +152,206 @@ import { AuthService } from '@core/services';
         .form-links {
           display: flex;
           justify-content: space-between;
-          margin-top: 1rem;
+          margin-top: 1.5rem;
+          flex-wrap: wrap;
+          gap: 0.5rem;
 
-          a {
-            color: #1976d2;
+          .link {
+            color: var(--p-primary-500);
             text-decoration: none;
-            font-size: 0.875rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+
+            i {
+              margin-right: 0.25rem;
+              font-size: 0.85rem;
+            }
 
             &:hover {
+              color: var(--p-primary-600);
               text-decoration: underline;
             }
           }
         }
+
+        .auth-btn-row {
+          display: flex;
+          gap: 0.75rem;
+          width: 100%;
+
+          @media (max-width: 480px) {
+            flex-direction: column;
+          }
+        }
+
+        .google-icon {
+          width: 1.1rem;
+          height: 1.1rem;
+          margin-right: 0.4rem;
+        }
       }
-    }
-  `]
+
+
+      .login-card {
+        width: 100%;
+        max-width: 30rem;
+        box-shadow: var(--shadow-xl);
+      }
+
+      .card-header {
+        text-align: center;
+
+        .solar-icon {
+          font-size: 3rem;
+          color: var(--p-primary-contrast-color);
+          margin-bottom: 1rem;
+          display: block;
+        }
+
+        h2 {
+          color: var(--p-primary-contrast-color);
+          margin: 0 0 0.5rem;
+          font-size: 2rem;
+          font-weight: 700;
+        }
+
+        .subtitle {
+          color: color-mix(in srgb, var(--p-primary-contrast-color) 90%, transparent);
+          font-size: 0.95rem;
+          margin: 0;
+        }
+      }
+
+      :host ::ng-deep {
+        .login-card .p-card-header {
+          padding: 2.5rem 2rem 1rem;
+          background: linear-gradient(135deg, var(--p-primary-400) 0%, var(--p-primary-500) 100%);
+          color: var(--p-primary-contrast-color);
+          border-top-left-radius: var(--p-card-border-radius);
+          border-top-right-radius: var(--p-card-border-radius);
+        }
+
+        .login-card .p-card-body {
+          padding: 2rem;
+        }
+
+        .login-page .p-inputtext,
+        .login-page .p-password .p-password-input {
+          transition: all 0.2s ease;
+
+          &:focus {
+            border-color: var(--p-primary-500);
+            box-shadow: var(--focus-ring);
+          }
+
+          &.ng-invalid.ng-touched {
+            border-color: var(--p-red-500);
+          }
+        }
+
+        .login-page .p-password,
+        .login-page .p-password .p-password-input {
+          width: 100%;
+        }
+
+        .login-page .p-message {
+          margin-bottom: 1.5rem;
+        }
+
+        .auth-btn-row > p-button {
+          flex: 1 1 auto;
+          min-width: 0;
+
+          .p-button {
+            width: 100%;
+            white-space: nowrap;
+          }
+        }
+      }
+    `,
+  ],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  readonly i18n = inject(LanguageService);
 
   loading = signal(false);
+  googleLoading = signal(false);
   errorMessage = signal('');
+  private returnUrl = '/projects';
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', Validators.required]
+    password: ['', Validators.required],
   });
+
+  ngOnInit(): void {
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/projects';
+  }
+
+  signInWithGoogle(): void {
+    type GoogleAccounts = {
+      accounts: {
+        id: {
+          initialize: (cfg: object) => void;
+          prompt: () => void;
+        };
+      };
+    };
+    const google = (window as unknown as { google?: GoogleAccounts }).google;
+    if (!google) return;
+
+    google.accounts.id.initialize({
+      client_id: environment.googleClientId,
+      callback: (response: { credential: string }) => {
+        this.googleLoading.set(false);
+        this.loading.set(true);
+        this.errorMessage.set('');
+        this.authService.loginWithGoogle(response.credential).subscribe({
+          next: () => {
+            this.router.navigate([this.returnUrl]).catch(() => {
+              window.location.href = this.returnUrl;
+            });
+          },
+          error: (err: unknown) => {
+            this.loading.set(false);
+            this.errorMessage.set(getErrorMessage(err, this.i18n.t('auth.googleFailed')));
+          },
+          complete: () => {
+            this.loading.set(false);
+          },
+        });
+      },
+    });
+
+    this.googleLoading.set(true);
+    google.accounts.id.prompt();
+  }
 
   onSubmit(): void {
     if (this.loginForm.valid) {
       this.loading.set(true);
       this.errorMessage.set('');
 
-      this.authService.login(this.loginForm.value).subscribe({
+      const credentials = this.loginForm.value as LoginRequest;
+
+      this.authService.login(credentials).subscribe({
         next: () => {
-          this.router.navigate(['/projects']);
+          this.router.navigate([this.returnUrl]).catch(() => {
+            window.location.href = this.returnUrl;
+          });
         },
-        error: (err) => {
+        error: (err: unknown) => {
           this.loading.set(false);
-          this.errorMessage.set(err.error?.message || 'Login failed. Please try again.');
+          this.errorMessage.set(getErrorMessage(err, this.i18n.t('auth.loginFailed')));
         },
         complete: () => {
           this.loading.set(false);
-        }
+        },
       });
     }
   }

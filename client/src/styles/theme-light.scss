@@ -1,0 +1,24 @@
+// Solar Planner — Light Theme Bridge
+// Minimal custom properties for tokens not exposed by PrimeNG Aura preset.
+// Use PrimeNG tokens (--p-*) directly wherever possible.
+
+:root {
+  // Legacy semantic tokens - migrate components to PrimeNG tokens over time
+  --text-color-secondary: var(--p-text-muted-color);
+  --text-color-muted:     var(--p-text-muted-color);
+  --surface-border:       var(--p-content-border-color);
+  --surface-hover:        var(--p-content-hover-background);
+  
+  // Error state (PrimeNG has --p-red-* but components may reference --red-500)
+  --red-500: var(--p-red-500);
+
+  // Utility tokens
+  --shadow-sm: var(--p-shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  --shadow-md: var(--p-shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  --shadow-lg: var(--p-shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  --shadow-xl: var(--p-shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+  
+  --focus-ring: 0 0 0 0.2rem var(--p-focus-ring-color);
+  --border-radius: var(--p-content-border-radius);
+  --font-family: var(--p-font-family, 'Inter', 'Segoe UI', system-ui, sans-serif);
+}

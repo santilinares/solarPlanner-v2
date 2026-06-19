@@ -1,11 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '@environments/environment';
-import { Panel, PanelCreateRequest, PanelUpdateRequest, PaginatedResponse } from '../models';
+import { Panel, PanelCreateRequest, PanelUpdateRequest } from '../models';
+
+export interface PanelListResponse {
+  panels: Panel[];
+  total: number;
+}
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PanelService {
   private readonly http = inject(HttpClient);
@@ -14,10 +20,17 @@ export class PanelService {
   /**
    * Get all panels
    */
-  getAllPanels(page = 1, limit = 20): Observable<PaginatedResponse<Panel>> {
-    return this.http.get<PaginatedResponse<Panel>>(this.apiUrl, {
-      params: { page: page.toString(), limit: limit.toString() }
+  getAllPanels(page = 1, limit = 20): Observable<PanelListResponse> {
+    return this.http.get<PanelListResponse>(this.apiUrl, {
+      params: { page: page.toString(), limit: limit.toString() },
     });
+  }
+
+  /**
+   * Get all panels available to user
+   */
+  getPanels(): Observable<Panel[]> {
+    return this.http.get<{ panels: Panel[] }>(this.apiUrl).pipe(map((response) => response.panels));
   }
 
   /**
@@ -49,9 +62,12 @@ export class PanelService {
   }
 
   /**
-   * Search panels by criteria
+   * Search/filter panels via GET query params
    */
-  searchPanels(criteria: Partial<Panel>): Observable<Panel[]> {
-    return this.http.post<Panel[]>(`${this.apiUrl}/search`, criteria);
+  searchPanels(filters: { search?: string; technology?: string } = {}): Observable<PanelListResponse> {
+    const params: Record<string, string> = {};
+    if (filters.search) params['search'] = filters.search;
+    if (filters.technology) params['technology'] = filters.technology;
+    return this.http.get<PanelListResponse>(this.apiUrl, { params });
   }
 }

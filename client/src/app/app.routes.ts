@@ -3,6 +3,87 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
+  // User routes (protected)
+  {
+    path: 'projects',
+    loadComponent: () => import('./layouts/user-layout/user-layout.component')
+      .then(m => m.UserLayoutComponent),
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'add',
+        loadComponent: () => import('./features/user/add-project/add-project.component')
+          .then(m => m.AddProjectComponent),
+      },
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () => import('./features/user/dashboard/dashboard.component')
+          .then(m => m.DashboardComponent)
+      },
+      {
+        path: 'all',
+        loadComponent: () => import('./features/user/user-projects/user-projects.component')
+          .then(m => m.UserProjectsComponent)
+      },
+      {
+        path: 'settings',
+        redirectTo: 'profile',
+        pathMatch: 'full',
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/user/profile/profile.component')
+          .then(m => m.ProfileComponent)
+      },
+      {
+        path: 'management',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component')
+          .then(m => m.AdminDashboardComponent)
+      },
+      {
+        path: 'management/users',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/users-list/users-list.component')
+          .then(m => m.UsersListComponent)
+      },
+      {
+        path: 'management/panels',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/user/panel-list/panel-list.component')
+          .then(m => m.PanelListComponent)
+      },
+      {
+        path: 'panels',
+        loadComponent: () => import('./features/user/panel-list/panel-list.component')
+          .then(m => m.PanelListComponent)
+      },
+      {
+        path: ':id',
+        loadComponent: () => import('./features/user/project-view/project-view.component')
+          .then(m => m.ProjectViewComponent)
+      },
+      {
+        path: ':id/configure',
+        loadComponent: () => import('./features/user/configure-project/configure-project.component')
+          .then(m => m.ConfigureProjectComponent)
+      }
+    ]
+  },
+
+  // Legacy panels routes
+  {
+    path: 'panels',
+    pathMatch: 'full',
+    redirectTo: '/projects/panels'
+  },
+  {
+    path: 'panels/all',
+    pathMatch: 'full',
+    redirectTo: '/projects/panels'
+  },
+
   // Visitor routes (public)
   {
     path: '',
@@ -11,6 +92,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        pathMatch: 'full',
         loadComponent: () => import('./features/visitor/landing-page/landing-page.component')
           .then(m => m.LandingPageComponent)
       },
@@ -33,81 +115,11 @@ export const routes: Routes = [
         path: 'reset_password/:id/:token',
         loadComponent: () => import('./features/visitor/reset-password/reset-password.component')
           .then(m => m.ResetPasswordComponent)
-      }
-    ]
-  },
-
-  // User routes (protected)
-  {
-    path: 'projects',
-    loadComponent: () => import('./layouts/user-layout/user-layout.component')
-      .then(m => m.UserLayoutComponent),
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        loadComponent: () => import('./features/user/dashboard/dashboard.component')
-          .then(m => m.DashboardComponent)
       },
       {
-        path: 'add',
-        loadComponent: () => import('./features/user/add-project/add-project.component')
-          .then(m => m.AddProjectComponent)
-      },
-      {
-        path: 'all',
-        loadComponent: () => import('./features/user/user-projects/user-projects.component')
-          .then(m => m.UserProjectsComponent)
-      },
-      {
-        path: ':id',
-        loadComponent: () => import('./features/user/view-project/view-project.component')
-          .then(m => m.ViewProjectComponent)
-      }
-    ]
-  },
-
-  // Panels routes (protected)
-  {
-    path: 'panels',
-    loadComponent: () => import('./layouts/user-layout/user-layout.component')
-      .then(m => m.UserLayoutComponent),
-    canActivate: [authGuard],
-    children: [
-      {
-        path: 'all',
-        loadComponent: () => import('./features/user/panel-list/panel-list.component')
-          .then(m => m.PanelListComponent)
-      }
-    ]
-  },
-
-  // Admin routes (admin only)
-  {
-    path: 'admin',
-    loadComponent: () => import('./layouts/admin-layout/admin-layout.component')
-      .then(m => m.AdminLayoutComponent),
-    canActivate: [adminGuard],
-    children: [
-      {
-        path: '',
-        loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component')
-          .then(m => m.AdminDashboardComponent)
-      },
-      {
-        path: 'projects',
-        loadComponent: () => import('./features/admin/projects-list/projects-list.component')
-          .then(m => m.ProjectsListComponent)
-      },
-      {
-        path: 'users',
-        loadComponent: () => import('./features/admin/users-list/users-list.component')
-          .then(m => m.UsersListComponent)
-      },
-      {
-        path: 'panels',
-        loadComponent: () => import('./features/admin/panels/panels.component')
-          .then(m => m.PanelsComponent)
+        path: 'estimate',
+        loadComponent: () => import('./features/visitor/estimate/estimate.component')
+          .then(m => m.EstimateComponent)
       }
     ]
   },
