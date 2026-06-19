@@ -1,174 +1,289 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file is the canonical operating guide for any AI agent working in this repository. If another assistant, tool, or model touches this project, it should read and follow this file first.
+
+For human-facing project documentation, use `README.md`. For human contribution workflow, use `CONTRIBUTING.md`. This file translates those expectations into direct rules for AI-assisted development.
 
 ## Project Overview
 
-Solar Planner v2 — A thesis project that helps homeowners, farmers, and small businesses evaluate investing in solar panels. Prioritize agility and working solutions over over-engineering.
+Solar Planner v2 is a thesis project that helps homeowners, farmers, and small businesses evaluate solar panel investments. Prioritize working, maintainable solutions that can be explained clearly in an academic context.
 
-## Interactions
-For all of the prompts that result in adding new code successfully, fill in a markdown file [santi-agent-interactions.md](./santi-agent-interactions.md) that serves as registry of all of the progress made using an AI agent. Treat is as a blog, stating the date, topic, a summary of the prompt a summary of what was achieved, the full prompt, affected files and part of the reasoning made by the AI agent to fulfill the need requested. Add this the final step of every development 
+The stack is:
+
+- Frontend: Angular 21, standalone components, signals, lazy loading, OnPush.
+- Backend: Node.js, Express, TypeScript.
+- Database: MongoDB through Mongoose.
+- Auth: JWT access tokens and refresh tokens.
+- Validation: Zod at the HTTP boundary and Mongoose at the persistence layer.
+- UI: PrimeNG as the primary component library.
+
+## Core Agent Rules
+
+1. Read the relevant files before changing code. Do not guess from filenames alone.
+2. Plan before implementing. State affected files and the approach, then wait for user approval when the user has not already approved the work.
+3. Prefer existing project patterns over new abstractions.
+4. Keep changes focused on the user's request.
+5. Do not overwrite or revert user changes unless explicitly asked.
+6. Ask for clarification when missing context would make the change risky.
+7. Stop after 3 failed implementation or verification attempts and suggest a fresh prompt with the current findings.
+8. Update documentation when setup, scripts, environment variables, APIs, or workflows change.
+9. Add an entry to `santi-agent-interactions.md` after successful code or documentation changes.
+
+## AI Development Log
+
+For every prompt that successfully adds or changes code or project documentation, update `santi-agent-interactions.md` as the final development step.
+
+Treat the file as a lightweight development blog. Each entry should include:
+
+- date
+- topic
+- prompt summary
+- what was achieved
+- full prompt, when useful
+- affected files
+- relevant reasoning notes
+
+Keep entries concise but useful for a future evaluator, maintainer, or thesis review.
+
+## Local AI Skills
+
+The repository contains local skills under `.agents/skills/`.
+
+### `mongodb-tfg`
+
+Path: `.agents/skills/mongodb-tfg/SKILL.md`
+
+Use this skill whenever the task involves:
+
+- MongoDB schema design
+- Mongoose and TypeScript model decisions
+- embedding vs referencing
+- indexes and query performance
+- MongoDB Atlas migration
+- database decisions that need academic justification for a TFG
+
+The skill prioritizes conventional, well-documented MongoDB patterns that are feasible for a thesis project. Read the skill file before making MongoDB recommendations or changes.
 
 ## Commands
 
-### Root (run both services)
+### Root
+
 ```bash
-npm run install:all    # Install deps for client and server
-npm run start          # Run client + server concurrently
+npm run install:all    # Install client and server dependencies
+npm run start          # Run client and server concurrently
 npm run build          # Build both projects
+npm run test           # Run server and client tests
 npm run lint           # Lint both projects
 ```
 
-### Client (Angular — `client/`)
+### Client (`client/`)
+
 ```bash
-npm run dev            # ng serve at localhost:4200
-npm test               # Karma/Jasmine tests
+npm run dev            # Angular dev server at localhost:4200
+npm start              # Angular dev server using ng serve
+npm run build          # Build Angular app
+npm test               # Jest tests
+npm run test:watch     # Jest watch mode
 npm run typecheck      # TypeScript check only
 npm run lint           # ESLint
 npm run format         # Prettier
 ```
 
-### Server (Express — `server/`)
+### Server (`server/`)
+
 ```bash
 npm run dev            # ts-node dev server at localhost:1235
 npm run dev:watch      # nodemon with auto-restart
-npm test               # Vitest (headless)
+npm run build          # Compile TypeScript
+npm start              # Run compiled server
+npm test               # Vitest run
 npm run test:watch     # Vitest watch mode
 npm run test:coverage  # Coverage report
 npm run seed:panels    # Populate CEC panel catalog into MongoDB
+npm run check:relations # Check model/data relationships
 npm run lint           # ESLint
 npm run format         # Prettier
 ```
 
-### Running a single test file (server)
+Single server test file:
+
 ```bash
-cd server && npm test -- user.service.test.ts
+cd server
+npm test -- user.service.test.ts
 ```
 
 ## Architecture
 
-### Stack
-- **Frontend:** Angular 21 (standalone components, signals, lazy loading, OnPush)
-- **Backend:** Node.js + Express + TypeScript
-- **Database:** MongoDB via Mongoose ODM
-- **Auth:** JWT access tokens + refresh tokens, stored in localStorage
-- **Validation:** Zod at HTTP layer (Express) + Mongoose schema at DB layer
+### Client Structure
 
-### Client structure (`client/src/app/`)
-- `core/` — Singleton services (`auth`, `user`, `project`, `panel`, `file`), guards (`auth`, `admin`, `unsaved-changes`), and interceptors (`jwt`, `auth-refresh`, `api-response`)
-- `features/` — Lazy-loaded feature areas: `visitor/` (public pages), `user/` (dashboard), `admin/` (admin panel)
-- `layouts/` — Layout wrappers: `visitor-layout`, `user-layout`, `admin-layout`
-- `shared/` — Reusable components and widgets
-- `app.routes.ts` — Main routing with lazy loading per feature
-- `app.config.ts` — Angular providers + PrimeNG theme setup
+Client code lives in `client/src/app/`.
 
-Path aliases: `@app`, `@core`, `@shared`, `@features`, `@environments`
+- `core/`: singleton services, guards, interceptors, models, validators, and utilities.
+- `features/`: lazy-loaded feature areas: `visitor`, `user`, and `admin`.
+- `layouts/`: visitor, user, and admin layout wrappers.
+- `shared/`: reusable components and widgets.
+- `app.routes.ts`: main routing with lazy-loaded feature routes.
+- `app.config.ts`: Angular providers and PrimeNG theme setup.
 
-### Server structure (`server/src/`)
-- `routes/` → `controllers/` (thin) → `services/` (thick business logic) → `models/`
-- `schemas/` — Zod validation schemas (user, project, panel, cultivar)
-- `config/` — Database, JWT, email configuration
-- `middleware/` — Auth, CORS, validation, rate limiting, error handling
-- `data/` — Static data files: `capex-benchmarks-eu.ts` (CAPEX €/kWp for 10 EU countries), `albedo-presets.ts` (ground reflectance constants), `cec-panels-subset.json` (CEC module catalog), `seed-panels.ts` (seed script)
-- All API routes prefixed with `/api`
+Path aliases include `@app`, `@core`, `@shared`, `@features`, and `@environments`.
 
-### Auth flow
-- JWT attached via `jwt.interceptor` on every request
-- Token refresh handled by `auth-refresh.interceptor`
-- Mongoose User model has instance methods: `verifyPassword()`, `generateJwt()`, `generateRefreshToken()`
-- Route protection via `authGuard` and `adminGuard`
-- Auth middleware attaches `req.userId` and `req.userRole` (`'user' | 'admin'`) to all protected requests
+### Server Structure
 
-### Server utilities
-- **`asyncHandler(fn)`** — wraps every controller to forward async errors to Express error middleware; all controllers use it
-- **Response helpers** (`utils/response.ts`) — `success()`, `created()`, `noContent()`, `fail()`, `unauthorized()`, `forbidden()`, `notFound()`, `serverError()`; use these instead of `res.json()` directly
-- **`AppError`** — operational error class; throw `new AppError(statusCode, message)` in services; caught automatically by the central error middleware
-- **Validation middleware** — `validateBody(zodSchema)` and `validateQuery(zodSchema)` factories; applied in routes before controllers; return 400 with Zod error details on failure
+Server code lives in `server/src/`.
 
-### Key API routes
-All routes are under `/api`. Role annotations: `[public]` = no auth, `[user]` = auth required, `[admin]` = admin only.
+Use the existing layered flow:
+
+```text
+routes -> controllers -> services -> models
+```
+
+- `routes/`: route definitions and route-level middleware.
+- `controllers/`: thin HTTP handlers.
+- `services/`: business logic.
+- `models/`: Mongoose models.
+- `schemas/`: Zod validation schemas.
+- `config/`: database, JWT, and email configuration.
+- `middleware/`: auth, CORS, validation, rate limiting, and error handling.
+- `data/`: static data and seed inputs.
+- `utils/`: response helpers, async handler, logging utilities.
+
+All API routes are prefixed with `/api`.
+
+## Server Conventions
+
+- Keep controllers thin. Move business logic to services.
+- Wrap async controllers with `asyncHandler`.
+- Use response helpers from `server/src/utils/response.ts`.
+- Throw `AppError` for operational errors that should become HTTP responses.
+- Validate request bodies and query strings with Zod middleware.
+- Keep persistence validation in Mongoose schemas.
+- Use explicit TypeScript interfaces and types.
+- Protect ownership-sensitive operations in services or middleware.
+- Keep environment variables in `server/.env.example` when adding new config.
+
+## Angular Coding Standards
+
+- Always use `ChangeDetectionStrategy.OnPush` on components.
+- Use standalone components only. Do not add `standalone: true` in Angular 21 decorators.
+- Use `input()` and `output()` signal functions instead of `@Input()` and `@Output()`.
+- Use `inject()` instead of constructor injection.
+- Use native control flow: `@if`, `@for`, and `@switch`.
+- Do not use `*ngIf` or `*ngFor`.
+- Prefer `class` bindings over `ngClass`.
+- Prefer `style` bindings over `ngStyle`.
+- Do not use `@HostBinding` or `@HostListener`; use `host: {}` in the decorator.
+- Use `NgOptimizedImage` for static images.
+- Prefer Reactive Forms over template-driven forms.
+- Use `providedIn: 'root'` for singleton services.
+- Avoid `::ng-deep` unless no practical alternative exists.
+
+## UI Guidelines
+
+- Use PrimeNG for UI components by default.
+- Use Material Icons rather than PrimeNG Icons.
+- Use custom components only when PrimeNG lacks the component or when custom code clearly reduces complexity.
+- Keep screens consistent with the existing app style.
+- Build actual usable workflows, not marketing-style placeholders.
+- For frontend changes, verify that the UI works at the relevant viewport sizes when practical.
+
+## Data Model Notes
+
+```text
+User --< Project >-- Panel (optional)
+                `-- Cultivar (optional, agrivoltaic only)
+```
+
+- Projects store `prodToday`, `nextProd`, and `previousProd` as `IProductionPoint[]`.
+- Production arrays are refreshed by `SchedulerService`.
+- `ISystemLosses` stores inverter efficiency, wiring losses, soiling, mismatch, and related values.
+- Project economic fields include `installationCost`, `segment`, and `albedo`.
+- Project analytics include capacity factor, performance ratio, annual savings, payback, ROI, degradation-aware yearly savings, and installation cost source.
+
+## Production Calculation Rules
+
+Do not replace the existing physical models with flat constants.
+
+- Inverter efficiency uses a PVWatts V5-style curve in `calculateInverterEfficiency`.
+- Bifacial irradiance uses an isotropic sky view factor in `calculateEffectiveIrradiance`.
+- Monofacial behavior should remain the fallback when `bifacialityFactor = 0`.
+
+Any change to production math should include focused tests and a clear reasoning note.
+
+## Key API Routes
+
+All routes are under `/api`.
 
 | Method | Path | Role | Purpose |
-|--------|------|------|---------|
-| POST | `/auth/register` | public | Register (rate-limited) |
-| POST | `/auth/login` | public | Login (rate-limited) |
-| POST | `/auth/google` | public | Google OAuth |
-| POST | `/auth/refresh` | public | Refresh access token |
-| POST | `/auth/password/reset-request` | public | Send reset email |
-| POST | `/auth/password/reset` | public | Reset with token |
-| GET | `/users/me` | user | Current user profile |
-| PATCH | `/users/:id/profile` | user | Update profile |
-| PATCH | `/users/:id/password` | user | Change password |
-| GET | `/users` | admin | Paginated user list |
-| PATCH | `/users/:id/role` | admin | Promote/demote user |
-| DELETE | `/users/:id` | admin | Delete user (cascades projects) |
-| POST | `/projects/estimate` | public | One-off solar estimate (no save) |
-| POST | `/projects` | user | Create project |
-| GET | `/projects` | user | Paginated project list |
-| GET | `/projects/dashboard` | user | User dashboard stats |
-| GET | `/projects/:id` | user | Project details |
-| PUT | `/projects/:id` | user | Update project |
-| DELETE | `/projects/:id` | user | Delete project |
-| GET | `/projects/:id/sun-path` | user | Sunrise/sunset/noon altitude |
-| GET | `/projects/:id/plan` | user | Generate plan/report |
-| POST | `/projects/:id/config/optimal` | user | Calculate optimal panel config |
-| POST | `/projects/:id/refresh-production` | user | Force refresh from PVGIS/ENTSO-E |
-| GET | `/projects/:id/analytics` | user | Capacity factor, payback, ROI, annual savings |
-| GET | `/projects/admin/dashboard` | admin | Admin stats |
-| GET/POST/PUT/DELETE | `/panels` | user/admin | Panel CRUD |
-| GET/POST/PUT/DELETE | `/cultivars` | user/admin | Cultivar CRUD (agrivoltaic crops) |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | public | Register |
+| `POST` | `/auth/login` | public | Login |
+| `POST` | `/auth/google` | public | Google OAuth |
+| `POST` | `/auth/refresh` | public | Refresh access token |
+| `POST` | `/auth/password/reset-request` | public | Send reset email |
+| `POST` | `/auth/password/reset` | public | Reset with token |
+| `GET` | `/users/me` | user | Current user profile |
+| `PATCH` | `/users/:id/profile` | user | Update profile |
+| `PATCH` | `/users/:id/password` | user | Change password |
+| `GET` | `/users` | admin | Paginated user list |
+| `PATCH` | `/users/:id/role` | admin | Promote or demote user |
+| `DELETE` | `/users/:id` | admin | Delete user and cascade projects |
+| `POST` | `/projects/estimate` | public | One-off solar estimate |
+| `POST` | `/projects` | user | Create project |
+| `GET` | `/projects` | user | Paginated project list |
+| `GET` | `/projects/dashboard` | user | User dashboard stats |
+| `GET` | `/projects/:id` | user | Project details |
+| `PUT` | `/projects/:id` | user | Update project |
+| `DELETE` | `/projects/:id` | user | Delete project |
+| `GET` | `/projects/:id/sun-path` | user | Sunrise, sunset, noon altitude |
+| `GET` | `/projects/:id/plan` | user | Generate plan/report |
+| `POST` | `/projects/:id/config/optimal` | user | Calculate optimal panel config |
+| `POST` | `/projects/:id/refresh-production` | user | Force refresh from PVGIS/ENTSO-E |
+| `GET` | `/projects/:id/analytics` | user | Capacity factor, payback, ROI, annual savings |
+| `GET` | `/projects/admin/dashboard` | admin | Admin stats |
+| `GET/POST/PUT/DELETE` | `/panels` | user/admin | Panel CRUD |
+| `GET/POST/PUT/DELETE` | `/cultivars` | user/admin | Cultivar CRUD |
 
-### Data model relationships
-```
-User ──< Project >── Panel (optional)
-                └── Cultivar (optional, agrivoltaic only)
-```
-- Projects store `prodToday`, `nextProd`, `previousProd` as `IProductionPoint[]` (hourly kWh arrays) refreshed nightly by `SchedulerService` (node-schedule)
-- `ISystemLosses` subdocument on Project holds inverter efficiency, wiring losses, soiling, mismatch, etc.
-- `IProject` economic fields: `installationCost` (€ total, user-provided or benchmark-estimated), `segment` (`residential | commercial | utility | agrivoltaic`), `albedo` (ground reflectance [0-1], default 0.20 for grass)
-- `ProjectAnalytics` (returned by `GET /projects/:id/analytics`) includes `capacityFactor`, `performanceRatio`, `annualSavingsEur`, `paybackYears`, `roi25Years`, `annualSavingsPerYear` (25-year array with degradation), `installationCostUsed`, `installationCostSource` (`'user' | 'benchmark'`)
+## External APIs
 
-### External APIs
 | Service | Auth | Purpose |
-|---------|------|---------|
-| PVGIS | None (free) | Solar production estimates |
-| ENTSO-E | API key (`ENTSOE_API_KEY`) | Electricity prices by country |
-| Open-Meteo | None (free) | Weather/forecast data |
-| Google OAuth | Client ID in `environment.ts` | User authentication |
+| --- | --- | --- |
+| PVGIS | none | Solar production estimates |
+| Open-Meteo | none | Weather and forecast data |
+| ENTSO-E | `ENTSOE_API_KEY` | Electricity prices by country |
+| Google OAuth | client ID | User authentication |
 
-Environment variables template: `server/.env.example`
+Environment variables are documented in `server/.env.example` and `README.md`.
 
-### Background jobs
-`SchedulerService` runs nightly to refresh `prodToday`, `nextProd`, and `previousProd` for all projects. Refresh threshold controlled by `PRODUCTION_REFRESH_THRESHOLD_H` env var.
+## Testing Guidance
 
-### Production calculation models
-`production.service.ts` uses two physical models — do not replace with flat constants:
-- **Inverter efficiency** — PVWatts V5 curve (`calculateInverterEfficiency`): dynamic η based on DC load factor (ζ = P_dc / P_dc0); flat at `etaNom` only when clipping (ζ ≥ 1).
-- **Bifacial irradiance** — isotropic sky view factor (`calculateEffectiveIrradiance`): `G_eff = GTI + bifaciality × albedo × GHI × (1−cos(tilt))/2`; falls back to monofacial when `bifacialityFactor = 0`.
+Use the narrowest verification that gives confidence.
 
-## Angular Coding Standards (enforced)
+- Server service, schema, middleware, and production-math changes should usually include Vitest coverage.
+- Client guard, interceptor, service, and component behavior should use Jest tests where practical.
+- Run `npm run typecheck` for Angular type-sensitive changes.
+- Run root `npm run build`, `npm run test`, and `npm run lint` for broad or cross-cutting changes.
+- Documentation-only changes do not require build/test runs, but commands and links should be checked against the repo.
 
-- **Always** `ChangeDetectionStrategy.OnPush` on every component
-- **Standalone components only** — do NOT set `standalone: true` inside decorators (it's the default in Angular 21)
-- Use `input()` / `output()` signal functions, not `@Input()` / `@Output()` decorators
-- Use `inject()` function, not constructor injection
-- Native control flow: `@if`, `@for`, `@switch` — never `*ngIf`, `*ngFor`
-- `class` bindings instead of `ngClass`; `style` bindings instead of `ngStyle`
-- Do NOT use `@HostBinding` / `@HostListener` — use `host: {}` in the decorator instead
-- Use `NgOptimizedImage` for static images (not for inline base64)
-- Prefer Reactive Forms over Template-driven forms
-- `providedIn: 'root'` for all singleton services
-- Try not to use `@ngdeep` when possible since its **deprecated**.
+## Relationship With `CONTRIBUTING.md`
 
-## UI Libraries
+Use `CONTRIBUTING.md` as the human workflow reference. AI agents should also apply it, especially:
 
-- **Primary:** PrimeNG — use for all UI components
-  - Use Material Icons rather than PrimeNG Icons
-- **Fallback:** Custom components, only when PrimeNG lacks those components or when reduces complexity.
-- MCP server available for PrimeNG docs: use `mcp__primeng__*` tools for component documentation
+- keep changes focused
+- avoid secrets and local files
+- update docs when behavior changes
+- run relevant checks
+- follow PR checklist expectations even if no PR is being opened
 
-## Workflow Rules
+If `AGENTS.md` and `CONTRIBUTING.md` ever conflict, pause and ask the user which rule should be canonical, then update the docs to remove the conflict.
 
-1. **Plan first** — before implementing, state affected files and the approach; wait for approval
-2. **Stop after 3 failed iterations** — suggest opening a new chat with a ready-to-use prompt
-3. **Ask when context is missing** — do not guess or scan for the first apparent match
+## Final Checklist for Agents
+
+Before finishing a task, verify:
+
+- the requested change is actually complete
+- affected files are limited to the intended scope
+- user changes were not reverted
+- relevant tests, lint, typecheck, or build were run, or skipped with a clear reason
+- documentation was updated if needed
+- `santi-agent-interactions.md` has a new entry for successful code or documentation changes
+- the final response names changed files and verification performed
